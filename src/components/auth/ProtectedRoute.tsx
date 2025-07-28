@@ -10,8 +10,18 @@ const ProtectedRoute = React.memo(({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  console.log('[ProtectedRoute] 🛡️ Verificando acesso:', {
+    pathname: location.pathname,
+    hasUser: !!user,
+    loading,
+    userEmail: user?.email,
+    sessionExists: !!user,
+    timestamp: new Date().toISOString()
+  });
+
   // Se ainda estamos carregando, mostrar loading
   if (loading) {
+    console.log('[ProtectedRoute] ⏳ Carregando autenticação...');
     return (
       <div className="flex h-screen w-full items-center justify-center">
         {/* Fundo gradiente igual ao resto do app */}
@@ -28,6 +38,7 @@ const ProtectedRoute = React.memo(({ children }: ProtectedRouteProps) => {
         <div className="text-center relative z-10">
           <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-green-600 mx-auto mb-4"></div>
           <p className="text-gray-800 font-medium">Verificando autenticação...</p>
+          <p className="text-gray-600 text-sm mt-2">Aguarde um momento...</p>
         </div>
       </div>
     );
@@ -35,10 +46,16 @@ const ProtectedRoute = React.memo(({ children }: ProtectedRouteProps) => {
 
   // Se não há usuário autenticado, redirecionar para login
   if (!user) {
-    return <Navigate to="/login" replace />;
+    console.log('[ProtectedRoute] 🚫 Usuário não autenticado, redirecionando para login', {
+      currentPath: location.pathname,
+      loading,
+      userExists: !!user
+    });
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Se há usuário autenticado, renderizar o conteúdo da rota
+  console.log('[ProtectedRoute] ✅ Usuário autenticado, renderizando conteúdo');
   return <>{children}</>;
 });
 

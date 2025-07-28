@@ -128,8 +128,14 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
   // 🚀 SEMPRE: Hook de contatos (50 contatos)
   const contactsHook = useWhatsAppContacts(webActiveInstance?.id);
   
+  // ✅ CALLBACK PARA MOVER CONTATOS: Notificação vinda das mensagens
+  const handleContactUpdateFromMessages = useCallback((leadId: string, newMessage: any) => {
+    console.log('[Provider] 🔝 Recebendo notificação de nova mensagem para mover contato:', { leadId, newMessage });
+    contactsHook.moveContactToTop(leadId, newMessage);
+  }, []);
+
   // 🚀 SEMPRE: Hook de mensagens (mas só carrega quando selectedContact existe)
-  const messagesHook = useWhatsAppChatMessages(selectedContact, webActiveInstance);
+  const messagesHook = useWhatsAppChatMessages(selectedContact, webActiveInstance, handleContactUpdateFromMessages);
   
   // 🚀 SEMPRE: Hooks de realtime (mas só ativam quando necessário)
   const chatsRealtimeStats = useChatsRealtime({
@@ -165,8 +171,9 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
   });
 
   // Funções auxiliares
-  const moveContactToTop = useCallback((contactId: string) => {
-    contactsHook.refreshContacts();
+  const moveContactToTop = useCallback((contactId: string, newMessage?: any) => {
+    // ✅ CORREÇÃO: Usar função suave ao invés de refresh completo
+    contactsHook.moveContactToTop(contactId, newMessage);
   }, []);
 
   const markAsRead = useCallback(async (contactId: string) => {

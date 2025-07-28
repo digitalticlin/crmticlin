@@ -117,7 +117,11 @@ export const useMediaLoader = ({
       try {
         // 🚀 PRIORIDADE 0: Base64 da VPS DIRETO (INSTANTÂNEO)
         if (mediaUrl && mediaUrl.startsWith('data:')) {
-          console.log(`[MediaLoader] 🎯 BASE64 DA VPS DETECTADO! Renderização instantânea para ${messageId.substring(0, 8)}`);
+          console.log(`[MediaLoader] 🎯 BASE64 DETECTADO! para ${messageId.substring(0, 8)}:`, {
+            url: mediaUrl.substring(0, 80) + '...',
+            isOptimistic: messageId.includes('temp_'),
+            mediaType
+          });
           
           // ✅ VALIDAÇÃO MELHORADA PARA BASE64 DA VPS
           const base64Match = mediaUrl.match(/data:([^;]+);base64,(.+)/);
@@ -126,12 +130,23 @@ export const useMediaLoader = ({
             
             // Base64 da VPS é sempre válido - não fazer validações demoradas
             if (base64Data && base64Data.length > 50) {
-              console.log(`[MediaLoader] ✅ Base64 VPS válido (${(base64Data.length / 1024).toFixed(1)}KB) - ${mimeType}`);
+              console.log(`[MediaLoader] ✅ Base64 válido (${(base64Data.length / 1024).toFixed(1)}KB) - MIME: ${mimeType} - Tipo: ${mediaType}`);
               setFinalUrl(mediaUrl);
               setCachedUrl(messageId, mediaUrl);
               setIsLoading(false);
               return;
+            } else {
+              console.warn(`[MediaLoader] ⚠️ Base64 muito pequeno ou inválido:`, {
+                mimeType,
+                dataLength: base64Data?.length || 0,
+                messageId: messageId.substring(0, 8)
+              });
             }
+          } else {
+            console.error(`[MediaLoader] ❌ Formato data URL inválido:`, {
+              url: mediaUrl.substring(0, 100),
+              messageId: messageId.substring(0, 8)
+            });
           }
         }
 

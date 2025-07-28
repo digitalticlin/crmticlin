@@ -24,7 +24,8 @@ export const useMessagesRealtime = (
   onMessageInsert?: (message: Message) => void,
   onMessageUpdate?: (message: Message, rawMessage?: any) => void,
   currentMessages?: Message[],  // ✅ NOVO: receber mensagens atuais como prop
-  onReplaceOptimisticMessage?: (optimisticId: string, realMessage: Message) => void  // ✅ NOVO: callback para substituir mensagens otimistas
+  onReplaceOptimisticMessage?: (optimisticId: string, realMessage: Message) => void,  // ✅ NOVO: callback para substituir mensagens otimistas
+  onContactUpdate?: (leadId: string, newMessage: any) => void  // ✅ NOVO: callback para notificar contatos
 ) => {
   
   // 🔧 REFS PARA GERENCIAMENTO DE ESTADO
@@ -65,24 +66,89 @@ export const useMessagesRealtime = (
     processedMessagesRef.current.clear();
   }, []);
 
-  // 💬 CONVERTER PAYLOAD PARA FORMATO MESSAGE
-  const convertToMessage = useCallback((messageData: any): Message => {
+  // 💬 CONVERTER PAYLOAD PARA FORMATO MESSAGE COM MÍDIA COMPLETA
+  const convertToMessage = useCallback(async (messageData: any): Promise<Message> => {
+    // 🎯 BUSCAR media_cache SE NÃO VIER NO PAYLOAD
+    let mediaCache = messageData.media_cache;
+    
+    // Se é mensagem de mídia mas não tem cache no payload, buscar
+    if (messageData.media_type && messageData.media_type !== 'text' && !mediaCache) {
+      console.log('[Messages Realtime - AREA] 🔍 Buscando media_cache para mensagem:', messageData.id);
+      
+      try {
+                 // ✅ CORREÇÃO: Buscar media_cache diretamente para evitar erro 400
+         const { data: mediaCacheData } = await supabase
+           .from('media_cache')
+           .select(`
+             id,
+             base64_data,
+             original_url,
+             cached_url,
+             file_size,
+             media_type,
+             file_name
+           `)
+           .eq('message_id', messageData.id)
+           .maybeSingle();
+          
+        const fullMessage = mediaCacheData ? { media_cache: [mediaCacheData] } : null;
+          
+        if (fullMessage?.media_cache?.[0]) {
+          mediaCache = fullMessage.media_cache[0];
+          console.log('[Messages Realtime - AREA] ✅ Media cache encontrado:', {
+            cacheId: mediaCache.id,
+            mediaType: mediaCache.media_type,
+            hasBase64: !!mediaCache.base64_data
+          });
+        }
+      } catch (error) {
+        console.error('[Messages Realtime - AREA] ❌ Erro buscando media_cache:', error);
+      }
+    }
+
+    // 🎯 CRIAR DATA URL PARA MÍDIA SE DISPONÍVEL
+    let mediaUrl = messageData.media_url;
+    if (!mediaUrl && mediaCache?.base64_data) {
+      // ✅ USAR FALLBACK INTELIGENTE BASEADO NO MEDIA_TYPE
+      const fallbackMimeTypes = {
+        'image': 'image/jpeg',
+        'audio': 'audio/ogg', 
+        'video': 'video/mp4',
+        'document': 'application/pdf'
+      };
+      const mimeType = fallbackMimeTypes[mediaCache.media_type as keyof typeof fallbackMimeTypes] || 'application/octet-stream';
+      console.log('[Messages Realtime - AREA] ✅ Usando MIME type baseado em media_type:', mimeType);
+      
+      mediaUrl = `data:${mimeType};base64,${mediaCache.base64_data}`;
+      console.log('[Messages Realtime - AREA] ✅ Data URL criada:', {
+        mediaType: mediaCache.media_type,
+        usedMimeType: mimeType,
+        dataUrlPrefix: mediaUrl.substring(0, 50) + '...'
+      });
+    }
+
     return {
       id: messageData.id,
       text: messageData.text || messageData.body || '',
       sender: messageData.from_me ? 'user' : 'contact',
-      time: new Date(messageData.created_at || messageData.timestamp).toLocaleTimeString(),
+      time: new Date(messageData.created_at || messageData.timestamp).toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
       fromMe: messageData.from_me || false,
       timestamp: messageData.created_at || messageData.timestamp,
       status: messageData.status || 'sent',
-      mediaType: messageData.media_type || 'text',
-      mediaUrl: messageData.media_url,
+      mediaType: (messageData.media_type as any) || 'text',
+      mediaUrl: mediaUrl,
+      media_cache: mediaCache || null,
+      hasMediaCache: !!mediaCache,
+      mediaCacheId: mediaCache?.id,
       isIncoming: !messageData.from_me
     };
   }, []);
 
   // 📨 HANDLER PARA NOVAS MENSAGENS
-  const handleNewMessage = useCallback((payload: any) => {
+  const handleNewMessage = useCallback(async (payload: any) => {
     try {
       const newMessage = payload.new;
       
@@ -100,18 +166,23 @@ export const useMessagesRealtime = (
         return;
       }
 
-      // 🎯 ISOLAMENTO: Filtrar APENAS mensagens do contato selecionado
-      // Este hook é específico para a área de mensagens, NÃO mexe com lista de contatos
+      // 🎯 FILTRO RELAXADO: Aceitar mensagens do contato selecionado OU mensagens recebidas
       const isForSelectedContact = selectedContact && newMessage?.lead_id === selectedContact.id;
-      
-      // ✅ CORREÇÃO: Se não há lead_id, pode ser mensagem sendo processada
-      // Verificar se é mensagem enviada pelo frontend (import_source)
+      const isIncomingMessage = !newMessage?.from_me; // Mensagem recebida (não enviada pelo usuário)
       const isSentByFrontend = newMessage?.import_source === 'messaging_service' || 
                                newMessage?.import_source === 'messaging_service_isolated';
       
-      if (!isForSelectedContact && !isSentByFrontend) {
-        console.log('[Messages Realtime - AREA] ℹ️ Mensagem de outro contato - ignorando (não é responsabilidade desta área)');
-        // 🎯 ISOLAMENTO: Este hook SÓ cuida da área de mensagens atual
+      // ✅ PERMITIR: Mensagens do contato atual OU mensagens recebidas OU enviadas pelo frontend
+      const shouldProcess = isForSelectedContact || isIncomingMessage || isSentByFrontend;
+      
+      if (!shouldProcess) {
+        console.log('[Messages Realtime - AREA] ℹ️ Mensagem filtrada:', {
+          isForSelectedContact,
+          isIncomingMessage,
+          isSentByFrontend,
+          leadId: newMessage?.lead_id,
+          selectedContactId: selectedContact?.id
+        });
         return;
       }
 
@@ -133,22 +204,33 @@ export const useMessagesRealtime = (
       });
 
       // 🚀 DETECÇÃO DE MENSAGEM OTIMISTA - EVITAR DUPLICAÇÃO
-      // Se é uma mensagem enviada pelo frontend, SEMPRE tentar substituir otimística
-      if (newMessage.from_me && (newMessage.import_source === 'messaging_service' || newMessage.import_source === 'messaging_service_isolated')) {
-        console.log('[Messages Realtime - AREA] 🔍 Detectada confirmação da VPS - verificando duplicação');
+      // Para QUALQUER mensagem enviada pelo usuário (from_me = true)
+      if (newMessage.from_me) {
+        console.log('[Messages Realtime - AREA] 🔍 Mensagem enviada pelo usuário - verificando duplicação otimista');
         
-        // 🎯 BUSCA MAIS ABRANGENTE: Por texto, timing ou status otimista
+        // 🎯 BUSCA MAIS ROBUSTA: Por texto OU mídia E características otimistas
         const optimisticMessages = (currentMessages || []).filter(m => {
-          // Buscar por texto exato
-          const sameText = m.text === newMessage.text;
+          // Para MÍDIA: buscar por tipo + timing (texto pode ser diferente)
+          const isMediaMessage = newMessage.media_type && newMessage.media_type !== 'text';
+          const sameMediaType = isMediaMessage && m.mediaType === newMessage.media_type;
           
-          // Buscar por status otimista/temporário
-          const isOptimisticStatus = m.isOptimistic || m.status === 'sending' || m.id?.startsWith('temp_');
+          // Para TEXTO: buscar por texto exato OU similar
+          const sameText = !isMediaMessage && (
+            m.text === newMessage.text || 
+            (m.text && newMessage.text && m.text.trim() === newMessage.text.trim())
+          );
           
-          // Buscar por timing próximo (últimos 30 segundos)
-          const isRecent = m.timestamp && (Date.now() - new Date(m.timestamp).getTime()) < 30000;
+          // Buscar por status otimista/temporário OU fromMe = true E timing recente
+          const isOptimisticStatus = m.isOptimistic || 
+                                   m.status === 'sending' || 
+                                   m.id?.startsWith('temp_') ||
+                                   (m.fromMe && m.status !== 'delivered' && m.status !== 'read');
           
-          return sameText && isOptimisticStatus && isRecent;
+          // Buscar por timing próximo (últimos 60 segundos - mais tempo)
+          const isRecent = m.timestamp && (Date.now() - new Date(m.timestamp).getTime()) < 60000;
+          
+          // ✅ MATCH: (texto OU mídia) + otimista + recente
+          return (sameText || sameMediaType) && isOptimisticStatus && isRecent;
         });
 
         if (optimisticMessages.length > 0) {
@@ -156,77 +238,56 @@ export const useMessagesRealtime = (
           console.log('[Messages Realtime - AREA] 🔄 SUBSTITUINDO mensagem otimista por confirmação da VPS:', {
             optimisticId: optimisticMessage.id,
             realId: newMessage.id,
-            text: newMessage.text?.substring(0, 30)
-          });
-
-          // ✅ CRIAR MENSAGEM REAL COMPLETA
-          const replacementMessage = {
-            id: newMessage.id,
-            text: newMessage.text || optimisticMessage.text,
-            fromMe: true,
-            sender: 'user' as const,
-            time: new Date(newMessage.created_at || new Date()).toLocaleTimeString('pt-BR', {
-              hour: '2-digit',
-              minute: '2-digit'
-            }),
-            timestamp: newMessage.created_at || optimisticMessage.timestamp,
-            status: 'sent' as const,
-            isIncoming: false,
-            mediaType: (newMessage.media_type as any) || optimisticMessage.mediaType || 'text',
-            mediaUrl: newMessage.media_url || optimisticMessage.mediaUrl,
-            media_cache: newMessage.media_cache || null,
-            isOptimistic: false // ✅ NÃO é mais otimística
-          };
-
-          // ✅ SEMPRE SUBSTITUIR - NUNCA DUPLICAR
-          if (onReplaceOptimisticMessage) {
-            onReplaceOptimisticMessage(optimisticMessage.id, replacementMessage);
-            console.log('[Messages Realtime - AREA] ✅ Mensagem otimista SUBSTITUÍDA com sucesso');
-            return; // ✅ IMPORTANTE: Sair aqui para evitar criação dupla
-          }
-        } else {
-          console.log('[Messages Realtime - AREA] ⚠️ Mensagem da VPS mas não encontrou otimística correspondente:', {
             text: newMessage.text?.substring(0, 30),
-            currentMessagesCount: currentMessages?.length || 0,
-            hasOptimistic: (currentMessages || []).some(m => m.isOptimistic || m.id?.startsWith('temp_'))
+            mediaType: newMessage.media_type,
+            optimisticMediaUrl: optimisticMessage.mediaUrl?.substring(0, 50) + '...',
+            vpsHasMediaCache: !!(newMessage.media_cache || (newMessage.media_url && newMessage.media_url.startsWith('data:')))
+          });
+        } else {
+          console.log('[Messages Realtime - AREA] ⚠️ NENHUMA mensagem otimista encontrada para substituir - nova mensagem será criada:', {
+            realId: newMessage.id,
+            text: newMessage.text?.substring(0, 30),
+            mediaType: newMessage.media_type,
+            isMedia: !!(newMessage.media_type && newMessage.media_type !== 'text'),
+            totalCurrentMessages: currentMessages?.length || 0,
+            optimisticCount: (currentMessages || []).filter(m => m.isOptimistic || m.id?.startsWith('temp_')).length
           });
         }
       }
 
-      // ✅ VERIFICAR SE NÃO É DUPLICATA DE MENSAGEM JÁ EXISTENTE
-      const existingMessage = (currentMessages || []).find(m => 
-        m.id === newMessage.id || 
-        (m.text === newMessage.text && m.fromMe === newMessage.from_me && 
-         Math.abs(new Date(m.timestamp).getTime() - new Date(newMessage.created_at).getTime()) < 5000)
-      );
+      // ✅ VERIFICAÇÃO ROBUSTA: Evitar QUALQUER duplicata
+      const existingMessage = (currentMessages || []).find(m => {
+        // Verificar por ID exato
+        if (m.id === newMessage.id) return true;
+        
+        // Verificar por conteúdo similar E timing próximo
+        const sameContent = m.text === newMessage.text || 
+                           (m.text && newMessage.text && m.text.trim() === newMessage.text.trim());
+        const sameDirection = m.fromMe === newMessage.from_me;
+        const isRecent = m.timestamp && newMessage.created_at && 
+                        Math.abs(new Date(m.timestamp).getTime() - new Date(newMessage.created_at).getTime()) < 10000; // 10 segundos
+        
+        return sameContent && sameDirection && isRecent;
+      });
 
       if (existingMessage) {
-        console.log('[Messages Realtime - AREA] 🚫 Mensagem já existe - ignorando duplicata:', {
+        console.log('[Messages Realtime - AREA] 🚫 DUPLICATA DETECTADA - ignorando:', {
           existingId: existingMessage.id,
+          existingTimestamp: existingMessage.timestamp,
           newId: newMessage.id,
+          newTimestamp: newMessage.created_at,
           text: newMessage.text?.substring(0, 30)
         });
         return;
       }
 
-      // ✅ CONVERTER MENSAGEM PARA FORMATO DA UI
+      // ✅ USAR MAPPER OFICIAL PARA GARANTIR CONVERSÃO CORRETA DE MÍDIA
+      // O realtime payload pode não incluir media_cache, então usar o mapper que busca
+      const message = await convertToMessage(newMessage);
+
+      // ✅ GARANTIR COMPATIBILIDADE ADICIONAL
       const messageForUI = {
-        id: newMessage.id,
-        text: newMessage.text || '',
-        fromMe: newMessage.from_me || false,
-        sender: newMessage.from_me ? 'user' as const : 'contact' as const,
-        time: new Date(newMessage.created_at || new Date()).toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        timestamp: newMessage.created_at,
-        status: newMessage.status as any || 'sent',
-        isIncoming: !newMessage.from_me,
-        mediaType: newMessage.media_type as any || 'text',
-        mediaUrl: newMessage.media_url || undefined,
-        media_cache: newMessage.media_cache || null,
-        hasMediaCache: !!newMessage.media_cache,
-        mediaCacheId: newMessage.media_cache?.id || undefined,
+        ...message,
         isOptimistic: false // ✅ Mensagem real da VPS
       };
       
@@ -242,9 +303,6 @@ export const useMessagesRealtime = (
 
       statsRef.current.totalEvents++;
       statsRef.current.lastUpdate = Date.now();
-
-      // Converter para formato Message
-      const message = convertToMessage(newMessage);
 
       console.log('[Messages Realtime] ✅ Processando nova mensagem:', {
         messageId: message.id,
@@ -271,6 +329,12 @@ export const useMessagesRealtime = (
           onMessageUpdate(message);
         }
 
+        // 🔝 NOTIFICAR CONTATOS: Mover contato para topo (responsabilidade única)
+        if (onContactUpdate && newMessage?.lead_id) {
+          console.log('[Messages Realtime] 🔝 Notificando contatos para mover para topo:', newMessage.lead_id);
+          onContactUpdate(newMessage.lead_id, newMessage);
+        }
+
         throttleTimerRef.current = null;
       }, 25); // 25ms para ultra responsividade em tempo real
 
@@ -281,7 +345,7 @@ export const useMessagesRealtime = (
   }, [selectedContact, activeInstance, convertToMessage, onMessageUpdate]);
 
   // 🔄 HANDLER PARA ATUALIZAÇÕES DE MENSAGENS
-  const handleMessageUpdate = useCallback((payload: any) => {
+  const handleMessageUpdate = useCallback(async (payload: any) => {
     try {
       const updatedMessage = payload.new;
       
@@ -311,7 +375,7 @@ export const useMessagesRealtime = (
       statsRef.current.lastUpdate = Date.now();
 
       // Converter para formato Message
-      const message = convertToMessage(updatedMessage);
+      const message = await convertToMessage(updatedMessage);
 
       console.log('[Messages Realtime] ✅ Processando atualização de mensagem:', {
         messageId: message.id,

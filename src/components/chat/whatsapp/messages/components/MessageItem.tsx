@@ -22,7 +22,7 @@ export const MessageItem = memo(({
            message.mediaType !== 'text' && 
            ['image', 'video', 'audio', 'document'].includes(message.mediaType) &&
            (message.mediaUrl || message.media_cache);
-  }, [message.mediaType, message.mediaUrl, message.media_cache]);
+  }, [message.mediaType, message.mediaUrl, !!message.media_cache]);
 
   // Renderizar ícone de status como no WhatsApp
   const renderStatusIcon = useMemo(() => {
@@ -53,10 +53,11 @@ export const MessageItem = memo(({
             messageId={message.id}
             mediaType={message.mediaType as 'image' | 'video' | 'audio' | 'document'}
             mediaUrl={message.mediaUrl}
-            fileName={message.text || undefined}
+            fileName={message.mediaType === 'document' ? (message.text || undefined) : undefined}  // ✅ Só documento tem fileName
             mediaCache={message.media_cache}
           />
           {message.text && 
+           message.mediaType === 'document' &&  // ✅ Só mostrar texto para documentos
            !['[Mensagem de mídia]', '[Áudio]', '[Imagem]', '[Vídeo]', '[Documento]'].includes(message.text) && (
             <p className={cn(
               "text-sm leading-relaxed whitespace-pre-wrap break-words",
@@ -82,7 +83,7 @@ export const MessageItem = memo(({
         )}
       </div>
     );
-  }, [message.id, message.mediaType, message.mediaUrl, message.text, isFromMe, isRealMedia, message.media_cache]);
+  }, [message.id, message.mediaType, message.mediaUrl, message.text, isFromMe, isRealMedia, message.media_cache?.id]);
 
   return (
     <div className={cn(
@@ -109,6 +110,50 @@ export const MessageItem = memo(({
       </div>
     </div>
   );
+}, (prevProps, nextProps) => {
+  // ✅ COMPARAÇÃO OTIMIZADA: Só re-renderizar se realmente algo visual mudou
+  const prev = prevProps.message;
+  const next = nextProps.message;
+  
+  // Se é a mesma mensagem por ID e o status é o mesmo, não re-renderizar
+  const sameId = prev.id === next.id;
+  const sameStatus = prev.status === next.status;
+  const sameText = prev.text === next.text;
+  const sameMediaUrl = prev.mediaUrl === next.mediaUrl;
+  const sameMediaType = prev.mediaType === next.mediaType;
+  const sameCacheId = prev.media_cache?.id === next.media_cache?.id;
+  const sameNewMessage = prevProps.isNewMessage === nextProps.isNewMessage;
+  
+  // ✅ DEBUG: Verificar TODAS as propriedades que podem estar mudando
+  const sameTimestamp = prev.timestamp === next.timestamp;
+  const sameTime = prev.time === next.time;
+  const sameSender = prev.sender === next.sender;
+  const sameFromMe = prev.fromMe === next.fromMe;
+  const sameIsIncoming = prev.isIncoming === next.isIncoming;
+  const sameIsOptimistic = prev.isOptimistic === next.isOptimistic;
+  
+  const shouldSkipRender = sameId && sameStatus && sameText && sameMediaUrl && sameMediaType && sameCacheId && sameNewMessage && sameTimestamp && sameTime && sameSender && sameFromMe && sameIsIncoming && sameIsOptimistic;
+  
+  if (shouldSkipRender) {
+    console.log('[MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para:', prev.id.substring(0, 8));
+    return true; // ✅ PULAR re-render
+  } else {
+    console.log('[MessageItem] 🔄 Re-renderizando devido a mudanças:', {
+      id: prev.id.substring(0, 8),
+      statusChanged: !sameStatus,
+      textChanged: !sameText,
+      mediaChanged: !sameMediaUrl || !sameMediaType,
+      cacheChanged: !sameCacheId,
+      timestampChanged: !sameTimestamp,
+      timeChanged: !sameTime,
+      senderChanged: !sameSender,
+      fromMeChanged: !sameFromMe,
+      isIncomingChanged: !sameIsIncoming,
+      isOptimisticChanged: !sameIsOptimistic,
+      newMessageChanged: !sameNewMessage
+    });
+    return false; // ✅ PERMITIR re-render
+  }
 });
 
 MessageItem.displayName = 'MessageItem';

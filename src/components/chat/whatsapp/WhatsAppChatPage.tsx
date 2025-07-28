@@ -48,15 +48,15 @@ const WhatsAppChatLoadingState = () => {
 
       <ResponsiveSidebar />
       
-      <main className={cn(
-        "fixed top-0 right-0 bottom-0 z-10 overflow-auto transition-all duration-300",
-        isMobile 
-          ? "left-0 pt-14" 
-          : isCollapsed 
-            ? "left-[80px]" 
-            : "left-[250px]"
-      )}>
-        <div className="flex h-full items-center justify-center">
+             <main className={cn(
+         "fixed top-0 right-0 bottom-0 z-10 overflow-auto transition-all duration-300",
+         isMobile 
+           ? "left-0 pt-14" 
+           : isCollapsed 
+             ? "left-[64px]" 
+             : "left-[200px]"
+       )}>
+        <div className="main-content-scale flex h-full items-center justify-center">
           <div className="text-center">
             <LoadingSpinner size="lg" />
             <p className="mt-4 text-gray-800">Carregando...</p>
@@ -94,17 +94,17 @@ const WhatsAppChatMainContent = () => {
 
       <ResponsiveSidebar />
       
-      <main className={cn(
-        "fixed top-0 right-0 bottom-0 z-20 overflow-hidden transition-all duration-300",
-        isMobile 
-          ? "left-0 pt-14" 
-          : isCollapsed 
-            ? "left-[80px]" 
-            : "left-[250px]"
-      )}>
+             <main className={cn(
+         "fixed top-0 right-0 bottom-0 z-20 overflow-hidden transition-all duration-300",
+         isMobile 
+           ? "left-0 pt-14" 
+           : isCollapsed 
+             ? "left-[64px]" 
+             : "left-[200px]"
+       )}>
         {/* Container com padding igual ao Dashboard */}
         <div className={cn(
-          "p-4 md:p-6 h-full",
+          "main-content-scale p-4 md:p-6 h-full",
           isMobile && "pt-6"
         )}>
           <WhatsAppChatTabs />

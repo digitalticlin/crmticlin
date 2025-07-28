@@ -177,7 +177,7 @@ export default function ResponsiveSidebar() {
   return (
     <div
       className={cn(
-        "fixed top-0 left-0 bottom-0 z-30 flex-col transition-all duration-300 border-r bg-white/25 backdrop-blur-lg border-white/30 hidden md:flex",
+        "main-content-scale fixed top-0 left-0 bottom-0 z-30 flex-col transition-all duration-300 border-r bg-white/25 backdrop-blur-lg border-white/30 hidden md:flex",
         isCollapsed ? "w-[80px]" : "w-[250px]"
       )}
     >

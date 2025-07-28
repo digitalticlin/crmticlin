@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface AuthContextType {
   user: User | null;
@@ -32,46 +32,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    // Listen for auth changes first
+    console.log('[Auth] 🔄 Configurando auth...');
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('[Auth] Estado mudou:', event, session?.user?.email);
+        console.log('[Auth] 📡', event, session?.user?.email);
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-
-        // Redirect on successful authentication ONLY for actual login, not page refresh
-        if (event === 'SIGNED_IN' && session?.user) {
-          console.log('[Auth] Usuário logado, verificando se precisa redirecionar...');
-          
-          // 🚀 CORREÇÃO: Só redirecionar se estivermos em página de auth ou raiz
-          const currentPath = window.location.pathname;
-          const isAuthPage = currentPath === '/login' || currentPath === '/register' || currentPath === '/';
-          
-          if (isAuthPage) {
-            console.log('[Auth] Redirecionando para dashboard - estava em página de auth');
-            navigate('/dashboard', { replace: true });
-          } else {
-            console.log('[Auth] Usuário já estava em página protegida, mantendo localização:', currentPath);
-            // Não redirecionar - usuário pode estar trabalhando em outra página
-          }
+        setIsInitialized(true);
+        
+        // 🎯 CHAVE: Só redirecionar em SIGNED_IN/SIGNED_OUT, nunca em INITIAL_SESSION
+        if (event === 'SIGNED_IN' && window.location.pathname.includes('/login')) {
+          const from = (location.state as any)?.from?.pathname;
+          const redirectTo = from && from !== '/login' && from !== '/register' ? from : '/dashboard';
+          console.log('[Auth] ➡️ Redirecionando para:', redirectTo);
+          navigate(redirectTo, { replace: true });
+        } else if (event === 'SIGNED_OUT') {
+          console.log('[Auth] ➡️ Logout - indo para login');
+          navigate('/login', { replace: true });
         }
+        // Para INITIAL_SESSION: não faz nada, mantém onde está
       }
     );
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('[Auth] Sessão inicial:', session?.user?.email);
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, location.state]);
 
   const signIn = async (email: string, password: string) => {
     try {

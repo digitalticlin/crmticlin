@@ -6,8 +6,8 @@ import { PlayIcon, VideoIcon, Loader2, RefreshCw } from 'lucide-react';
 interface VideoMessageProps {
   messageId: string;
   url: string;
-  caption: string;
-  isIncoming: boolean;
+  caption?: string; // ✅ OPCIONAL ao invés de obrigatório
+  isIncoming?: boolean;
   isLoading?: boolean;
 }
 
@@ -89,9 +89,7 @@ export const VideoMessage = React.memo(({
             )}
           </div>
         </div>
-        {caption && caption !== '[Vídeo]' && caption !== '[Mensagem não suportada]' && (
-          <p className="break-words leading-relaxed whitespace-pre-wrap text-sm">{caption}</p>
-        )}
+        {/* Caption removido - apenas vídeo sem descrição */}
       </div>
     );
   }
@@ -150,10 +148,7 @@ export const VideoMessage = React.memo(({
         </div>
       </div>
       
-      {/* Caption */}
-      {caption && caption !== '[Vídeo]' && caption !== '[Mensagem não suportada]' && (
-        <p className="break-words leading-relaxed whitespace-pre-wrap text-sm">{caption}</p>
-      )}
+      {/* Caption removido - apenas vídeo sem descrição */}
     </div>
   );
 });

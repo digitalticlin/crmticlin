@@ -1,12 +1,12 @@
 
 import React, { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { ImageIcon, RefreshCw, ZoomIn } from 'lucide-react';
+import { ImageIcon, RefreshCw, ZoomIn, X } from 'lucide-react';
 
 interface ImageMessageProps {
   messageId: string;
   url: string;
-  caption?: string;
+  caption?: string; // ✅ OPCIONAL
   isIncoming?: boolean;
   isLoading?: boolean;
 }
@@ -39,12 +39,27 @@ export const ImageMessage = React.memo(({
       url: url?.substring(0, 80) + '...',
       naturalWidth: target.naturalWidth,
       naturalHeight: target.naturalHeight,
-      retryCount
+      retryCount,
+      // ✅ DEBUG ESPECÍFICO PARA JPEG
+      isJPEG: url?.includes('image/jpeg'),
+      isPNG: url?.includes('image/png'),
+      startsWithData: url?.startsWith('data:'),
+      mimeType: url?.match(/data:([^;]+);base64/)?.[1] || 'unknown'
     };
     
     // ✅ MELHOR TRATAMENTO: Log mais detalhado apenas em desenvolvimento
     if (process.env.NODE_ENV === 'development') {
       console.error(`[ImageMessage] ❌ Erro ao carregar imagem:`, errorDetails);
+      
+      // ✅ LOG EXTRA PARA JPEG
+      if (errorDetails.isJPEG) {
+        console.error(`[ImageMessage] 🔍 JPEG ERROR DETAILS:`, {
+          fullUrl: url,
+          messageId,
+          hasRetryParams: url?.includes('?retry='),
+          isOptimistic: messageId?.includes('temp_')
+        });
+      }
     }
     
     setImageError(true);
@@ -162,7 +177,7 @@ export const ImageMessage = React.memo(({
           
           {/* Imagem principal */}
           <img 
-            src={retryCount > 0 ? `${url}?retry=${retryCount}&t=${Date.now()}` : url}
+            src={url.startsWith('data:') ? url : (retryCount > 0 ? `${url}?retry=${retryCount}&t=${Date.now()}` : url)}
             alt="Imagem compartilhada"
             className={cn(
               "max-w-full h-auto rounded-lg object-cover transition-opacity duration-300",

@@ -7,6 +7,7 @@ interface DocumentMessageProps {
   messageId: string;
   url: string;
   filename: string;
+  caption?: string;
   isIncoming: boolean;
   isLoading?: boolean;
 }
@@ -15,12 +16,14 @@ export const DocumentMessage = React.memo(({
   messageId, 
   url, 
   filename, 
+  caption,
   isIncoming, 
   isLoading = false 
 }: DocumentMessageProps) => {
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [downloadError, setDownloadError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [isDownloaded, setIsDownloaded] = useState(false); // ✅ NOVO: Estado de arquivo baixado
 
   const getCleanFilename = useCallback((filename: string) => {
     // ✅ FILTRAR LEGENDAS DESNECESSÁRIAS
@@ -131,68 +134,55 @@ export const DocumentMessage = React.memo(({
     try {
       console.log(`[DocumentMessage] 📥 Iniciando download: ${messageId}`);
       
-      // Para base64, criar blob e download direto
+      // ✅ DOWNLOAD REAL - Base64
       if (url.startsWith('data:')) {
         const link = document.createElement('a');
         link.href = url;
         link.download = cleanFilename;
+        // ❌ REMOVIDO: link.target = '_blank' (não abrir online)
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        console.log(`[DocumentMessage] ✅ Download base64 iniciado: ${messageId}`);
+        
+        // ✅ Marcar como baixado
+        setIsDownloaded(true);
+        console.log(`[DocumentMessage] ✅ Download base64 concluído: ${messageId}`);
         return;
       }
 
-      // Para URLs normais, verificar se existem primeiro
-      const response = await fetch(url, { method: 'HEAD' });
+      // ✅ DOWNLOAD REAL - URLs externas
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Arquivo não encontrado (${response.status})`);
       }
 
-             const link = document.createElement('a');
-       link.href = url;
-       link.download = cleanFilename; // ✅ RESTAURAR download para função de baixar
-       link.target = '_blank';
-       link.rel = 'noopener noreferrer';
+      // Baixar como blob para garantir download local
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
       
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = cleanFilename;
+      // ❌ REMOVIDO: link.target = '_blank' (não abrir online)
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      console.log(`[DocumentMessage] ✅ Download iniciado: ${messageId}`);
+      // Limpar URL temporária
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      // ✅ Marcar como baixado
+      setIsDownloaded(true);
+      console.log(`[DocumentMessage] ✅ Download concluído: ${messageId}`);
     } catch (error) {
       console.error(`[DocumentMessage] ❌ Erro no download: ${messageId}`, error);
       setDownloadError(true);
     } finally {
       setDownloadLoading(false);
     }
-  }, [url, cleanFilename, messageId, downloadLoading]);
+    }, [url, cleanFilename, messageId, downloadLoading]);
 
-     const handlePreview = useCallback(async () => {
-     if (!url) return;
-     
-     try {
-       console.log(`[DocumentMessage] 👁️ Abrindo preview: ${messageId}`);
-       
-       // ✅ ESTRATÉGIA OTIMIZADA: Abrir diretamente sem verificações pesadas
-       if (url.startsWith('data:')) {
-         // Para base64 grande, mostrar loading e abrir
-         setDownloadLoading(true);
-         setTimeout(() => {
-           window.open(url, '_blank', 'noopener,noreferrer');
-           setDownloadLoading(false);
-         }, 100);
-         return;
-       }
-       
-       // Para URLs do Storage, abrir diretamente (mais rápido)
-       window.open(url, '_blank', 'noopener,noreferrer');
-       
-     } catch (error) {
-       console.error(`[DocumentMessage] ❌ Erro ao abrir preview: ${messageId}`, error);
-       setDownloadError(true);
-     }
-   }, [url, messageId]);
+
 
   const handleRetry = useCallback(() => {
     console.log(`[DocumentMessage] 🔄 Tentando novamente: ${messageId} (tentativa ${retryCount + 1})`);
@@ -249,66 +239,53 @@ export const DocumentMessage = React.memo(({
         {fileIcon}
       </div>
 
-      {/* Informações do arquivo */}
+      {/* ✅ APENAS LEGENDA DO USUÁRIO - Sem nome de arquivo */}
       <div className="flex-1 min-w-0">
-        <p className={cn(
-          "text-sm font-medium truncate",
-          isIncoming ? "text-gray-900" : "text-white"
-        )}>
-          {cleanFilename}
-        </p>
-                 <p className={cn(
-           "text-xs opacity-70",
-           isIncoming ? "text-gray-600" : "text-white"
-         )}>
-           {downloadError ? 'Erro ao carregar' : fileSize}
-         </p>
+        {caption ? (
+          <p className={cn(
+            "text-sm font-medium",
+            isIncoming ? "text-gray-700" : "text-white"
+          )}>
+            {caption}
+          </p>
+        ) : (
+          <p className={cn(
+            "text-sm font-medium opacity-70",
+            isIncoming ? "text-gray-500" : "text-white/70"
+          )}>
+            Documento
+          </p>
+        )}
       </div>
 
-             {/* Botões de ação */}
-       <div className="flex-shrink-0 flex flex-col space-y-1">
-         {/* Botão principal: Visualizar (mais prominente) */}
-         <button
-           onClick={handlePreview}
-           disabled={downloadLoading}
-           className={cn(
-             "px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 disabled:opacity-50",
-             isIncoming 
-               ? "bg-blue-500 text-white hover:bg-blue-600 disabled:bg-blue-300" 
-               : "bg-white/20 text-white hover:bg-white/30 disabled:bg-white/10"
-           )}
-           title="Abrir documento"
-         >
-           {downloadLoading ? (
-             <div className="flex items-center gap-1">
-               <Loader2 className="w-3 h-3 animate-spin" />
-               <span>Abrindo...</span>
-             </div>
-           ) : (
-             <div className="flex items-center gap-1">
-               <ExternalLink className="w-3 h-3" />
-               <span>Abrir</span>
-             </div>
-           )}
-         </button>
-         
-         {/* Botão secundário: Download (menor) */}
-         <button
-           onClick={downloadError ? handleRetry : handleDownload}
-           disabled={downloadLoading}
-           className={cn(
-             "p-1 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50",
-             isIncoming ? "text-gray-500 hover:text-gray-700" : "text-white/70 hover:bg-white/10"
-           )}
-           title={downloadError ? "Tentar novamente" : "Baixar arquivo"}
-         >
-           {downloadError ? (
-             <RefreshCw className="w-3 h-3" />
-           ) : (
-             <Download className="w-3 h-3" />
-           )}
-         </button>
-       </div>
+      {/* ✅ BOTÃO SEMPRE ATIVO - Sem estado fixo de "baixado" */}
+      <div className="flex-shrink-0">
+        <button
+          onClick={downloadError ? handleRetry : handleDownload}
+          disabled={downloadLoading}
+          className={cn(
+            "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 disabled:opacity-50 flex items-center gap-2",
+            isIncoming 
+              ? "bg-blue-500 text-white hover:bg-blue-600 disabled:bg-blue-300"
+              : "bg-white/20 text-white hover:bg-white/30 disabled:bg-white/10"
+          )}
+          title={downloadError ? "Tentar novamente" : "Baixar documento"}
+        >
+          {downloadLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : downloadError ? (
+            <RefreshCw className="w-4 h-4" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+          {downloadLoading 
+            ? "Baixando..." 
+            : downloadError 
+              ? "Tentar novamente" 
+              : "Baixar"
+          }
+        </button>
+      </div>
     </div>
   );
 });

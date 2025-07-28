@@ -51,7 +51,7 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
+    <div className="auth-card-scale w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
       {/* Logo Section */}
       <div className="space-y-6 text-center animate-scale-in">
         <div className="mb-8 flex justify-center">

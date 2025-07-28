@@ -1,6 +1,7 @@
 
 import { Contact, Message } from '@/types/chat';
 import { formatPhoneDisplay } from '@/utils/phoneFormatter';
+import { normalizeStatus, normalizeMediaType } from './chat/utils';
 
 export const useChatDatabase = () => {
   const mapLeadToContact = (lead: any): Contact => {
@@ -35,10 +36,17 @@ export const useChatDatabase = () => {
       ? dbMessage.media_cache[0] 
       : null;
 
+    // ✅ FALLBACK: Para mensagens de mídia sem cache, tentar usar media_url
+    const isMediaMessage = dbMessage.media_type && dbMessage.media_type !== 'text';
+    const hasValidMediaUrl = dbMessage.media_url && 
+                            (dbMessage.media_url.startsWith('http') || dbMessage.media_url.startsWith('data:'));
+
     console.log(`[mapDbMessageToMessage] 🔄 Mapeando mensagem ${dbMessage.id}:`, {
       mediaType: dbMessage.media_type,
       hasMediaUrl: !!dbMessage.media_url,
       hasMediaCache: !!mediaCacheData,
+      isMediaMessage,
+      hasValidMediaUrl,
       mediaCacheKeys: mediaCacheData ? Object.keys(mediaCacheData) : []
     });
 
@@ -68,19 +76,7 @@ export const useChatDatabase = () => {
     };
   };
 
-  const normalizeStatus = (status: string | null): "sent" | "delivered" | "read" => {
-    if (status === 'delivered') return 'delivered';
-    if (status === 'read') return 'read';
-    return 'sent';
-  };
 
-  const normalizeMediaType = (mediaType: string | null): "text" | "image" | "video" | "audio" | "document" => {
-    if (mediaType === 'image') return 'image';
-    if (mediaType === 'video') return 'video';
-    if (mediaType === 'audio') return 'audio';
-    if (mediaType === 'document') return 'document';
-    return 'text';
-  };
 
   return {
     mapLeadToContact,

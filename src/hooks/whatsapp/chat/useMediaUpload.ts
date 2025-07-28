@@ -63,13 +63,31 @@ export const useMediaUpload = ({ onSendMessage }: MediaUploadHookProps) => {
       
       reader.onload = () => {
         if (reader.result) {
-          resolve(reader.result as string);
+          const result = reader.result as string;
+          
+          // ✅ DEBUG: Log específico para JPEG vs PNG
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[MediaUpload] 📸 Arquivo convertido:', {
+              name: file.name,
+              type: file.type,
+              size: `${(file.size / 1024).toFixed(1)}KB`,
+              dataUrlPrefix: result.substring(0, 50) + '...',
+              isJPEG: file.type.includes('jpeg'),
+              isPNG: file.type.includes('png')
+            });
+          }
+          
+          resolve(result);
         } else {
           reject(new Error('Falha ao ler arquivo'));
         }
       };
       
-      reader.onerror = () => reject(new Error('Erro ao processar arquivo'));
+      reader.onerror = () => {
+        console.error('[MediaUpload] ❌ Erro ao processar arquivo:', file.name, file.type);
+        reject(new Error('Erro ao processar arquivo'));
+      };
+      
       reader.readAsDataURL(file);
     });
   }, []);

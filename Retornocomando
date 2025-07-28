@@ -1,24 +1,142 @@
-[Realtime] Pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: SUBSCRIBED
-logger.ts:53 [Realtime] Pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: SUBSCRIBED
-AuthContext.tsx:41 [Auth] Estado mudou: SIGNED_IN digitalticlin@gmail.com
-AuthContext.tsx:48 [Auth] Usuário logado, verificando se precisa redirecionar...
-AuthContext.tsx:58 [Auth] Usuário já estava em página protegida, mantendo localização: /whatsapp-chat
-WhatsAppChatProvider.tsx:78 🚨 [PROVIDER] WhatsAppChatProvider renderizado: 2025-07-27T00:17:25.931Z
+🚨 [PROVIDER] WhatsAppChatProvider renderizado: 2025-07-28T02:20:41.808Z
+useWhatsAppContacts.ts:572 [WhatsApp Contacts] ⚡ Atualizando contato local completo: {contactId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', changes: Array(0), newTags: 0, oldTags: 0}
 StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', currentStageId: 'dcac808a-2595-4d33-9b38-2f04055a4df3', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
+useMessagesList.ts:107 [useMessagesList] 📋 Processando mensagens: {total: 17, primeira: '68288db9', ultima: '3EB0472C'}
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 68288db9
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: da8ca38a
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: bc7a5413
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: b3956afb
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 197cfc82
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 75699a82
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 77930b35
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 74a11e48
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: dcbcf262
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: c31988e0
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 265b647a
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 67d24da0
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 16f5a24d
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: fc6ade31
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 9c7a7b3b
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 3EB00190
+MessageMedia.tsx:76 [MessageMedia] 🎬 Renderizando mídia: {messageId: '3EB0472C...', mediaType: 'image', hasMediaUrl: true, hasMediaCache: false, fileName: 'undefined', …}
+MessageMedia.tsx:103 [MessageMedia] ⏳ Estado de carregamento para 3EB0472CB958E49AA43185
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', currentStageId: 'dcac808a-2595-4d33-9b38-2f04055a4df3', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
+useMessagesList.ts:107 [useMessagesList] 📋 Processando mensagens: {total: 17, primeira: '68288db9', ultima: '3EB0472C'}
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 68288db9
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: da8ca38a
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: bc7a5413
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: b3956afb
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 197cfc82
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 75699a82
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 77930b35
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 74a11e48
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: dcbcf262
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: c31988e0
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 265b647a
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 67d24da0
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 16f5a24d
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: fc6ade31
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 9c7a7b3b
+MessageItem.tsx:138 [MessageItem] ⚡ OTIMIZAÇÃO: Evitando re-render desnecessário para: 3EB00190
+MessageMedia.tsx:76 [MessageMedia] 🎬 Renderizando mídia: {messageId: '3EB0472C...', mediaType: 'image', hasMediaUrl: true, hasMediaCache: false, fileName: 'undefined', …}
+MessageMedia.tsx:103 [MessageMedia] ⏳ Estado de carregamento para 3EB0472CB958E49AA43185
 logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
-logger.ts:53 [Realtime] Handler removido: handler_39_1753575439789 da pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
+logger.ts:53 [Realtime] Handler removido: handler_65_1753669237655 da pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
 logger.ts:53 [Realtime] Removendo pool: tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
 logger.ts:53 [Realtime] Pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: CLOSED
-logger.ts:53 [Realtime] Handler removido: handler_40_1753575439791 da pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
+logger.ts:53 [Realtime] Handler removido: handler_66_1753669237659 da pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
 logger.ts:53 [Realtime] Removendo pool: lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
 logger.ts:53 [Realtime] Pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: CLOSED
+LeadDetailsSidebar.tsx:91 [LeadDetailsSidebar] 🔌 Removendo subscription realtime
+useLeadTags.ts:16 [useLeadTags] 🔄 Buscando tags para lead: df8d7bcf-418e-4c9d-adcd-7caaea70e3d7
+useLeadTags.ts:16 [useLeadTags] 🔄 Buscando tags para lead: df8d7bcf-418e-4c9d-adcd-7caaea70e3d7
+useMediaRenderer.ts:65 [MediaRenderer] 🔍 Buscando media_cache do banco: 3EB0472C
+useMessagesList.ts:74 [useMessagesList] 🔽 Scroll automático para nova mensagem: {wasNewMessage: false, lastMessageChanged: true, messagesCount: 17}
 logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 712e7708-2299-4a00-9128-577c8f113ca4
 logger.ts:53 [Realtime] Criando nova pool: tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
-logger.ts:53 [Realtime] Handler adicionado à pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4: handler_41_1753575445989
+logger.ts:53 [Realtime] Handler adicionado à pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4: handler_67_1753669241963
 logger.ts:53 [Realtime] Pool stats: 1 handlers ativos
 logger.ts:53 [Realtime] Criando nova pool: lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
-logger.ts:53 [Realtime] Handler adicionado à pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4: handler_42_1753575445991
+logger.ts:53 [Realtime] Handler adicionado à pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4: handler_68_1753669241968
 logger.ts:53 [Realtime] Pool stats: 1 handlers ativos
+useMediaRenderer.ts:65 [MediaRenderer] 🔍 Buscando media_cache do banco: 3EB0472C
+useMessagesList.ts:74 [useMessagesList] 🔽 Scroll automático para nova mensagem: {wasNewMessage: false, lastMessageChanged: true, messagesCount: 17}
+LeadDetailsSidebar.tsx:72 [LeadDetailsSidebar] 📡 Configurando realtime para lead: df8d7bcf-418e-4c9d-adcd-7caaea70e3d7
+useMessagesRealtime.ts:445 [Messages Realtime] 🚀 Configurando subscription para mensagens: {selectedContactId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', activeInstanceId: 'c3b6cfe7-bc4e-4b1f-9f18-4573f4232785', channelId: 'messages-realtime-df8d7bcf-418e-4c9d-adcd-7caaea70…3b6cfe7-bc4e-4b1f-9f18-4573f4232785-1753669241976'}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', currentStageId: 'dcac808a-2595-4d33-9b38-2f04055a4df3', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', currentStageId: 'dcac808a-2595-4d33-9b38-2f04055a4df3', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
 logger.ts:53 [Realtime] Pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: SUBSCRIBED
 logger.ts:53 [Realtime] Pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: SUBSCRIBED
-DocumentMessage.tsx:176 [DocumentMessage] 👁️ Abrindo preview: df3fe708-7677-4270-a3cd-0286d39f2e2b
+useMessagesRealtime.ts:475 [Messages Realtime] 📡 Status da subscription de mensagens: SUBSCRIBED
+useMessagesRealtime.ts:480 [Messages Realtime] ✅ Realtime de mensagens ativo para contato: df8d7bcf-418e-4c9d-adcd-7caaea70e3d7
+@supabase_supabase-js.js?v=621cdfca:3916  GET https://rhjgagzstjzynvrakdyj.supabase.co/rest/v1/media_cache?select=id%2Cbase64_data%2Coriginal_url%2Ccached_url%2Cmedia_type%2Cfile_name&message_id=eq.3EB0472CB958E49AA43185 400 (Bad Request)
+(anonymous) @ @supabase_supabase-js.js?v=621cdfca:3916
+(anonymous) @ @supabase_supabase-js.js?v=621cdfca:3937
+fulfilled @ @supabase_supabase-js.js?v=621cdfca:3889
+Promise.then
+step @ @supabase_supabase-js.js?v=621cdfca:3902
+(anonymous) @ @supabase_supabase-js.js?v=621cdfca:3904
+__awaiter6 @ @supabase_supabase-js.js?v=621cdfca:3886
+(anonymous) @ @supabase_supabase-js.js?v=621cdfca:3927
+then @ @supabase_supabase-js.js?v=621cdfca:89Understand this error
+@supabase_supabase-js.js?v=621cdfca:3916  GET https://rhjgagzstjzynvrakdyj.supabase.co/rest/v1/media_cache?select=id%2Cbase64_data%2Coriginal_url%2Ccached_url%2Cmedia_type%2Cfile_name&message_id=eq.3EB0472CB958E49AA43185 400 (Bad Request)
+(anonymous) @ @supabase_supabase-js.js?v=621cdfca:3916
+(anonymous) @ @supabase_supabase-js.js?v=621cdfca:3937
+fulfilled @ @supabase_supabase-js.js?v=621cdfca:3889
+Promise.then
+step @ @supabase_supabase-js.js?v=621cdfca:3902
+(anonymous) @ @supabase_supabase-js.js?v=621cdfca:3904
+__awaiter6 @ @supabase_supabase-js.js?v=621cdfca:3886
+(anonymous) @ @supabase_supabase-js.js?v=621cdfca:3927
+then @ @supabase_supabase-js.js?v=621cdfca:89Understand this error
+suppressDragDropWarnings.ts:34 [MediaRenderer] ⚠️ Erro ao buscar media_cache: {code: '22P02', details: null, hint: null, message: 'invalid input syntax for type uuid: "3EB0472CB958E49AA43185"'}
+console.warn @ suppressDragDropWarnings.ts:34
+(anonymous) @ useMediaRenderer.ts:74
+await in (anonymous)
+(anonymous) @ useMediaRenderer.ts:115
+commitHookEffectListMount @ chunk-UPELNCPK.js?v=621cdfca:16915
+commitPassiveMountOnFiber @ chunk-UPELNCPK.js?v=621cdfca:18156
+commitPassiveMountEffects_complete @ chunk-UPELNCPK.js?v=621cdfca:18129
+commitPassiveMountEffects_begin @ chunk-UPELNCPK.js?v=621cdfca:18119
+commitPassiveMountEffects @ chunk-UPELNCPK.js?v=621cdfca:18109
+flushPassiveEffectsImpl @ chunk-UPELNCPK.js?v=621cdfca:19490
+flushPassiveEffects @ chunk-UPELNCPK.js?v=621cdfca:19447
+performSyncWorkOnRoot @ chunk-UPELNCPK.js?v=621cdfca:18868
+flushSyncCallbacks @ chunk-UPELNCPK.js?v=621cdfca:9119
+commitRootImpl @ chunk-UPELNCPK.js?v=621cdfca:19432
+commitRoot @ chunk-UPELNCPK.js?v=621cdfca:19277
+finishConcurrentRender @ chunk-UPELNCPK.js?v=621cdfca:18805
+performConcurrentWorkOnRoot @ chunk-UPELNCPK.js?v=621cdfca:18718
+workLoop @ chunk-UPELNCPK.js?v=621cdfca:197
+flushWork @ chunk-UPELNCPK.js?v=621cdfca:176
+performWorkUntilDeadline @ chunk-UPELNCPK.js?v=621cdfca:384Understand this warning
+suppressDragDropWarnings.ts:34 [MediaRenderer] ⚠️ Erro ao buscar media_cache: {code: '22P02', details: null, hint: null, message: 'invalid input syntax for type uuid: "3EB0472CB958E49AA43185"'}
+console.warn @ suppressDragDropWarnings.ts:34
+(anonymous) @ useMediaRenderer.ts:74
+await in (anonymous)
+(anonymous) @ useMediaRenderer.ts:115
+commitHookEffectListMount @ chunk-UPELNCPK.js?v=621cdfca:16915
+commitPassiveMountOnFiber @ chunk-UPELNCPK.js?v=621cdfca:18156
+commitPassiveMountEffects_complete @ chunk-UPELNCPK.js?v=621cdfca:18129
+commitPassiveMountEffects_begin @ chunk-UPELNCPK.js?v=621cdfca:18119
+commitPassiveMountEffects @ chunk-UPELNCPK.js?v=621cdfca:18109
+flushPassiveEffectsImpl @ chunk-UPELNCPK.js?v=621cdfca:19490
+flushPassiveEffects @ chunk-UPELNCPK.js?v=621cdfca:19447
+performSyncWorkOnRoot @ chunk-UPELNCPK.js?v=621cdfca:18868
+flushSyncCallbacks @ chunk-UPELNCPK.js?v=621cdfca:9119
+commitRootImpl @ chunk-UPELNCPK.js?v=621cdfca:19432
+commitRoot @ chunk-UPELNCPK.js?v=621cdfca:19277
+finishConcurrentRender @ chunk-UPELNCPK.js?v=621cdfca:18805
+performConcurrentWorkOnRoot @ chunk-UPELNCPK.js?v=621cdfca:18718
+workLoop @ chunk-UPELNCPK.js?v=621cdfca:197
+flushWork @ chunk-UPELNCPK.js?v=621cdfca:176
+performWorkUntilDeadline @ chunk-UPELNCPK.js?v=621cdfca:384Understand this warning
+MessageMedia.tsx:76 [MessageMedia] 🎬 Renderizando mídia: {messageId: '3EB0472C...', mediaType: 'image', hasMediaUrl: true, hasMediaCache: false, fileName: 'undefined', …}
+MessageMedia.tsx:109 [MessageMedia] ❌ Estado de erro para 3EB0472CB958E49AA43185: Erro ao carregar mídia
+MessageMedia.tsx:76 [MessageMedia] 🎬 Renderizando mídia: {messageId: '3EB0472C...', mediaType: 'image', hasMediaUrl: true, hasMediaCache: false, fileName: 'undefined', …}
+MessageMedia.tsx:109 [MessageMedia] ❌ Estado de erro para 3EB0472CB958E49AA43185: Erro ao carregar mídia
+useLeadTags.ts:63 [useLeadTags] ✅ Tags carregadas: {leadTags: 0, availableTags: 4, leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', userId: '712e7708-2299-4a00-9128-577c8f113ca4'}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', currentStageId: 'dcac808a-2595-4d33-9b38-2f04055a4df3', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
+useLeadTags.ts:63 [useLeadTags] ✅ Tags carregadas: {leadTags: 0, availableTags: 4, leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', userId: '712e7708-2299-4a00-9128-577c8f113ca4'}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', currentStageId: 'dcac808a-2595-4d33-9b38-2f04055a4df3', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
+9whatsapp-chat:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was received

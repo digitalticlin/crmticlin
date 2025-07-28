@@ -5,6 +5,31 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Declarações de tipo para resolver erros
 declare const Deno: any;
 
+// ✅ FUNÇÃO AUXILIAR PARA PGMQ
+async function enqueueMediaProcessing(supabase: any, messageId: string, mediaUrl: string, mediaType: string, externalMessageId?: string) {
+  try {
+    const mediaTask = {
+      messageId,
+      mediaUrl,
+      mediaType,
+      externalMessageId,
+      timestamp: new Date().toISOString(),
+      priority: mediaType === 'image' ? 'high' : 'normal' // Imagens têm prioridade
+    };
+
+    await supabase.rpc('pgmq_send', {
+      queue_name: 'media_processing_queue',
+      msg: mediaTask
+    });
+
+    console.log(`[PGMQ] 📤 Mídia enfileirada: ${messageId} (${mediaType})`);
+    return true;
+  } catch (error) {
+    console.error(`[PGMQ] ❌ Erro ao enfileirar mídia: ${error.message}`);
+    return false;
+  }
+}
+
 // ✅ PROCESSADOR DE MÍDIA INTEGRADO
 interface MediaProcessorOptions {
   messageId: string;
@@ -97,6 +122,72 @@ class MediaProcessor {
     } catch (error) {
       console.error(`[MediaProcessor] ❌ Erro geral: ${error.message}`);
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * ✅ NOVO: Processar mídia com PGMQ assíncrono (mínimo impacto)
+   */
+  static async processMediaOptimized(options: MediaProcessorOptions, useAsync = true): Promise<ProcessedMediaResult> {
+    const { messageId, mediaUrl, mediaType, externalMessageId } = options;
+    
+    try {
+      console.log(`[MediaProcessor] 🚀 Processamento ${useAsync ? 'ASSÍNCRONO' : 'SÍNCRONO'}: ${messageId} (${mediaType})`);
+      
+      // ✅ ESTRATÉGIA: Async para arquivos grandes, sync para pequenos
+      if (useAsync) {
+        // ETAPA 1: Fazer download rápido apenas para verificar tamanho
+        const headResponse = await fetch(mediaUrl, { method: 'HEAD' });
+        const contentLength = headResponse.headers.get('content-length');
+        const fileSize = contentLength ? parseInt(contentLength) : 0;
+        
+        // ✅ DECISÃO INTELIGENTE: ASYNC para >2MB, SYNC para ≤2MB
+        const shouldProcessAsync = fileSize > 2 * 1024 * 1024; // 2MB
+        
+        if (shouldProcessAsync) {
+          console.log(`[MediaProcessor] 🔄 Arquivo grande (${(fileSize/1024/1024).toFixed(1)}MB) - processando ASYNC via PGMQ`);
+          
+          // Enfileirar para processamento assíncrono
+          const supabase = createClient(
+            Deno.env.get('SUPABASE_URL')!,
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+          );
+          
+          const queued = await enqueueMediaProcessing(supabase, messageId, mediaUrl, mediaType, externalMessageId);
+          
+          if (queued) {
+            // Criar entrada provisória no cache
+            await supabase.from('media_cache').upsert({
+              message_id: messageId,
+              external_message_id: externalMessageId,
+              original_url: mediaUrl.substring(0, 500), // Truncar para evitar limite
+              cached_url: null, // Será preenchido pelo worker
+              base64_data: null, // Será preenchido pelo worker
+              file_size: fileSize,
+              media_type: mediaType,
+              file_name: this.generateFileName(externalMessageId, mediaType),
+              processing_status: 'queued', // ✅ NOVO: Status de processamento
+              created_at: new Date().toISOString()
+            }, { onConflict: 'message_id' });
+            
+            return {
+              success: true,
+              cacheId: 'queued',
+              fileSize: fileSize,
+              isAsync: true
+            };
+          }
+        }
+      }
+      
+      // ✅ FALLBACK: Processamento síncrono (código original)
+      console.log(`[MediaProcessor] ⚡ Processamento SÍNCRONO (arquivo pequeno ou fallback)`);
+      return await this.processMediaForMessage(options);
+      
+    } catch (error) {
+      console.error(`[MediaProcessor] ❌ Erro no processamento otimizado: ${error.message}`);
+      // ✅ FALLBACK FINAL: Método original
+      return await this.processMediaForMessage(options);
     }
   }
 
@@ -270,7 +361,7 @@ serve(async (req) => {
     const body = await req.json();
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    console.log(`[${requestId}] 🚀 WhatsApp Web Webhook - VERSÃO OTIMIZADA:`, JSON.stringify(body, null, 2));
+    console.log(`[${requestId}] 🚀 WhatsApp Web Webhook - VERSÃO PGMQ OTIMIZADA:`, JSON.stringify(body, null, 2));
 
     const { event, instanceId, data } = body;
 
@@ -303,7 +394,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[${requestId}] 💬 Processando mensagem com MÍDIA OTIMIZADA para: ${instanceId}`);
+    console.log(`[${requestId}] 💬 Processando mensagem com PGMQ OTIMIZADO para: ${instanceId}`);
 
     // 2. EXTRAIR DADOS DA MENSAGEM
     let messageType = data.messageType || body.messageType || 'text';
@@ -423,30 +514,22 @@ serve(async (req) => {
     const { message_id: messageDbId, lead_id: leadId } = messageData;
     console.log(`[${requestId}] ✅ Mensagem salva: ${messageDbId} | Lead: ${leadId}`);
 
-    // ✅ 4. DETECTAR E PROCESSAR MÍDIA (AGORA COM message_id DISPONÍVEL)
+    // ✅ 4. DETECTAR E PROCESSAR MÍDIA COM PGMQ OTIMIZADO
     let processedMediaData: ProcessedMediaData | null = null;
     let finalMediaUrl: string | null = null;
+    let isAsyncProcessing = false;
     
     if (messageType !== 'text' && messageType !== 'chat') {
-      console.log(`[${requestId}] 🎬 MÍDIA DETECTADA: ${messageType}`);
+      console.log(`[${requestId}] 🎬 MÍDIA DETECTADA - USANDO ESTRATÉGIA PGMQ: ${messageType}`);
       
       // 🚀 PRIORIDADE 1: VERIFICAR SE VPS JÁ ENVIOU BASE64
       const vpsBase64 = data?.mediaBase64 || body?.mediaBase64 || body?.data?.mediaBase64;
       const vpsMediaSize = data?.mediaSize || body?.mediaSize || body?.data?.mediaSize;
-      const instancePhone = data?.instancePhone || body?.instancePhone;
-      
-      console.log(`[${requestId}] 🔍 DEBUG VPS payload:`, {
-        hasMediaBase64: !!vpsBase64,
-        hasInstancePhone: !!instancePhone,
-        dataKeys: Object.keys(data || {}),
-        bodyKeys: Object.keys(body || {})
-      });
       
       if (vpsBase64 && vpsBase64.startsWith('data:')) {
-        console.log(`[${requestId}] 🎯 BASE64 DA VPS DETECTADO! Tamanho: ${vpsMediaSize || 'N/A'} bytes`);
+        console.log(`[${requestId}] 🎯 BASE64 DA VPS DETECTADO! Processamento direto (sem PGMQ)`);
         
         // ✅ CRIAR CACHE DIRETO COM BASE64 DA VPS (SEM DOWNLOAD)
-        // ✅ USAR PLACEHOLDER PEQUENO PARA original_url para evitar limite de índice PostgreSQL (8KB)
         const placeholderUrl = `base64://${messageId}`;
         
         const { data: cacheData, error: cacheError } = await supabase
@@ -454,12 +537,13 @@ serve(async (req) => {
           .upsert({
             message_id: messageDbId,
             external_message_id: messageId,
-            original_url: placeholderUrl, // ✅ PLACEHOLDER pequeno para satisfazer índice
-            cached_url: vpsBase64, // ✅ Base64 vai para cached_url para frontend
+            original_url: placeholderUrl,
+            cached_url: vpsBase64,
             base64_data: vpsBase64,
             file_size: vpsMediaSize || 0,
             media_type: messageType,
             file_name: MediaProcessor.generateFileName(messageId, messageType),
+            processing_status: 'completed', // ✅ NOVO: Status concluído
             created_at: new Date().toISOString()
           }, {
             onConflict: 'message_id',
@@ -470,7 +554,7 @@ serve(async (req) => {
 
         if (!cacheError && cacheData) {
           console.log(`[${requestId}] ✅ Cache criado direto da VPS: ${cacheData.id}`);
-          finalMediaUrl = vpsBase64; // ✅ CRUCIAL: Definir Base64 como URL final
+          finalMediaUrl = vpsBase64;
           processedMediaData = {
             cacheId: cacheData.id,
             base64Data: vpsBase64,
@@ -479,14 +563,12 @@ serve(async (req) => {
             storageUrl: null,
             isStorageSaved: false
           };
-        } else {
-          console.log(`[${requestId}] ❌ Erro ao criar cache VPS: ${cacheError?.message}`);
         }
       } else {
-        // 🔄 FALLBACK: PROCESSAR MÍDIA TRADICIONALMENTE
-        console.log(`[${requestId}] 🔄 Sem Base64 da VPS, processando tradicionalmente...`);
+        // 🔄 NOVO: PROCESSAMENTO PGMQ OTIMIZADO
+        console.log(`[${requestId}] 🔄 Sem Base64 da VPS - usando estratégia PGMQ...`);
         
-        // EXTRAÇÃO EXPANDIDA DE URL DA MÍDIA
+        // EXTRAÇÃO DE URL DA MÍDIA (código original)
         const potentialUrls = [
           data?.mediaUrl, data?.media_url, data?.media?.url, data?.url,
           body?.mediaUrl, body?.media_url, body?.media?.url, body?.url,
@@ -498,66 +580,61 @@ serve(async (req) => {
         
         console.log(`[${requestId}] 📎 URLs potenciais encontradas:`, potentialUrls);
       
-              if (potentialUrls.length > 0) {
+        if (potentialUrls.length > 0) {
           const mediaUrl = potentialUrls[0];
           if (mediaUrl && typeof mediaUrl === 'string' && (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://'))) {
-            console.log(`[${requestId}] ✅ URL válida detectada: ${mediaUrl.substring(0, 80)}...`);
+            console.log(`[${requestId}] ✅ URL válida detectada - usando PGMQ otimizado`);
             
             try {
-              // ✅ CORRIGIDO: Processar mídia com messageType correto
-              // ✅ NOVO PROCESSADOR DE MÍDIA
-              const mediaResult = await MediaProcessor.processMediaForMessage({
+              // ✅ NOVO: Usar processamento otimizado com PGMQ
+              const mediaResult = await MediaProcessor.processMediaOptimized({
                 messageId: messageDbId,
                 mediaUrl: mediaUrl,
                 mediaType: messageType,
                 externalMessageId: messageId
-              });
+              }, true); // useAsync = true
               
               if (mediaResult.success) {
-                // ✅ BUSCAR DADOS COMPLETOS DO CACHE CRIADO
-                const { data: cacheData, error: cacheError } = await supabase
-                  .from('media_cache')
-                  .select('cached_url, base64_data, file_size')
-                  .eq('id', mediaResult.cacheId!)
-                  .single();
+                if (mediaResult.isAsync) {
+                  // Processamento assíncrono - resposta imediata
+                  console.log(`[${requestId}] ⚡ Mídia enfileirada para processamento assíncrono`);
+                  isAsyncProcessing = true;
+                  finalMediaUrl = 'processing'; // Placeholder
+                } else {
+                  // Processamento síncrono concluído
+                  const { data: cacheData } = await supabase
+                    .from('media_cache')
+                    .select('cached_url, base64_data, file_size')
+                    .eq('id', mediaResult.cacheId!)
+                    .single();
 
-                processedMediaData = {
-                  cacheId: mediaResult.cacheId!,
-                  base64Data: mediaResult.base64Data || cacheData?.base64_data || '',
-                  fileSizeBytes: mediaResult.fileSize || cacheData?.file_size || 0,
-                  fileSizeMB: (mediaResult.fileSize || cacheData?.file_size || 0) / (1024 * 1024),
-                  storageUrl: cacheData?.cached_url || undefined, // ✅ Storage URL do cache
-                  isStorageSaved: !!(cacheData?.cached_url)
-                };
-                
-                console.log(`[${requestId}] 📊 Mídia processada:`, {
-                  hasBase64: !!processedMediaData.base64Data,
-                  hasStorageUrl: !!processedMediaData.storageUrl,
-                  fileSize: processedMediaData.fileSizeMB.toFixed(1) + 'MB'
-                });
-              } else {
-                console.log(`[${requestId}] ⚠️ Falha no processamento: ${mediaResult.error}`);
+                  processedMediaData = {
+                    cacheId: mediaResult.cacheId!,
+                    base64Data: mediaResult.base64Data || cacheData?.base64_data || '',
+                    fileSizeBytes: mediaResult.fileSize || cacheData?.file_size || 0,
+                    fileSizeMB: (mediaResult.fileSize || cacheData?.file_size || 0) / (1024 * 1024),
+                    storageUrl: cacheData?.cached_url || undefined,
+                    isStorageSaved: !!(cacheData?.cached_url)
+                  };
+                  
+                  // ✅ DEFINIR URL FINAL
+                  if (processedMediaData?.storageUrl) {
+                    finalMediaUrl = processedMediaData.storageUrl;
+                  } else if (processedMediaData?.base64Data) {
+                    const mimeTypes = {
+                      'image': 'image/jpeg',
+                      'audio': 'audio/ogg',
+                      'video': 'video/mp4',
+                      'document': 'application/pdf'
+                    };
+                    const mimeType = mimeTypes[messageType as keyof typeof mimeTypes] || 'application/octet-stream';
+                    finalMediaUrl = `data:${mimeType};base64,${processedMediaData.base64Data}`;
+                  }
+                }
               }
-              console.log(`[${requestId}] ✅ Mídia processada com sucesso`);
-              
-                           // ✅ DEFINIR URL FINAL (Storage ou base64 com MIME TYPE CORRETO)
-               if (processedMediaData?.storageUrl) {
-                 finalMediaUrl = processedMediaData.storageUrl;
-               } else if (processedMediaData?.base64Data) {
-                 // 🔧 MIME TYPES CORRETOS PARA CADA TIPO DE MÍDIA
-                 const mimeTypes = {
-                   'image': 'image/jpeg',
-                   'audio': 'audio/ogg',
-                   'video': 'video/mp4',
-                   'document': 'application/pdf'
-                 };
-                 const mimeType = mimeTypes[messageType as keyof typeof mimeTypes] || 'application/octet-stream';
-                 finalMediaUrl = `data:${mimeType};base64,${processedMediaData.base64Data}`;
-                 console.log(`[${requestId}] 🎯 Base64 com MIME correto: ${mimeType}`);
-               }
               
             } catch (mediaError) {
-              console.log(`[${requestId}] ⚠️ Erro ao processar mídia: ${mediaError.message}`);
+              console.log(`[${requestId}] ⚠️ Erro no processamento PGMQ: ${mediaError.message}`);
               finalMediaUrl = mediaUrl; // Fallback para URL original
             }
           }
@@ -565,16 +642,15 @@ serve(async (req) => {
       }
     }
 
-    // ✅ 5. ATUALIZAR MENSAGEM COM URL FINAL DA MÍDIA E TIPO
-    if (messageType !== 'text' && messageType !== 'chat' && messageDbId) {
+    // ✅ 5. ATUALIZAR MENSAGEM COM URL FINAL DA MÍDIA
+    if (messageType !== 'text' && messageType !== 'chat' && messageDbId && !isAsyncProcessing) {
       console.log(`[${requestId}] 🔄 Atualizando mensagem com dados de mídia...`);
       
       const updateData: any = {
         media_type: messageType
       };
       
-      // Se processamos mídia com sucesso, usar URL final
-      if (finalMediaUrl) {
+      if (finalMediaUrl && finalMediaUrl !== 'processing') {
         updateData.media_url = finalMediaUrl;
       }
       
@@ -586,7 +662,7 @@ serve(async (req) => {
       if (updateError) {
         console.log(`[${requestId}] ⚠️ Erro ao atualizar dados de mídia: ${updateError.message}`);
       } else {
-        console.log(`[${requestId}] ✅ Dados de mídia atualizados na mensagem:`, updateData);
+        console.log(`[${requestId}] ✅ Dados de mídia atualizados na mensagem`);
       }
     }
 
@@ -594,11 +670,12 @@ serve(async (req) => {
       success: true, 
       messageId: messageDbId,
       leadId: leadId,
-      mediaProcessed: !!processedMediaData,
+      mediaProcessed: !!processedMediaData || isAsyncProcessing,
       mediaUrl: finalMediaUrl || undefined,
       mediaCacheId: processedMediaData?.cacheId,
+      isAsyncProcessing,
       requestId,
-      version: 'optimized_v2'
+      version: 'pgmq_optimized_v1'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

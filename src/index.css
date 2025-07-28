@@ -6,6 +6,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 
+=================================
+🎯 ESCALA ESPECÍFICA PARA CARDS DE LOGIN/REGISTRO
+=================================
+
+Esta configuração aplica uma escala de 80% APENAS nos cards de login/registro,
+mantendo o background ocupando toda a tela. Outras páginas do sistema
+mantêm escala normal.
+
+COMO AJUSTAR:
+- Para diminuir mais: altere --app-global-scale para 0.75 (75%) ou 0.7 (70%)
+- Para aumentar: altere --app-global-scale para 0.85 (85%) ou 0.9 (90%)
+- Para voltar ao normal: altere --app-global-scale para 1.0 (100%)
+
+CLASSES DISPONÍVEIS:
+- .auth-card-scale = Cards de login e registro ficam menores (escala centralizada)
+- .main-content-scale = Páginas principais ficam menores (escala top-left, para mais conteúdo)
+
+COMPATIBILIDADE:
+- Chrome/Safari: usa 'zoom' (nativo e eficiente)
+- Firefox/Edge: usa 'transform: scale()' como fallback
+- Todos os browsers modernos: totalmente suportado
+
+EFEITOS:
+✅ Cards de login/registro ficam menores (auth-card-scale)
+✅ Páginas principais ficam 80% menores (main-content-scale)
+✅ Background sempre ocupa toda a tela
+✅ Responsividade mantida em todas as páginas
+✅ Proporções e funcionalidades preservadas
+
+PÁGINAS COM ESCALA APLICADA:
+✅ Dashboard - conteúdo principal
+✅ Clientes, Settings, Team, etc. - via PageLayout
+✅ WhatsApp Chat - conteúdo principal
+✅ SalesFunnel (Kanban) - via PageLayout
+✅ Sidebar desktop - menu lateral proporcional
+✅ Todas as páginas do menu sidebar
+
+VALORES AJUSTADOS:
+- Sidebar: 250px → 200px (expandido) | 80px → 64px (colapsado)
+- Conteúdo: Escala 80% em todos os componentes
+- Background: Sempre ocupa 100% da tela
+*/
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -41,6 +85,9 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* 🎯 ESCALA GLOBAL DO PROJETO - Ajustável */
+    --app-global-scale: 0.8; /* 80% = diminuir 20% conforme solicitado */
   }
 
   .dark {
@@ -83,9 +130,39 @@
   * {
     @apply border-border;
   }
+  
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
+  }
+  
+  /* 🎯 ESCALA ESPECÍFICA PARA CARDS DE LOGIN/REGISTRO */
+  .auth-card-scale {
+    transform: scale(var(--app-global-scale));
+    transform-origin: center;
+  }
+  
+  /* 🎯 ESCALA PARA PÁGINAS PRINCIPAIS (Dashboard, etc.) */
+  .main-content-scale {
+    transform: scale(var(--app-global-scale));
+    transform-origin: top left;
+    width: calc(100% / var(--app-global-scale));
+    height: calc(100% / var(--app-global-scale));
+  }
+  
+  /* Para navegadores que suportam zoom (mais eficiente) */
+  @supports (zoom: 1) {
+    .auth-card-scale {
+      zoom: var(--app-global-scale);
+      transform: none;
+    }
+    
+    .main-content-scale {
+      zoom: var(--app-global-scale);
+      transform: none;
+      width: 100%;
+      height: 100%;
+    }
   }
 }
 

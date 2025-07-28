@@ -268,33 +268,9 @@ export const useChatsRealtime = ({
         filter: `whatsapp_number_id=eq.${activeInstanceId}`
       }, handleLeadUpdate)
       
-      // 🎯 ISOLAMENTO: SUBSCRIPTION APENAS PARA ATUALIZAR CARDS DE CONTATOS
-      // Esta subscription é específica para mover contatos para topo, SEM interferir na área de mensagens
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `whatsapp_number_id=eq.${activeInstanceId}`
-      }, (payload) => {
-        try {
-          const newMessage = payload.new;
-          
-          // 🎯 RESPONSABILIDADE: Apenas atualizar ordem dos cards
-          console.log('[Chats Realtime - CARDS] 📨 Nova mensagem para atualizar lista de contatos:', {
-            messageId: newMessage?.id,
-            leadId: newMessage?.lead_id,
-            fromMe: newMessage?.from_me
-          });
-          
-          // ✅ AÇÃO ESPECÍFICA: Mover contato para topo (SEM tocar nas mensagens)
-          if (onMoveContactToTop && newMessage?.lead_id) {
-            console.log('[Chats Realtime - CARDS] 🔝 Movendo contato para topo:', newMessage.lead_id);
-            onMoveContactToTop(newMessage.lead_id, newMessage);
-          }
-        } catch (error) {
-          console.error('[Chats Realtime - CARDS] ❌ Erro processando atualização de lista:', error);
-        }
-      })
+      // 🎯 REMOVIDO: Subscription de messages duplicada
+      // RESPONSABILIDADE TRANSFERIDA para useMessagesRealtime que notificará contatos
+      // via callback específico (evita processamento duplicado)
       
       .subscribe((status) => {
         if (process.env.NODE_ENV === 'development') {

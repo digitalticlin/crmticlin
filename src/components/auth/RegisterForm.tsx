@@ -85,7 +85,7 @@ export default function RegisterForm() {
   }
 
   return (
-    <div className="w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
+    <div className="auth-card-scale w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
       {/* Header Section */}
       <div className="space-y-4 text-center animate-scale-in">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">

@@ -34,11 +34,53 @@ const queryClient = new QueryClient();
 function App() {
   console.log('[App] 🚀 Inicializando aplicação');
   
+  // 🚀 ADICIONADO: Monitor de mudanças de rota para debug
+  useEffect(() => {
+    const logRoute = () => {
+      console.log('[App] 📍 Rota atual:', window.location.pathname);
+    };
+    
+    // Log inicial
+    logRoute();
+    
+    // Listener para mudanças de rota via popstate (navegação)
+    window.addEventListener('popstate', logRoute);
+    
+    return () => {
+      window.removeEventListener('popstate', logRoute);
+    };
+  }, []);
+  
   // 🚀 CORREÇÃO CRÍTICA: Expor Supabase globalmente para debug
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.supabase = supabase;
       console.log('[App] ✅ Supabase exposto globalmente para debug');
+      
+             // 🚀 FUNÇÃO DE DEBUG GLOBAL MELHORADA
+       (window as any).debugAuth = async () => {
+         const { data: { session }, error } = await supabase.auth.getSession();
+         console.log('[DEBUG] 🔍 Estado completo da autenticação:', {
+           hasSession: !!session,
+           userId: session?.user?.id,
+           userEmail: session?.user?.email,
+           currentPath: window.location.pathname,
+           error: error?.message,
+           timestamp: new Date().toISOString(),
+           sessionData: session,
+           accessToken: session?.access_token ? 'EXISTS' : 'MISSING',
+           refreshToken: session?.refresh_token ? 'EXISTS' : 'MISSING'
+         });
+         return session;
+       };
+
+       // 🚀 FUNÇÃO PARA FORÇAR REFRESH DA SESSÃO
+       (window as any).refreshAuth = async () => {
+         console.log('[DEBUG] 🔄 Forçando refresh da sessão...');
+         const { data, error } = await supabase.auth.refreshSession();
+         console.log('[DEBUG] Resultado do refresh:', { data, error });
+         return data;
+       };
       
       // Teste único de autenticação (evitar loops)
       if (!window.authTestExecuted) {
@@ -47,6 +89,7 @@ function App() {
             hasSession: !!session,
             userId: session?.user?.id,
             userEmail: session?.user?.email,
+            currentPath: window.location.pathname,
             error: error?.message
           });
         });

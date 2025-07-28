@@ -7,13 +7,14 @@ import { useMessagesRealtime } from '../realtime/useMessagesRealtime';
 import { useChatDatabase } from '../useChatDatabase';
 import { useCompanyResolver } from '../useCompanyResolver';
 import { toast } from 'sonner';
-import { normalizeStatus } from './helpers/messageHelpers';
+import { normalizeStatus } from './utils';
 
 const MESSAGES_LIMIT = 15; // ✅ OTIMIZADO: 15 mensagens para carregamento mais rápido
 
 export const useWhatsAppChatMessages = (
   selectedContact: Contact | null,
-  activeInstance: WhatsAppWebInstance | null
+  activeInstance: WhatsAppWebInstance | null,
+  onContactUpdate?: (leadId: string, newMessage: any) => void  // ✅ NOVO: callback para notificar contatos
 ) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
@@ -47,7 +48,11 @@ export const useWhatsAppChatMessages = (
     };
   }, []);
   
-  // 🚀 FUNÇÃO ESTÁVEL: Acessa valores via refs, sem dependências instáveis
+  // 🚀 CACHE INTELIGENTE EM MEMÓRIA
+  const messagesCache = useRef(new Map<string, Message[]>());
+  const mediaCachePromises = useRef(new Map<string, Promise<any>>());
+
+  // 🚀 FUNÇÃO ESCALONADA: Texto primeiro, mídia depois
   const fetchMessages = useCallback(async (offset = 0, forceRefresh = false) => {
     // 🚀 ACESSAR VALORES ATUAIS VIA REFS
     const currentContact = selectedContactRef.current;
@@ -60,6 +65,19 @@ export const useWhatsAppChatMessages = (
       return;
     }
 
+    const cacheKey = `${currentContact.id}_${currentInstance.id}`;
+
+    // ✅ CACHE HIT: Usar mensagens já carregadas se não for refresh forçado
+    if (!forceRefresh && offset === 0 && messagesCache.current.has(cacheKey)) {
+      console.log('[WhatsApp Messages] ⚡ CACHE HIT - carregamento instantâneo:', currentContact.name);
+      const cachedMessages = messagesCache.current.get(cacheKey)!;
+      setMessages(cachedMessages);
+      setCurrentOffset(cachedMessages.length);
+      setHasMoreMessages(cachedMessages.length >= MESSAGES_LIMIT);
+      setIsLoadingMessages(false);
+      return;
+    }
+
     try {
       if (offset === 0) {
         setIsLoadingMessages(true);
@@ -67,28 +85,30 @@ export const useWhatsAppChatMessages = (
         setIsLoadingMore(true);
       }
 
-      console.log('[WhatsApp Messages] 🔍 Carregando mensagens:', {
+      console.log('[WhatsApp Messages] 🔍 Carregando mensagens (escalonado):', {
         contactId: currentContact.id,
         contactName: currentContact.name,
         instanceId: currentInstance.id,
         offset,
-        limit: MESSAGES_LIMIT
+        limit: MESSAGES_LIMIT,
+        useCache: !forceRefresh
       });
 
-      // ✅ CORRIGIDO: Incluir media_cache na query com todos os campos necessários
-      const { data: messagesData, error } = await supabase
+      // 🚀 FASE 1: MENSAGENS BÁSICAS (RÁPIDO - SEM media_cache)
+      const startTime = Date.now();
+      const { data: basicMessagesData, error } = await supabase
         .from('messages')
         .select(`
-          *,
-          media_cache (
-            id,
-            base64_data,
-            original_url,
-            cached_url,
-            file_size,
-            media_type,
-            file_name
-          )
+          id,
+          text,
+          from_me,
+          created_at,
+          timestamp,
+          status,
+          media_type,
+          media_url,
+          lead_id,
+          whatsapp_number_id
         `)
         .eq('lead_id', currentContact.id)
         .eq('whatsapp_number_id', currentInstance.id)
@@ -98,32 +118,128 @@ export const useWhatsAppChatMessages = (
       if (!mountedRef.current) return;
 
       if (error) {
-        console.error('[WhatsApp Messages] ❌ Erro ao buscar mensagens:', error);
+        console.error('[WhatsApp Messages] ❌ Erro ao buscar mensagens básicas:', error);
         toast.error('Erro ao carregar mensagens');
         return;
       }
 
-      console.log('[WhatsApp Messages] ✅ Mensagens carregadas:', {
-        total: messagesData?.length || 0,
-        offset,
-        contactName: currentContact.name,
-        // ✅ LOG ADICIONAL: Verificar se media_cache foi incluído
-        withMediaCache: messagesData?.filter(m => m.media_cache && m.media_cache.length > 0).length || 0
+      const basicLoadTime = Date.now() - startTime;
+      console.log('[WhatsApp Messages] ⚡ FASE 1 concluída:', {
+        total: basicMessagesData?.length || 0,
+        loadTime: `${basicLoadTime}ms`,
+        contactName: currentContact.name
       });
 
-      const convertedMessages = (messagesData || []).map(currentMapper);
+      // 🚀 CONVERSÃO RÁPIDA (sem media_cache ainda)
+      const basicMessages = (basicMessagesData || []).map(msg => currentMapper({
+        ...msg,
+        media_cache: [] // Vazio inicialmente
+      }));
 
       if (offset === 0) {
-        // ✅ CORREÇÃO: Inverter ordem para exibição (mais antigas primeiro, recentes no final)
-        setMessages(convertedMessages.reverse());
+        // ✅ UI INSTANTÂNEA: Mostrar mensagens básicas imediatamente
+        const orderedMessages = basicMessages.reverse();
+        setMessages(orderedMessages);
         setCurrentOffset(MESSAGES_LIMIT);
+        
+        // ✅ CACHE: Salvar para próximas visitas
+        messagesCache.current.set(cacheKey, orderedMessages);
       } else {
-        // ✅ CORREÇÃO: Para paginação, adicionar as mensagens antigas no INÍCIO
-        setMessages(prev => [...convertedMessages.reverse(), ...prev]);
+        // ✅ PAGINAÇÃO
+        setMessages(prev => [...basicMessages.reverse(), ...prev]);
         setCurrentOffset(prev => prev + MESSAGES_LIMIT);
       }
 
-      setHasMoreMessages((messagesData?.length || 0) === MESSAGES_LIMIT);
+      setHasMoreMessages((basicMessagesData?.length || 0) === MESSAGES_LIMIT);
+
+      // 🚀 FASE 2: CARREGAR MÍDIA EM BACKGROUND
+      const mediaMessages = basicMessagesData?.filter(msg => 
+        msg.media_type && msg.media_type !== 'text'
+      ) || [];
+
+      if (mediaMessages.length > 0) {
+        console.log('[WhatsApp Messages] 🎯 FASE 2 iniciada:', {
+          mediaMessages: mediaMessages.length,
+          contactName: currentContact.name
+        });
+
+                 // Carregar mídia em background sem bloquear UI
+         Promise.all(
+           mediaMessages.map(async (msg) => {
+             try {
+               // ✅ CORREÇÃO: Buscar media_cache diretamente pela foreign key
+               const { data: mediaCacheData, error: mediaError } = await supabase
+                 .from('media_cache')
+                 .select(`
+                   id,
+                   base64_data,
+                   original_url,
+                   cached_url,
+                   file_size,
+                   media_type,
+                   file_name
+                 `)
+                 .eq('message_id', msg.id)
+                 .maybeSingle();
+
+               if (mediaError) {
+                 console.warn('[WhatsApp Messages] ⚠️ Erro carregando media_cache para:', msg.id, mediaError);
+                 return; // Continuar sem falhar
+               }
+
+                             if (mediaCacheData && mountedRef.current) {
+                 console.log('[WhatsApp Messages] ✅ Media cache carregado para:', msg.id, {
+                   hasBase64: !!mediaCacheData.base64_data,
+                   mimeType: mediaCacheData.mime_type,
+                   mediaType: mediaCacheData.media_type
+                 });
+
+                 // ✅ ATUALIZAÇÃO SUAVE: Só atualizar a mensagem específica
+                 setMessages(prevMessages => 
+                   prevMessages.map(prevMsg => 
+                     prevMsg.id === msg.id 
+                       ? {
+                           ...prevMsg,
+                           media_cache: mediaCacheData,
+                           mediaUrl: mediaCacheData.base64_data 
+                             ? `data:${mediaCacheData.mime_type || 'application/octet-stream'};base64,${mediaCacheData.base64_data}`
+                             : prevMsg.mediaUrl
+                         }
+                       : prevMsg
+                   )
+                 );
+
+                 // ✅ ATUALIZAR CACHE TAMBÉM
+                 if (offset === 0) {
+                   const currentCached = messagesCache.current.get(cacheKey);
+                   if (currentCached) {
+                     const updatedCache = currentCached.map(cachedMsg =>
+                       cachedMsg.id === msg.id
+                         ? {
+                             ...cachedMsg,
+                             media_cache: mediaCacheData,
+                             mediaUrl: mediaCacheData.base64_data 
+                               ? `data:${mediaCacheData.mime_type || 'application/octet-stream'};base64,${mediaCacheData.base64_data}`
+                               : cachedMsg.mediaUrl
+                           }
+                         : cachedMsg
+                     );
+                     messagesCache.current.set(cacheKey, updatedCache);
+                   }
+                 }
+               } else {
+                 console.log('[WhatsApp Messages] ⚠️ Media cache não encontrado para:', msg.id);
+               }
+            } catch (error) {
+              console.error('[WhatsApp Messages] ⚠️ Erro carregando mídia para:', msg.id, error);
+            }
+          })
+        ).then(() => {
+          if (mountedRef.current) {
+            console.log('[WhatsApp Messages] ✅ FASE 2 concluída - todas as mídias carregadas');
+          }
+        });
+      }
 
     } catch (error) {
       if (!mountedRef.current) return;
@@ -166,14 +282,13 @@ export const useWhatsAppChatMessages = (
       return [...prevMessages, newMessage];
     });
 
-    // 🎯 SCROLL INTELIGENTE: Apenas para mensagens próprias ou se usuário está no final
-    if (newMessage.fromMe) {
-      console.log('[WhatsApp Messages] 📱 Scroll automático: mensagem própria');
-      // O componente useMessagesList já cuida do scroll para mensagens próprias
-    } else {
-      console.log('[WhatsApp Messages] 💬 Nova mensagem recebida: sem scroll forçado');
-      // Para mensagens recebidas, não forçar scroll - deixar usuário decidir
-    }
+    // 🎯 SCROLL AUTOMÁTICO: Para TODAS as mensagens novas (enviadas e recebidas)
+    console.log('[WhatsApp Messages] 🔽 Auto-scroll para mensagem:', {
+      fromMe: newMessage.fromMe,
+      messageId: newMessage.id,
+      text: newMessage.text?.substring(0, 30)
+    });
+    // O componente useMessagesList detecta mudanças e faz scroll automático
   }, []);
 
   // 🚀 NOVA: Função para atualizar status de mensagem
@@ -238,7 +353,7 @@ export const useWhatsAppChatMessages = (
       return false;
     }
 
-    // 🚀 UI OTIMISTA: Criar mensagem temporária imediatamente
+    // 🚀 UI OTIMISTA: Criar mensagem temporária imediatamente com MÍDIA
     const optimisticTimestamp = new Date().toISOString();
     const optimisticMessage = {
       id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -247,7 +362,7 @@ export const useWhatsAppChatMessages = (
       timestamp: optimisticTimestamp,
       status: 'sending' as const,
       mediaType: mediaType || 'text' as const,
-      mediaUrl: mediaUrl || undefined,
+      mediaUrl: mediaUrl || undefined, // ✅ IMPORTANTE: Manter URL para renderização imediata
       sender: 'user' as const,
       time: new Date().toLocaleTimeString('pt-BR', {
             hour: '2-digit',
@@ -255,17 +370,28 @@ export const useWhatsAppChatMessages = (
           }),
       isIncoming: false,
       isOptimistic: true, // 🆕 Flag PRINCIPAL para identificar mensagens otimistas
-      optimisticTimestamp: optimisticTimestamp // 🆕 Timestamp específico para matching
+      optimisticTimestamp: optimisticTimestamp, // 🆕 Timestamp específico para matching
+      // 🚀 NOVO: Se tem mídia, criar cache otimista para renderização imediata
+      media_cache: mediaUrl && mediaUrl.startsWith('data:') ? {
+        id: `temp_cache_${Date.now()}`,
+        base64_data: mediaUrl.split(',')[1], // Extrair base64 puro
+        original_url: null,
+        file_size: null,
+        media_type: mediaType || 'document'
+      } : null
     };
 
-    console.log('[WhatsApp Messages] 🚀 UI OTIMISTA: Criando mensagem temporária:', {
+    console.log('[WhatsApp Messages] 🚀 UI OTIMISTA: Criando mensagem com mídia:', {
       messageId: optimisticMessage.id,
       text: optimisticMessage.text?.substring(0, 30),
+      mediaType,
+      hasMediaUrl: !!mediaUrl,
+      hasMediaCache: !!optimisticMessage.media_cache,
       timestamp: optimisticTimestamp,
       isOptimistic: true
     });
 
-    // ✅ MOSTRAR MENSAGEM IMEDIATAMENTE NA UI
+    // ✅ MOSTRAR MENSAGEM IMEDIATAMENTE NA UI (COM MÍDIA RENDERIZADA)
     addNewMessage(optimisticMessage);
 
     try {
@@ -365,7 +491,8 @@ export const useWhatsAppChatMessages = (
     addNewMessage,
     onMessageUpdate,
     messages,  // ✅ NOVO: passar mensagens atuais
-    replaceOptimisticMessage  // ✅ NOVO: callback para substituir mensagens otimistas
+    replaceOptimisticMessage,  // ✅ NOVO: callback para substituir mensagens otimistas
+    onContactUpdate  // ✅ NOVO: callback para notificar contatos sobre novas mensagens
   );
 
   // 🚀 CARREGAR MENSAGENS APENAS QUANDO IDs MUDAREM (evitar loops)
