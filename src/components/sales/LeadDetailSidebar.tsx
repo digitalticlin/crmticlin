@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon, CheckCheck, Copy, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, CheckCheck, Copy, Plus, Trash2, MessageCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Badge } from "@/components/ui/badge";
@@ -253,7 +253,6 @@ export const LeadDetailSidebar = ({
         </div>
 
         <div className="space-y-4">
-          {/* Informações do Lead */}
           <div className="space-y-2">
             <Label htmlFor="name" className="text-sm font-medium text-gray-700">Nome</Label>
             <Input
@@ -349,11 +348,11 @@ export const LeadDetailSidebar = ({
                   variant={"outline"}
                   className={cn(
                     "w-full justify-start text-left font-normal text-sm",
-                    !selectedLead?.purchaseDate && "text-muted-foreground"
+                    !selectedLead?.created_at && "text-muted-foreground"
                   )}
                 >
-                  {selectedLead?.purchaseDate ? (
-                    formatDate(selectedLead.purchaseDate)
+                  {selectedLead?.created_at ? (
+                    formatDate(selectedLead.created_at)
                   ) : (
                     <span>Selecione a data</span>
                   )}
@@ -363,7 +362,7 @@ export const LeadDetailSidebar = ({
               <PopoverContent className="w-auto p-0" align="center" side="bottom">
                 <DatePicker
                   mode="single"
-                  selected={selectedLead?.purchaseDate ? new Date(selectedLead.purchaseDate) : undefined}
+                  selected={selectedLead?.created_at ? new Date(selectedLead.created_at) : undefined}
                   onSelect={handlePurchaseDateChange}
                   initialFocus
                 />
@@ -376,13 +375,12 @@ export const LeadDetailSidebar = ({
             <Input
               type="text"
               id="owner"
-              value={selectedLead?.ownerId || ''}
+              value={selectedLead?.owner_id || ''}
               onChange={handleOwnerChange}
               className="text-sm"
             />
           </div>
 
-          {/* Informações de Data */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">Data de Criação</label>
             <div className="text-sm text-gray-600">
@@ -390,7 +388,6 @@ export const LeadDetailSidebar = ({
             </div>
           </div>
 
-          {/* Tags */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium text-gray-700">Tags</Label>
@@ -413,7 +410,6 @@ export const LeadDetailSidebar = ({
             </div>
           </div>
 
-          {/* Notas */}
           <div className="space-y-2">
             <Label htmlFor="notes" className="text-sm font-medium text-gray-700">Anotações</Label>
             <Textarea
@@ -424,7 +420,6 @@ export const LeadDetailSidebar = ({
             />
           </div>
 
-          {/* Deals */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-medium text-gray-700">Negociações</Label>
@@ -434,38 +429,11 @@ export const LeadDetailSidebar = ({
               </Button>
             </div>
 
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-left">Status</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="text-center">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {selectedLead?.deals?.map(deal => (
-                  <TableRow key={deal.id}>
-                    <TableCell className="font-medium">{deal.status}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(deal.value)}</TableCell>
-                    <TableCell className="text-center">
-                      <Button variant="ghost" size="icon" onClick={() => setSelectedDeal(deal)}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-edit-3">
-                          <path d="M12 20h9" />
-                          <path d="m16.5 3.5 4 4" />
-                          <path d="M3 17v-6.5l8.5-8.5c.9-.9 2.1-.9 3 0l1.5 1.5c.9.9.9 2.1 0 3L6.5 17H3Z" />
-                        </svg>
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteDeal(deal.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="text-sm text-gray-600">
+              Nenhuma negociação encontrada
+            </div>
           </div>
 
-          {/* Ações */}
           <div className="flex justify-end space-x-2">
             <Button variant="destructive" size="sm" onClick={handleDeleteLeadClick} disabled={isUpdating}>
               Excluir Lead
@@ -477,7 +445,6 @@ export const LeadDetailSidebar = ({
         </div>
       </div>
 
-      {/* Modal de Criação de Tag */}
       <Dialog open={isTagModalOpen} onOpenChange={setIsTagModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -509,7 +476,6 @@ export const LeadDetailSidebar = ({
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Criação/Edição de Negociação */}
       <Dialog open={isDealModalOpen || selectedDeal !== null} onOpenChange={(open) => {
         setIsDealModalOpen(open);
         if (!open) setSelectedDeal(null);
