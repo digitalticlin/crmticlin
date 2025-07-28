@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact, Message } from '@/types/chat';
@@ -24,7 +25,7 @@ export const useWhatsAppChatMessages = ({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const MESSAGES_PER_PAGE = 30;
+  const MESSAGES_PER_PAGE = 20; // Reduzido para melhor performance
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 2;
   
@@ -33,6 +34,7 @@ export const useWhatsAppChatMessages = ({
   const lastContactIdRef = useRef<string | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout>();
   const isLoadingRef = useRef(false);
+  const messagesCache = useRef<Map<string, Message[]>>(new Map());
 
   // ✅ CONVERSÃO OTIMIZADA DE MENSAGEM
   const convertMessage = useCallback((messageData: any): Message => {
@@ -64,7 +66,7 @@ export const useWhatsAppChatMessages = ({
     } satisfies Message;
   }, []);
 
-  // ✅ FUNÇÃO DE BUSCA OTIMIZADA
+  // ✅ FUNÇÃO DE BUSCA OTIMIZADA - SEPARADA EM DUAS QUERIES
   const fetchMessages = useCallback(async (contactId: string, instanceId: string, offset = 0) => {
     // Cancelar requisição anterior
     if (abortControllerRef.current) {
@@ -76,21 +78,22 @@ export const useWhatsAppChatMessages = ({
     const controller = abortControllerRef.current;
 
     try {
-      console.log('[Chat Messages] 📥 Buscando mensagens:', { 
-        contactId, 
-        instanceId, 
+      console.log('[Chat Messages] 📥 Buscando mensagens otimizada:', { 
+        contactId: contactId.substring(0, 8), 
+        instanceId: instanceId.substring(0, 8), 
         offset,
         limit: MESSAGES_PER_PAGE
       });
 
-      // Timeout controlado
+      // Timeout reduzido para 8 segundos
       const timeoutId = setTimeout(() => {
         if (!controller.signal.aborted) {
           controller.abort();
         }
-      }, 10000); // 10 segundos
+      }, 8000);
 
-      const { data, error } = await supabase
+      // ✅ QUERY OTIMIZADA: Buscar apenas mensagens sem JOIN complexo
+      const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
         .select(`
           id,
@@ -101,16 +104,7 @@ export const useWhatsAppChatMessages = ({
           media_type,
           media_url,
           lead_id,
-          whatsapp_number_id,
-          media_cache (
-            id,
-            base64_data,
-            original_url,
-            cached_url,
-            file_size,
-            media_type,
-            file_name
-          )
+          whatsapp_number_id
         `)
         .eq('lead_id', contactId)
         .eq('whatsapp_number_id', instanceId)
@@ -120,14 +114,34 @@ export const useWhatsAppChatMessages = ({
 
       clearTimeout(timeoutId);
 
-      if (error) {
-        console.error('[Chat Messages] ❌ Erro ao buscar mensagens:', error);
-        throw error;
+      if (messagesError) {
+        console.error('[Chat Messages] ❌ Erro ao buscar mensagens:', messagesError);
+        throw messagesError;
       }
 
-      const convertedMessages = (data || []).map(convertMessage);
+      // ✅ BUSCAR MEDIA_CACHE SEPARADAMENTE (apenas se necessário)
+      const messageIds = messagesData?.filter(msg => msg.media_type !== 'text').map(msg => msg.id) || [];
+      let mediaCacheData: any[] = [];
+
+      if (messageIds.length > 0) {
+        const { data: cacheData, error: cacheError } = await supabase
+          .from('media_cache')
+          .select('*')
+          .in('id', messageIds)
+          .abortSignal(controller.signal);
+
+        if (!cacheError) {
+          mediaCacheData = cacheData || [];
+        }
+      }
+
+      // ✅ COMBINAR DADOS
+      const convertedMessages = (messagesData || []).map(messageData => {
+        const mediaCache = mediaCacheData.find(cache => cache.id === messageData.id);
+        return convertMessage({ ...messageData, media_cache: mediaCache });
+      });
       
-      console.log('[Chat Messages] ✅ Mensagens encontradas:', convertedMessages.length);
+      console.log('[Chat Messages] ✅ Mensagens carregadas:', convertedMessages.length);
 
       return {
         messages: convertedMessages,
@@ -145,7 +159,7 @@ export const useWhatsAppChatMessages = ({
     }
   }, [convertMessage]);
 
-  // ✅ CARREGAR MENSAGENS INICIAIS
+  // ✅ CARREGAR MENSAGENS INICIAIS COM CACHE
   const loadInitialMessages = useCallback(async () => {
     if (!selectedContact || !activeInstance) {
       setMessages([]);
@@ -156,6 +170,23 @@ export const useWhatsAppChatMessages = ({
     // Evitar múltiplas chamadas
     if (isLoadingRef.current) {
       console.log('[Chat Messages] ⏳ Já carregando, ignorando...');
+      return;
+    }
+
+    // ✅ VERIFICAR CACHE PRIMEIRO
+    const cacheKey = `${selectedContact.id}-${activeInstance.id}`;
+    const cachedMessages = messagesCache.current.get(cacheKey);
+    
+    if (cachedMessages && cachedMessages.length > 0) {
+      console.log('[Chat Messages] 🚀 Usando cache:', cachedMessages.length);
+      setMessages(cachedMessages);
+      setHasMoreMessages(cachedMessages.length === MESSAGES_PER_PAGE);
+      
+      // Scroll imediato para mensagens em cache
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+      }, 0);
+      
       return;
     }
 
@@ -174,10 +205,25 @@ export const useWhatsAppChatMessages = ({
       setHasMoreMessages(result.hasMore);
       retryCountRef.current = 0;
       
+      // ✅ SALVAR NO CACHE
+      messagesCache.current.set(cacheKey, sortedMessages);
+      
+      // ✅ SCROLL AUTOMÁTICO ROBUSTO - MÚLTIPLAS TENTATIVAS
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+      }, 0);
+      
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+      }, 50);
+      
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+      }, 200);
+      
     } catch (error: any) {
       caughtError = error;
       
-      // ✅ CORREÇÃO: Verificar se error é string ou objeto
       const errorMessage = typeof error === 'string' ? error : (error?.message || 'Erro desconhecido');
       
       if (errorMessage === 'Request cancelled') {
@@ -207,7 +253,6 @@ export const useWhatsAppChatMessages = ({
       setMessages([]);
       toast.error('Falha ao carregar mensagens');
     } finally {
-      // ✅ CORREÇÃO: Usar a variável caughtError capturada no catch
       const errorMessage = caughtError ? 
         (typeof caughtError === 'string' ? caughtError : (caughtError?.message || 'Erro desconhecido')) : 
         null;
@@ -241,7 +286,6 @@ export const useWhatsAppChatMessages = ({
       }
       
     } catch (error: any) {
-      // ✅ CORREÇÃO: Verificar se error é string ou objeto
       const errorMessage = typeof error === 'string' ? error : (error?.message || 'Erro desconhecido');
       
       if (errorMessage !== 'Request cancelled') {
@@ -286,6 +330,10 @@ export const useWhatsAppChatMessages = ({
         console.log('[Chat Messages] ✅ Mensagem enviada');
         toast.success('Mensagem enviada!');
         
+        // ✅ LIMPAR CACHE PARA FORÇAR ATUALIZAÇÃO
+        const cacheKey = `${selectedContact.id}-${activeInstance.id}`;
+        messagesCache.current.delete(cacheKey);
+        
         if (onContactUpdate) {
           onContactUpdate(selectedContact.id, messageText, new Date().toISOString());
         }
@@ -297,7 +345,6 @@ export const useWhatsAppChatMessages = ({
 
     } catch (error: any) {
       console.error('[Chat Messages] ❌ Erro ao enviar:', error);
-      // ✅ CORREÇÃO: Acessar a propriedade 'message' somente se 'error' for um objeto
       const errorMessage = typeof error === 'string' ? error : (error?.message || 'Erro desconhecido');
       toast.error(`Erro ao enviar mensagem: ${errorMessage}`);
       return false;
@@ -306,7 +353,7 @@ export const useWhatsAppChatMessages = ({
     }
   }, [selectedContact, activeInstance, onContactUpdate]);
 
-  // ✅ CALLBACKS PARA REALTIME
+  // ✅ CALLBACKS PARA REALTIME COM DEDUPLICAÇÃO
   const handleNewMessage = useCallback((newMessage: Message) => {
     console.log('[Chat Messages] 📨 Nova mensagem via realtime:', newMessage.id);
     
@@ -316,10 +363,17 @@ export const useWhatsAppChatMessages = ({
     
     debounceTimerRef.current = setTimeout(() => {
       setMessages(prev => {
+        // ✅ DEDUPLICAÇÃO - Verificar se mensagem já existe
         const exists = prev.some(msg => msg.id === newMessage.id);
         if (exists) {
-          console.log('[Chat Messages] ⚠️ Mensagem duplicada, ignorando');
+          console.log('[Chat Messages] ⚠️ Mensagem duplicada ignorada:', newMessage.id);
           return prev;
+        }
+        
+        // ✅ LIMPAR CACHE PARA PRÓXIMA ATUALIZAÇÃO
+        if (selectedContact) {
+          const cacheKey = `${selectedContact.id}-${activeInstance?.id}`;
+          messagesCache.current.delete(cacheKey);
         }
         
         if (onContactUpdate && !newMessage.fromMe) {
@@ -332,8 +386,8 @@ export const useWhatsAppChatMessages = ({
         
         return [...prev, newMessage];
       });
-    }, 50);
-  }, [onContactUpdate, selectedContact?.id]);
+    }, 100); // Debounce de 100ms
+  }, [onContactUpdate, selectedContact?.id, activeInstance?.id]);
 
   const handleMessageUpdate = useCallback((updatedMessage: Message) => {
     console.log('[Chat Messages] 🔄 Mensagem atualizada:', updatedMessage.id);
@@ -359,8 +413,8 @@ export const useWhatsAppChatMessages = ({
     
     if (currentContactId !== lastContactIdRef.current) {
       console.log('[Chat Messages] 👤 Contato mudou:', { 
-        from: lastContactIdRef.current, 
-        to: currentContactId 
+        from: lastContactIdRef.current?.substring(0, 8), 
+        to: currentContactId?.substring(0, 8) 
       });
       
       lastContactIdRef.current = currentContactId;

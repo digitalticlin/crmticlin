@@ -40,10 +40,12 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
     isLoadingMore
   });
 
+  // ✅ LOADING OTIMIZADO
   if (isLoading) {
     return <MessagesLoadingIndicator />;
   }
 
+  // ✅ ESTADO VAZIO
   if (messages.length === 0) {
     return <EmptyMessagesState />;
   }
@@ -55,14 +57,13 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
       style={{ 
         scrollBehavior: 'smooth',
         overflowAnchor: 'none',
-        // Otimizações para scroll automático
         scrollPaddingBottom: '16px'
       }}
     >
       {/* Indicador de carregamento no topo */}
       {isLoadingMore && <LoadMoreIndicator />}
       
-      {/* Indicador de fim das mensagens */}
+      {/* Indicador de início da conversa */}
       <ConversationStartIndicator 
         hasMoreMessages={hasMoreMessages}
         messagesCount={messages.length}
@@ -70,7 +71,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
 
       {/* Lista de mensagens */}
       {messagesList.map((message, index) => {
-        const isNewMessage = index === messagesList.length - 1; // Última mensagem é a mais nova
+        const isNewMessage = index === messagesList.length - 1;
         
         return (
           <MessageItem
@@ -81,7 +82,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
         );
       })}
       
-      {/* Elemento para scroll automático - mais robusto */}
+      {/* Elemento para scroll automático */}
       <div 
         ref={messagesEndRef} 
         className="h-4 w-full" 

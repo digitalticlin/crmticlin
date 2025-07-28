@@ -12,13 +12,32 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
   const prevMessagesLengthRef = useRef(messages.length);
   const prevLastMessageIdRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
+  const scrollTriesRef = useRef(0);
+  const MAX_SCROLL_TRIES = 3;
 
-  // Scroll automático otimizado - sempre para o final com novas mensagens
+  // ✅ FUNÇÃO DE SCROLL OTIMIZADA
+  const scrollToBottom = useRef((behavior: 'instant' | 'smooth' = 'smooth', attempt: number = 0) => {
+    if (!messagesEndRef.current) return;
+    
+    try {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior,
+        block: 'end',
+        inline: 'nearest'
+      });
+      
+      console.log(`[useMessagesList] 📍 Scroll ${behavior} - tentativa ${attempt + 1}`);
+    } catch (error) {
+      console.warn('[useMessagesList] ⚠️ Erro no scroll:', error);
+    }
+  }).current;
+
+  // ✅ SCROLL AUTOMÁTICO OTIMIZADO COM MÚLTIPLAS TENTATIVAS
   useEffect(() => {
     const wasNewMessage = messages.length > prevMessagesLengthRef.current;
     const wasInitialLoad = isInitialLoadRef.current && messages.length > 0;
     
-    // Verificar se houve mudança na última mensagem (nova mensagem ou atualização)
+    // Verificar se houve mudança na última mensagem
     const currentLastMessage = messages[messages.length - 1];
     const lastMessageChanged = currentLastMessage?.id !== prevLastMessageIdRef.current;
     
@@ -26,91 +45,58 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
     prevMessagesLengthRef.current = messages.length;
     prevLastMessageIdRef.current = currentLastMessage?.id || null;
 
-    // ✅ CORREÇÃO CRÍTICA: Para carregamento inicial, scroll IMEDIATO e múltiplo para garantir
-    if (wasInitialLoad && messagesEndRef.current) {
-      console.log('[useMessagesList] 🚀 Carregamento inicial - scroll INSTANTÂNEO para última mensagem');
+    // ✅ SCROLL IMEDIATO PARA CARREGAMENTO INICIAL
+    if (wasInitialLoad) {
+      console.log('[useMessagesList] 🚀 Carregamento inicial - scroll instantâneo');
+      scrollTriesRef.current = 0;
       
-      // Scroll imediato
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: 'instant',
-        block: 'end',
-        inline: 'nearest'
+      // Múltiplas tentativas de scroll com timing otimizado
+      const scrollAttempts = [0, 50, 150, 300];
+      
+      scrollAttempts.forEach((delay, index) => {
+        setTimeout(() => {
+          if (scrollTriesRef.current < MAX_SCROLL_TRIES) {
+            scrollToBottom('instant', index);
+            scrollTriesRef.current++;
+          }
+        }, delay);
       });
-      
-      // ✅ CORREÇÃO: Múltiplos backups mais agressivos para garantir scroll
-      setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ 
-            behavior: 'instant',
-            block: 'end',
-            inline: 'nearest'
-          });
-          console.log('[useMessagesList] ✅ Scroll inicial garantido com backup 1');
-        }
-      }, 50);
-      
-      // Backup adicional para casos extremos
-      setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ 
-            behavior: 'instant',
-            block: 'end',
-            inline: 'nearest'
-          });
-          console.log('[useMessagesList] ✅ Scroll inicial garantido com backup 2');
-        }
-      }, 200);
       
       isInitialLoadRef.current = false;
-      return; // Sair aqui para não fazer scroll duplo
+      return;
     }
 
-    // Para novas mensagens ou atualizações, scroll suave
-    const shouldScroll = (wasNewMessage || lastMessageChanged) && 
-                        messagesEndRef.current && 
-                        !isLoadingMore;
-
-    if (shouldScroll) {
-      console.log('[useMessagesList] 🔽 Scroll automático para nova mensagem:', {
-        wasNewMessage,
-        lastMessageChanged,
-        messagesCount: messages.length
-      });
-
+    // ✅ SCROLL SUAVE PARA NOVAS MENSAGENS
+    if ((wasNewMessage || lastMessageChanged) && !isLoadingMore) {
+      console.log('[useMessagesList] 📨 Nova mensagem - scroll suave');
+      
       setTimeout(() => {
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ 
-            behavior: 'smooth', // Suave apenas para novas mensagens
-            block: 'end',
-            inline: 'nearest'
-          });
-        }
+        scrollToBottom('smooth');
+      }, 100);
+    }
+  }, [messages, isLoadingMore, scrollToBottom]);
+
+  // ✅ SCROLL INICIAL GARANTIDO
+  useEffect(() => {
+    if (messages.length > 0) {
+      // Garantir que o scroll inicial aconteça mesmo se outras condições falharem
+      setTimeout(() => {
+        scrollToBottom('instant');
       }, 50);
     }
-  }, [messages, isLoadingMore]);
+  }, []); // Executa apenas na montagem
 
-  // ✅ GARANTIR scroll inicial quando componente monta
-  useEffect(() => {
-    if (messages.length > 0 && messagesEndRef.current) {
-      console.log('[useMessagesList] 🎯 Scroll inicial garantido');
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: 'instant',
-        block: 'end' 
-      });
-    }
-  }, []); // Só executa na montagem
-
-  // Memoizar lista de mensagens (ORDEM JÁ CORRETA do hook principal)
+  // ✅ MENSAGENS MEMOIZADAS
   const messagesList = useMemo(() => {
-    // ✅ OTIMIZAÇÃO: Não reordenar, mensagens já vêm na ordem correta do useWhatsAppChatMessages
-    // O hook principal já faz: busca desc + inversão para exibição (antigas no topo, recentes no final)
+    if (messages.length === 0) return [];
+    
     console.log('[useMessagesList] 📋 Processando mensagens:', {
       total: messages.length,
-      primeira: messages[0]?.id?.substring(0, 8),
-      ultima: messages[messages.length - 1]?.id?.substring(0, 8)
+      primeira: messages[0]?.id?.substring(0, 8) || 'N/A',
+      ultima: messages[messages.length - 1]?.id?.substring(0, 8) || 'N/A'
     });
 
-    return messages; // Usar diretamente sem re-ordenação
+    return messages;
   }, [messages]);
 
   return {
