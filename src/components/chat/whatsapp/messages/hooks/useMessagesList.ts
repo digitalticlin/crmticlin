@@ -12,27 +12,25 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
   const prevMessagesLengthRef = useRef(messages.length);
   const prevLastMessageIdRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
-  const scrollTriesRef = useRef(0);
-  const MAX_SCROLL_TRIES = 4;
 
   // ✅ FUNÇÃO DE SCROLL OTIMIZADA
-  const scrollToBottom = useRef((behavior: 'instant' | 'smooth' = 'smooth', attempt: number = 0) => {
+  const scrollToBottom = useRef(() => {
     if (!messagesEndRef.current) return;
     
     try {
       messagesEndRef.current.scrollIntoView({ 
-        behavior,
+        behavior: 'instant',
         block: 'end',
         inline: 'nearest'
       });
       
-      console.log(`[useMessagesList] 📍 Scroll ${behavior} - tentativa ${attempt + 1}`);
+      console.log('[useMessagesList] 📍 Scroll executado');
     } catch (error) {
       console.warn('[useMessagesList] ⚠️ Erro no scroll:', error);
     }
   }).current;
 
-  // ✅ SCROLL AUTOMÁTICO OTIMIZADO COM MÚLTIPLAS TENTATIVAS
+  // ✅ SCROLL AUTOMÁTICO ROBUSTO
   useEffect(() => {
     const wasNewMessage = messages.length > prevMessagesLengthRef.current;
     const wasInitialLoad = isInitialLoadRef.current && messages.length > 0;
@@ -45,46 +43,26 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
     prevMessagesLengthRef.current = messages.length;
     prevLastMessageIdRef.current = currentLastMessage?.id || null;
 
-    // ✅ SCROLL IMEDIATO PARA CARREGAMENTO INICIAL
+    // ✅ SCROLL PARA CARREGAMENTO INICIAL
     if (wasInitialLoad) {
       console.log('[useMessagesList] 🚀 Carregamento inicial - scroll instantâneo');
-      scrollTriesRef.current = 0;
       
-      // Múltiplas tentativas de scroll com timing otimizado
-      const scrollAttempts = [0, 50, 150, 300];
-      
-      scrollAttempts.forEach((delay, index) => {
-        setTimeout(() => {
-          if (scrollTriesRef.current < MAX_SCROLL_TRIES) {
-            scrollToBottom('instant', index);
-            scrollTriesRef.current++;
-          }
-        }, delay);
-      });
+      // Múltiplas tentativas de scroll
+      setTimeout(() => scrollToBottom(), 0);
+      setTimeout(() => scrollToBottom(), 100);
+      setTimeout(() => scrollToBottom(), 300);
       
       isInitialLoadRef.current = false;
       return;
     }
 
-    // ✅ SCROLL SUAVE PARA NOVAS MENSAGENS
+    // ✅ SCROLL PARA NOVAS MENSAGENS
     if ((wasNewMessage || lastMessageChanged) && !isLoadingMore) {
-      console.log('[useMessagesList] 📨 Nova mensagem - scroll suave');
+      console.log('[useMessagesList] 📨 Nova mensagem - scroll automático');
       
-      setTimeout(() => {
-        scrollToBottom('smooth');
-      }, 100);
+      setTimeout(() => scrollToBottom(), 100);
     }
-  }, [messages, isLoadingMore, scrollToBottom]);
-
-  // ✅ SCROLL INICIAL GARANTIDO
-  useEffect(() => {
-    if (messages.length > 0) {
-      // Garantir que o scroll inicial aconteça mesmo se outras condições falharem
-      setTimeout(() => {
-        scrollToBottom('instant');
-      }, 50);
-    }
-  }, []); // Executa apenas na montagem
+  }, [messages.length, isLoadingMore, scrollToBottom]);
 
   // ✅ MENSAGENS MEMOIZADAS
   const messagesList = useMemo(() => {

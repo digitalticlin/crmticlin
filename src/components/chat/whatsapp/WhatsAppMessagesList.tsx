@@ -40,34 +40,35 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
     isLoadingMore
   });
 
-  // ✅ LOADING OTIMIZADO
-  if (isLoading) {
-    return <MessagesLoadingIndicator />;
-  }
-
-  // ✅ ESTADO VAZIO
-  if (messages.length === 0) {
-    return <EmptyMessagesState />;
-  }
-
-  // ✅ GARANTIR QUE MENSAGENS SEJAM RENDERIZADAS
-  console.log('[WhatsAppMessagesList] 📋 Renderizando mensagens:', {
+  console.log('[WhatsAppMessagesList] 📋 Renderizando:', {
     total: messages.length,
     messagesList: messagesList.length,
     isLoading,
     isLoadingMore
   });
 
+  // ✅ ESTADO VAZIO - APENAS SE NÃO ESTÁ CARREGANDO
+  if (!isLoading && messages.length === 0) {
+    return <EmptyMessagesState />;
+  }
+
   return (
     <div 
       ref={containerRef}
-      className="flex-1 overflow-y-auto pb-4 scroll-smooth"
+      className="flex-1 overflow-y-auto pb-4 scroll-smooth relative"
       style={{ 
         scrollBehavior: 'smooth',
         overflowAnchor: 'none',
         scrollPaddingBottom: '16px'
       }}
     >
+      {/* ✅ LOADING OVERLAY - NÃO SUBSTITUI O CONTEÚDO */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
+          <MessagesLoadingIndicator />
+        </div>
+      )}
+
       {/* Indicador de carregamento no topo */}
       {isLoadingMore && <LoadMoreIndicator />}
       
