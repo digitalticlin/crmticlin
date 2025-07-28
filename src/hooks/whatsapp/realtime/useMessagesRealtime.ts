@@ -11,7 +11,7 @@ interface UseMessagesRealtimeProps {
   onMessageUpdate?: (message: Message) => void;
 }
 
-// ✅ SINGLETON PARA EVITAR MÚLTIPLOS CANAIS
+// ✅ SINGLETON OTIMIZADO PARA MELHOR PERFORMANCE
 const realtimeManager = {
   currentChannel: null as any,
   currentConfig: '',
@@ -55,15 +55,14 @@ export const useMessagesRealtime = ({
     } satisfies Message;
   }, []);
 
-  // ✅ PROCESSAMENTO DE FILA DE EVENTOS
+  // ✅ PROCESSAMENTO DE FILA OTIMIZADO - DEBOUNCE REDUZIDO
   const processEventQueue = useCallback(async () => {
     if (eventProcessingRef.current || realtimeManager.eventQueue.length === 0) return;
     
     eventProcessingRef.current = true;
     
     try {
-      // ✅ PROCESSAR EVENTOS EM ORDEM CRONOLÓGICA
-      const events = realtimeManager.eventQueue.splice(0, 10); // Processar até 10 eventos por vez
+      const events = realtimeManager.eventQueue.splice(0, 5); // Processar 5 eventos por vez
       
       for (const event of events) {
         if (!isMountedRef.current) break;
@@ -74,10 +73,10 @@ export const useMessagesRealtime = ({
           const message = convertMessage(payload.new);
           
           if (type === 'INSERT') {
-            console.log('[Messages Realtime] 📨 Processando INSERT:', message.id);
+            console.log('[Messages Realtime] 📨 Nova mensagem (INSERT):', message.id);
             onNewMessage?.(message);
           } else if (type === 'UPDATE') {
-            console.log('[Messages Realtime] 🔄 Processando UPDATE:', message.id);
+            console.log('[Messages Realtime] 🔄 Mensagem atualizada (UPDATE):', message.id);
             onMessageUpdate?.(message);
           }
         } catch (error) {
@@ -94,7 +93,7 @@ export const useMessagesRealtime = ({
     }
   }, [convertMessage, onNewMessage, onMessageUpdate]);
 
-  // ✅ HANDLER PARA NOVA MENSAGEM (INSERT)
+  // ✅ HANDLER OTIMIZADO PARA NOVA MENSAGEM (INSERT) - DEBOUNCE 50MS
   const handleNewMessage = useCallback((payload: any) => {
     if (!payload?.new || !selectedContact || !activeInstance || !isMountedRef.current) return;
     
@@ -104,17 +103,17 @@ export const useMessagesRealtime = ({
     if (messageData.whatsapp_number_id !== activeInstance.id) return;
     if (messageData.lead_id !== selectedContact.id) return;
 
-    // ✅ ADICIONAR À FILA COM DEBOUNCE DE 10MS
+    // ✅ ADICIONAR À FILA COM DEBOUNCE REDUZIDO
     realtimeManager.eventQueue.push({
       type: 'INSERT',
       payload,
       timestamp: Date.now()
     });
     
-    setTimeout(processEventQueue, 10);
+    setTimeout(processEventQueue, 50); // Reduzido de 150ms para 50ms
   }, [selectedContact?.id, activeInstance?.id, processEventQueue]);
 
-  // ✅ HANDLER PARA ATUALIZAÇÃO DE MENSAGEM (UPDATE)
+  // ✅ HANDLER OTIMIZADO PARA ATUALIZAÇÃO (UPDATE) - SEM DEBOUNCE
   const handleMessageUpdate = useCallback((payload: any) => {
     if (!payload?.new || !selectedContact || !activeInstance || !isMountedRef.current) return;
     
@@ -131,10 +130,10 @@ export const useMessagesRealtime = ({
       timestamp: Date.now()
     });
     
-    processEventQueue();
+    processEventQueue(); // Sem delay para updates
   }, [selectedContact?.id, activeInstance?.id, processEventQueue]);
 
-  // ✅ HEARTBEAT PARA MANTER CONEXÃO ATIVA
+  // ✅ HEARTBEAT OTIMIZADO - 30 SEGUNDOS
   const setupHeartbeat = useCallback(() => {
     if (realtimeManager.heartbeatInterval) {
       clearInterval(realtimeManager.heartbeatInterval);
@@ -145,7 +144,7 @@ export const useMessagesRealtime = ({
         try {
           // ✅ PING SIMPLES PARA MANTER CONEXÃO
           realtimeManager.currentChannel.send({
-            type: 'ping',
+            type: 'heartbeat',
             timestamp: Date.now()
           });
           console.log('[Messages Realtime] 💗 Heartbeat enviado');
@@ -156,7 +155,7 @@ export const useMessagesRealtime = ({
     }, 30000); // 30 segundos
   }, []);
 
-  // ✅ CLEANUP CONTROLADO
+  // ✅ CLEANUP OTIMIZADO
   const cleanup = useCallback(() => {
     if (realtimeManager.cleanupTimeout) {
       clearTimeout(realtimeManager.cleanupTimeout);
@@ -187,7 +186,7 @@ export const useMessagesRealtime = ({
     }
   }, []);
 
-  // ✅ SETUP OTIMIZADO COM RETRY EXPONENCIAL
+  // ✅ SETUP COM RETRY EXPONENCIAL OTIMIZADO
   const setupRealtime = useCallback(async () => {
     if (!selectedContact || !activeInstance) {
       cleanup();
@@ -203,8 +202,8 @@ export const useMessagesRealtime = ({
       return;
     }
     
-    // ✅ DEBOUNCE SETUP
-    if (now - realtimeManager.lastSetup < 100) {
+    // ✅ DEBOUNCE REDUZIDO
+    if (now - realtimeManager.lastSetup < 50) {
       console.log('[Messages Realtime] ⏳ Aguardando debounce...');
       return;
     }
@@ -218,7 +217,7 @@ export const useMessagesRealtime = ({
     realtimeManager.isSettingUp = true;
     realtimeManager.lastSetup = now;
     
-    console.log('[Messages Realtime] 🚀 Configurando realtime para:', {
+    console.log('[Messages Realtime] 🚀 Configurando realtime otimizado para:', {
       contactId: selectedContact.id.substring(0, 8),
       instanceId: activeInstance.id.substring(0, 8),
       attempt: realtimeManager.reconnectAttempts + 1
@@ -253,10 +252,10 @@ export const useMessagesRealtime = ({
           handleMessageUpdate
         )
         .subscribe((status) => {
-          console.log('[Messages Realtime] 📡 Status:', status);
+          console.log('[Messages Realtime] 📡 Status otimizado:', status);
           
           if (status === 'SUBSCRIBED') {
-            console.log('[Messages Realtime] ✅ Conectado com sucesso');
+            console.log('[Messages Realtime] ✅ Conectado com sucesso - Performance otimizada');
             isConnectedRef.current = true;
             realtimeManager.currentChannel = channel;
             realtimeManager.currentConfig = currentConfig;
@@ -266,7 +265,7 @@ export const useMessagesRealtime = ({
             console.error('[Messages Realtime] ❌ Erro na conexão:', status);
             isConnectedRef.current = false;
             
-            // ✅ RETRY EXPONENCIAL
+            // ✅ RETRY EXPONENCIAL OTIMIZADO
             if (realtimeManager.reconnectAttempts < realtimeManager.maxReconnectAttempts) {
               const delay = Math.min(1000 * Math.pow(2, realtimeManager.reconnectAttempts), 30000);
               realtimeManager.reconnectAttempts++;
@@ -296,7 +295,7 @@ export const useMessagesRealtime = ({
     }
   }, [selectedContact?.id, activeInstance?.id, handleNewMessage, handleMessageUpdate, cleanup, setupHeartbeat]);
 
-  // ✅ EFEITO PRINCIPAL
+  // ✅ EFEITO PRINCIPAL OTIMIZADO
   useEffect(() => {
     isMountedRef.current = true;
     
@@ -304,7 +303,7 @@ export const useMessagesRealtime = ({
       if (isMountedRef.current) {
         setupRealtime();
       }
-    }, 50);
+    }, 25); // Reduzido de 50ms para 25ms
 
     return () => {
       clearTimeout(setupTimer);

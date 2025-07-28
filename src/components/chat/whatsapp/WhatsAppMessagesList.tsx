@@ -41,7 +41,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
     isLoadingMore
   });
 
-  console.log('[WhatsAppMessagesList] 📋 Renderizando:', {
+  console.log('[WhatsAppMessagesList] 📋 Renderizando otimizado:', {
     total: messages.length,
     messagesList: messagesList.length,
     isLoading,
@@ -79,7 +79,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
         messagesCount={messages.length}
       />
 
-      {/* Lista de mensagens */}
+      {/* Lista de mensagens com animações otimizadas */}
       <div className="space-y-2 px-4">
         {messagesList.map((message, index) => {
           const isNewMessage = index === messagesList.length - 1;
@@ -90,8 +90,8 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
               key={message.id}
               className={cn(
                 "transition-all duration-300 ease-in-out",
-                isNewMessage && !isOptimistic && "animate-in slide-in-from-bottom-2",
-                isOptimistic && "opacity-80"
+                isNewMessage && !isOptimistic && "animate-in slide-in-from-bottom-2 duration-300",
+                isOptimistic && "opacity-80 animate-pulse"
               )}
             >
               <MessageItem
@@ -103,7 +103,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
         })}
       </div>
       
-      {/* Elemento para scroll automático */}
+      {/* Elemento para scroll automático otimizado */}
       <div 
         ref={messagesEndRef} 
         className="h-4 w-full" 

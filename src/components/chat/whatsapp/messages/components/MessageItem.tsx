@@ -23,14 +23,14 @@ export const MessageItem: React.FC<MessageItemProps> = memo(({ message, isNewMes
     >
       <div
         className={cn(
-          "max-w-[80%] rounded-lg p-3 shadow-sm",
+          "max-w-[80%] rounded-lg p-3 shadow-sm transition-all duration-300",
           message.fromMe 
-            ? "bg-green-500 text-white rounded-tr-none" 
+            ? "bg-blue-500 text-white rounded-tr-none" 
             : "bg-white dark:bg-gray-800 rounded-tl-none",
           isOptimistic && "opacity-80",
-          isFailed && "bg-red-100 border border-red-300",
-          isSending && "bg-blue-100 border border-blue-300",
-          isNewMessage && !isOptimistic && "animate-in slide-in-from-bottom-2"
+          isFailed && "bg-red-100 border border-red-300 text-red-700",
+          isSending && "bg-blue-100 border border-blue-300 text-blue-700",
+          isNewMessage && !isOptimistic && "animate-in slide-in-from-bottom-2 duration-300"
         )}
       >
         <div className="whitespace-pre-wrap break-words">

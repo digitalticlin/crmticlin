@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact, Message } from '@/types/chat';
@@ -67,7 +68,7 @@ export const useWhatsAppChatMessages = ({
     } satisfies Message;
   }, []);
 
-  // ✅ BUSCA DE MENSAGENS SIMPLIFICADA
+  // ✅ BUSCA DE MENSAGENS OTIMIZADA
   const fetchMessages = useCallback(async (contactId: string, instanceId: string, offset = 0) => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -77,7 +78,7 @@ export const useWhatsAppChatMessages = ({
     const controller = abortControllerRef.current;
 
     try {
-      console.log('[Chat Messages] 📥 Buscando mensagens:', { 
+      console.log('[Chat Messages] 📥 Buscando mensagens otimizadas:', { 
         contactId: contactId.substring(0, 8), 
         instanceId: instanceId.substring(0, 8), 
         offset,
@@ -116,7 +117,7 @@ export const useWhatsAppChatMessages = ({
 
       const convertedMessages = (messagesData || []).map(convertMessage);
       
-      console.log('[Chat Messages] ✅ Mensagens carregadas:', convertedMessages.length);
+      console.log('[Chat Messages] ✅ Mensagens carregadas (otimizadas):', convertedMessages.length);
 
       return {
         messages: convertedMessages,
@@ -134,7 +135,7 @@ export const useWhatsAppChatMessages = ({
     }
   }, [convertMessage]);
 
-  // ✅ SCROLL AUTOMÁTICO ROBUSTO
+  // ✅ SCROLL AUTOMÁTICO OTIMIZADO COM MÚLTIPLAS TENTATIVAS
   const scrollToBottom = useCallback(() => {
     if (!messagesEndRef.current) return;
     
@@ -148,7 +149,7 @@ export const useWhatsAppChatMessages = ({
           inline: 'nearest'
         });
         
-        console.log(`[Chat Messages] 📍 Scroll tentativa ${attempt + 1}`);
+        console.log(`[Chat Messages] 📍 Scroll otimizado tentativa ${attempt + 1}`);
       } catch (error) {
         console.warn('[Chat Messages] ⚠️ Erro no scroll:', error);
       }
@@ -157,6 +158,7 @@ export const useWhatsAppChatMessages = ({
     scrollToEnd(0);
     setTimeout(() => scrollToEnd(1), 100);
     setTimeout(() => scrollToEnd(2), 300);
+    setTimeout(() => scrollToEnd(3), 500); // Tentativa adicional
   }, []);
 
   // ✅ CARREGAR MENSAGENS INICIAIS
@@ -168,7 +170,7 @@ export const useWhatsAppChatMessages = ({
       return;
     }
 
-    console.log('[Chat Messages] 🚀 Carregando mensagens iniciais');
+    console.log('[Chat Messages] 🚀 Carregando mensagens iniciais (otimizadas)');
     
     setIsLoadingMessages(true);
     setError(null);
@@ -187,7 +189,7 @@ export const useWhatsAppChatMessages = ({
       setMessages(sortedMessages);
       setHasMoreMessages(result.hasMore);
       
-      console.log('[Chat Messages] ✅ Mensagens carregadas com sucesso:', sortedMessages.length);
+      console.log('[Chat Messages] ✅ Mensagens carregadas com sucesso (otimizadas):', sortedMessages.length);
       
       setTimeout(() => scrollToBottom(), 100);
       
@@ -236,7 +238,7 @@ export const useWhatsAppChatMessages = ({
     }
   }, [selectedContact, activeInstance, messages.length, hasMoreMessages, isLoadingMore, fetchMessages]);
 
-  // ✅ ENVIAR MENSAGEM COM UI OTIMISTA E RETRY
+  // ✅ ENVIAR MENSAGEM COM UI OTIMISTA E RETRY MELHORADO
   const sendMessage = useCallback(async (messageText: string, media?: { file: File; type: string }) => {
     if (!selectedContact || !activeInstance) {
       toast.error('Contato ou instância não selecionada');
@@ -274,7 +276,7 @@ export const useWhatsAppChatMessages = ({
     setTimeout(() => scrollToBottom(), 50);
 
     try {
-      // ✅ ENVIAR COM RETRY AUTOMÁTICO
+      // ✅ ENVIAR COM RETRY AUTOMÁTICO USANDO whatsapp_messaging_service
       const result = await MessageSendingService.sendMessageWithRetry(
         activeInstance.id,
         selectedContact.id,
@@ -283,7 +285,7 @@ export const useWhatsAppChatMessages = ({
       );
 
       if (result.success) {
-        console.log('[Chat Messages] ✅ Mensagem enviada com sucesso');
+        console.log('[Chat Messages] ✅ Mensagem enviada com sucesso (otimizada)');
         
         // ✅ REMOVER MENSAGEM OTIMISTA (será substituída pelo realtime)
         setMessages(prev => prev.filter(msg => msg.id !== tempId));
@@ -303,7 +305,7 @@ export const useWhatsAppChatMessages = ({
       }
 
     } catch (error: any) {
-      console.error('[Chat Messages] ❌ Erro ao enviar:', error);
+      console.error('[Chat Messages] ❌ Erro ao enviar (otimizado):', error);
       
       // ✅ MARCAR COMO FALHA
       setMessages(prev => prev.map(msg => 
@@ -317,9 +319,9 @@ export const useWhatsAppChatMessages = ({
     }
   }, [selectedContact, activeInstance, onContactUpdate, scrollToBottom]);
 
-  // ✅ CALLBACKS PARA REALTIME BASEADO EM EVENTOS
+  // ✅ CALLBACKS PARA REALTIME OTIMIZADO
   const handleNewMessage = useCallback((newMessage: Message) => {
-    console.log('[Chat Messages] 📨 Nova mensagem via realtime (INSERT):', newMessage.id);
+    console.log('[Chat Messages] 📨 Nova mensagem via realtime otimizado (INSERT):', newMessage.id);
     
     // ✅ VERIFICAR SE JÁ EXISTE (evitar duplicatas)
     if (messagesMapRef.current.has(newMessage.id)) {
@@ -345,12 +347,12 @@ export const useWhatsAppChatMessages = ({
       );
     }
     
-    // ✅ SCROLL AUTOMÁTICO PARA NOVAS MENSAGENS
+    // ✅ SCROLL AUTOMÁTICO OTIMIZADO PARA NOVAS MENSAGENS
     setTimeout(() => scrollToBottom(), 100);
   }, [onContactUpdate, selectedContact?.id, scrollToBottom]);
 
   const handleMessageUpdate = useCallback((updatedMessage: Message) => {
-    console.log('[Chat Messages] 🔄 Mensagem atualizada via realtime (UPDATE):', updatedMessage.id);
+    console.log('[Chat Messages] 🔄 Mensagem atualizada via realtime otimizado (UPDATE):', updatedMessage.id);
     
     // ✅ ATUALIZAR MAP
     messagesMapRef.current.set(updatedMessage.id, updatedMessage);
@@ -362,7 +364,7 @@ export const useWhatsAppChatMessages = ({
     );
   }, []);
 
-  // ✅ CONFIGURAR REALTIME
+  // ✅ CONFIGURAR REALTIME OTIMIZADO
   useMessagesRealtime({
     selectedContact,
     activeInstance,
@@ -375,7 +377,7 @@ export const useWhatsAppChatMessages = ({
     const currentContactId = selectedContact?.id;
     
     if (currentContactId !== lastContactIdRef.current) {
-      console.log('[Chat Messages] 👤 Contato mudou:', { 
+      console.log('[Chat Messages] 👤 Contato mudou (otimizado):', { 
         from: lastContactIdRef.current?.substring(0, 8), 
         to: currentContactId?.substring(0, 8) 
       });
