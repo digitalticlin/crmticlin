@@ -50,6 +50,14 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
     return <EmptyMessagesState />;
   }
 
+  // ✅ GARANTIR QUE MENSAGENS SEJAM RENDERIZADAS
+  console.log('[WhatsAppMessagesList] 📋 Renderizando mensagens:', {
+    total: messages.length,
+    messagesList: messagesList.length,
+    isLoading,
+    isLoadingMore
+  });
+
   return (
     <div 
       ref={containerRef}
@@ -70,17 +78,19 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
       />
 
       {/* Lista de mensagens */}
-      {messagesList.map((message, index) => {
-        const isNewMessage = index === messagesList.length - 1;
-        
-        return (
-          <MessageItem
-            key={message.id}
-            message={message}
-            isNewMessage={isNewMessage}
-          />
-        );
-      })}
+      <div className="space-y-2 px-4">
+        {messagesList.map((message, index) => {
+          const isNewMessage = index === messagesList.length - 1;
+          
+          return (
+            <MessageItem
+              key={message.id}
+              message={message}
+              isNewMessage={isNewMessage}
+            />
+          );
+        })}
+      </div>
       
       {/* Elemento para scroll automático */}
       <div 

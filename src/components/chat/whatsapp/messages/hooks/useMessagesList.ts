@@ -13,7 +13,7 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
   const prevLastMessageIdRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
   const scrollTriesRef = useRef(0);
-  const MAX_SCROLL_TRIES = 3;
+  const MAX_SCROLL_TRIES = 4;
 
   // ✅ FUNÇÃO DE SCROLL OTIMIZADA
   const scrollToBottom = useRef((behavior: 'instant' | 'smooth' = 'smooth', attempt: number = 0) => {
