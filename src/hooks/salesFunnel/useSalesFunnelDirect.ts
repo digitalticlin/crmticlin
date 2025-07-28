@@ -1,3 +1,4 @@
+
 /**
  * 🚀 HOOK PRINCIPAL PARA SALES FUNNEL - CORRIGIDO PARA PHASE 2
  * 
@@ -218,7 +219,7 @@ export const useSalesFunnelDirect = () => {
     [stages]
   );
 
-  // 🏗️ MUTATION: CRIAR FUNNEL
+  // 🏗️ MUTATION: CRIAR FUNNEL - CORRIGIDO
   const createFunnel = useMutation({
     mutationFn: async (name: string) => {
       const { data, error } = await supabase
@@ -403,7 +404,7 @@ export const useSalesFunnelDirect = () => {
     funnels,
     selectedFunnel,
     setSelectedFunnel,
-    createFunnel: createFunnel.mutate,
+    createFunnel: createFunnel.mutate, // ✅ CORRIGIDO: Retornar apenas mutate
     
     // Colunas e leads
     columns,
@@ -434,7 +435,7 @@ export const useSalesFunnelDirect = () => {
     updateLeadPurchaseValue,
     updateLeadAssignedUser,
     updateLeadName,
-    updateLead, // ✅ ADICIONADO
+    updateLead, // ✅ MANTER updateLead
     
     // Refresh
     refetchLeads,

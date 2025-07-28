@@ -4,18 +4,20 @@ import { KanbanColumn, KanbanLead } from "@/types/kanban";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Plus, Settings, Trash2 } from "lucide-react";
+import { MessageSquare, Plus, Settings, Trash2, RotateCcw } from "lucide-react";
 
 interface KanbanBoardProps {
   columns: KanbanColumn[];
   onColumnsChange: (columns: KanbanColumn[]) => void;
   onOpenLeadDetail: (lead: KanbanLead) => void;
-  onColumnUpdate: (column: KanbanColumn) => void;
-  onColumnDelete: (columnId: string) => void;
+  onColumnUpdate?: (column: KanbanColumn) => void;
+  onColumnDelete?: (columnId: string) => void;
   onOpenChat: (lead: KanbanLead) => void;
-  onMoveToWonLost: (lead: KanbanLead, status: "won" | "lost") => void;
+  onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
+  onReturnToFunnel?: (lead: KanbanLead) => void; // ✅ NOVA PROP ADICIONADA
   wonStageId?: string;
   lostStageId?: string;
+  isWonLostView?: boolean;
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -26,8 +28,10 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onColumnDelete,
   onOpenChat,
   onMoveToWonLost,
+  onReturnToFunnel,
   wonStageId,
-  lostStageId
+  lostStageId,
+  isWonLostView = false
 }) => {
   const LeadCard = ({ lead }: { lead: KanbanLead }) => (
     <Card className="mb-3 cursor-pointer hover:shadow-md transition-shadow">
@@ -55,6 +59,17 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             <MessageSquare className="h-3 w-3" />
             Chat
           </Button>
+          {isWonLostView && onReturnToFunnel && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onReturnToFunnel(lead)}
+              className="gap-1"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Retornar
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"
@@ -83,10 +98,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               </Badge>
             </CardTitle>
             <div className="flex gap-1">
-              <Button size="sm" variant="ghost" onClick={() => onColumnUpdate(column)}>
-                <Settings className="h-3 w-3" />
-              </Button>
-              {!column.isFixed && (
+              {onColumnUpdate && (
+                <Button size="sm" variant="ghost" onClick={() => onColumnUpdate(column)}>
+                  <Settings className="h-3 w-3" />
+                </Button>
+              )}
+              {!column.isFixed && onColumnDelete && (
                 <Button size="sm" variant="ghost" onClick={() => onColumnDelete(column.id)}>
                   <Trash2 className="h-3 w-3" />
                 </Button>

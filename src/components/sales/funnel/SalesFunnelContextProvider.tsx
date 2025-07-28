@@ -116,15 +116,29 @@ export const SalesFunnelContextProvider: React.FC<SalesFunnelContextProviderProp
     });
   }, []);
 
+  // 🚀 WRAPPER PARA createFunnel COM INTERFACE CORRETA
+  const createFunnelWrapper = useCallback(async (name: string, description?: string) => {
+    return new Promise<void>((resolve, reject) => {
+      salesFunnelData.createFunnel(name, {
+        onSuccess: () => {
+          resolve();
+        },
+        onError: (error) => {
+          reject(error);
+        }
+      });
+    });
+  }, [salesFunnelData.createFunnel]);
+
   // 🎯 VALOR DO CONTEXTO COM REALTIME
   const contextValue = useMemo(() => ({
     // 📊 DADOS PRINCIPAIS
     loading: salesFunnelData.loading,
-    error: salesFunnelData.error?.message || null, // Convert Error to string
+    error: salesFunnelData.error?.message || null,
     funnels: salesFunnelData.funnels,
     selectedFunnel: salesFunnelData.selectedFunnel,
     setSelectedFunnel: salesFunnelData.setSelectedFunnel,
-    createFunnel: salesFunnelData.createFunnel,
+    createFunnel: createFunnelWrapper, // ✅ WRAPPER CORRIGIDO
     funnelLoading: salesFunnelData.loading,
     
     // 🏗️ COLUNAS E STAGES
@@ -176,7 +190,8 @@ export const SalesFunnelContextProvider: React.FC<SalesFunnelContextProviderProp
     salesFunnelData,
     realtimeStats,
     createTag,
-    moveLeadToStage
+    moveLeadToStage,
+    createFunnelWrapper
   ]);
 
   return (
