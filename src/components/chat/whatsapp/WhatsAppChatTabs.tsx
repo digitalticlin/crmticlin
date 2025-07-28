@@ -1,6 +1,5 @@
-
 import { WhatsAppChatLayout } from "./WhatsAppChatLayout";
-import { useWhatsAppChat } from "./WhatsAppChatProvider";
+import { useWhatsAppChatContext } from "./WhatsAppChatProvider";
 
 export const WhatsAppChatTabs = () => {
   const {
@@ -10,28 +9,41 @@ export const WhatsAppChatTabs = () => {
     messages,
     sendMessage,
     isLoadingContacts,
+    isLoadingMoreContacts,
     hasMoreContacts,
     loadMoreContacts,
     isLoadingMessages,
     isLoadingMore,
     hasMoreMessages,
     loadMoreMessages,
-    isSendingMessage,
-    refreshMessages,
-    refreshContacts
-  } = useWhatsAppChat();
+    isSending,
+    fetchMessages,
+    fetchContacts,
+    totalContactsAvailable
+  } = useWhatsAppChatContext();
 
   // Wrapper to handle the sendMessage signature difference
   const handleSendMessage = async (message: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
     if (selectedContact) {
-      // Convert old signature to new signature
-      const media = mediaType && mediaUrl ? { 
-        file: new File([], 'media'), 
-        type: mediaType 
-      } : undefined;
-      return await sendMessage(message, media);
+      return await sendMessage(message, mediaType, mediaUrl);
     }
     return false;
+  };
+
+  // Force refresh messages (bypass cache)
+  const handleRefreshMessages = () => {
+    console.log('[WhatsAppChatTabs] 🔄 Forçando refresh das mensagens...');
+    if (fetchMessages) {
+      fetchMessages();
+    }
+  };
+
+  // Force refresh contacts (bypass cache)
+  const handleRefreshContacts = () => {
+    console.log('[WhatsAppChatTabs] 🔄 Forçando refresh dos contatos...');
+    if (fetchContacts) {
+      fetchContacts();
+    }
   };
 
   return (
@@ -43,17 +55,17 @@ export const WhatsAppChatTabs = () => {
         messages={messages}
         onSendMessage={handleSendMessage}
         isLoadingContacts={isLoadingContacts}
-        isLoadingMoreContacts={false}
+        isLoadingMoreContacts={isLoadingMoreContacts}
         hasMoreContacts={hasMoreContacts}
         onLoadMoreContacts={loadMoreContacts}
         isLoadingMessages={isLoadingMessages}
         isLoadingMore={isLoadingMore}
         hasMoreMessages={hasMoreMessages}
         onLoadMoreMessages={loadMoreMessages}
-        isSending={isSendingMessage}
-        onRefreshMessages={refreshMessages}
-        onRefreshContacts={refreshContacts}
-        totalContactsAvailable={contacts.length}
+        isSending={isSending}
+        onRefreshMessages={handleRefreshMessages}
+        onRefreshContacts={handleRefreshContacts}
+        totalContactsAvailable={totalContactsAvailable}
       />
     </div>
   );

@@ -31,11 +31,10 @@ export const useWhatsAppChatMessages = ({
   const [error, setError] = useState<string | null>(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [messagesLoaded, setMessagesLoaded] = useState(false); // ✅ NOVO: Flag para lazy loading
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesMapRef = useRef<Map<string, Message>>(new Map());
-  const MESSAGES_PER_PAGE = 15; // ✅ REDUZIDO: 20 → 15 para melhor performance inicial
+  const MESSAGES_PER_PAGE = 20;
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastContactIdRef = useRef<string | null>(null);
   
@@ -136,7 +135,7 @@ export const useWhatsAppChatMessages = ({
     }
   }, [convertMessage]);
 
-  // ✅ SCROLL AUTOMÁTICO OTIMIZADO
+  // ✅ SCROLL AUTOMÁTICO OTIMIZADO COM MÚLTIPLAS TENTATIVAS
   const scrollToBottom = useCallback(() => {
     if (!messagesEndRef.current) return;
     
@@ -159,17 +158,22 @@ export const useWhatsAppChatMessages = ({
     scrollToEnd(0);
     setTimeout(() => scrollToEnd(1), 100);
     setTimeout(() => scrollToEnd(2), 300);
+    setTimeout(() => scrollToEnd(3), 500); // Tentativa adicional
   }, []);
 
-  // ✅ LAZY LOADING: Carregar mensagens apenas quando demandado
-  const loadMessagesOnDemand = useCallback(async () => {
-    if (!selectedContact || !activeInstance) return;
-    
-    console.log('[Chat Messages] 🚀 Carregando mensagens SOB DEMANDA');
+  // ✅ CARREGAR MENSAGENS INICIAIS
+  const loadInitialMessages = useCallback(async () => {
+    if (!selectedContact || !activeInstance) {
+      setMessages([]);
+      setHasMoreMessages(true);
+      messagesMapRef.current.clear();
+      return;
+    }
+
+    console.log('[Chat Messages] 🚀 Carregando mensagens iniciais (otimizadas)');
     
     setIsLoadingMessages(true);
     setError(null);
-    setMessagesLoaded(false);
 
     try {
       const result = await fetchMessages(selectedContact.id, activeInstance.id);
@@ -184,26 +188,24 @@ export const useWhatsAppChatMessages = ({
       
       setMessages(sortedMessages);
       setHasMoreMessages(result.hasMore);
-      setMessagesLoaded(true);
       
-      console.log('[Chat Messages] ✅ Mensagens carregadas sob demanda:', sortedMessages.length);
+      console.log('[Chat Messages] ✅ Mensagens carregadas com sucesso (otimizadas):', sortedMessages.length);
       
       setTimeout(() => scrollToBottom(), 100);
       
     } catch (error: any) {
       if (error.message === 'Request cancelled') return;
 
-      console.error('[Chat Messages] ❌ Erro ao carregar mensagens sob demanda:', error);
+      console.error('[Chat Messages] ❌ Erro ao carregar mensagens:', error);
       setError('Erro ao carregar mensagens');
       setMessages([]);
-      setMessagesLoaded(false);
       toast.error('Falha ao carregar mensagens');
     } finally {
       setIsLoadingMessages(false);
     }
   }, [selectedContact?.id, activeInstance?.id, fetchMessages, scrollToBottom]);
 
-  // ✅ CARREGAR MAIS MENSAGENS (mantém paginação)
+  // ✅ CARREGAR MAIS MENSAGENS
   const loadMoreMessages = useCallback(async () => {
     if (!selectedContact || !activeInstance || !hasMoreMessages || isLoadingMore) return;
 
@@ -236,7 +238,7 @@ export const useWhatsAppChatMessages = ({
     }
   }, [selectedContact, activeInstance, messages.length, hasMoreMessages, isLoadingMore, fetchMessages]);
 
-  // ✅ ENVIAR MENSAGEM COM UI OTIMISTA E RETRY MELHORADO - CORREÇÃO CRÍTICA
+  // ✅ ENVIAR MENSAGEM COM UI OTIMISTA E RETRY MELHORADO
   const sendMessage = useCallback(async (messageText: string, media?: { file: File; type: string }) => {
     if (!selectedContact || !activeInstance) {
       toast.error('Contato ou instância não selecionada');
@@ -245,13 +247,6 @@ export const useWhatsAppChatMessages = ({
 
     if (!messageText.trim() && !media) {
       toast.error('Mensagem não pode estar vazia');
-      return false;
-    }
-
-    // ✅ CORREÇÃO CRÍTICA: Verificar se o contato tem telefone
-    if (!selectedContact.phone) {
-      console.error('[Chat Messages] ❌ Contato sem telefone:', selectedContact);
-      toast.error('Contato sem número de telefone válido');
       return false;
     }
 
@@ -281,15 +276,10 @@ export const useWhatsAppChatMessages = ({
     setTimeout(() => scrollToBottom(), 50);
 
     try {
-      console.log('[Chat Messages] 📤 Enviando mensagem para:', {
-        phone: selectedContact.phone.substring(0, 4) + '****',
-        instanceId: activeInstance.id.substring(0, 8) + '****'
-      });
-
-      // ✅ CORREÇÃO CRÍTICA: Usar selectedContact.phone ao invés de selectedContact.id
+      // ✅ ENVIAR COM RETRY AUTOMÁTICO USANDO whatsapp_messaging_service
       const result = await MessageSendingService.sendMessageWithRetry(
         activeInstance.id,
-        selectedContact.phone, // ✅ USAR PHONE AQUI
+        selectedContact.id,
         messageText.trim(),
         media
       );
@@ -374,7 +364,7 @@ export const useWhatsAppChatMessages = ({
     );
   }, []);
 
-  // ✅ CONFIGURAR REALTIME OTIMIZADO - APENAS SE CONTATO SELECIONADO
+  // ✅ CONFIGURAR REALTIME OTIMIZADO
   useMessagesRealtime({
     selectedContact,
     activeInstance,
@@ -382,7 +372,7 @@ export const useWhatsAppChatMessages = ({
     onMessageUpdate: handleMessageUpdate
   });
 
-  // ✅ EFEITO PRINCIPAL - LIMPAR MENSAGENS QUANDO CONTATO MUDA
+  // ✅ EFEITO PRINCIPAL
   useEffect(() => {
     const currentContactId = selectedContact?.id;
     
@@ -394,16 +384,11 @@ export const useWhatsAppChatMessages = ({
       
       lastContactIdRef.current = currentContactId;
       
-      // ✅ LIMPAR MENSAGENS IMEDIATAMENTE
-      setMessages([]);
-      setMessagesLoaded(false);
-      setHasMoreMessages(true);
-      messagesMapRef.current.clear();
-      
-      // ✅ NÃO CARREGAR AUTOMATICAMENTE - DEIXAR PARA LAZY LOADING
-      console.log('[Chat Messages] 💤 Mensagens não carregadas automaticamente - aguardando demanda');
+      if (currentContactId) {
+        loadInitialMessages();
+      }
     }
-  }, [selectedContact?.id]);
+  }, [selectedContact?.id, loadInitialMessages]);
 
   // ✅ CLEANUP
   useEffect(() => {
@@ -421,12 +406,10 @@ export const useWhatsAppChatMessages = ({
     error,
     hasMoreMessages,
     isLoadingMore,
-    messagesLoaded, // ✅ NOVO: Indica se mensagens foram carregadas
     messagesEndRef,
     sendMessage,
     loadMoreMessages,
-    loadMessagesOnDemand, // ✅ NOVO: Método para carregar mensagens sob demanda
-    refreshMessages: loadMessagesOnDemand, // ✅ ALIAS para compatibilidade
+    refreshMessages: loadInitialMessages,
     scrollToBottom
   };
 };
