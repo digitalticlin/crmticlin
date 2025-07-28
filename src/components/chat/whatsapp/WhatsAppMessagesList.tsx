@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useRef } from 'react';
 import { Message } from '@/types/chat';
 import { useScrollDetection } from './messages/hooks/useScrollDetection';
 import { useMessagesList } from './messages/hooks/useMessagesList';
@@ -8,7 +8,6 @@ import { MessagesLoadingIndicator } from './messages/components/MessagesLoadingI
 import { LoadMoreIndicator } from './messages/components/LoadMoreIndicator';
 import { EmptyMessagesState } from './messages/components/EmptyMessagesState';
 import { ConversationStartIndicator } from './messages/components/ConversationStartIndicator';
-import { cn } from '@/lib/utils';
 
 interface WhatsAppMessagesListProps {
   messages: Message[];
@@ -25,7 +24,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
   hasMoreMessages = false,
   onLoadMore
 }) => {
-  const containerRef = React.useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Hook para detectar scroll e carregar mais mensagens
   const { isNearTop } = useScrollDetection({
@@ -41,69 +40,48 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
     isLoadingMore
   });
 
-  console.log('[WhatsAppMessagesList] 📋 Renderizando otimizado:', {
-    total: messages.length,
-    messagesList: messagesList.length,
-    isLoading,
-    isLoadingMore
-  });
+  if (isLoading) {
+    return <MessagesLoadingIndicator />;
+  }
 
-  // ✅ ESTADO VAZIO - APENAS SE NÃO ESTÁ CARREGANDO
-  if (!isLoading && messages.length === 0) {
+  if (messages.length === 0) {
     return <EmptyMessagesState />;
   }
 
   return (
     <div 
       ref={containerRef}
-      className="flex-1 overflow-y-auto pb-4 scroll-smooth relative"
+      className="flex-1 overflow-y-auto pb-4 scroll-smooth"
       style={{ 
         scrollBehavior: 'smooth',
         overflowAnchor: 'none',
+        // Otimizações para scroll automático
         scrollPaddingBottom: '16px'
       }}
     >
-      {/* ✅ SKELETON LOADING - APENAS CARREGAMENTO INICIAL */}
-      {isLoading && messages.length === 0 && (
-        <div className="flex items-center justify-center h-full">
-          <MessagesLoadingIndicator />
-        </div>
-      )}
-
       {/* Indicador de carregamento no topo */}
       {isLoadingMore && <LoadMoreIndicator />}
       
-      {/* Indicador de início da conversa */}
+      {/* Indicador de fim das mensagens */}
       <ConversationStartIndicator 
         hasMoreMessages={hasMoreMessages}
         messagesCount={messages.length}
       />
 
-      {/* Lista de mensagens com animações otimizadas */}
-      <div className="space-y-2 px-4">
-        {messagesList.map((message, index) => {
-          const isNewMessage = index === messagesList.length - 1;
-          const isOptimistic = (message as any).isOptimistic;
-          
-          return (
-            <div
-              key={message.id}
-              className={cn(
-                "transition-all duration-300 ease-in-out",
-                isNewMessage && !isOptimistic && "animate-in slide-in-from-bottom-2 duration-300",
-                isOptimistic && "opacity-80 animate-pulse"
-              )}
-            >
-              <MessageItem
-                message={message}
-                isNewMessage={isNewMessage}
-              />
-            </div>
-          );
-        })}
-      </div>
+      {/* Lista de mensagens */}
+      {messagesList.map((message, index) => {
+        const isNewMessage = index === messagesList.length - 1; // Última mensagem é a mais nova
+        
+        return (
+          <MessageItem
+            key={message.id}
+            message={message}
+            isNewMessage={isNewMessage}
+          />
+        );
+      })}
       
-      {/* Elemento para scroll automático otimizado */}
+      {/* Elemento para scroll automático - mais robusto */}
       <div 
         ref={messagesEndRef} 
         className="h-4 w-full" 

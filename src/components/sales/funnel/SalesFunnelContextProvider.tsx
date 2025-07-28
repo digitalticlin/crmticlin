@@ -1,228 +1,328 @@
-
-/**
- * 🚀 SALES FUNNEL CONTEXT PROVIDER - VERSÃO OTIMIZADA COM REALTIME
- * 
- * Integra useSalesFunnelDirect + useSalesFunnelRealtime para experiência completa
- */
-
-import React, { useMemo, useCallback } from "react";
-import { SalesFunnelProvider } from "./SalesFunnelProvider";
-import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
-import { useSalesFunnelRealtime } from "@/hooks/salesFunnel/useSalesFunnelRealtime";
-import { useAuth } from "@/contexts/AuthContext";
-import { KanbanLead } from "@/types/kanban";
-import { toast } from "sonner";
+import { ReactNode, useMemo, useCallback } from 'react';
+import { SalesFunnelProvider } from './SalesFunnelProvider';
+import { useSalesFunnelDirect } from '@/hooks/salesFunnel/useSalesFunnelDirect';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { KanbanLead } from '@/types/kanban';
 
 interface SalesFunnelContextProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-export const SalesFunnelContextProvider: React.FC<SalesFunnelContextProviderProps> = ({ children }) => {
-  const { user } = useAuth();
-  
-  // 🚀 HOOK PRINCIPAL COM DADOS E AÇÕES
-  const salesFunnelData = useSalesFunnelDirect();
-  
-  // 🔄 CALLBACKS PARA REALTIME
-  const handleLeadUpdate = useCallback((lead: KanbanLead) => {
-    console.log('[Sales Funnel Context] 📊 Lead atualizado via realtime:', lead.name);
-    // Forçar refresh para garantir sincronia
-    salesFunnelData.refetchLeads();
-  }, [salesFunnelData.refetchLeads]);
+// Função para transformar lead do banco para KanbanLead
+const transformLeadToKanbanLead = (lead: any): KanbanLead => ({
+  id: lead.id,
+  name: lead.name,
+  phone: lead.phone,
+  email: lead.email || undefined,
+  company: lead.company || undefined,
+  lastMessage: lead.last_message || "Sem mensagens",
+  lastMessageTime: lead.last_message_time 
+    ? new Date(lead.last_message_time).toISOString() 
+    : new Date().toISOString(),
+  tags: [],
+  notes: lead.notes || undefined,
+  columnId: lead.kanban_stage_id || undefined,
+  purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
+  assignedUser: lead.owner_id || undefined,
+  unreadCount: lead.unread_count || 0,
+  avatar: undefined,
+  created_at: lead.created_at,
+  updated_at: lead.updated_at,
+  company_id: undefined,
+  whatsapp_number_id: lead.whatsapp_number_id || undefined,
+  funnel_id: lead.funnel_id,
+  kanban_stage_id: lead.kanban_stage_id || undefined,
+  owner_id: lead.owner_id || undefined,
+  // Propriedades do banco para compatibilidade
+  last_message: lead.last_message,
+  purchase_value: lead.purchase_value,
+  unread_count: lead.unread_count,
+  documentId: (lead as any).document_id || undefined,
+  address: (lead as any).address || undefined,
+  city: undefined,
+  state: undefined,
+  country: undefined,
+  zip_code: undefined
+});
 
-  const handleNewLead = useCallback((lead: KanbanLead) => {
-    console.log('[Sales Funnel Context] ➕ Novo lead via realtime:', lead.name);
-    // Forçar refresh para garantir sincronia
-    salesFunnelData.refetchLeads();
-  }, [salesFunnelData.refetchLeads]);
-
-  const handleDataRefresh = useCallback(() => {
-    console.log('[Sales Funnel Context] 🔄 Refresh geral via realtime');
-    // Refresh completo
-    salesFunnelData.refetchLeads();
-    salesFunnelData.refetchStages();
-  }, [salesFunnelData.refetchLeads, salesFunnelData.refetchStages]);
-
-  const handleUnreadCountUpdate = useCallback((leadId: string, newCount: number) => {
-    console.log('[Sales Funnel Context] 🔢 Contador atualizado via realtime:', { leadId, newCount });
-    // Refresh apenas leads para performance
-    salesFunnelData.refetchLeads();
-  }, [salesFunnelData.refetchLeads]);
-
-  const handleLeadMove = useCallback((leadId: string, newStageId: string) => {
-    console.log('[Sales Funnel Context] 🚀 Lead movido via realtime:', { leadId, newStageId });
-    // Refresh apenas leads
-    salesFunnelData.refetchLeads();
-  }, [salesFunnelData.refetchLeads]);
-
-  // 📡 HOOK DE REALTIME
-  const realtimeStats = useSalesFunnelRealtime({
-    userId: user?.id || null,
-    selectedFunnelId: salesFunnelData.selectedFunnel?.id || null,
-    onLeadUpdate: handleLeadUpdate,
-    onNewLead: handleNewLead,
-    onDataRefresh: handleDataRefresh,
-    onUnreadCountUpdate: handleUnreadCountUpdate,
-    onLeadMove: handleLeadMove
-  });
-
-  // 🚀 FUNÇÃO MELHORADA PARA MOVER LEADS
-  const moveLeadToStage = useCallback((lead: KanbanLead, columnId: string) => {
-    console.log('[Sales Funnel Context] 🎯 Movendo lead para etapa:', {
-      leadId: lead.id,
-      leadName: lead.name,
-      fromStage: lead.columnId,
-      toStage: columnId
-    });
-
-    // Feedback visual instantâneo
-    toast.loading(`Movendo ${lead.name}...`, {
-      id: `move-${lead.id}`,
-      duration: 1000
-    });
-
-    // Executar mudança no banco
-    salesFunnelData.updateLead.mutate({
-      leadId: lead.id,
-      fields: { kanban_stage_id: columnId }
-    }, {
-      onSuccess: () => {
-        toast.success(`${lead.name} movido com sucesso`, {
-          id: `move-${lead.id}`
-        });
-      },
-      onError: (error) => {
-        toast.error(`Erro ao mover ${lead.name}`, {
-          id: `move-${lead.id}`,
-          description: error.message
-        });
-      }
-    });
-  }, [salesFunnelData.updateLead]);
-
-  // 🚀 FUNÇÃO MELHORADA PARA CRIAR TAGS
-  const createTag = useCallback((name: string, color: string) => {
-    console.log('[Sales Funnel Context] 🏷️ Criando tag:', { name, color });
+// Hook customizado para operações de colunas
+const useColumnOperations = (user: any, salesFunnelData: any) => {
+  // Função para adicionar nova coluna
+  const addColumn = useCallback(async (title: string, color: string = "#3b82f6"): Promise<void> => {
+    console.log('[SalesFunnelContextProvider] ➕ Adicionando nova etapa:', { title, color });
     
-    toast.loading(`Criando tag "${name}"...`, {
-      id: `create-tag-${name}`,
-      duration: 1000
-    });
+    if (!user?.id) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
 
-    // Implementar criação de tag quando necessário
-    // Por enquanto, apenas feedback visual
-    toast.success(`Tag "${name}" criada`, {
-      id: `create-tag-${name}`
+    if (!title.trim()) {
+      toast.error("Nome da etapa é obrigatório");
+      return;
+    }
+
+    // Verificar se há um funil selecionado
+    if (!salesFunnelData.selectedFunnel?.id) {
+      toast.error("Nenhum funil selecionado");
+      return;
+    }
+
+    try {
+      // Buscar próxima posição
+      const { data: existingStages, error: fetchError } = await supabase
+        .from('kanban_stages')
+        .select('order_position')
+        .eq('created_by_user_id', user.id)
+        .eq('funnel_id', salesFunnelData.selectedFunnel.id)
+        .order('order_position', { ascending: false })
+        .limit(1);
+
+      if (fetchError) throw fetchError;
+
+      const nextPosition = (existingStages?.[0]?.order_position || 0) + 1;
+
+      // Criar nova etapa
+      const { data: newStage, error } = await supabase
+        .from('kanban_stages')
+        .insert({
+          title: title.trim(),
+          color: color,
+          order_position: nextPosition,
+          funnel_id: salesFunnelData.selectedFunnel.id,
+          created_by_user_id: user.id,
+          ai_enabled: false // Padrão OFF para IA
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('[SalesFunnelContextProvider] ✅ Nova etapa criada:', newStage);
+      
+      toast.success(`Etapa "${title}" criada com sucesso!`, {
+        description: "A nova etapa foi adicionada ao funil"
+      });
+
+      // Refrescar dados
+      if (salesFunnelData.refetchStages) {
+        await salesFunnelData.refetchStages();
+      }
+
+    } catch (error: any) {
+      console.error('[SalesFunnelContextProvider] ❌ Erro ao criar etapa:', error);
+      toast.error("Erro ao criar etapa", {
+        description: error.message || "Tente novamente"
+      });
+      throw error;
+    }
+  }, [user?.id, salesFunnelData.selectedFunnel?.id, salesFunnelData.refetchStages]);
+
+  // Função para atualizar coluna existente
+  const updateColumn = useCallback(async (column: any): Promise<void> => {
+    console.log('[SalesFunnelContextProvider] ✏️ Atualizando etapa:', { 
+      id: column.id,
+      title: column.title, 
+      color: column.color 
     });
+    
+    if (!user?.id) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('kanban_stages')
+        .update({
+          title: column.title.trim(),
+          color: column.color,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', column.id)
+        .eq('created_by_user_id', user.id);
+
+      if (error) throw error;
+
+      console.log('[SalesFunnelContextProvider] ✅ Etapa atualizada:', column.title);
+      
+      toast.success(`Etapa "${column.title}" atualizada com sucesso!`, {
+        description: "As alterações foram salvas"
+      });
+
+      if (salesFunnelData.refetchStages) {
+        await salesFunnelData.refetchStages();
+      }
+
+    } catch (error: any) {
+      console.error('[SalesFunnelContextProvider] ❌ Erro ao atualizar etapa:', error);
+      toast.error("Erro ao atualizar etapa", {
+        description: error.message || "Tente novamente"
+      });
+      throw error;
+    }
+  }, [user?.id, salesFunnelData.refetchStages]);
+
+  // Função para deletar coluna
+  const deleteColumn = useCallback(async (columnId: string): Promise<void> => {
+    console.log('[SalesFunnelContextProvider] 🗑️ Excluindo etapa:', columnId);
+    
+    if (!user?.id) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
+    try {
+      // Verificar se a etapa tem leads associados
+      const { data: leadsCount, error: countError } = await supabase
+        .from('leads')
+        .select('id', { count: 'exact' })
+        .eq('kanban_stage_id', columnId);
+
+      if (countError) throw countError;
+
+      if (leadsCount && leadsCount.length > 0) {
+        toast.error("Não é possível excluir etapa com leads", {
+          description: `Esta etapa possui ${leadsCount.length} lead(s). Mova-os primeiro.`
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('kanban_stages')
+        .delete()
+        .eq('id', columnId)
+        .eq('created_by_user_id', user.id);
+
+      if (error) throw error;
+
+      console.log('[SalesFunnelContextProvider] ✅ Etapa excluída:', columnId);
+      
+      toast.success("Etapa excluída com sucesso!", {
+        description: "A etapa foi removida do funil"
+      });
+
+      if (salesFunnelData.refetchStages) {
+        await salesFunnelData.refetchStages();
+      }
+
+    } catch (error: any) {
+      console.error('[SalesFunnelContextProvider] ❌ Erro ao excluir etapa:', error);
+      toast.error("Erro ao excluir etapa", {
+        description: error.message || "Tente novamente"
+      });
+      throw error;
+    }
+  }, [user?.id, salesFunnelData.refetchStages]);
+
+  return { addColumn, updateColumn, deleteColumn };
+};
+
+// Hook customizado para operações de leads
+const useLeadOperations = () => {
+  const createTag = useCallback((name: string, color: string) => {
+    console.log('[SalesFunnelContextProvider] 🏷️ Criando tag:', name, color);
+    // Implementação futura
   }, []);
 
-  // 🚀 WRAPPER PARA createFunnel COM INTERFACE CORRETA
-  const createFunnelWrapper = useCallback(async (name: string, description?: string) => {
-    return new Promise<void>((resolve, reject) => {
-      salesFunnelData.createFunnel(name, {
-        onSuccess: () => {
-          resolve();
-        },
-        onError: (error) => {
-          reject(error);
-        }
-      });
-    });
-  }, [salesFunnelData.createFunnel]);
+  const moveLeadToStage = useCallback((lead: any, columnId: string) => {
+    console.log('[SalesFunnelContextProvider] 🔄 Movendo lead:', lead.name, 'para', columnId);
+    // Implementação futura
+  }, []);
 
-  // 🚀 WRAPPER FUNCTIONS PARA COMPATIBILIDADE COM INTERFACE
-  const updateLeadNotesWrapper = useCallback((notes: string) => {
-    if (!salesFunnelData.selectedLead) return;
-    salesFunnelData.updateLeadNotes(salesFunnelData.selectedLead.id, notes);
-  }, [salesFunnelData.selectedLead, salesFunnelData.updateLeadNotes]);
+  return { createTag, moveLeadToStage };
+};
 
-  const updateLeadPurchaseValueWrapper = useCallback((value: number | undefined) => {
-    if (!salesFunnelData.selectedLead) return;
-    salesFunnelData.updateLeadPurchaseValue(salesFunnelData.selectedLead.id, value);
-  }, [salesFunnelData.selectedLead, salesFunnelData.updateLeadPurchaseValue]);
+export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProviderProps) => {
+  console.log('[SalesFunnelContextProvider] 🔄 Renderizando contexto OTIMIZADO');
+  
+  const { user } = useAuth();
+  const salesFunnelData = useSalesFunnelDirect();
+  
+  // Verificar se o usuário é admin
+  const isAdmin = useMemo(() => 
+    user?.user_metadata?.role === 'admin' || user?.email === 'inacio@ticlin.com.br',
+    [user?.user_metadata?.role, user?.email]
+  );
 
-  const updateLeadAssignedUserWrapper = useCallback((user: string) => {
-    if (!salesFunnelData.selectedLead) return;
-    salesFunnelData.updateLeadAssignedUser(salesFunnelData.selectedLead.id, user);
-  }, [salesFunnelData.selectedLead, salesFunnelData.updateLeadAssignedUser]);
+  // Hooks para operações
+  const { addColumn, updateColumn, deleteColumn } = useColumnOperations(user, salesFunnelData);
+  const { createTag, moveLeadToStage } = useLeadOperations();
 
-  const updateLeadNameWrapper = useCallback((name: string) => {
-    if (!salesFunnelData.selectedLead) return;
-    salesFunnelData.updateLeadName(salesFunnelData.selectedLead.id, name);
-  }, [salesFunnelData.selectedLead, salesFunnelData.updateLeadName]);
+  // Memoização dos dados transformados
+  const transformedColumns = useMemo(() => 
+    (salesFunnelData.columns || []).map(column => ({
+      ...column,
+      ai_enabled: column.ai_enabled === true
+    })),
+    [salesFunnelData.columns]
+  );
 
-  const toggleTagOnLeadWrapper = useCallback((leadId: string, tagId: string) => {
-    salesFunnelData.toggleTagOnLead(leadId, tagId);
-  }, [salesFunnelData.toggleTagOnLead]);
+  const transformedLeads = useMemo(() => 
+    (salesFunnelData.leads || []).map(transformLeadToKanbanLead),
+    [salesFunnelData.leads]
+  );
 
-  // 🎯 VALOR DO CONTEXTO COM REALTIME
+  // Contexto memoizado para evitar re-renders desnecessários
   const contextValue = useMemo(() => ({
-    // 📊 DADOS PRINCIPAIS
-    loading: salesFunnelData.loading,
-    error: salesFunnelData.error?.message || null,
-    funnels: salesFunnelData.funnels,
-    selectedFunnel: salesFunnelData.selectedFunnel,
-    setSelectedFunnel: salesFunnelData.setSelectedFunnel,
-    createFunnel: createFunnelWrapper, // ✅ WRAPPER CORRIGIDO
-    funnelLoading: salesFunnelData.loading,
+    // Estado de carregamento
+    loading: salesFunnelData.loading || false,
+    error: salesFunnelData.error || null,
     
-    // 🏗️ COLUNAS E STAGES
-    columns: salesFunnelData.columns,
-    setColumns: salesFunnelData.setColumns,
-    stages: salesFunnelData.stages,
-    leads: salesFunnelData.leads,
+    // Funnel data - sempre disponível com fallbacks
+    funnels: salesFunnelData.funnels || [],
+    selectedFunnel: salesFunnelData.selectedFunnel || null,
+    setSelectedFunnel: salesFunnelData.setSelectedFunnel,
+    createFunnel: salesFunnelData.createFunnel,
+    funnelLoading: salesFunnelData.loading || false,
+    
+    // Dados transformados
+    columns: transformedColumns,
+    setColumns: salesFunnelData.setColumns || (() => {}),
+    selectedLead: salesFunnelData.selectedLead || null,
+    isLeadDetailOpen: salesFunnelData.isLeadDetailOpen || false,
+    setIsLeadDetailOpen: salesFunnelData.setIsLeadDetailOpen || (() => {}),
+    availableTags: salesFunnelData.availableTags || [],
+    stages: salesFunnelData.stages || [],
+    leads: transformedLeads,
+    
+    // Ações de colunas
+    addColumn,
+    updateColumn,
+    deleteColumn,
+    
+    // Ações de leads
+    openLeadDetail: salesFunnelData.openLeadDetail || (() => {}),
+    toggleTagOnLead: salesFunnelData.toggleTagOnLead || (() => {}),
+    createTag,
+    updateLeadNotes: salesFunnelData.updateLeadNotes || (() => {}),
+    updateLeadPurchaseValue: salesFunnelData.updateLeadPurchaseValue || (() => {}),
+    updateLeadAssignedUser: salesFunnelData.updateLeadAssignedUser || (() => {}),
+    updateLeadName: salesFunnelData.updateLeadName || (() => {}),
+    moveLeadToStage,
+    
+    // Configurações
+    isAdmin,
     wonStageId: salesFunnelData.wonStageId,
     lostStageId: salesFunnelData.lostStageId,
     
-    // 👤 LEAD SELECIONADO
-    selectedLead: salesFunnelData.selectedLead,
-    isLeadDetailOpen: salesFunnelData.isLeadDetailOpen,
-    setIsLeadDetailOpen: salesFunnelData.setIsLeadDetailOpen,
-    
-    // 🏷️ TAGS
-    availableTags: salesFunnelData.availableTags,
-    
-    // 🔧 AÇÕES DE GERENCIAMENTO
-    addColumn: salesFunnelData.addColumn,
-    updateColumn: salesFunnelData.updateColumn,
-    deleteColumn: salesFunnelData.deleteColumn,
-    
-    // 👤 AÇÕES DE LEAD - WRAPPERS CORRIGIDOS
-    openLeadDetail: salesFunnelData.openLeadDetail,
-    toggleTagOnLead: toggleTagOnLeadWrapper,
-    createTag,
-    updateLeadNotes: updateLeadNotesWrapper,
-    updateLeadPurchaseValue: updateLeadPurchaseValueWrapper,
-    updateLeadAssignedUser: updateLeadAssignedUserWrapper,
-    updateLeadName: updateLeadNameWrapper,
-    moveLeadToStage, // 🚀 FUNÇÃO MELHORADA
-    
-    // 🔄 REFRESH FUNCTIONS
-    refetchLeads: salesFunnelData.refetchLeads,
-    refetchStages: salesFunnelData.refetchStages,
-    
-    // 🔒 ADMIN STATUS
-    isAdmin: true, // TODO: Implementar lógica de admin real
-    
-    // 📡 REALTIME STATS
-    realtimeStats: {
-      isConnected: realtimeStats.isConnected,
-      connectionStatus: realtimeStats.connectionStatus,
-      totalEvents: realtimeStats.totalEvents,
-      lastUpdate: realtimeStats.lastUpdate
-    }
+    // Funções de refresh
+    refetchLeads: salesFunnelData.refetchLeads || (async () => {}),
+    refetchStages: salesFunnelData.refetchStages || (async () => {})
   }), [
     salesFunnelData,
-    realtimeStats,
+    transformedColumns,
+    transformedLeads,
+    addColumn,
+    updateColumn,
+    deleteColumn,
     createTag,
     moveLeadToStage,
-    createFunnelWrapper,
-    updateLeadNotesWrapper,
-    updateLeadPurchaseValueWrapper,
-    updateLeadAssignedUserWrapper,
-    updateLeadNameWrapper,
-    toggleTagOnLeadWrapper
+    isAdmin
   ]);
+
+  console.log('[SalesFunnelContextProvider] ✅ Fornecendo contexto OTIMIZADO estável');
 
   return (
     <SalesFunnelProvider value={contextValue}>

@@ -1,47 +1,48 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useMemo } from "react";
+import { KanbanStage } from "@/types/funnel";
 
-interface Stage {
-  id: string;
-  title: string;
-  color: string;
-  order_position: number;
-  is_won: boolean;
-  is_lost: boolean;
-}
+export function useStageDatabase(funnelId?: string) {
+  const queryClient = useQueryClient();
 
-export const useStageDatabase = (funnelId: string | undefined) => {
-  const { data: stages, isLoading, error } = useQuery({
-    queryKey: ['stages', funnelId],
+  // Buscar TODOS os estágios do usuário
+  const stagesQuery = useQuery({
+    queryKey: ["kanban_stages", funnelId],
     queryFn: async () => {
-      if (!funnelId) return [];
-
+      if (!funnelId) {
+        console.log('[useStageDatabase] ⚠️ Nenhum funnelId fornecido');
+        return [];
+      }
+      
+      console.log('[useStageDatabase] 🔍 Buscando estágios do funil:', funnelId);
+      
+      // Buscar estágios do funil específico
       const { data, error } = await supabase
-        .from('kanban_stages')
-        .select('*')
-        .eq('funnel_id', funnelId)
-        .order('order_position');
-
+        .from("kanban_stages")
+        .select("*")
+        .eq("funnel_id", funnelId)
+        .order("order_position", { ascending: true });
+        
       if (error) {
-        console.error('Error fetching stages:', error);
+        console.error('[useStageDatabase] ❌ Erro ao buscar estágios:', error);
         throw error;
       }
-
-      return data || [];
+      
+      console.log('[useStageDatabase] ✅ Estágios encontrados:', {
+        count: data?.length || 0,
+        stages: data?.map(s => ({ id: s.id, title: s.title, order: s.order_position }))
+      });
+      
+      return data ?? [];
     },
     enabled: !!funnelId,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos
   });
 
-  // ✅ CORREÇÃO: Memoizar resultado para evitar re-renders desnecessários
-  const memoizedResult = useMemo(() => ({
-    stages: stages || [],
-    loading: isLoading,
-    error
-  }), [stages, isLoading, error]);
-
-  return memoizedResult;
-};
+  return {
+    stages: stagesQuery.data ?? [],
+    isLoading: stagesQuery.isLoading,
+    error: stagesQuery.error,
+    refetchStages: stagesQuery.refetch,
+  };
+}

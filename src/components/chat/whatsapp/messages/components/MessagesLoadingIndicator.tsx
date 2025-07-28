@@ -1,16 +1,12 @@
 
-import { Loader2 } from "lucide-react";
+import React from 'react';
 
-export const MessagesLoadingIndicator = () => {
+export const MessagesLoadingIndicator: React.FC = () => {
   return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="backdrop-blur-sm bg-white/10 rounded-lg p-6 border border-white/20 shadow-lg">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Carregando mensagens...
-          </p>
-        </div>
+    <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex items-center space-x-2 text-muted-foreground">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+        <span>Carregando mensagens...</span>
       </div>
     </div>
   );
