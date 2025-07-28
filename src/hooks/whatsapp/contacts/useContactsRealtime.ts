@@ -1,11 +1,4 @@
 
-/**
- * 🎯 HOOK REALTIME ESPECÍFICO PARA CONTATOS
- * 
- * Responsabilidade: Atualizar lista de contatos quando mensagens chegam
- * Funcionalidades: Mover para topo, atualizar última mensagem, contador
- */
-
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact } from '@/types/chat';
@@ -27,114 +20,130 @@ export const useContactsRealtime = ({
 }: UseContactsRealtimeProps) => {
   
   const channelRef = useRef<any>(null);
+  const isConnectedRef = useRef(false);
+  const cleanupTimeoutRef = useRef<NodeJS.Timeout>();
   const debounceTimerRef = useRef<NodeJS.Timeout>();
   
-  // ✅ CLEANUP
+  // ✅ CLEANUP CONTROLADO
   const cleanup = useCallback(() => {
-    if (channelRef.current) {
-      console.log('[Contacts Realtime] 🧹 Limpando canal');
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    console.log('[Contacts Realtime] 🧹 Iniciando cleanup');
     
+    // Limpar debounce
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = undefined;
     }
+    
+    // Limpar timeout de cleanup
+    if (cleanupTimeoutRef.current) {
+      clearTimeout(cleanupTimeoutRef.current);
+      cleanupTimeoutRef.current = undefined;
+    }
+    
+    // Remover canal com try-catch
+    if (channelRef.current) {
+      try {
+        console.log('[Contacts Realtime] 🔌 Removendo canal');
+        supabase.removeChannel(channelRef.current);
+      } catch (error) {
+        console.warn('[Contacts Realtime] ⚠️ Erro ao remover canal:', error);
+      } finally {
+        channelRef.current = null;
+      }
+    }
+    
+    isConnectedRef.current = false;
+    console.log('[Contacts Realtime] ✅ Cleanup concluído');
   }, []);
 
-  // ✅ HANDLER PARA NOVAS MENSAGENS
-  const handleNewMessage = useCallback((payload: any) => {
-    const messageData = payload.new;
+  // ✅ HANDLER PARA MUDANÇAS EM LEADS
+  const handleLeadChange = useCallback((payload: any) => {
+    if (!payload?.new || !userId || !activeInstanceId) return;
     
-    console.log('[Contacts Realtime] 📨 Nova mensagem detectada:', {
-      messageId: messageData.id,
-      leadId: messageData.lead_id,
-      fromMe: messageData.from_me,
-      text: messageData.text?.substring(0, 50) + '...',
-      instanceId: messageData.whatsapp_number_id
-    });
-
-    // ✅ FILTRO: Só processar se for da instância ativa
-    if (activeInstanceId && messageData.whatsapp_number_id !== activeInstanceId) {
-      console.log('[Contacts Realtime] 🚫 Mensagem de outra instância ignorada');
-      return;
-    }
-
-    // ✅ DEBOUNCE PARA EVITAR MÚLTIPLAS ATUALIZAÇÕES
+    const leadData = payload.new;
+    
+    // ✅ VERIFICAR SE É DO USUÁRIO ATUAL
+    if (leadData.created_by_user_id !== userId) return;
+    
+    // ✅ DEBOUNCE CONTROLADO
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
     debounceTimerRef.current = setTimeout(() => {
       try {
-        const contactId = messageData.lead_id;
+        console.log('[Contacts Realtime] 👤 Contato atualizado:', leadData.id);
         
-        if (contactId) {
-          // ✅ MOVER PARA TOPO
-          if (onMoveToTop) {
-            console.log('[Contacts Realtime] 🔝 Movendo contato para topo:', contactId);
-            onMoveToTop(contactId);
-          }
+        if (onContactUpdate) {
+          const updates: Partial<Contact> = {
+            name: leadData.name || leadData.phone || 'Sem nome',
+            lastMessage: leadData.last_message || '',
+            lastMessageTime: leadData.last_message_time || leadData.updated_at,
+            unreadCount: leadData.unread_count || 0,
+            tags: leadData.tags || []
+          };
           
-          // ✅ ATUALIZAR DADOS DO CONTATO
-          if (onContactUpdate) {
-            const updates: Partial<Contact> = {
-              lastMessage: messageData.text || '[Mensagem de mídia]',
-              lastMessageTime: messageData.created_at,
-              unreadCount: messageData.from_me ? undefined : 1 // Só incrementar se não for de mim
-            };
-            
-            console.log('[Contacts Realtime] 🔄 Atualizando dados do contato:', {
-              contactId,
-              updates
-            });
-            
-            onContactUpdate(contactId, updates);
-          }
+          onContactUpdate(leadData.id, updates);
+        }
+        
+        // Mover para topo se tiver nova mensagem
+        if (leadData.last_message && onMoveToTop) {
+          onMoveToTop(leadData.id);
         }
       } catch (error) {
-        console.error('[Contacts Realtime] ❌ Erro ao processar nova mensagem:', error);
+        console.error('[Contacts Realtime] ❌ Erro ao processar lead:', error);
       }
-    }, 150); // 150ms debounce
-  }, [activeInstanceId, onMoveToTop, onContactUpdate]);
+    }, 100);
+  }, [userId, activeInstanceId, onContactUpdate, onMoveToTop]);
 
-  // ✅ HANDLER PARA NOVOS LEADS
-  const handleNewLead = useCallback((payload: any) => {
-    const leadData = payload.new;
+  // ✅ HANDLER PARA NOVAS MENSAGENS
+  const handleNewMessage = useCallback((payload: any) => {
+    if (!payload?.new || !userId || !activeInstanceId) return;
     
-    console.log('[Contacts Realtime] 👤 Novo lead detectado:', {
-      leadId: leadData.id,
-      name: leadData.name,
-      phone: leadData.phone,
-      instanceId: leadData.whatsapp_number_id
-    });
-
-    // Filtrar por instância
-    if (activeInstanceId && leadData.whatsapp_number_id !== activeInstanceId) {
-      return;
+    const messageData = payload.new;
+    
+    // ✅ FILTROS RIGOROSOS
+    if (messageData.whatsapp_number_id !== activeInstanceId) return;
+    
+    // ✅ DEBOUNCE CONTROLADO
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
 
-    // Notificar sobre novo contato
-    if (onContactUpdate) {
-      const newContact: Partial<Contact> = {
-        id: leadData.id,
-        name: leadData.name,
-        phone: leadData.phone,
-        email: leadData.email,
-        lastMessage: 'Nova conversa iniciada',
-        lastMessageTime: leadData.created_at,
-        unreadCount: 1
-      };
-      
-      console.log('[Contacts Realtime] ➕ Adicionando novo contato:', newContact);
-      onContactUpdate(leadData.id, newContact);
-    }
-  }, [activeInstanceId, onContactUpdate]);
+    debounceTimerRef.current = setTimeout(() => {
+      try {
+        console.log('[Contacts Realtime] 📨 Nova mensagem para contato:', messageData.lead_id);
+        
+        if (onContactUpdate) {
+          const updates: Partial<Contact> = {
+            lastMessage: messageData.text || '📎 Mídia',
+            lastMessageTime: messageData.created_at,
+            unreadCount: messageData.from_me ? 0 : undefined // Não atualizar se for mensagem enviada
+          };
+          
+          onContactUpdate(messageData.lead_id, updates);
+        }
+        
+        // Mover para topo se não for mensagem enviada
+        if (!messageData.from_me && onMoveToTop) {
+          onMoveToTop(messageData.lead_id);
+        }
+      } catch (error) {
+        console.error('[Contacts Realtime] ❌ Erro ao processar mensagem:', error);
+      }
+    }, 100);
+  }, [userId, activeInstanceId, onContactUpdate, onMoveToTop]);
 
-  // ✅ CONFIGURAR REALTIME
+  // ✅ EFEITO PRINCIPAL
   useEffect(() => {
     if (!enabled || !userId || !activeInstanceId) {
       cleanup();
+      return;
+    }
+
+    // ✅ EVITAR MÚLTIPLAS CONEXÕES
+    if (isConnectedRef.current && channelRef.current) {
+      console.log('[Contacts Realtime] ⚠️ Já conectado, reutilizando canal');
       return;
     }
 
@@ -146,49 +155,66 @@ export const useContactsRealtime = ({
     // Cleanup anterior
     cleanup();
 
-    // Criar novo canal
-    const channelId = `contacts-realtime-${userId}-${activeInstanceId}-${Date.now()}`;
+    // Timeout para cleanup automático
+    cleanupTimeoutRef.current = setTimeout(cleanup, 300000); // 5 minutos
 
-    const channel = supabase
-      .channel(channelId)
-      
-      // 📨 SUBSCRIPTION PARA NOVAS MENSAGENS
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `whatsapp_number_id=eq.${activeInstanceId}`
-      }, handleNewMessage)
-      
-      // 👤 SUBSCRIPTION PARA NOVOS LEADS
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'leads',
-        filter: `whatsapp_number_id=eq.${activeInstanceId}`
-      }, handleNewLead)
-      
-      .subscribe((status) => {
-        console.log('[Contacts Realtime] 📡 Status da conexão:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          console.log('[Contacts Realtime] ✅ Realtime de contatos ativo');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[Contacts Realtime] ❌ Erro no canal de contatos');
-        }
-      });
+    const channelId = `contacts-${userId}-${activeInstanceId}`;
 
-    channelRef.current = channel;
+    try {
+      const channel = supabase
+        .channel(channelId)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'leads',
+            filter: `created_by_user_id=eq.${userId}`
+          },
+          handleLeadChange
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `whatsapp_number_id=eq.${activeInstanceId}`
+          },
+          handleNewMessage
+        )
+        .subscribe((status) => {
+          console.log('[Contacts Realtime] 📡 Status da conexão:', status);
+          
+          if (status === 'SUBSCRIBED') {
+            console.log('[Contacts Realtime] ✅ Realtime de contatos ativo');
+            isConnectedRef.current = true;
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.error('[Contacts Realtime] ❌ Erro na conexão:', status);
+            isConnectedRef.current = false;
+          } else if (status === 'CLOSED') {
+            console.log('[Contacts Realtime] 🔒 Canal de contatos fechado');
+            isConnectedRef.current = false;
+          }
+        });
+
+      channelRef.current = channel;
+    } catch (error) {
+      console.error('[Contacts Realtime] ❌ Erro ao criar canal:', error);
+      cleanup();
+    }
 
     return cleanup;
-  }, [enabled, userId, activeInstanceId, handleNewMessage, handleNewLead, cleanup]);
+  }, [enabled, userId, activeInstanceId, handleLeadChange, handleNewMessage, cleanup]);
 
   // ✅ CLEANUP GERAL
   useEffect(() => {
-    return cleanup;
+    return () => {
+      cleanup();
+    };
   }, [cleanup]);
 
   return {
-    isConnected: !!channelRef.current
+    isConnected: isConnectedRef.current
   };
 };
