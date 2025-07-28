@@ -1,4 +1,3 @@
-
 /**
  * 🎯 HOOK PARA CONTATOS WHATSAPP - OTIMIZADO FASE 1
  * 
@@ -107,11 +106,8 @@ export const useWhatsAppContacts = ({
       unreadCount: contactData.unreadCount || 1,
       stageId: contactData.stageId,
       createdAt: contactData.createdAt || new Date().toISOString(),
-      avatar: contactData.avatar,
       tags: contactData.tags || [],
-      notes: contactData.notes,
-      profilePicUrl: contactData.profilePicUrl,
-      isActive: true
+      notes: contactData.notes
     };
 
     queryClient.setQueryData(['whatsapp-contacts', activeInstanceId], (oldData: Contact[] | undefined) => {
@@ -131,7 +127,7 @@ export const useWhatsAppContacts = ({
     console.log('[WhatsApp Contacts] ✅ Novo contato adicionado FASE 1:', newContact);
   }, [queryClient, activeInstanceId]);
 
-  // 🚀 FASE 1: Query otimizada para buscar contatos
+  // 🚀 FASE 1: Query otimizada para buscar contatos - Fix database columns
   const {
     data: contacts = [],
     isLoading,
@@ -149,6 +145,7 @@ export const useWhatsAppContacts = ({
         userId: user.id
       });
 
+      // Fix: Remove non-existent columns from select
       const { data, error } = await supabase
         .from('leads')
         .select(`
@@ -161,11 +158,8 @@ export const useWhatsAppContacts = ({
           unread_count,
           kanban_stage_id,
           created_at,
-          avatar,
           notes,
-          profile_pic_url,
-          whatsapp_number_id,
-          tags
+          whatsapp_number_id
         `)
         .eq('whatsapp_number_id', activeInstanceId)
         .eq('created_by_user_id', user.id)
@@ -189,11 +183,8 @@ export const useWhatsAppContacts = ({
         unreadCount: lead.unread_count || 0,
         stageId: lead.kanban_stage_id,
         createdAt: lead.created_at,
-        avatar: lead.avatar,
-        tags: lead.tags || [],
-        notes: lead.notes,
-        profilePicUrl: lead.profile_pic_url,
-        isActive: true
+        tags: [], // Default empty array since tags column doesn't exist
+        notes: lead.notes
       }));
 
       console.log('[WhatsApp Contacts] ✅ Contatos carregados FASE 1:', {
