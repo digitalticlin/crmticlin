@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Contact } from '@/types/chat';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -44,10 +45,6 @@ export const ContactsList = ({
     );
   }
 
-  const handleContactSelect = (contact: Contact) => {
-    onContactSelect(contact); // Fix: Call with only one argument
-  };
-
   return (
     <div className="flex flex-col">
       {contacts.map((contact) => (
@@ -57,7 +54,7 @@ export const ContactsList = ({
             "flex items-center space-x-3 py-2 px-3 rounded-md hover:bg-secondary cursor-pointer transition-colors",
             selectedContact?.id === contact.id ? "bg-secondary" : "bg-transparent"
           )}
-          onClick={() => handleContactSelect(contact)}
+          onClick={() => onContactSelect(contact)}
         >
           <Avatar>
             <AvatarImage src={`https://avatar.vercel.sh/${contact.name}.png`} />

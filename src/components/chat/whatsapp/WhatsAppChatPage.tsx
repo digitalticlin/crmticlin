@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { WhatsAppChatProvider } from './WhatsAppChatProvider';
 import { WhatsAppChatLayout } from './WhatsAppChatLayout';
@@ -8,16 +9,25 @@ import { WhatsAppChatActions } from './WhatsAppChatActions';
 import { WhatsAppChatErrorBoundary } from './WhatsAppChatErrorBoundary';
 import { PerformanceMonitor } from '@/components/debug/PerformanceMonitor';
 
-const WhatsAppChatPage: React.FC = () => {
+export const WhatsAppChatPage: React.FC = () => {
   return (
     <WhatsAppChatErrorBoundary>
       <WhatsAppChatProvider>
-        <WhatsAppChatLayout
-          header={<WhatsAppChatHeader />}
-          sidebar={<WhatsAppContactsList />}
-          content={<WhatsAppMessagesSection />}
-          actions={<WhatsAppChatActions />}
-        />
+        <WhatsAppChatLayout>
+          <div className="flex h-full w-full">
+            {/* Sidebar - Contacts */}
+            <div className="w-1/3 min-w-[300px] max-w-[400px]">
+              <WhatsAppContactsList />
+            </div>
+            
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col">
+              <WhatsAppChatHeader />
+              <WhatsAppMessagesSection />
+              <WhatsAppChatActions />
+            </div>
+          </div>
+        </WhatsAppChatLayout>
       </WhatsAppChatProvider>
     </WhatsAppChatErrorBoundary>
   );
