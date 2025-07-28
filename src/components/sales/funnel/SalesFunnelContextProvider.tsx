@@ -130,6 +130,31 @@ export const SalesFunnelContextProvider: React.FC<SalesFunnelContextProviderProp
     });
   }, [salesFunnelData.createFunnel]);
 
+  // 🚀 WRAPPER FUNCTIONS PARA COMPATIBILIDADE COM INTERFACE
+  const updateLeadNotesWrapper = useCallback((notes: string) => {
+    if (!salesFunnelData.selectedLead) return;
+    salesFunnelData.updateLeadNotes(salesFunnelData.selectedLead.id, notes);
+  }, [salesFunnelData.selectedLead, salesFunnelData.updateLeadNotes]);
+
+  const updateLeadPurchaseValueWrapper = useCallback((value: number | undefined) => {
+    if (!salesFunnelData.selectedLead) return;
+    salesFunnelData.updateLeadPurchaseValue(salesFunnelData.selectedLead.id, value);
+  }, [salesFunnelData.selectedLead, salesFunnelData.updateLeadPurchaseValue]);
+
+  const updateLeadAssignedUserWrapper = useCallback((user: string) => {
+    if (!salesFunnelData.selectedLead) return;
+    salesFunnelData.updateLeadAssignedUser(salesFunnelData.selectedLead.id, user);
+  }, [salesFunnelData.selectedLead, salesFunnelData.updateLeadAssignedUser]);
+
+  const updateLeadNameWrapper = useCallback((name: string) => {
+    if (!salesFunnelData.selectedLead) return;
+    salesFunnelData.updateLeadName(salesFunnelData.selectedLead.id, name);
+  }, [salesFunnelData.selectedLead, salesFunnelData.updateLeadName]);
+
+  const toggleTagOnLeadWrapper = useCallback((leadId: string, tagId: string) => {
+    salesFunnelData.toggleTagOnLead(leadId, tagId);
+  }, [salesFunnelData.toggleTagOnLead]);
+
   // 🎯 VALOR DO CONTEXTO COM REALTIME
   const contextValue = useMemo(() => ({
     // 📊 DADOS PRINCIPAIS
@@ -162,14 +187,14 @@ export const SalesFunnelContextProvider: React.FC<SalesFunnelContextProviderProp
     updateColumn: salesFunnelData.updateColumn,
     deleteColumn: salesFunnelData.deleteColumn,
     
-    // 👤 AÇÕES DE LEAD
+    // 👤 AÇÕES DE LEAD - WRAPPERS CORRIGIDOS
     openLeadDetail: salesFunnelData.openLeadDetail,
-    toggleTagOnLead: salesFunnelData.toggleTagOnLead,
+    toggleTagOnLead: toggleTagOnLeadWrapper,
     createTag,
-    updateLeadNotes: salesFunnelData.updateLeadNotes,
-    updateLeadPurchaseValue: salesFunnelData.updateLeadPurchaseValue,
-    updateLeadAssignedUser: salesFunnelData.updateLeadAssignedUser,
-    updateLeadName: salesFunnelData.updateLeadName,
+    updateLeadNotes: updateLeadNotesWrapper,
+    updateLeadPurchaseValue: updateLeadPurchaseValueWrapper,
+    updateLeadAssignedUser: updateLeadAssignedUserWrapper,
+    updateLeadName: updateLeadNameWrapper,
     moveLeadToStage, // 🚀 FUNÇÃO MELHORADA
     
     // 🔄 REFRESH FUNCTIONS
@@ -191,7 +216,12 @@ export const SalesFunnelContextProvider: React.FC<SalesFunnelContextProviderProp
     realtimeStats,
     createTag,
     moveLeadToStage,
-    createFunnelWrapper
+    createFunnelWrapper,
+    updateLeadNotesWrapper,
+    updateLeadPurchaseValueWrapper,
+    updateLeadAssignedUserWrapper,
+    updateLeadNameWrapper,
+    toggleTagOnLeadWrapper
   ]);
 
   return (
