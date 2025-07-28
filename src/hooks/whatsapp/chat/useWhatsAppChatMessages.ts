@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact, Message } from '@/types/chat';
@@ -164,6 +163,8 @@ export const useWhatsAppChatMessages = ({
     setIsLoadingMessages(true);
     setError(null);
 
+    let caughtError: any = null;
+
     try {
       const result = await fetchMessages(selectedContact.id, activeInstance.id);
       
@@ -174,6 +175,8 @@ export const useWhatsAppChatMessages = ({
       retryCountRef.current = 0;
       
     } catch (error: any) {
+      caughtError = error;
+      
       // ✅ CORREÇÃO: Verificar se error é string ou objeto
       const errorMessage = typeof error === 'string' ? error : (error?.message || 'Erro desconhecido');
       
@@ -204,9 +207,12 @@ export const useWhatsAppChatMessages = ({
       setMessages([]);
       toast.error('Falha ao carregar mensagens');
     } finally {
-      // ✅ CORREÇÃO: Verificar se error é string ou objeto antes de acessar .message
-      const shouldSetLoading = retryCountRef.current >= MAX_RETRIES || 
-        (typeof error === 'string' ? error === 'Request cancelled' : error?.message === 'Request cancelled');
+      // ✅ CORREÇÃO: Usar a variável caughtError capturada no catch
+      const errorMessage = caughtError ? 
+        (typeof caughtError === 'string' ? caughtError : (caughtError?.message || 'Erro desconhecido')) : 
+        null;
+      
+      const shouldSetLoading = retryCountRef.current >= MAX_RETRIES || errorMessage === 'Request cancelled';
       
       if (shouldSetLoading) {
         setIsLoadingMessages(false);
