@@ -1,3 +1,4 @@
+
 import { createContext, useContext, ReactNode } from "react";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
 import { Funnel, KanbanStage } from "@/types/funnel";
@@ -23,7 +24,7 @@ interface SalesFunnelContextValue {
   setIsLeadDetailOpen: (open: boolean) => void;
   availableTags: KanbanTag[];
   stages: KanbanStage[];
-  leads: KanbanLead[]; // Adicionando leads totais
+  leads: KanbanLead[];
   wonStageId?: string;
   lostStageId?: string;
 
@@ -40,12 +41,20 @@ interface SalesFunnelContextValue {
   updateLeadName: (name: string) => void;
   moveLeadToStage: (lead: KanbanLead, columnId: string) => void;
 
-  // Refresh functions - changed to Promise<void> to match interface
+  // Refresh functions
   refetchLeads: () => Promise<void>;
   refetchStages: () => Promise<void>;
 
   // UI state
   isAdmin: boolean;
+
+  // 📡 REALTIME STATS
+  realtimeStats: {
+    isConnected: boolean;
+    connectionStatus: 'connected' | 'connecting' | 'disconnected' | 'error';
+    totalEvents: number;
+    lastUpdate: number | null;
+  };
 }
 
 const SalesFunnelContext = createContext<SalesFunnelContextValue | null>(null);
