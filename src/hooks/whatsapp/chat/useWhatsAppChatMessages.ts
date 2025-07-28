@@ -204,7 +204,11 @@ export const useWhatsAppChatMessages = ({
       setMessages([]);
       toast.error('Falha ao carregar mensagens');
     } finally {
-      if (retryCountRef.current >= MAX_RETRIES || error?.message === 'Request cancelled') {
+      // ✅ CORREÇÃO: Verificar se error é string ou objeto antes de acessar .message
+      const shouldSetLoading = retryCountRef.current >= MAX_RETRIES || 
+        (typeof error === 'string' ? error === 'Request cancelled' : error?.message === 'Request cancelled');
+      
+      if (shouldSetLoading) {
         setIsLoadingMessages(false);
         isLoadingRef.current = false;
       }
