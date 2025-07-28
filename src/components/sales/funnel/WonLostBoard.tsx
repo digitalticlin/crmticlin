@@ -90,6 +90,7 @@ export const WonLostBoard = ({
       columns={wonLostColumns}
       onColumnsChange={() => {}} // Não permitir mudanças na aba won-lost
       onOpenLeadDetail={onOpenLeadDetail}
+      onOpenChat={onOpenChat || (() => {})} // ✅ CORRIGIDO: Adicionar onOpenChat
       onReturnToFunnel={onReturnToFunnel}
       isWonLostView={true}
       wonStageId={wonStageId}

@@ -1,445 +1,387 @@
-
-/**
- * 🚀 HOOK PRINCIPAL PARA SALES FUNNEL - CORRIGIDO PARA PHASE 2
- * 
- * Responsabilidades:
- * - Gerenciar estado dos funnels, stages e leads
- * - Operações CRUD completas
- * - Integração com Supabase
- * - Transformação de dados para KanbanLead
- * - Mutações otimizadas
- */
-
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { KanbanColumn, KanbanLead } from '@/types/kanban';
+import { KanbanStage, Funnel } from '@/types/funnel';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Funnel, KanbanStage } from '@/types/funnel';
-import { KanbanColumn, KanbanLead, KanbanTag } from '@/types/kanban';
 
-export const useSalesFunnelDirect = () => {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
-  
-  // Estados locais
+interface UseSalesFunnelDirectResult {
+  loading: boolean;
+  error: Error | null;
+  funnels: Funnel[];
+  selectedFunnel: Funnel | null;
+  setSelectedFunnel: (funnel: Funnel) => void;
+  createFunnel: (name: string, options?: { onSuccess?: () => void; onError?: (error: Error) => void }) => void;
+  funnelLoading: boolean;
+  columns: KanbanColumn[];
+  setColumns: (columns: KanbanColumn[]) => void;
+  stages: KanbanStage[];
+  leads: KanbanLead[];
+  wonStageId: string | undefined;
+  lostStageId: string | undefined;
+  selectedLead: KanbanLead | null;
+  isLeadDetailOpen: boolean;
+  setIsLeadDetailOpen: (isOpen: boolean) => void;
+  availableTags: string[];
+  addColumn: (title: string, color: string) => Promise<void>;
+  updateColumn: (column: KanbanColumn) => Promise<void>;
+  deleteColumn: (columnId: string) => Promise<void>;
+  openLeadDetail: (lead: KanbanLead) => void;
+  toggleTagOnLead: (leadId: string, tag: string) => Promise<void>;
+  updateLeadNotes: (leadId: string, notes: string) => Promise<void>;
+  updateLeadPurchaseValue: (leadId: string, purchaseValue: number | undefined) => Promise<void>;
+  updateLeadAssignedUser: (leadId: string, assignedUser: string | undefined) => Promise<void>;
+  updateLeadName: (leadId: string, name: string) => Promise<void>;
+  refetchLeads: () => Promise<void>;
+  refetchStages: () => Promise<void>;
+  updateLead: any;
+}
+
+export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [funnels, setFunnels] = useState<Funnel[]>([]);
   const [selectedFunnel, setSelectedFunnel] = useState<Funnel | null>(null);
+  const [funnelLoading, setFunnelLoading] = useState(false);
+  const [stages, setStages] = useState<KanbanStage[]>([]);
+  const [leads, setLeads] = useState<KanbanLead[]>([]);
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const { user } = useAuth();
 
-  // 📊 QUERY: FUNNELS
-  const { 
-    data: funnels = [], 
-    isLoading: funnelsLoading,
-    error: funnelsError,
-    refetch: refetchFunnels 
-  } = useQuery({
-    queryKey: ['funnels', user?.id],
-    queryFn: async () => {
-      console.log('[Sales Funnel Direct] 📊 Buscando funnels do usuário:', user?.id);
-      
-      const { data, error } = await supabase
-        .from('funnels')
-        .select('*')
-        .eq('created_by_user_id', user?.id)
-        .order('created_at', { ascending: true });
+  // Buscar IDs de estágios "ganho" e "perdido"
+  const wonStageId = stages.find(stage => stage.is_won)?.id;
+  const lostStageId = stages.find(stage => stage.is_lost)?.id;
 
-      if (error) {
-        console.error('[Sales Funnel Direct] ❌ Erro ao buscar funnels:', error);
-        throw error;
-      }
-
-      console.log('[Sales Funnel Direct] ✅ Funnels carregados:', data.length);
-      return data as Funnel[];
-    },
-    enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    refetchOnWindowFocus: false
-  });
-
-  // 🏗️ QUERY: STAGES
-  const { 
-    data: stages = [], 
-    isLoading: stagesLoading,
-    error: stagesError,
-    refetch: refetchStages 
-  } = useQuery({
-    queryKey: ['kanban_stages', selectedFunnel?.id],
-    queryFn: async () => {
-      if (!selectedFunnel?.id) return [];
-      
-      console.log('[Sales Funnel Direct] 🏗️ Buscando stages do funil:', selectedFunnel.id);
-      
-      const { data, error } = await supabase
-        .from('kanban_stages')
-        .select('*')
-        .eq('funnel_id', selectedFunnel.id)
-        .eq('created_by_user_id', user?.id)
-        .order('order_position', { ascending: true });
-
-      if (error) {
-        console.error('[Sales Funnel Direct] ❌ Erro ao buscar stages:', error);
-        throw error;
-      }
-
-      console.log('[Sales Funnel Direct] ✅ Stages carregados:', data.length);
-      return data as KanbanStage[];
-    },
-    enabled: !!selectedFunnel?.id && !!user?.id,
-    staleTime: 5 * 60 * 1000
-  });
-
-  // 👥 QUERY: LEADS COM TRANSFORMAÇÃO
-  const { 
-    data: rawLeads = [], 
-    isLoading: leadsLoading,
-    error: leadsError,
-    refetch: refetchLeads 
-  } = useQuery({
-    queryKey: ['leads', selectedFunnel?.id],
-    queryFn: async () => {
-      if (!selectedFunnel?.id) return [];
-      
-      console.log('[Sales Funnel Direct] 👥 Buscando leads do funil:', selectedFunnel.id);
-      
+  // 🚀 MUTATION PARA ATUALIZAR LEAD
+  const updateLead = useCallback(async (
+    { leadId, fields }: { leadId: string; fields: Partial<KanbanLead> }
+  ) => {
+    try {
       const { data, error } = await supabase
         .from('leads')
-        .select(`
-          *,
-          lead_tags (
-            id,
-            tag_id,
-            tags (
-              id,
-              name,
-              color
-            )
-          )
-        `)
-        .eq('funnel_id', selectedFunnel.id)
-        .eq('created_by_user_id', user?.id)
-        .order('created_at', { ascending: false });
+        .update(fields)
+        .eq('id', leadId)
+        .select()
+        .single();
 
       if (error) {
-        console.error('[Sales Funnel Direct] ❌ Erro ao buscar leads:', error);
-        throw error;
+        console.error('[Sales Funnel Direct] ❌ Erro ao atualizar lead:', error);
+        throw new Error(error.message);
       }
 
-      console.log('[Sales Funnel Direct] ✅ Leads carregados:', data.length);
+      console.log('[Sales Funnel Direct] 👤 Lead atualizado:', data);
+      // refetchLeads(); // Realtime vai atualizar
       return data;
-    },
-    enabled: !!selectedFunnel?.id && !!user?.id,
-    staleTime: 2 * 60 * 1000 // 2 minutos para leads (mais dinâmico)
-  });
-
-  // 🔄 TRANSFORMAR LEADS PARA KanbanLead
-  const leads = useMemo(() => {
-    return rawLeads.map(lead => ({
-      id: lead.id,
-      name: lead.name,
-      phone: lead.phone,
-      email: lead.email || '',
-      company: lead.company || '',
-      lastMessage: lead.last_message || 'Sem mensagens',
-      lastMessageTime: lead.last_message_time || lead.created_at,
-      tags: lead.lead_tags?.map(lt => ({
-        id: lt.tags.id,
-        name: lt.tags.name,
-        color: lt.tags.color
-      })) || [],
-      notes: lead.notes || '',
-      columnId: lead.kanban_stage_id || '',
-      purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
-      assignedUser: lead.owner_id || '',
-      unreadCount: lead.unread_count || 0,
-      avatar: undefined,
-      created_at: lead.created_at,
-      updated_at: lead.updated_at,
-      whatsapp_number_id: lead.whatsapp_number_id,
-      funnel_id: lead.funnel_id,
-      kanban_stage_id: lead.kanban_stage_id,
-      owner_id: lead.owner_id
-    })) as KanbanLead[];
-  }, [rawLeads]);
-
-  // 🏷️ QUERY: TAGS
-  const { data: availableTags = [] } = useQuery({
-    queryKey: ['tags', user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tags')
-        .select('*')
-        .eq('created_by_user_id', user?.id)
-        .order('name', { ascending: true });
-
-      if (error) throw error;
-      return data as KanbanTag[];
-    },
-    enabled: !!user?.id,
-    staleTime: 10 * 60 * 1000
-  });
-
-  // 🔄 TRANSFORMAR STAGES EM COLUNAS
-  useEffect(() => {
-    if (!stages.length || !leads.length) {
-      setColumns([]);
-      return;
+    } catch (err: any) {
+      console.error('[Sales Funnel Direct] ❌ Erro crítico ao atualizar lead:', err);
+      toast.error(`Erro ao atualizar lead: ${err.message}`);
+      throw err; // Rejeitar para tratamento no componente
     }
+  }, []);
 
-    const newColumns: KanbanColumn[] = stages.map(stage => ({
-      id: stage.id,
-      title: stage.title,
-      color: stage.color || '#e0e0e0',
-      isFixed: stage.is_fixed || false,
-      ai_enabled: stage.ai_enabled,
-      leads: leads.filter(lead => lead.kanban_stage_id === stage.id)
-    }));
-
-    setColumns(newColumns);
-  }, [stages, leads]);
-
-  // 📊 DEFINIR FUNNEL PADRÃO
-  useEffect(() => {
-    if (funnels.length > 0 && !selectedFunnel) {
-      const defaultFunnel = funnels[0];
-      setSelectedFunnel(defaultFunnel);
-      console.log('[Sales Funnel Direct] 📊 Funnel padrão selecionado:', defaultFunnel.name);
-    }
-  }, [funnels, selectedFunnel]);
-
-  // 🎯 ENCONTRAR STAGES WON/LOST
-  const wonStageId = useMemo(() => 
-    stages.find(stage => stage.is_won)?.id, 
-    [stages]
-  );
-  
-  const lostStageId = useMemo(() => 
-    stages.find(stage => stage.is_lost)?.id, 
-    [stages]
-  );
-
-  // 🏗️ MUTATION: CRIAR FUNNEL - CORRIGIDO
-  const createFunnel = useMutation({
-    mutationFn: async (name: string) => {
+  // 🔄 REFRESH FUNCTIONS
+  const refetchFunnels = useCallback(async () => {
+    if (!user) return;
+    try {
       const { data, error } = await supabase
         .from('funnels')
-        .insert({
-          name,
-          created_by_user_id: user?.id,
-          description: `Funil criado em ${new Date().toLocaleDateString()}`
-        })
-        .select()
-        .single();
+        .select('*')
+        .eq('company_id', user.company_id);
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['funnels'] });
-      setSelectedFunnel(data);
-      toast.success(`Funnel "${data.name}" criado com sucesso`);
-    },
-    onError: (error) => {
-      toast.error('Erro ao criar funnel', {
-        description: error.message
-      });
+      if (error) {
+        console.error('Erro ao buscar funnels:', error);
+        setError(error);
+      } else {
+        setFunnels(data || []);
+        if (data && data.length > 0 && !selectedFunnel) {
+          setSelectedFunnel(data[0]);
+        }
+      }
+    } catch (error: any) {
+      console.error('Erro ao buscar funnels:', error);
+      setError(error);
     }
-  });
+  }, [user, selectedFunnel]);
 
-  // 🏗️ MUTATION: CRIAR STAGE
-  const addColumn = useMutation({
-    mutationFn: async ({ title, color }: { title: string; color?: string }) => {
-      const maxOrder = Math.max(...stages.map(s => s.order_position), -1);
-      
+  const refetchStages = useCallback(async () => {
+    if (!selectedFunnel) return;
+    try {
       const { data, error } = await supabase
         .from('kanban_stages')
-        .insert({
-          title,
-          color: color || '#e0e0e0',
-          funnel_id: selectedFunnel?.id,
-          created_by_user_id: user?.id,
-          order_position: maxOrder + 1
-        })
+        .select('*')
+        .eq('funnel_id', selectedFunnel.id)
+        .order('position', { ascending: true });
+
+      if (error) {
+        console.error('Erro ao buscar stages:', error);
+        setError(error);
+      } else {
+        setStages(data || []);
+      }
+    } catch (error: any) {
+      console.error('Erro ao buscar stages:', error);
+      setError(error);
+    }
+  }, [selectedFunnel]);
+
+  const refetchLeads = useCallback(async () => {
+    if (!selectedFunnel) return;
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('funnel_id', selectedFunnel.id);
+
+      if (error) {
+        console.error('Erro ao buscar leads:', error);
+        setError(error);
+      } else {
+        setLeads(data || []);
+      }
+    } catch (error: any) {
+      console.error('Erro ao buscar leads:', error);
+      setError(error);
+    }
+  }, [selectedFunnel]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        await refetchFunnels();
+        setAvailableTags(['Tag 1', 'Tag 2', 'Tag 3']);
+      } catch (error: any) {
+        console.error('Erro ao buscar dados:', error);
+        setError(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [refetchFunnels]);
+
+  useEffect(() => {
+    if (selectedFunnel) {
+      refetchStages();
+      refetchLeads();
+    }
+  }, [selectedFunnel, refetchStages, refetchLeads]);
+
+  useEffect(() => {
+    if (stages.length > 0) {
+      const newColumns = stages.map(stage => ({
+        id: stage.id,
+        title: stage.title,
+        leads: leads.filter(lead => lead.kanban_stage_id === stage.id),
+        color: stage.color,
+        isFixed: stage.is_won || stage.is_lost,
+        isHidden: false
+      }));
+      setColumns(newColumns);
+    }
+  }, [stages, leads]);
+
+  // 🚀 FUNÇÕES DE GERENCIAMENTO DE FUNIL
+  const createFunnel = useCallback(async (name: string, options: { onSuccess?: () => void; onError?: (error: Error) => void } = {}) => {
+    if (!user) return;
+
+    setFunnelLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('funnels')
+        .insert([{ name, company_id: user.company_id }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erro ao criar funnel:', error);
+        setError(error);
+        options.onError?.(error);
+      } else {
+        console.log('Funnel criado:', data);
+        setFunnels([...funnels, data]);
+        setSelectedFunnel(data);
+        options.onSuccess?.();
+      }
+    } catch (error: any) {
+      console.error('Erro ao criar funnel:', error);
+      setError(error);
+      options.onError?.(error);
+    } finally {
+      setFunnelLoading(false);
+    }
+  }, [user, funnels]);
+
+  // 🏗️ FUNÇÕES DE GERENCIAMENTO DE COLUNAS
+  const addColumn = useCallback(async (title: string, color: string): Promise<void> => {
+    if (!selectedFunnel) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('kanban_stages')
+        .insert([
+          {
+            title,
+            color,
+            funnel_id: selectedFunnel.id,
+            position: stages.length,
+            is_won: false,
+            is_lost: false
+          }
+        ])
         .select()
         .single();
 
       if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kanban_stages'] });
-      toast.success('Nova etapa criada');
-    },
-    onError: (error) => {
-      toast.error('Erro ao criar etapa', {
-        description: error.message
-      });
-    }
-  });
 
-  // 🏗️ MUTATION: ATUALIZAR STAGE
-  const updateColumn = useMutation({
-    mutationFn: async (column: KanbanColumn) => {
-      const { error } = await supabase
+      console.log('[Sales Funnel Direct] ✅ Coluna adicionada:', data);
+      await refetchStages();
+    } catch (error) {
+      console.error('[Sales Funnel Direct] ❌ Erro ao adicionar coluna:', error);
+      throw error;
+    }
+  }, [selectedFunnel, stages.length, refetchStages]);
+
+  const updateColumn = useCallback(async (column: KanbanColumn) => {
+    try {
+      const { data, error } = await supabase
         .from('kanban_stages')
-        .update({
-          title: column.title,
-          color: column.color
-        })
-        .eq('id', column.id);
+        .update({ title: column.title, color: column.color })
+        .eq('id', column.id)
+        .select()
+        .single();
 
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kanban_stages'] });
-      toast.success('Etapa atualizada');
-    },
-    onError: (error) => {
-      toast.error('Erro ao atualizar etapa', {
-        description: error.message
-      });
+      if (error) {
+        console.error('Erro ao atualizar coluna:', error);
+        setError(error);
+      } else {
+        console.log('Coluna atualizada:', data);
+        setStages(stages.map(stage => stage.id === column.id ? { ...stage, title: column.title, color: column.color } : stage));
+        setColumns(columns.map(col => col.id === column.id ? { ...col, title: column.title, color: column.color } : col));
+      }
+    } catch (error: any) {
+      console.error('Erro ao atualizar coluna:', error);
+      setError(error);
     }
-  });
+  }, [stages, columns]);
 
-  // 🏗️ MUTATION: DELETAR STAGE
-  const deleteColumn = useMutation({
-    mutationFn: async (columnId: string) => {
+  const deleteColumn = useCallback(async (columnId: string) => {
+    try {
       const { error } = await supabase
         .from('kanban_stages')
         .delete()
         .eq('id', columnId);
 
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['kanban_stages'] });
-      toast.success('Etapa removida');
-    },
-    onError: (error) => {
-      toast.error('Erro ao remover etapa', {
-        description: error.message
-      });
+      if (error) {
+        console.error('Erro ao remover coluna:', error);
+        setError(error);
+      } else {
+        console.log('Coluna removida:', columnId);
+        setStages(stages.filter(stage => stage.id !== columnId));
+        setColumns(columns.filter(col => col.id !== columnId));
+      }
+    } catch (error: any) {
+      console.error('Erro ao remover coluna:', error);
+      setError(error);
     }
-  });
+  }, [stages, columns]);
 
-  // 👥 MUTATION: ATUALIZAR LEAD - CORRIGIDO
-  const updateLead = useMutation({
-    mutationFn: async ({ leadId, fields }: { leadId: string; fields: any }) => {
-      const { error } = await supabase
-        .from('leads')
-        .update(fields)
-        .eq('id', leadId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-    },
-    onError: (error) => {
-      toast.error('Erro ao atualizar lead', {
-        description: error.message
-      });
-    }
-  });
-
-  // 🎯 FUNÇÕES DE AÇÃO
+  // 👤 FUNÇÕES DE GERENCIAMENTO DE LEAD
   const openLeadDetail = useCallback((lead: KanbanLead) => {
     setSelectedLead(lead);
     setIsLeadDetailOpen(true);
   }, []);
 
-  const toggleTagOnLead = useCallback((leadId: string, tagId: string) => {
-    // Implementar toggle de tag
-    console.log('Toggle tag:', { leadId, tagId });
+  const toggleTagOnLead = useCallback(async (leadId: string, tag: string) => {
+    console.log('toggleTagOnLead', leadId, tag);
   }, []);
 
-  const createTag = useCallback((name: string, color: string) => {
-    // Implementar criação de tag
-    console.log('Create tag:', { name, color });
-  }, []);
+  const updateLeadNotes = useCallback(async (leadId: string, notes: string) => {
+    try {
+      await updateLead({ leadId, fields: { notes } });
+      setLeads(leads.map(lead => lead.id === leadId ? { ...lead, notes } : lead));
+      if (selectedLead?.id === leadId) {
+        setSelectedLead({ ...selectedLead, notes } as KanbanLead);
+      }
+    } catch (error: any) {
+      console.error('Erro ao atualizar notas do lead:', error);
+      setError(error);
+    }
+  }, [leads, selectedLead, updateLead]);
 
-  const updateLeadNotes = useCallback((notes: string) => {
-    if (!selectedLead) return;
-    updateLead.mutate({ 
-      leadId: selectedLead.id, 
-      fields: { notes } 
-    });
-  }, [selectedLead, updateLead]);
+  const updateLeadPurchaseValue = useCallback(async (leadId: string, purchaseValue: number | undefined) => {
+    try {
+      await updateLead({ leadId, fields: { purchase_value: purchaseValue } });
+      setLeads(leads.map(lead => lead.id === leadId ? { ...lead, purchaseValue } : lead));
+      if (selectedLead?.id === leadId) {
+        setSelectedLead({ ...selectedLead, purchaseValue } as KanbanLead);
+      }
+    } catch (error: any) {
+      console.error('Erro ao atualizar valor de compra do lead:', error);
+      setError(error);
+    }
+  }, [leads, selectedLead, updateLead]);
 
-  const updateLeadPurchaseValue = useCallback((value: number | undefined) => {
-    if (!selectedLead) return;
-    updateLead.mutate({ 
-      leadId: selectedLead.id, 
-      fields: { purchase_value: value } 
-    });
-  }, [selectedLead, updateLead]);
+  const updateLeadAssignedUser = useCallback(async (leadId: string, assignedUser: string | undefined) => {
+    try {
+      await updateLead({ leadId, fields: { owner_id: assignedUser } });
+      setLeads(leads.map(lead => lead.id === leadId ? { ...lead, assignedUser } : lead));
+      if (selectedLead?.id === leadId) {
+        setSelectedLead({ ...selectedLead, assignedUser } as KanbanLead);
+      }
+    } catch (error: any) {
+      console.error('Erro ao atualizar usuário atribuído ao lead:', error);
+      setError(error);
+    }
+  }, [leads, selectedLead, updateLead]);
 
-  const updateLeadAssignedUser = useCallback((user: string) => {
-    if (!selectedLead) return;
-    updateLead.mutate({ 
-      leadId: selectedLead.id, 
-      fields: { owner_id: user } 
-    });
-  }, [selectedLead, updateLead]);
-
-  const updateLeadName = useCallback((name: string) => {
-    if (!selectedLead) return;
-    updateLead.mutate({ 
-      leadId: selectedLead.id, 
-      fields: { name } 
-    });
-  }, [selectedLead, updateLead]);
-
-  // 🚀 ESTADO CONSOLIDADO
-  const loading = funnelsLoading || stagesLoading || leadsLoading;
-  const error = funnelsError || stagesError || leadsError;
+  const updateLeadName = useCallback(async (leadId: string, name: string) => {
+    try {
+      await updateLead({ leadId, fields: { name } });
+      setLeads(leads.map(lead => lead.id === leadId ? { ...lead, name } : lead));
+      if (selectedLead?.id === leadId) {
+        setSelectedLead({ ...selectedLead, name } as KanbanLead);
+      }
+    } catch (error: any) {
+      console.error('Erro ao atualizar nome do lead:', error);
+      setError(error);
+    }
+  }, [leads, selectedLead, updateLead]);
 
   return {
-    // Estado
     loading,
     error,
-    
-    // Dados
     funnels,
     selectedFunnel,
     setSelectedFunnel,
-    createFunnel: createFunnel.mutate, // ✅ CORRIGIDO: Retornar apenas mutate
-    
-    // Colunas e leads
+    createFunnel,
+    funnelLoading,
     columns,
     setColumns,
     stages,
     leads,
     wonStageId,
     lostStageId,
-    
-    // Lead selecionado
     selectedLead,
     isLeadDetailOpen,
     setIsLeadDetailOpen,
-    
-    // Tags
     availableTags,
-    
-    // Ações
-    addColumn: (title: string, color?: string) => addColumn.mutate({ title, color }),
-    updateColumn: updateColumn.mutate,
-    deleteColumn: deleteColumn.mutate,
-    
-    // Ações de lead
+    addColumn,
+    updateColumn,
+    deleteColumn,
     openLeadDetail,
     toggleTagOnLead,
-    createTag,
     updateLeadNotes,
     updateLeadPurchaseValue,
     updateLeadAssignedUser,
     updateLeadName,
-    updateLead, // ✅ MANTER updateLead
-    
-    // Refresh
     refetchLeads,
     refetchStages,
-    refetchFunnels
+    updateLead
   };
 };
