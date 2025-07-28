@@ -11,20 +11,39 @@ export const useDashboardState = () => {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const isInitializedRef = useRef(false);
+  
+  // ✅ ANTI-LOOP: Controle de execução
+  const lastUpdateRef = useRef<number>(0);
+  const updateCountRef = useRef<number>(0);
 
-  // ETAPA 1: Função triggerForceUpdate simplificada e síncrona
+  // ✅ ETAPA 1: Função triggerForceUpdate com proteção anti-loop
   const triggerForceUpdate = () => {
-    const timestamp = Date.now();
-    console.log(`🔄 FORCE UPDATE TRIGGER [${timestamp}]`);
+    const now = Date.now();
+    const timeSinceLastUpdate = now - lastUpdateRef.current;
+    
+    // ✅ PROTEÇÃO: Evitar atualizações muito frequentes
+    if (timeSinceLastUpdate < 100) {
+      updateCountRef.current++;
+      if (updateCountRef.current > 5) {
+        console.warn(`🚨 ANTI-LOOP: Muitas atualizações em pouco tempo (${updateCountRef.current})`);
+        return;
+      }
+    } else {
+      updateCountRef.current = 0;
+    }
+    
+    lastUpdateRef.current = now;
+    
+    console.log(`🔄 FORCE UPDATE TRIGGER [${now}]`);
     
     setForceUpdate(prev => {
       const newValue = prev + 1;
-      console.log(`📊 ForceUpdate: ${prev} -> ${newValue} [${timestamp}]`);
+      console.log(`📊 ForceUpdate: ${prev} -> ${newValue} [${now}]`);
       return newValue;
     });
   };
 
-  // ETAPA 1: setConfig simples SEM triggerForceUpdate interno
+  // ✅ ETAPA 1: setConfig com proteção anti-loop
   const setConfigWithUpdate = (newConfigOrUpdater: DashboardConfig | ((prev: DashboardConfig) => DashboardConfig)) => {
     const timestamp = Date.now();
     console.log(`📝 CONFIG UPDATE [${timestamp}]`);
@@ -33,6 +52,14 @@ export const useDashboardState = () => {
       const newConfig = typeof newConfigOrUpdater === 'function' 
         ? newConfigOrUpdater(currentConfig) 
         : newConfigOrUpdater;
+      
+      // ✅ VERIFICAR SE REALMENTE MUDOU
+      const configChanged = JSON.stringify(currentConfig) !== JSON.stringify(newConfig);
+      
+      if (!configChanged) {
+        console.log(`⚠️ CONFIG UNCHANGED [${timestamp}] - ignorando atualização`);
+        return currentConfig;
+      }
       
       console.log(`📊 Config updated [${timestamp}]:`, {
         kpis: newConfig.kpis,

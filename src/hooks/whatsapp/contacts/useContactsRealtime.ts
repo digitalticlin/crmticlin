@@ -23,9 +23,19 @@ export const useContactsRealtime = ({
   const isConnectedRef = useRef(false);
   const cleanupTimeoutRef = useRef<NodeJS.Timeout>();
   const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const lastConfigRef = useRef<string>('');
+  const setupInProgressRef = useRef(false);
   
-  // ✅ CLEANUP CONTROLADO
+  // ✅ ANTI-LOOP: Verificar se configuração mudou de fato
+  const currentConfig = `${userId}-${activeInstanceId}-${enabled}`;
+  
+  // ✅ CLEANUP CONTROLADO com proteção anti-loop
   const cleanup = useCallback(() => {
+    if (setupInProgressRef.current) {
+      console.log('[Contacts Realtime] ⚠️ Setup em progresso, aguardando...');
+      return;
+    }
+    
     console.log('[Contacts Realtime] 🧹 Iniciando cleanup');
     
     // Limpar debounce
@@ -56,7 +66,7 @@ export const useContactsRealtime = ({
     console.log('[Contacts Realtime] ✅ Cleanup concluído');
   }, []);
 
-  // ✅ HANDLER PARA MUDANÇAS EM LEADS
+  // ✅ HANDLERS ESTÁVEIS com useCallback otimizado
   const handleLeadChange = useCallback((payload: any) => {
     if (!payload?.new || !userId || !activeInstanceId) return;
     
@@ -93,10 +103,9 @@ export const useContactsRealtime = ({
       } catch (error) {
         console.error('[Contacts Realtime] ❌ Erro ao processar lead:', error);
       }
-    }, 100);
+    }, 150);
   }, [userId, activeInstanceId, onContactUpdate, onMoveToTop]);
 
-  // ✅ HANDLER PARA NOVAS MENSAGENS
   const handleNewMessage = useCallback((payload: any) => {
     if (!payload?.new || !userId || !activeInstanceId) return;
     
@@ -118,7 +127,7 @@ export const useContactsRealtime = ({
           const updates: Partial<Contact> = {
             lastMessage: messageData.text || '📎 Mídia',
             lastMessageTime: messageData.created_at,
-            unreadCount: messageData.from_me ? 0 : undefined // Não atualizar se for mensagem enviada
+            unreadCount: messageData.from_me ? 0 : undefined
           };
           
           onContactUpdate(messageData.lead_id, updates);
@@ -131,34 +140,47 @@ export const useContactsRealtime = ({
       } catch (error) {
         console.error('[Contacts Realtime] ❌ Erro ao processar mensagem:', error);
       }
-    }, 100);
+    }, 150);
   }, [userId, activeInstanceId, onContactUpdate, onMoveToTop]);
 
-  // ✅ EFEITO PRINCIPAL
+  // ✅ EFEITO PRINCIPAL com proteção anti-loop
   useEffect(() => {
+    // ✅ VERIFICAR SE CONFIGURAÇÃO MUDOU
+    if (currentConfig === lastConfigRef.current) {
+      console.log('[Contacts Realtime] ⚠️ Configuração não mudou, mantendo conexão atual');
+      return;
+    }
+    
+    // ✅ VERIFICAR SE DEVE ATIVAR
     if (!enabled || !userId || !activeInstanceId) {
+      console.log('[Contacts Realtime] ⚠️ Parâmetros inválidos, fazendo cleanup');
       cleanup();
+      lastConfigRef.current = '';
       return;
     }
 
-    // ✅ EVITAR MÚLTIPLAS CONEXÕES
-    if (isConnectedRef.current && channelRef.current) {
-      console.log('[Contacts Realtime] ⚠️ Já conectado, reutilizando canal');
+    // ✅ EVITAR SETUP CONCORRENTE
+    if (setupInProgressRef.current) {
+      console.log('[Contacts Realtime] ⚠️ Setup já em progresso, aguardando...');
       return;
     }
+
+    setupInProgressRef.current = true;
+    lastConfigRef.current = currentConfig;
 
     console.log('[Contacts Realtime] 🚀 Configurando realtime para contatos:', {
       userId,
-      activeInstanceId
+      activeInstanceId,
+      enabled
     });
 
     // Cleanup anterior
     cleanup();
 
-    // Timeout para cleanup automático
-    cleanupTimeoutRef.current = setTimeout(cleanup, 300000); // 5 minutos
+    // Timeout para cleanup automático (5 minutos)
+    cleanupTimeoutRef.current = setTimeout(cleanup, 300000);
 
-    const channelId = `contacts-${userId}-${activeInstanceId}`;
+    const channelId = `contacts-${userId}-${activeInstanceId}-${Date.now()}`;
 
     try {
       const channel = supabase
@@ -189,27 +211,35 @@ export const useContactsRealtime = ({
           if (status === 'SUBSCRIBED') {
             console.log('[Contacts Realtime] ✅ Realtime de contatos ativo');
             isConnectedRef.current = true;
+            setupInProgressRef.current = false;
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             console.error('[Contacts Realtime] ❌ Erro na conexão:', status);
             isConnectedRef.current = false;
+            setupInProgressRef.current = false;
           } else if (status === 'CLOSED') {
             console.log('[Contacts Realtime] 🔒 Canal de contatos fechado');
             isConnectedRef.current = false;
+            setupInProgressRef.current = false;
           }
         });
 
       channelRef.current = channel;
     } catch (error) {
       console.error('[Contacts Realtime] ❌ Erro ao criar canal:', error);
+      setupInProgressRef.current = false;
       cleanup();
     }
 
-    return cleanup;
-  }, [enabled, userId, activeInstanceId, handleLeadChange, handleNewMessage, cleanup]);
+    return () => {
+      setupInProgressRef.current = false;
+      cleanup();
+    };
+  }, [enabled, userId, activeInstanceId, handleLeadChange, handleNewMessage, cleanup, currentConfig]);
 
   // ✅ CLEANUP GERAL
   useEffect(() => {
     return () => {
+      setupInProgressRef.current = false;
       cleanup();
     };
   }, [cleanup]);
