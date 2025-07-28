@@ -238,7 +238,7 @@ export const useWhatsAppChatMessages = ({
     }
   }, [selectedContact, activeInstance, messages.length, hasMoreMessages, isLoadingMore, fetchMessages]);
 
-  // ✅ ENVIAR MENSAGEM COM UI OTIMISTA E RETRY MELHORADO
+  // ✅ ENVIAR MENSAGEM COM UI OTIMISTA E RETRY MELHORADO - CORREÇÃO CRÍTICA
   const sendMessage = useCallback(async (messageText: string, media?: { file: File; type: string }) => {
     if (!selectedContact || !activeInstance) {
       toast.error('Contato ou instância não selecionada');
@@ -247,6 +247,13 @@ export const useWhatsAppChatMessages = ({
 
     if (!messageText.trim() && !media) {
       toast.error('Mensagem não pode estar vazia');
+      return false;
+    }
+
+    // ✅ CORREÇÃO CRÍTICA: Verificar se o contato tem telefone
+    if (!selectedContact.phone) {
+      console.error('[Chat Messages] ❌ Contato sem telefone:', selectedContact);
+      toast.error('Contato sem número de telefone válido');
       return false;
     }
 
@@ -276,10 +283,15 @@ export const useWhatsAppChatMessages = ({
     setTimeout(() => scrollToBottom(), 50);
 
     try {
-      // ✅ ENVIAR COM RETRY AUTOMÁTICO USANDO whatsapp_messaging_service
+      console.log('[Chat Messages] 📤 Enviando mensagem para:', {
+        phone: selectedContact.phone.substring(0, 4) + '****',
+        instanceId: activeInstance.id.substring(0, 8) + '****'
+      });
+
+      // ✅ CORREÇÃO CRÍTICA: Usar selectedContact.phone ao invés de selectedContact.id
       const result = await MessageSendingService.sendMessageWithRetry(
         activeInstance.id,
-        selectedContact.id,
+        selectedContact.phone, // ✅ USAR PHONE AQUI
         messageText.trim(),
         media
       );

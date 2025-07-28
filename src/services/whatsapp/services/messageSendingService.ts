@@ -5,19 +5,19 @@ import { MessageSendResponse } from "../types/whatsappWebTypes";
 export class MessageSendingService {
   static async sendMessage(
     instanceId: string,
-    contactId: string,
+    phone: string,
     message: string,
     media?: { file: File; type: string }
   ): Promise<MessageSendResponse> {
     try {
       console.log('[MessageSending] 📤 Enviando mensagem via whatsapp_messaging_service...');
 
-      // ✅ CORREÇÃO: Usar whatsapp_messaging_service ao invés de send_whatsapp_message
+      // ✅ CORREÇÃO: Usar phone diretamente para compatibilidade
       const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
         body: {
           action: 'send_message',
           instanceId,
-          phone: contactId, // Usar contactId como phone para compatibilidade
+          phone, // Usar phone diretamente
           message,
           mediaType: media?.type || 'text',
           mediaUrl: media ? URL.createObjectURL(media.file) : undefined
@@ -35,7 +35,7 @@ export class MessageSendingService {
           success: true,
           messageId: data.data?.messageId,
           timestamp: data.data?.timestamp,
-          leadId: data.data?.leadId || contactId
+          leadId: data.data?.leadId || phone
         };
       } else {
         throw new Error(data?.error || 'Erro desconhecido no envio');
@@ -50,10 +50,10 @@ export class MessageSendingService {
     }
   }
 
-  // ✅ NOVO: Método com retry automático
+  // ✅ CORREÇÃO: Método com retry automático usando phone
   static async sendMessageWithRetry(
     instanceId: string,
-    contactId: string,
+    phone: string,
     message: string,
     media?: { file: File; type: string },
     maxRetries = 3
@@ -62,9 +62,9 @@ export class MessageSendingService {
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`[MessageSending] 🔄 Tentativa ${attempt}/${maxRetries}`);
+        console.log(`[MessageSending] 🔄 Tentativa ${attempt}/${maxRetries} para ${phone.substring(0, 4)}****`);
         
-        const result = await this.sendMessage(instanceId, contactId, message, media);
+        const result = await this.sendMessage(instanceId, phone, message, media);
         
         if (result.success) {
           if (attempt > 1) {
