@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
@@ -18,11 +17,8 @@ export const OptimizedSettingsSection = () => {
   const { instances, isLoading, loadInstances, deleteInstance } = useWhatsAppWebInstances();
   const { openModal } = useQRCodeModal();
 
-  // CORREÇÃO: Usar hook de criação de instância para card "Nova Conexão"
-  const { createInstance, isCreating } = useInstanceCreation((result) => {
-    console.log('[Optimized Settings] ✅ Nova instância criada via card:', result);
-    loadInstances(); // Atualizar lista
-  });
+  // CORREÇÃO: Usar hook de criação de instância sem callback
+  const { createInstance, isCreating } = useInstanceCreation();
 
   // CORREÇÃO: Connection Status Sync para atualizar lista automaticamente
   useConnectionStatusSync({
@@ -48,7 +44,7 @@ export const OptimizedSettingsSection = () => {
 
   const handleShowQRModal = (instanceId: string, instanceName: string) => {
     console.log('[Optimized Settings] 📱 Abrindo modal unificado para:', instanceName);
-    openModal(instanceId);
+    openModal(instanceId, instanceName);
   };
 
   const handleInstanceCreated = () => {
@@ -63,7 +59,10 @@ export const OptimizedSettingsSection = () => {
 
   const handleCreateInstance = async () => {
     console.log('[Optimized Settings] 🚀 Criando nova instância via card "Nova Conexão"');
-    await createInstance();
+    const result = await createInstance();
+    if (result.success) {
+      handleInstanceCreated();
+    }
   };
 
   if (isLoading) {
