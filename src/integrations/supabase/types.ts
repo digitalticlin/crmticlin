@@ -483,6 +483,59 @@ export type Database = {
           },
         ]
       }
+      message_usage_tracking: {
+        Row: {
+          created_at: string
+          id: string
+          messages_received_count: number
+          messages_sent_count: number
+          period_end: string
+          period_start: string
+          plan_limit: number
+          plan_subscription_id: string | null
+          status: string
+          total_messages_count: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          messages_received_count?: number
+          messages_sent_count?: number
+          period_end: string
+          period_start: string
+          plan_limit: number
+          plan_subscription_id?: string | null
+          status?: string
+          total_messages_count?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          messages_received_count?: number
+          messages_sent_count?: number
+          period_end?: string
+          period_start?: string
+          plan_limit?: number
+          plan_subscription_id?: string | null
+          status?: string
+          total_messages_count?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_usage_tracking_plan_subscription_id_fkey"
+            columns: ["plan_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "plan_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content_hash: string | null
@@ -565,6 +618,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plan_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_type: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_type: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_type?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -680,6 +772,42 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      usage_alerts: {
+        Row: {
+          acknowledged: boolean
+          alert_type: string
+          created_at: string
+          current_usage: number
+          id: string
+          percentage_used: number
+          plan_limit: number
+          sent_at: string
+          user_id: string | null
+        }
+        Insert: {
+          acknowledged?: boolean
+          alert_type: string
+          created_at?: string
+          current_usage: number
+          id?: string
+          percentage_used: number
+          plan_limit: number
+          sent_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          acknowledged?: boolean
+          alert_type?: string
+          created_at?: string
+          current_usage?: number
+          id?: string
+          percentage_used?: number
+          plan_limit?: number
+          sent_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

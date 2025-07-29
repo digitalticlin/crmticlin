@@ -5,29 +5,27 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BillingSettings from "@/components/settings/BillingSettings";
 import PlansTabContent from "@/components/plans/PlansTabContent";
-import { plansData, Plan } from "@/data/plansData";
+import { AlertBanner } from "@/modules/billing/components/AlertBanner";
 
 export default function Plans() {
-  const [currentPlan, setCurrentPlan] = useState<string>("pro");
-  
   return (
     <PageLayout>
       <PageHeader 
-        title="Planos" 
-        description="Escolha o plano ideal para o seu negócio"
+        title="Planos e Faturamento" 
+        description="Gerencie seus planos de mensagens e faturamento"
       />
+      
+      {/* Banner de Alertas */}
+      <AlertBanner />
       
       <Tabs defaultValue="plans" className="space-y-6">
         <TabsList className="grid w-[400px] grid-cols-2">
-          <TabsTrigger value="plans">Planos</TabsTrigger>
+          <TabsTrigger value="plans">Planos de Mensagens</TabsTrigger>
           <TabsTrigger value="billing">Faturamento</TabsTrigger>
         </TabsList>
         
         <TabsContent value="plans" className="space-y-6">
-          <PlansTabContent 
-            currentPlan={currentPlan}
-            plans={plansData}
-          />
+          <PlansTabContent />
         </TabsContent>
         
         <TabsContent value="billing">
