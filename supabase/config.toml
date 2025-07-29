@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.webhook_evolution]
 verify_jwt = false
+
+[functions.secure_whatsapp_service]
+verify_jwt = true

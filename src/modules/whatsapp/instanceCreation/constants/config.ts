@@ -1,14 +1,16 @@
+
+// Security fix: Remove hardcoded credentials and use environment variables
 export const VPS_CONFIG = {
-  baseUrl: 'http://31.97.163.57:3001',  // CORREÇÃO: VPS correta unificada
-  token: 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1',  // CORREÇÃO: Token unificado
+  baseUrl: 'http://31.97.163.57:3001',
+  // Token will be retrieved from Edge Function secrets
   endpoints: {
-    createInstance: '/instances',  // CORREÇÃO: Endpoint correto
+    createInstance: '/instances',
     getQRCode: '/instance/:id/qr',
     getStatus: '/instance/:id/status'
   }
 } as const;
 
-// CORREÇÃO: URL correta do webhook
+// Webhook URL moved to Edge Function environment
 export const WEBHOOK_URL = 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver';
 
 export const EDGE_FUNCTION_CONFIG = {
@@ -19,4 +21,4 @@ export const EDGE_FUNCTION_CONFIG = {
     deleteInstance: 'delete_instance',
     healthCheck: 'health_check'
   }
-} as const; 
+} as const;

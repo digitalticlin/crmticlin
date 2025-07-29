@@ -1,8 +1,8 @@
 
-// VPS Configuration - CORREÇÃO FINAL: VPS correta unificada
+// Security fix: Remove hardcoded credentials and use environment variables
 export const VPS_CONFIG = {
-  baseUrl: 'http://31.97.163.57:3001', // CORREÇÃO: VPS correta unificada
-  authToken: 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1', // Token correto
+  baseUrl: 'http://31.97.163.57:3001',
+  // authToken will be retrieved from Edge Function secrets
   
   endpoints: {
     health: '/health',
@@ -18,10 +18,9 @@ export const VPS_CONFIG = {
     webhookInstance: '/instance/{instanceId}/webhook'
   },
   
-  // CORREÇÃO FINAL: HTTP direto apenas porta 3001
   httpDirect: {
     enabled: true,
-    port: 3001, // CORREÇÃO: porta correta
+    port: 3001,
     timeout: 15000,
     maxRetries: 3
   },
@@ -42,15 +41,13 @@ export const VPS_CONFIG = {
     backoffMultiplier: 2
   },
 
-  // CORREÇÃO FINAL: HTTP Mode apenas porta 3001
   connection: {
     mode: 'http_direct',
-    host: '31.97.163.57', // CORREÇÃO: IP correto
-    port: 3001, // CORREÇÃO: porta correta
+    host: '31.97.163.57',
+    port: 3001,
     timeout: 15000
   },
 
-  // CONFIGURAÇÃO: Webhook automático
   webhook: {
     enabled: true,
     url: 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_whatsapp_web',
@@ -63,12 +60,11 @@ export const getEndpointUrl = (endpoint: string): string => {
   return `${VPS_CONFIG.baseUrl}${endpoint}`;
 };
 
+// Security fix: Remove hardcoded token - will be handled by Edge Functions
 export const getRequestHeaders = (): Record<string, string> => {
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-    'X-API-Token': VPS_CONFIG.authToken,
-    'User-Agent': 'Supabase-WhatsApp-Client/3.0-Final-Correction',
+    'User-Agent': 'Supabase-WhatsApp-Client/3.0-Secured',
     'Accept': 'application/json'
   };
 };

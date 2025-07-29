@@ -56,7 +56,7 @@ export const useUserPermissions = () => {
 
         switch (role) {
           case "admin":
-            // Admin: Acesso total, incluindo gestão de equipe
+            // Admin: Full access except they cannot create super-admin accounts
             newPermissions = {
               canViewAllData: true,
               canDeleteData: true,
@@ -70,11 +70,11 @@ export const useUserPermissions = () => {
             };
             break;
           case "manager":
-            // Gestor: Pode fazer tudo exceto adicionar membros
+            // Manager: Can manage most things but not team members
             newPermissions = {
               canViewAllData: true,
               canDeleteData: true,
-              canManageTeam: false, // Não pode adicionar membros
+              canManageTeam: false,
               canAccessSettings: true,
               canManageFunnels: true,
               canManageWhatsApp: true,
@@ -84,7 +84,7 @@ export const useUserPermissions = () => {
             };
             break;
           case "operational":
-            // Operacional: Acesso limitado apenas aos recursos atribuídos
+            // Operational: Limited access to assigned resources only
             newPermissions = {
               canViewAllData: false,
               canDeleteData: false,
