@@ -93,7 +93,7 @@ export const WhatsAppChatLayout = ({
         {/* Mobile layout - comportamento atual */}
         <div className="lg:hidden w-full">
           {!selectedContact ? (
-            <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10 overflow-hidden">
+            <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
               <WhatsAppContactsList
                 contacts={contacts}
                 selectedContact={selectedContact}
@@ -107,7 +107,7 @@ export const WhatsAppChatLayout = ({
               />
             </div>
           ) : (
-            <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10 overflow-hidden">
+            <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
               <WhatsAppChatArea
                 selectedContact={selectedContact}
                 messages={messages}
@@ -141,7 +141,7 @@ export const WhatsAppChatLayout = ({
               maxSize={50}
               className="relative"
             >
-              <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10 overflow-hidden">
+              <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
                 <WhatsAppContactsList
                   contacts={contacts}
                   selectedContact={selectedContact}
@@ -168,7 +168,7 @@ export const WhatsAppChatLayout = ({
               minSize={50}
               className="relative"
             >
-              <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10 overflow-hidden">
+              <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
                 {selectedContact ? (
                   <WhatsAppChatArea
                     selectedContact={selectedContact}
