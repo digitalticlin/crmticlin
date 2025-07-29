@@ -4,48 +4,48 @@ import { MessagePlan } from '../types/billing';
 export const messagePlans: MessagePlan[] = [
   {
     id: 'messages_1k',
-    name: 'Plano Básico',
-    price: 29.90,
+    name: 'Básico',
+    price: 99.00,
     message_limit: 1000,
-    description: 'Ideal para pequenos negócios começando com automação',
+    description: 'Perfeito para começar a automatizar seu WhatsApp',
     features: [
-      '1.000 mensagens por mês',
+      '1.000 mensagens de IA/mês',
       'Agentes de IA ilimitados',
-      'Suporte por email',
-      'Dashboard básico'
+      'Suporte pelo WhatsApp',
+      '2 usuários',
+      '1 número WhatsApp'
     ],
-    stripe_price_id: 'price_1k_messages' // Substitua pelo ID real do Stripe
-  },
-  {
-    id: 'messages_3k',
-    name: 'Plano Profissional',
-    price: 79.90,
-    message_limit: 3000,
-    description: 'Para empresas com operação média de atendimento',
-    features: [
-      '3.000 mensagens por mês',
-      'Agentes de IA ilimitados',
-      'Suporte prioritário',
-      'Dashboard avançado',
-      'Relatórios detalhados'
-    ],
-    stripe_price_id: 'price_3k_messages' // Substitua pelo ID real do Stripe
+    stripe_price_id: 'price_1k_messages'
   },
   {
     id: 'messages_5k',
-    name: 'Plano Enterprise',
-    price: 129.90,
+    name: 'Profissional',
+    price: 399.00,
     message_limit: 5000,
-    description: 'Para grandes operações com alto volume',
+    description: 'Ideal para empresas em crescimento',
     features: [
-      '5.000 mensagens por mês',
+      '5.000 mensagens de IA/mês',
       'Agentes de IA ilimitados',
-      'Suporte 24/7',
-      'Dashboard premium',
-      'API dedicada',
-      'Gerente de conta'
+      'Suporte pelo WhatsApp',
+      'Usuários ilimitados',
+      'Até 3 números WhatsApp'
     ],
-    stripe_price_id: 'price_5k_messages' // Substitua pelo ID real do Stripe
+    stripe_price_id: 'price_5k_messages'
+  },
+  {
+    id: 'messages_15k',
+    name: 'Ultra',
+    price: 699.00,
+    message_limit: 15000,
+    description: 'Para operações de alto volume',
+    features: [
+      '15.000 mensagens de IA/mês',
+      'Agentes de IA ilimitados',
+      'Suporte pelo WhatsApp',
+      'Usuários ilimitados',
+      'Números WhatsApp ilimitados'
+    ],
+    stripe_price_id: 'price_15k_messages'
   }
 ];
 
