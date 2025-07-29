@@ -6,20 +6,15 @@ import { WhatsAppChatProvider, useWhatsAppChatContext } from "./WhatsAppChatProv
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { cn } from "@/lib/utils";
-import PerformanceMonitor from "@/components/debug/PerformanceMonitor";
 
 const WhatsAppChatContent = () => {
   const { companyLoading } = useWhatsAppChatContext();
 
   if (companyLoading) {
-    return (
-      <WhatsAppChatLoadingState />
-    );
+    return <WhatsAppChatLoadingState />;
   }
 
-  return (
-    <WhatsAppChatMainContent />
-  );
+  return <WhatsAppChatMainContent />;
 };
 
 const WhatsAppChatLoadingState = () => {
@@ -48,14 +43,14 @@ const WhatsAppChatLoadingState = () => {
 
       <ResponsiveSidebar />
       
-             <main className={cn(
-         "fixed top-0 right-0 bottom-0 z-10 overflow-auto transition-all duration-300",
-         isMobile 
-           ? "left-0 pt-14" 
-           : isCollapsed 
-             ? "left-[64px]" 
-             : "left-[200px]"
-       )}>
+      <main className={cn(
+        "fixed top-0 right-0 bottom-0 z-10 overflow-auto transition-all duration-300",
+        isMobile 
+          ? "left-0 pt-14" 
+          : isCollapsed 
+            ? "left-[64px]" 
+            : "left-[200px]"
+      )}>
         <div className="main-content-scale flex h-full items-center justify-center">
           <div className="text-center">
             <LoadingSpinner size="lg" />
@@ -94,14 +89,14 @@ const WhatsAppChatMainContent = () => {
 
       <ResponsiveSidebar />
       
-             <main className={cn(
-         "fixed top-0 right-0 bottom-0 z-20 overflow-hidden transition-all duration-300",
-         isMobile 
-           ? "left-0 pt-14" 
-           : isCollapsed 
-             ? "left-[64px]" 
-             : "left-[200px]"
-       )}>
+      <main className={cn(
+        "fixed top-0 right-0 bottom-0 z-20 overflow-hidden transition-all duration-300",
+        isMobile 
+          ? "left-0 pt-14" 
+          : isCollapsed 
+            ? "left-[64px]" 
+            : "left-[200px]"
+      )}>
         {/* Container com padding igual ao Dashboard */}
         <div className={cn(
           "main-content-scale p-4 md:p-6 h-full",
@@ -118,7 +113,6 @@ export const WhatsAppChatPage = () => {
   return (
     <WhatsAppChatProvider>
       <WhatsAppChatContent />
-      <PerformanceMonitor />
     </WhatsAppChatProvider>
   );
 };
