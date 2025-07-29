@@ -1,20 +1,15 @@
 
 /**
- * 🎯 HOOK DE MENSAGENS OTIMIZADO - FASE 1 CORRIGIDA
- * 
- * RESPONSABILIDADES:
- * ✅ Gerenciar mensagens do chat selecionado
- * ✅ Paginação otimizada
- * ✅ Envio de mensagens via MessagingService
- * ✅ UI otimista com substituição por dados reais
+ * 🎯 HOOK DE MENSAGENS CORRIGIDO - SEM DUPLICAÇÃO
  * 
  * CORREÇÕES IMPLEMENTADAS:
- * ✅ Integração com MessagingService existente
- * ✅ Substituição correta de mensagens temporárias
- * ✅ Suporte completo para mídia (texto, imagem, vídeo, áudio, documento)
+ * ✅ Substituição instantânea de mensagens otimistas
+ * ✅ Prevenção de duplicação via realtime
+ * ✅ Suporte completo para mídia
+ * ✅ Scroll inteligente sem refresh
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Message, Contact } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
@@ -33,7 +28,7 @@ interface UseWhatsAppChatMessagesReturn {
   isLoadingMore: boolean;
   hasMoreMessages: boolean;
   isSendingMessage: boolean;
-  sendMessage: (text: string, media?: { file: File; type: string }) => Promise<boolean>;
+  sendMessage: (text: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
   loadMoreMessages: () => Promise<void>;
   refreshMessages: () => void;
   addOptimisticMessage: (message: Message) => void;
@@ -42,7 +37,7 @@ interface UseWhatsAppChatMessagesReturn {
 
 const MESSAGES_PER_PAGE = 50;
 
-// Helper function to ensure mediaType conforms to expected union type
+// Helper para normalizar mediaType
 const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "audio" | "document" => {
   if (!mediaType) return 'text';
   
@@ -55,24 +50,17 @@ const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "a
   return 'text';
 };
 
-// Helper function to convert File to DataURL
-const fileToDataUrl = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
-
-// Helper function to detect media type from file
-const detectMediaType = (file: File): "image" | "video" | "audio" | "document" => {
-  const type = file.type.toLowerCase();
+// Helper para detectar tipo de mídia
+const detectMediaType = (mediaUrl?: string): "text" | "image" | "video" | "audio" | "document" => {
+  if (!mediaUrl) return 'text';
   
-  if (type.startsWith('image/')) return 'image';
-  if (type.startsWith('video/')) return 'video';
-  if (type.startsWith('audio/')) return 'audio';
-  return 'document';
+  const url = mediaUrl.toLowerCase();
+  if (url.includes('image/') || url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif')) return 'image';
+  if (url.includes('video/') || url.includes('.mp4') || url.includes('.webm')) return 'video';
+  if (url.includes('audio/') || url.includes('.mp3') || url.includes('.ogg') || url.includes('.wav')) return 'audio';
+  if (url.includes('application/') || url.includes('.pdf') || url.includes('.doc')) return 'document';
+  
+  return 'text';
 };
 
 export const useWhatsAppChatMessages = ({
@@ -88,6 +76,10 @@ export const useWhatsAppChatMessages = ({
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  
+  // Refs para controle de duplicação
+  const pendingOptimisticIds = useRef<Set<string>>(new Set());
+  const sentMessageIds = useRef<Set<string>>(new Set());
 
   // Função para converter mensagem do banco para UI
   const convertMessage = useCallback((messageData: any): Message => {
@@ -121,6 +113,9 @@ export const useWhatsAppChatMessages = ({
       if (page === 0) {
         setIsLoadingMessages(true);
         setMessages([]);
+        // Limpar controles de duplicação
+        pendingOptimisticIds.current.clear();
+        sentMessageIds.current.clear();
       } else {
         setIsLoadingMore(true);
       }
@@ -177,99 +172,111 @@ export const useWhatsAppChatMessages = ({
     fetchMessages(0, false);
   }, [fetchMessages]);
 
-  // Adicionar mensagem otimista (REALTIME)
+  // ✅ CORRIGIDO: Adicionar mensagem otimista SEM duplicação
   const addOptimisticMessage = useCallback((message: Message) => {
+    // Evitar duplicação de mensagens externas
+    if (!message.fromMe && sentMessageIds.current.has(message.id)) {
+      console.log(`[useWhatsAppChatMessages] 🚫 Mensagem externa já existe: ${message.id}`);
+      return;
+    }
+
     setMessages(prev => {
       const exists = prev.some(msg => msg.id === message.id);
-      if (exists) return prev;
+      if (exists) {
+        console.log(`[useWhatsAppChatMessages] 🚫 Mensagem já existe: ${message.id}`);
+        return prev;
+      }
+      
+      console.log(`[useWhatsAppChatMessages] ➕ Adicionando mensagem: ${message.id} (fromMe: ${message.fromMe})`);
+      
+      // Marcar como existente
+      if (!message.fromMe) {
+        sentMessageIds.current.add(message.id);
+      }
       
       return [...prev, message];
     });
   }, []);
 
-  // Atualizar mensagem (REALTIME)
+  // ✅ CORRIGIDO: Atualizar mensagem existente
   const updateMessage = useCallback((updatedMessage: Message) => {
-    setMessages(prev => prev.map(msg => 
-      msg.id === updatedMessage.id ? updatedMessage : msg
-    ));
+    setMessages(prev => {
+      const updated = prev.map(msg => 
+        msg.id === updatedMessage.id ? updatedMessage : msg
+      );
+      
+      // Se não encontrou, adicionar (pode ser nova mensagem)
+      if (!prev.some(msg => msg.id === updatedMessage.id)) {
+        console.log(`[useWhatsAppChatMessages] ➕ Mensagem não encontrada, adicionando: ${updatedMessage.id}`);
+        return [...prev, updatedMessage];
+      }
+      
+      return updated;
+    });
   }, []);
 
-  // 🎯 NOVA IMPLEMENTAÇÃO: Substituir mensagem temporária por real
+  // ✅ CORRIGIDO: Substituir mensagem otimista INSTANTANEAMENTE
   const replaceOptimisticMessage = useCallback((tempId: string, realMessage: Message) => {
-    console.log(`[useWhatsAppChatMessages] 🔄 Substituindo mensagem temporária: ${tempId} → ${realMessage.id}`);
+    console.log(`[useWhatsAppChatMessages] 🔄 Substituindo INSTANTANEAMENTE: ${tempId} → ${realMessage.id}`);
     
-    setMessages(prev => prev.map(msg => 
-      msg.id === tempId ? { ...realMessage, status: 'sent' } : msg
-    ));
+    setMessages(prev => {
+      const updated = prev.map(msg => 
+        msg.id === tempId ? { ...realMessage, status: 'sent' } : msg
+      );
+      
+      // Remover do controle de otimistas
+      pendingOptimisticIds.current.delete(tempId);
+      sentMessageIds.current.add(realMessage.id);
+      
+      return updated;
+    });
   }, []);
 
-  // 🎯 NOVA IMPLEMENTAÇÃO: Remover mensagem temporária (em caso de erro)
+  // ✅ CORRIGIDO: Remover mensagem otimista em erro
   const removeOptimisticMessage = useCallback((tempId: string) => {
-    console.log(`[useWhatsAppChatMessages] ❌ Removendo mensagem temporária: ${tempId}`);
+    console.log(`[useWhatsAppChatMessages] ❌ Removendo mensagem otimista: ${tempId}`);
     
     setMessages(prev => prev.filter(msg => msg.id !== tempId));
+    pendingOptimisticIds.current.delete(tempId);
   }, []);
 
-  // 🎯 FUNÇÃO PRINCIPAL CORRIGIDA: Enviar mensagem
-  const sendMessage = useCallback(async (text: string, media?: { file: File; type: string }): Promise<boolean> => {
+  // ✅ FUNÇÃO PRINCIPAL CORRIGIDA: Enviar mensagem com mídia
+  const sendMessage = useCallback(async (text: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
     if (!selectedContact || !activeInstance || !user) {
       toast.error('Dados necessários não disponíveis');
       return false;
     }
 
-    if (!text.trim()) {
+    if (!text.trim() && !mediaUrl) {
       toast.error('Mensagem não pode estar vazia');
       return false;
     }
 
-    console.log('[useWhatsAppChatMessages] 📤 Iniciando envio de mensagem:', {
+    console.log('[useWhatsAppChatMessages] 📤 Enviando mensagem:', {
       contactId: selectedContact.id,
       instanceId: activeInstance.id,
-      hasMedia: !!media,
-      mediaType: media?.type
+      hasMedia: !!mediaUrl,
+      mediaType: mediaType || 'text'
     });
 
     setIsSendingMessage(true);
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    
+    // Marcar como pendente
+    pendingOptimisticIds.current.add(tempId);
 
     try {
-      // 🎯 ETAPA 1: Processar mídia se necessário
-      let mediaType = 'text';
-      let mediaUrl: string | undefined;
-
-      if (media && media.file) {
-        console.log('[useWhatsAppChatMessages] 📎 Processando mídia:', {
-          fileName: media.file.name,
-          fileSize: `${(media.file.size / 1024).toFixed(1)}KB`,
-          fileType: media.file.type
-        });
-
-        // Detectar tipo de mídia baseado no arquivo
-        mediaType = detectMediaType(media.file);
-        
-        // Converter arquivo para DataURL
-        try {
-          mediaUrl = await fileToDataUrl(media.file);
-          console.log('[useWhatsAppChatMessages] ✅ Mídia convertida para DataURL:', {
-            mediaType,
-            dataUrlLength: mediaUrl.length,
-            dataUrlPrefix: mediaUrl.substring(0, 50) + '...'
-          });
-        } catch (error) {
-          console.error('[useWhatsAppChatMessages] ❌ Erro ao converter mídia:', error);
-          toast.error('Erro ao processar mídia');
-          return false;
-        }
-      }
-
-      // 🎯 ETAPA 2: Criar mensagem otimista
+      // ✅ ETAPA 1: Detectar tipo de mídia se necessário
+      const finalMediaType = mediaType || detectMediaType(mediaUrl);
+      
+      // ✅ ETAPA 2: Criar mensagem otimista
       const optimisticMessage: Message = {
         id: tempId,
-        text,
+        text: text.trim(),
         fromMe: true,
         timestamp: new Date().toISOString(),
         status: 'sending',
-        mediaType: normalizeMediaType(mediaType),
+        mediaType: normalizeMediaType(finalMediaType),
         mediaUrl,
         sender: 'user',
         time: new Date().toLocaleTimeString('pt-BR', {
@@ -283,24 +290,21 @@ export const useWhatsAppChatMessages = ({
       // Adicionar mensagem otimista imediatamente
       addOptimisticMessage(optimisticMessage);
 
-      // 🎯 ETAPA 3: Enviar via MessagingService (CORREÇÃO PRINCIPAL)
+      // ✅ ETAPA 3: Enviar via MessagingService
       console.log('[useWhatsAppChatMessages] 🚀 Enviando via MessagingService...');
       
       const result = await MessagingService.sendMessage({
         instanceId: activeInstance.id,
         phone: selectedContact.phone,
-        message: text,
-        mediaType: mediaType as any,
+        message: text.trim(),
+        mediaType: finalMediaType,
         mediaUrl
       });
 
       if (result.success) {
-        console.log('[useWhatsAppChatMessages] ✅ Mensagem enviada com sucesso:', {
-          messageId: result.messageId,
-          timestamp: result.timestamp
-        });
+        console.log('[useWhatsAppChatMessages] ✅ Mensagem enviada com sucesso:', result.messageId);
 
-        // 🎯 ETAPA 4: Substituir mensagem otimista por dados reais
+        // ✅ ETAPA 4: Substituir mensagem otimista INSTANTANEAMENTE
         const realMessage: Message = {
           ...optimisticMessage,
           id: result.messageId || tempId,
@@ -308,10 +312,8 @@ export const useWhatsAppChatMessages = ({
           status: 'sent'
         };
 
-        // Aguardar um pouco para garantir que a mensagem foi salva no banco
-        setTimeout(() => {
-          replaceOptimisticMessage(tempId, realMessage);
-        }, 500);
+        // Substituição INSTANTÂNEA sem timeout
+        replaceOptimisticMessage(tempId, realMessage);
 
         toast.success('Mensagem enviada com sucesso!');
         return true;

@@ -1,15 +1,18 @@
 
 /**
- * 🎯 HOOK REALTIME PARA MENSAGENS - VERSÃO OTIMIZADA
+ * 🎯 HOOK REALTIME CORRIGIDO - SEM DUPLICAÇÃO
  * 
- * Responsabilidade: Escutar mensagens em tempo real para contato selecionado
- * Otimizado para produção com logs reduzidos e melhor performance
+ * CORREÇÕES:
+ * ✅ Filtrar mensagens próprias para evitar duplicação
+ * ✅ Callback inteligente baseado em fromMe
+ * ✅ Logs reduzidos para produção
  */
 
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact, Message } from '../../../types/chat';
 import { WhatsAppWebInstance } from '../../../types/whatsapp';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UseMessagesRealtimeProps {
   selectedContact: Contact | null;
@@ -27,7 +30,9 @@ export const useMessagesRealtime = ({
   onMessageUpdate
 }: UseMessagesRealtimeProps) => {
   
+  const { user } = useAuth();
   const channelRef = useRef<any>(null);
+  const processedMessageIds = useRef<Set<string>>(new Set());
   
   // Conversão otimizada de mensagem do banco para UI
   const convertMessage = useCallback((messageData: any): Message => {
@@ -49,26 +54,58 @@ export const useMessagesRealtime = ({
     } satisfies Message;
   }, []);
 
+  // ✅ FILTRO INTELIGENTE: Evitar duplicação de mensagens próprias
+  const shouldProcessMessage = useCallback((messageData: any): boolean => {
+    // Verificar se já foi processada
+    if (processedMessageIds.current.has(messageData.id)) {
+      console.log(`[MessagesRealtime] 🚫 Mensagem já processada: ${messageData.id}`);
+      return false;
+    }
+
+    // ✅ FILTRO PRINCIPAL: Mensagens próprias são tratadas localmente
+    if (messageData.from_me) {
+      console.log(`[MessagesRealtime] 🚫 Mensagem própria ignorada: ${messageData.id}`);
+      return false;
+    }
+
+    // ✅ FILTRO SECUNDÁRIO: Apenas mensagens da instância correta
+    if (messageData.whatsapp_number_id !== activeInstance?.id) {
+      return false;
+    }
+
+    // ✅ FILTRO TERCIÁRIO: Apenas mensagens do contato selecionado
+    if (messageData.lead_id !== selectedContact?.id) {
+      return false;
+    }
+
+    // Marcar como processada
+    processedMessageIds.current.add(messageData.id);
+    return true;
+  }, [selectedContact, activeInstance]);
+
   // Cleanup otimizado
   const cleanup = useCallback(() => {
     if (channelRef.current) {
       if (!isProduction) {
-        console.log('[Messages Realtime] 🧹 Limpando canal');
+        console.log('[MessagesRealtime] 🧹 Limpando canal');
       }
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
+    
+    // Limpar cache de mensagens processadas
+    processedMessageIds.current.clear();
   }, []);
 
   useEffect(() => {
     // Só ativar se há contato e instância selecionados
-    if (!selectedContact || !activeInstance) {
+    if (!selectedContact || !activeInstance || !user) {
       cleanup();
       return;
     }
 
     if (!isProduction) {
-      console.log('[Messages Realtime] 🚀 Configurando realtime para:', {
+      console.log('[MessagesRealtime] 🚀 Configurando realtime para:', {
         contactId: selectedContact.id,
         instanceId: activeInstance.id
       });
@@ -90,12 +127,19 @@ export const useMessagesRealtime = ({
       }, (payload) => {
         const messageData = payload.new;
         
-        // Filtrar apenas mensagens da instância correta
-        if (messageData.whatsapp_number_id !== activeInstance.id) {
+        if (!shouldProcessMessage(messageData)) {
           return;
         }
 
         const message = convertMessage(messageData);
+        
+        if (!isProduction) {
+          console.log('[MessagesRealtime] 📨 Nova mensagem externa:', {
+            messageId: message.id,
+            fromMe: message.fromMe,
+            text: message.text.substring(0, 50) + '...'
+          });
+        }
         
         if (onNewMessage) {
           onNewMessage(message);
@@ -109,12 +153,20 @@ export const useMessagesRealtime = ({
       }, (payload) => {
         const messageData = payload.new;
         
-        // Filtrar apenas mensagens da instância correta
+        // Para updates, permitir mensagens próprias (mudança de status)
         if (messageData.whatsapp_number_id !== activeInstance.id) {
           return;
         }
 
         const message = convertMessage(messageData);
+        
+        if (!isProduction) {
+          console.log('[MessagesRealtime] 🔄 Mensagem atualizada:', {
+            messageId: message.id,
+            fromMe: message.fromMe,
+            status: message.status
+          });
+        }
         
         if (onMessageUpdate) {
           onMessageUpdate(message);
@@ -122,22 +174,22 @@ export const useMessagesRealtime = ({
       })
       .subscribe((status) => {
         if (!isProduction) {
-          console.log('[Messages Realtime] 📡 Status:', status);
+          console.log('[MessagesRealtime] 📡 Status:', status);
         }
         
         if (status === 'SUBSCRIBED') {
           if (!isProduction) {
-            console.log('[Messages Realtime] ✅ Conectado com sucesso');
+            console.log('[MessagesRealtime] ✅ Conectado com sucesso');
           }
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('[Messages Realtime] ❌ Erro na conexão:', status);
+          console.error('[MessagesRealtime] ❌ Erro na conexão:', status);
         }
       });
 
     channelRef.current = channel;
 
     return cleanup;
-  }, [selectedContact, activeInstance, convertMessage, onNewMessage, onMessageUpdate, cleanup]);
+  }, [selectedContact, activeInstance, user, convertMessage, onNewMessage, onMessageUpdate, cleanup, shouldProcessMessage]);
 
   return {
     isConnected: !!channelRef.current

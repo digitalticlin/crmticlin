@@ -1,5 +1,5 @@
 
-import React, { memo, useRef } from 'react';
+import React, { memo } from 'react';
 import { Message } from '@/types/chat';
 import { useScrollDetection } from './messages/hooks/useScrollDetection';
 import { useMessagesList } from './messages/hooks/useMessagesList';
@@ -24,19 +24,17 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
   hasMoreMessages = false,
   onLoadMore
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Hook para gerenciar lista de mensagens com scroll inteligente
+  const { messagesList, messagesEndRef, containerRef } = useMessagesList({
+    messages,
+    isLoadingMore
+  });
 
   // Hook para detectar scroll e carregar mais mensagens
   const { isNearTop } = useScrollDetection({
     containerRef, 
     onLoadMore, 
     hasMoreMessages, 
-    isLoadingMore
-  });
-
-  // Hook para gerenciar lista de mensagens
-  const { messagesList, messagesEndRef } = useMessagesList({
-    messages,
     isLoadingMore
   });
 
@@ -53,8 +51,8 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
       ref={containerRef}
       className="pb-4 px-4 glass-scrollbar"
       style={{ 
-        height: 'calc(100vh - 280px)', // Altura fixa para forçar scroll interno
-        overflowY: 'auto', // Forçar scroll vertical
+        height: 'calc(100vh - 280px)',
+        overflowY: 'auto',
         scrollBehavior: 'smooth',
         overflowAnchor: 'none',
         scrollPaddingBottom: '16px'
@@ -69,7 +67,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
         messagesCount={messages.length}
       />
 
-      {/* Lista de mensagens com padding lateral */}
+      {/* Lista de mensagens */}
       <div className="px-2">
         {messagesList.map((message, index) => {
           const isLastMessage = index === messagesList.length - 1;
@@ -84,7 +82,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
         })}
       </div>
       
-      {/* Elemento para scroll automático - mais robusto */}
+      {/* Elemento para scroll automático */}
       <div 
         ref={messagesEndRef} 
         className="h-4 w-full" 

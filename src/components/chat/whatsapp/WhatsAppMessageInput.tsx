@@ -7,9 +7,11 @@ import { cn } from "@/lib/utils";
 import { QuickMessagesPopover } from "./input/QuickMessagesPopover";
 import { QuickActionsPopover } from "./input/QuickActionsPopover";
 import { QuickMessagesPanel } from "./input/QuickMessagesPanel";
+import { PhotoUploadDialog } from "./media/PhotoUploadDialog";
+import { FileUploadDialog } from "./media/FileUploadDialog";
 
 interface WhatsAppMessageInputProps {
-  onSendMessage: (message: string) => Promise<boolean>;
+  onSendMessage: (message: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
   isSending: boolean;
 }
 
@@ -19,6 +21,8 @@ export const WhatsAppMessageInput = ({
 }: WhatsAppMessageInputProps) => {
   const [message, setMessage] = useState("");
   const [showQuickMessages, setShowQuickMessages] = useState(false);
+  const [showPhotoDialog, setShowPhotoDialog] = useState(false);
+  const [showFileDialog, setShowFileDialog] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSend = async () => {
@@ -69,6 +73,16 @@ export const WhatsAppMessageInput = ({
     }
   };
 
+  // ✅ FUNÇÃO CORRIGIDA: Lidar com envio de mídia
+  const handleMediaSend = async (message: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
+    try {
+      return await onSendMessage(message, mediaType, mediaUrl);
+    } catch (error) {
+      console.error('[WhatsAppMessageInput] Erro ao enviar mídia:', error);
+      return false;
+    }
+  };
+
   const canSend = message.trim().length > 0;
 
   return (
@@ -81,11 +95,28 @@ export const WhatsAppMessageInput = ({
         />
       )}
 
+      {/* ✅ DIALOGS DE MÍDIA ATIVADOS */}
+      <PhotoUploadDialog
+        open={showPhotoDialog}
+        onOpenChange={setShowPhotoDialog}
+        onSendMessage={handleMediaSend}
+      />
+      
+      <FileUploadDialog
+        open={showFileDialog}
+        onOpenChange={setShowFileDialog}
+        onSendMessage={handleMediaSend}
+      />
+
       <div className="p-4 border-t border-white/20 bg-white/10 backdrop-blur-sm">
         <div className="flex gap-3 items-end">
           {/* Botões de Ação Rápida */}
           <div className="flex gap-1">
-            <QuickActionsPopover onSendMessage={onSendMessage} />
+            <QuickActionsPopover 
+              onSendMessage={handleMediaSend}
+              onOpenPhotoDialog={() => setShowPhotoDialog(true)}
+              onOpenFileDialog={() => setShowFileDialog(true)}
+            />
             <QuickMessagesPopover 
               onQuickMessage={handleQuickMessage}
             />

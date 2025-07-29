@@ -1,16 +1,10 @@
-
 /**
- * 🎯 HOOK PRINCIPAL - ARQUITETURA DIRETA SEM PROVIDER
+ * 🎯 HOOK PRINCIPAL CORRIGIDO
  * 
- * RESPONSABILIDADES:
- * ✅ Orquestrar todos os hooks do WhatsApp
- * ✅ Gerenciar estado global mínimo (contato selecionado)
- * ✅ Expor API unificada para componentes
- * 
- * CORREÇÕES IMPLEMENTADAS:
- * ✅ Integração correta com MessagingService
- * ✅ Parâmetros corretos para envio de mensagens
- * ✅ Suporte completo para mídia
+ * CORREÇÕES:
+ * ✅ Função sendMessage com suporte completo para mídia
+ * ✅ Callbacks de realtime sem duplicação
+ * ✅ Parâmetros corretos para todos os hooks
  */
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -138,6 +132,18 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     contacts.addNewContact(newContactData);
   }, [contacts]);
 
+  // ✅ CALLBACKS CORRIGIDOS: Sem duplicação
+  const handleNewMessage = useCallback((message: Message) => {
+    // Só processar mensagens externas
+    if (!message.fromMe) {
+      messages.addOptimisticMessage(message);
+    }
+  }, [messages]);
+
+  const handleMessageUpdate = useCallback((message: Message) => {
+    messages.updateMessage(message);
+  }, [messages]);
+
   // Realtime hooks
   const chatsRealtime = useChatsRealtime({
     userId: user?.id || null,
@@ -153,8 +159,8 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
   const messagesRealtime = useMessagesRealtime({
     selectedContact,
     activeInstance: webActiveInstance,
-    onNewMessage: messages.addOptimisticMessage,
-    onMessageUpdate: messages.updateMessage
+    onNewMessage: handleNewMessage,
+    onMessageUpdate: handleMessageUpdate
   });
 
   // Ações principais
@@ -183,39 +189,15 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     setSelectedContact(contact);
   }, [markAsRead]);
 
-  // 🎯 FUNÇÃO CORRIGIDA: Enviar mensagem com parâmetros corretos
+  // ✅ FUNÇÃO CORRIGIDA: Enviar mensagem com mídia
   const sendMessage = useCallback(async (text: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
-    if (!text.trim()) {
-      toast.error('Mensagem não pode estar vazia');
-      return false;
-    }
-
     console.log('[useWhatsAppChat] 📤 Enviando mensagem:', {
       text: text.substring(0, 50) + '...',
       mediaType: mediaType || 'text',
       hasMediaUrl: !!mediaUrl
     });
 
-    // Criar objeto de mídia se necessário
-    let media: { file: File; type: string } | undefined;
-    
-    if (mediaType && mediaUrl && mediaType !== 'text') {
-      // Converter DataURL de volta para File (para compatibilidade)
-      try {
-        const response = await fetch(mediaUrl);
-        const blob = await response.blob();
-        const file = new File([blob], `media.${mediaType}`, { type: blob.type });
-        
-        media = {
-          file,
-          type: mediaType
-        };
-      } catch (error) {
-        console.error('[useWhatsAppChat] ❌ Erro ao converter mídia:', error);
-      }
-    }
-    
-    return await messages.sendMessage(text, media);
+    return await messages.sendMessage(text, mediaType, mediaUrl);
   }, [messages]);
 
   // Saúde e estatísticas
