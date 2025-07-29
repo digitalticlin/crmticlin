@@ -1,54 +1,46 @@
 
 import { WhatsAppChatLayout } from "./WhatsAppChatLayout";
 import { useWhatsAppChat } from "@/hooks/whatsapp/useWhatsAppChat";
-import { useWhatsAppContacts } from "@/hooks/whatsapp/useWhatsAppContacts";
-import { useWhatsAppMessages } from "@/hooks/whatsapp/useWhatsAppMessages";
 
 export function WhatsAppChatContainer() {
   const {
     selectedContact,
-    onSelectContact,
-    onSendMessage,
-    isSending,
-    onRefreshMessages,
-    onRefreshContacts
-  } = useWhatsAppChat();
-
-  const {
+    setSelectedContact,
+    sendMessage,
+    isSendingMessage,
+    refreshMessages,
+    refreshContacts,
     contacts,
-    isLoading: isLoadingContacts,
-    isLoadingMore: isLoadingMoreContacts,
-    hasMore: hasMoreContacts,
-    loadMore: onLoadMoreContacts,
-    totalAvailable: totalContactsAvailable
-  } = useWhatsAppContacts();
-
-  const {
+    isLoadingContacts,
+    isLoadingMoreContacts,
+    hasMoreContacts,
+    loadMoreContacts,
+    totalContactsAvailable,
     messages,
-    isLoading: isLoadingMessages,
-    isLoadingMore,
-    hasMore: hasMoreMessages,
-    loadMore: onLoadMoreMessages
-  } = useWhatsAppMessages(selectedContact?.id);
+    isLoadingMessages,
+    isLoadingMoreMessages,
+    hasMoreMessages,
+    loadMoreMessages
+  } = useWhatsAppChat();
 
   return (
     <WhatsAppChatLayout
       contacts={contacts}
       selectedContact={selectedContact}
-      onSelectContact={onSelectContact}
+      onSelectContact={setSelectedContact}
       messages={messages}
-      onSendMessage={onSendMessage}
+      onSendMessage={sendMessage}
       isLoadingContacts={isLoadingContacts}
       isLoadingMoreContacts={isLoadingMoreContacts}
       hasMoreContacts={hasMoreContacts}
-      onLoadMoreContacts={onLoadMoreContacts}
+      onLoadMoreContacts={loadMoreContacts}
       isLoadingMessages={isLoadingMessages}
-      isLoadingMore={isLoadingMore}
+      isLoadingMore={isLoadingMoreMessages}
       hasMoreMessages={hasMoreMessages}
-      onLoadMoreMessages={onLoadMoreMessages}
-      isSending={isSending}
-      onRefreshMessages={onRefreshMessages}
-      onRefreshContacts={onRefreshContacts}
+      onLoadMoreMessages={loadMoreMessages}
+      isSending={isSendingMessage}
+      onRefreshMessages={refreshMessages}
+      onRefreshContacts={refreshContacts}
       totalContactsAvailable={totalContactsAvailable}
     />
   );
