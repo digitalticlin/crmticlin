@@ -1,162 +1,152 @@
 
-/**
- * 🎯 COMPONENTE DE MENSAGEM COM ANIMAÇÕES
- * 
- * CORREÇÕES IMPLEMENTADAS:
- * ✅ Animações suaves para aparição
- * ✅ Bounce effect para mensagens novas
- * ✅ Transições otimizadas
- * ✅ Suporte a mídia melhorado
- */
-
-import React, { useEffect, useRef } from 'react';
-import { Message } from '@/types/chat';
+import React from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
+import { MessageMediaRenderer } from './MessageMediaRenderer';
+import { MessageStatus } from './MessageStatus';
+import { MessageActions } from './MessageActions';
+import { CheckCircle, Info, AlertCircle } from 'lucide-react';
 
 interface MessageItemProps {
-  message: Message & { shouldAnimate?: boolean };
-  isLastMessage?: boolean;
+  message: any;
+  isLast: boolean;
+  onResend?: (messageId: string) => void;
+  onDelete?: (messageId: string) => void;
+  className?: string;
 }
 
-export const MessageItem: React.FC<MessageItemProps> = ({ 
+export function MessageItem({ 
   message, 
-  isLastMessage = false 
-}) => {
-  const messageRef = useRef<HTMLDivElement>(null);
-  const isNewMessage = (message as any).isNew;
+  isLast, 
+  onResend, 
+  onDelete,
+  className = ""
+}: MessageItemProps) {
+  const timeAgo = formatDistanceToNow(new Date(message.timestamp), {
+    addSuffix: true,
+    locale: ptBR
+  });
 
-  // 🚀 CORREÇÃO: Trigger animação para mensagens novas
-  useEffect(() => {
-    if (isNewMessage && messageRef.current) {
-      // Remover flag após animação
-      setTimeout(() => {
-        if (messageRef.current) {
-          messageRef.current.classList.remove('animate-fade-in');
-        }
-      }, 500);
-    }
-  }, [isNewMessage]);
-
-  // 🚀 CORREÇÃO: Bounce effect para mensagens externas
-  useEffect(() => {
-    if (message.shouldAnimate && !message.fromMe && messageRef.current) {
-      messageRef.current.classList.add('animate-bounce');
-      setTimeout(() => {
-        if (messageRef.current) {
-          messageRef.current.classList.remove('animate-bounce');
-        }
-      }, 1000);
-    }
-  }, [message.shouldAnimate, message.fromMe]);
-
-  // Status icon baseado no status da mensagem
-  const getStatusIcon = () => {
-    if (!message.fromMe) return null;
-    
-    switch (message.status) {
-      case 'sending':
-        return <Clock className="w-3 h-3 text-gray-400 animate-spin" />;
-      case 'sent':
-        return <Check className="w-3 h-3 text-gray-400" />;
-      case 'delivered':
-        return <CheckCheck className="w-3 h-3 text-gray-400" />;
-      case 'read':
-        return <CheckCheck className="w-3 h-3 text-blue-500" />;
-      case 'failed':
-        return <AlertCircle className="w-3 h-3 text-red-500" />;
-      default:
-        return <Check className="w-3 h-3 text-gray-400" />;
-    }
-  };
-
-  // 🚀 CORREÇÃO: Renderizar mídia se disponível
-  const renderMedia = () => {
-    if (!message.mediaUrl || message.mediaType === 'text') return null;
-
-    const mediaClasses = "max-w-xs rounded-lg shadow-md";
-
-    switch (message.mediaType) {
-      case 'image':
-        return (
-          <img 
-            src={message.mediaUrl} 
-            alt="Imagem" 
-            className={cn(mediaClasses, "hover:scale-105 transition-transform cursor-pointer")}
-            onClick={() => window.open(message.mediaUrl, '_blank')}
-          />
-        );
-      case 'video':
-        return (
-          <video 
-            src={message.mediaUrl} 
-            controls 
-            className={mediaClasses}
-            preload="metadata"
-          />
-        );
-      case 'audio':
-        return (
-          <audio 
-            src={message.mediaUrl} 
-            controls 
-            className="w-full max-w-xs"
-          />
-        );
-      default:
-        return (
-          <a 
-            href={message.mediaUrl} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-blue-500 hover:text-blue-700 underline"
-          >
-            📎 Arquivo anexado
-          </a>
-        );
-    }
-  };
+  const isFromMe = message.from_me;
+  const hasError = message.status === 'error' || message.status === 'failed';
+  const isPending = message.status === 'pending';
 
   return (
-    <div
-      ref={messageRef}
-      data-message-id={message.id}
-      className={cn(
-        "flex mb-2 transition-all duration-300",
-        message.fromMe ? "justify-end" : "justify-start",
-        isNewMessage && "animate-fade-in",
-        message.shouldAnimate && !message.fromMe && "animate-bounce"
-      )}
-    >
-      <div
-        className={cn(
-          "max-w-xs lg:max-w-md px-3 py-2 rounded-lg shadow-sm transition-all duration-200",
-          message.fromMe
-            ? "bg-blue-500 text-white ml-auto hover:bg-blue-600"
-            : "bg-gray-100 text-gray-800 mr-auto hover:bg-gray-200",
-          message.status === 'sending' && "opacity-70",
-          message.status === 'failed' && "bg-red-100 border border-red-300"
-        )}
-      >
-        {/* Renderizar mídia */}
-        {renderMedia()}
-        
-        {/* Texto da mensagem */}
-        {message.text && (
-          <p className="text-sm whitespace-pre-wrap break-words">
-            {message.text}
-          </p>
-        )}
-        
-        {/* Footer com hora e status */}
+    <div className={cn(
+      "message-item w-full px-4 py-2 transition-all duration-300",
+      "animate-in fade-in-0 slide-in-from-bottom-2",
+      isLast && "pb-6",
+      className
+    )}>
+      <div className={cn(
+        "flex w-full",
+        isFromMe ? "justify-end" : "justify-start"
+      )}>
         <div className={cn(
-          "flex items-center justify-end mt-1 gap-1",
-          message.fromMe ? "text-blue-100" : "text-gray-500"
+          "group relative max-w-[70%] rounded-2xl p-4 shadow-lg transition-all duration-300",
+          "border border-white/10 backdrop-blur-lg",
+          "hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]",
+          
+          // Glassmorphism para mensagens próprias
+          isFromMe && [
+            "bg-gradient-to-br from-ticlin-500/20 to-ticlin-600/30",
+            "border-ticlin-400/20 text-white",
+            "shadow-ticlin-500/10"
+          ],
+          
+          // Glassmorphism para mensagens recebidas
+          !isFromMe && [
+            "bg-white/20 border-white/10 text-gray-800",
+            "shadow-black/5"
+          ],
+          
+          // Estados de erro
+          hasError && [
+            "border-red-400/30 bg-red-50/30",
+            isFromMe ? "bg-gradient-to-br from-red-500/20 to-red-600/30" : "bg-red-50/30"
+          ],
+          
+          // Estados pendentes
+          isPending && [
+            "border-yellow-400/30",
+            isFromMe ? "bg-gradient-to-br from-yellow-500/20 to-yellow-600/30" : "bg-yellow-50/30"
+          ]
         )}>
-          <span className="text-xs">{message.time}</span>
-          {getStatusIcon()}
+        
+        {/* Efeito de brilho sutil */}
+        <div className={cn(
+          "absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300",
+          "bg-gradient-to-br from-white/5 to-white/0",
+          "group-hover:opacity-100 pointer-events-none"
+        )} />
+        
+        {/* Status visual superior */}
+        {(hasError || isPending) && (
+          <div className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 rounded-full bg-white/90 backdrop-blur-sm border border-white/20 shadow-lg">
+            {hasError && <AlertCircle className="w-3 h-3 text-red-500" />}
+            {isPending && <Info className="w-3 h-3 text-yellow-500 animate-pulse" />}
+          </div>
+        )}
+
+        {/* Conteúdo da mensagem */}
+        <div className="relative z-10 space-y-3">
+          {/* Mídia */}
+          {message.media_type !== 'text' && (
+            <MessageMediaRenderer 
+              message={message}
+              className="rounded-xl overflow-hidden shadow-md"
+            />
+          )}
+          
+          {/* Texto da mensagem */}
+          {message.text && (
+            <div className={cn(
+              "text-sm leading-relaxed break-words",
+              isFromMe ? "text-white/90" : "text-gray-800/90"
+            )}>
+              {message.text}
+            </div>
+          )}
+          
+          {/* Rodapé da mensagem */}
+          <div className="flex items-center justify-between gap-2 mt-3">
+            <div className={cn(
+              "flex items-center gap-2 text-xs",
+              isFromMe ? "text-white/70" : "text-gray-600/70"
+            )}>
+              <span className="font-medium">
+                {timeAgo}
+              </span>
+              
+              {message.import_source && (
+                <span className={cn(
+                  "px-2 py-1 rounded-full text-xs",
+                  "bg-white/10 border border-white/20"
+                )}>
+                  {message.import_source}
+                </span>
+              )}
+            </div>
+            
+            {/* Status da mensagem */}
+            {isFromMe && (
+              <MessageStatus 
+                status={message.status}
+                className="flex-shrink-0"
+              />
+            )}
+          </div>
         </div>
+
+        {/* Ações da mensagem */}
+        <MessageActions
+          message={message}
+          onResend={onResend}
+          onDelete={onDelete}
+          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+        />
       </div>
     </div>
   );
-};
+}

@@ -326,6 +326,7 @@ export type Database = {
           company: string | null
           created_at: string | null
           created_by_user_id: string
+          deleted_whatsapp_instance_name: string | null
           document_id: string | null
           email: string | null
           funnel_id: string | null
@@ -349,6 +350,7 @@ export type Database = {
           company?: string | null
           created_at?: string | null
           created_by_user_id: string
+          deleted_whatsapp_instance_name?: string | null
           document_id?: string | null
           email?: string | null
           funnel_id?: string | null
@@ -372,6 +374,7 @@ export type Database = {
           company?: string | null
           created_at?: string | null
           created_by_user_id?: string
+          deleted_whatsapp_instance_name?: string | null
           document_id?: string | null
           email?: string | null
           funnel_id?: string | null
@@ -427,6 +430,7 @@ export type Database = {
           cached_url: string | null
           created_at: string | null
           expires_at: string | null
+          external_message_id: string | null
           file_name: string | null
           file_size: number | null
           hash: string | null
@@ -434,6 +438,7 @@ export type Database = {
           media_type: Database["public"]["Enums"]["media_type"]
           message_id: string | null
           original_url: string
+          processing_status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -441,6 +446,7 @@ export type Database = {
           cached_url?: string | null
           created_at?: string | null
           expires_at?: string | null
+          external_message_id?: string | null
           file_name?: string | null
           file_size?: number | null
           hash?: string | null
@@ -448,6 +454,7 @@ export type Database = {
           media_type: Database["public"]["Enums"]["media_type"]
           message_id?: string | null
           original_url: string
+          processing_status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -455,6 +462,7 @@ export type Database = {
           cached_url?: string | null
           created_at?: string | null
           expires_at?: string | null
+          external_message_id?: string | null
           file_name?: string | null
           file_size?: number | null
           hash?: string | null
@@ -462,6 +470,7 @@ export type Database = {
           media_type?: Database["public"]["Enums"]["media_type"]
           message_id?: string | null
           original_url?: string
+          processing_status?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -479,6 +488,7 @@ export type Database = {
           content_hash: string | null
           created_at: string | null
           created_by_user_id: string
+          deleted_whatsapp_instance_name: string | null
           external_message_id: string | null
           from_me: boolean | null
           id: string
@@ -495,6 +505,7 @@ export type Database = {
           content_hash?: string | null
           created_at?: string | null
           created_by_user_id: string
+          deleted_whatsapp_instance_name?: string | null
           external_message_id?: string | null
           from_me?: boolean | null
           id?: string
@@ -511,6 +522,7 @@ export type Database = {
           content_hash?: string | null
           created_at?: string | null
           created_by_user_id?: string
+          deleted_whatsapp_instance_name?: string | null
           external_message_id?: string | null
           from_me?: boolean | null
           id?: string
@@ -814,12 +826,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      media_conversion_stats: {
+        Row: {
+          avg_base64_chars: number | null
+          avg_size_mb: number | null
+          media_type: Database["public"]["Enums"]["media_type"] | null
+          total_entries: number | null
+          with_base64: number | null
+          without_base64: number | null
+        }
+        Relationships: []
+      }
+      media_processing_status: {
+        Row: {
+          avg_size_kb: number | null
+          media_type: Database["public"]["Enums"]["media_type"] | null
+          newest_entry: string | null
+          oldest_entry: string | null
+          pending_base64: number | null
+          total: number | null
+          with_base64: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      bytea_to_text: {
+        Args: { data: string }
+        Returns: string
+      }
       cleanup_orphan_references: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      convert_media_to_base64_manual: {
+        Args: { cache_entry_id: string }
+        Returns: boolean
       }
       debug_context_full: {
         Args: Record<PropertyKey, never>
@@ -828,6 +870,57 @@ export type Database = {
       diagnose_permissions: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      http: {
+        Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_delete: {
+        Args:
+          | { uri: string }
+          | { uri: string; content: string; content_type: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_get: {
+        Args: { uri: string } | { uri: string; data: Json }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_head: {
+        Args: { uri: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_header: {
+        Args: { field: string; value: string }
+        Returns: Database["public"]["CompositeTypes"]["http_header"]
+      }
+      http_list_curlopt: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          curlopt: string
+          value: string
+        }[]
+      }
+      http_patch: {
+        Args: { uri: string; content: string; content_type: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_post: {
+        Args:
+          | { uri: string; content: string; content_type: string }
+          | { uri: string; data: Json }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_put: {
+        Args: { uri: string; content: string; content_type: string }
+        Returns: Database["public"]["CompositeTypes"]["http_response"]
+      }
+      http_reset_curlopt: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      http_set_curlopt: {
+        Args: { curlopt: string; value: string }
+        Returns: boolean
       }
       increment_unread_count: {
         Args: { p_lead_id: string }
@@ -897,6 +990,18 @@ export type Database = {
         }
         Returns: string
       }
+      save_sent_message_only: {
+        Args: {
+          p_vps_instance_id: string
+          p_phone: string
+          p_message_text: string
+          p_external_message_id?: string
+          p_contact_name?: string
+          p_media_type?: string
+          p_media_url?: string
+        }
+        Returns: Json
+      }
       save_whatsapp_message_service_role: {
         Args: {
           p_vps_instance_id: string
@@ -930,6 +1035,18 @@ export type Database = {
       }
       test_leads_exists: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      test_media_system: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      text_to_bytea: {
+        Args: { data: string }
+        Returns: string
+      }
+      urlencode: {
+        Args: { data: Json } | { string: string } | { string: string }
         Returns: string
       }
       user_has_whatsapp_number: {
@@ -969,7 +1086,23 @@ export type Database = {
       user_role: "admin" | "operational" | "manager"
     }
     CompositeTypes: {
-      [_ in never]: never
+      http_header: {
+        field: string | null
+        value: string | null
+      }
+      http_request: {
+        method: unknown | null
+        uri: string | null
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
+        content_type: string | null
+        content: string | null
+      }
+      http_response: {
+        status: number | null
+        content_type: string | null
+        headers: Database["public"]["CompositeTypes"]["http_header"][] | null
+        content: string | null
+      }
     }
   }
 }
