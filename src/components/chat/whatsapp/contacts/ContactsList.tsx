@@ -1,3 +1,4 @@
+
 import React, { memo, useCallback, useEffect, useState } from 'react';
 import { Contact } from '@/types/chat';
 import { formatPhoneDisplay } from '@/utils/phoneFormatter';
@@ -58,9 +59,14 @@ const ContactsList = memo(({
 
   const handleCloseConversation = useCallback(async (contactId: string) => {
     try {
+      // Instead of setting a 'status' field, we'll use the notes field to mark as closed
+      const timestamp = new Date().toISOString();
       await supabase
         .from('leads')
-        .update({ status: 'closed' })
+        .update({ 
+          notes: `CONVERSA_FECHADA_${timestamp}`,
+          unread_count: 0
+        })
         .eq('id', contactId);
 
       toast.success('Conversa fechada com sucesso!');

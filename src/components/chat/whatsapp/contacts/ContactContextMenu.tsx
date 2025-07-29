@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, X, Settings, MessageSquare } from 'lucide-react';
+import { Trash2, X, Settings } from 'lucide-react';
 import { Contact } from '@/types/chat';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -28,6 +28,7 @@ interface ContactContextMenuProps {
   onDeleteConversation?: (contactId: string) => Promise<void>;
   onCloseConversation?: (contactId: string) => Promise<void>;
   onEditContact?: (contact: Contact) => void;
+  onClose?: () => void;
 }
 
 export const ContactContextMenu = ({
@@ -35,7 +36,8 @@ export const ContactContextMenu = ({
   children,
   onDeleteConversation,
   onCloseConversation,
-  onEditContact
+  onEditContact,
+  onClose
 }: ContactContextMenuProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
@@ -56,6 +58,7 @@ export const ContactContextMenu = ({
     } finally {
       setIsLoading(false);
       setShowDeleteDialog(false);
+      onClose?.();
     }
   };
 
@@ -72,6 +75,7 @@ export const ContactContextMenu = ({
     } finally {
       setIsLoading(false);
       setShowCloseDialog(false);
+      onClose?.();
     }
   };
 
@@ -79,6 +83,7 @@ export const ContactContextMenu = ({
     if (onEditContact) {
       onEditContact(contact);
     }
+    onClose?.();
   };
 
   return (
