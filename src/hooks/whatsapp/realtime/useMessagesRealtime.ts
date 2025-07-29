@@ -1,10 +1,11 @@
 
 /**
- * 🎯 HOOK REALTIME CORRIGIDO - SEM DUPLICAÇÃO
+ * 🎯 HOOK REALTIME OTIMIZADO PARA MÍDIA
  * 
- * CORREÇÕES:
- * ✅ Filtrar mensagens próprias para evitar duplicação
- * ✅ Callback inteligente baseado em fromMe
+ * MELHORIAS:
+ * ✅ Suporte completo à mídia (media_cache incluído)
+ * ✅ Conversão otimizada com dados de mídia
+ * ✅ Filtros inteligentes para evitar duplicação
  * ✅ Logs reduzidos para produção
  */
 
@@ -34,7 +35,7 @@ export const useMessagesRealtime = ({
   const channelRef = useRef<any>(null);
   const processedMessageIds = useRef<Set<string>>(new Set());
   
-  // Conversão otimizada de mensagem do banco para UI
+  // ✅ CONVERSÃO OTIMIZADA COM SUPORTE COMPLETO À MÍDIA
   const convertMessage = useCallback((messageData: any): Message => {
     return {
       id: messageData.id,
@@ -50,21 +51,28 @@ export const useMessagesRealtime = ({
         minute: '2-digit'
       }),
       isIncoming: !messageData.from_me,
-      media_cache: messageData.media_cache || null
+      // ✅ INCLUIR DADOS COMPLETOS DE MÍDIA
+      media_cache: messageData.media_cache || null,
+      hasMediaCache: !!messageData.media_cache,
+      mediaCacheId: messageData.media_cache?.id || undefined
     } satisfies Message;
   }, []);
 
-  // ✅ FILTRO INTELIGENTE: Evitar duplicação de mensagens próprias
+  // ✅ FILTRO INTELIGENTE PARA EVITAR DUPLICAÇÃO
   const shouldProcessMessage = useCallback((messageData: any): boolean => {
     // Verificar se já foi processada
     if (processedMessageIds.current.has(messageData.id)) {
-      console.log(`[MessagesRealtime] 🚫 Mensagem já processada: ${messageData.id}`);
+      if (!isProduction) {
+        console.log(`[MessagesRealtime] 🚫 Mensagem já processada: ${messageData.id}`);
+      }
       return false;
     }
 
-    // ✅ FILTRO PRINCIPAL: Mensagens próprias são tratadas localmente
+    // ✅ FILTRO PRINCIPAL: Mensagens próprias são tratadas localmente via UI otimista
     if (messageData.from_me) {
-      console.log(`[MessagesRealtime] 🚫 Mensagem própria ignorada: ${messageData.id}`);
+      if (!isProduction) {
+        console.log(`[MessagesRealtime] 🚫 Mensagem própria ignorada: ${messageData.id}`);
+      }
       return false;
     }
 
@@ -87,7 +95,7 @@ export const useMessagesRealtime = ({
   const cleanup = useCallback(() => {
     if (channelRef.current) {
       if (!isProduction) {
-        console.log('[MessagesRealtime] 🧹 Limpando canal');
+        console.log('[MessagesRealtime] 🧹 Limpando canal realtime');
       }
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
@@ -105,7 +113,7 @@ export const useMessagesRealtime = ({
     }
 
     if (!isProduction) {
-      console.log('[MessagesRealtime] 🚀 Configurando realtime para:', {
+      console.log('[MessagesRealtime] 🚀 Configurando realtime para mídia:', {
         contactId: selectedContact.id,
         instanceId: activeInstance.id
       });
@@ -114,8 +122,8 @@ export const useMessagesRealtime = ({
     // Limpar canal anterior
     cleanup();
 
-    // Criar novo canal
-    const channelId = `messages-${selectedContact.id}-${activeInstance.id}-${Date.now()}`;
+    // Criar novo canal com timestamp único
+    const channelId = `messages-media-${selectedContact.id}-${activeInstance.id}-${Date.now()}`;
 
     const channel = supabase
       .channel(channelId)
@@ -134,9 +142,11 @@ export const useMessagesRealtime = ({
         const message = convertMessage(messageData);
         
         if (!isProduction) {
-          console.log('[MessagesRealtime] 📨 Nova mensagem externa:', {
+          console.log('[MessagesRealtime] 📨 Nova mensagem externa (com mídia):', {
             messageId: message.id,
             fromMe: message.fromMe,
+            mediaType: message.mediaType || 'text',
+            hasMediaCache: message.hasMediaCache,
             text: message.text.substring(0, 50) + '...'
           });
         }
@@ -161,10 +171,12 @@ export const useMessagesRealtime = ({
         const message = convertMessage(messageData);
         
         if (!isProduction) {
-          console.log('[MessagesRealtime] 🔄 Mensagem atualizada:', {
+          console.log('[MessagesRealtime] 🔄 Mensagem atualizada (com mídia):', {
             messageId: message.id,
             fromMe: message.fromMe,
-            status: message.status
+            status: message.status,
+            mediaType: message.mediaType || 'text',
+            hasMediaCache: message.hasMediaCache
           });
         }
         
@@ -174,15 +186,15 @@ export const useMessagesRealtime = ({
       })
       .subscribe((status) => {
         if (!isProduction) {
-          console.log('[MessagesRealtime] 📡 Status:', status);
+          console.log('[MessagesRealtime] 📡 Status conexão:', status);
         }
         
         if (status === 'SUBSCRIBED') {
           if (!isProduction) {
-            console.log('[MessagesRealtime] ✅ Conectado com sucesso');
+            console.log('[MessagesRealtime] ✅ Realtime conectado com suporte à mídia');
           }
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('[MessagesRealtime] ❌ Erro na conexão:', status);
+          console.error('[MessagesRealtime] ❌ Erro na conexão realtime:', status);
         }
       });
 
