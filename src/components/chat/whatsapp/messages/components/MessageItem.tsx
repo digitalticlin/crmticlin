@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { MessageMediaRenderer } from './MessageMediaRenderer';
@@ -10,7 +10,7 @@ import { CheckCircle, Info, AlertCircle } from 'lucide-react';
 
 interface MessageItemProps {
   message: any;
-  isLastMessage: boolean; // Fixed: Changed from isLast to isLastMessage
+  isLastMessage: boolean;
   onResend?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   className?: string;
@@ -18,119 +18,105 @@ interface MessageItemProps {
 
 export function MessageItem({ 
   message, 
-  isLastMessage, // Fixed: Updated to match the prop name
+  isLastMessage,
   onResend, 
   onDelete,
   className = ""
 }: MessageItemProps) {
-  const timeAgo = formatDistanceToNow(new Date(message.timestamp), {
-    addSuffix: true,
-    locale: ptBR
-  });
+  // 🚀 CORREÇÃO: Formato HH:MM para o horário
+  const messageTime = format(new Date(message.timestamp), 'HH:mm', { locale: ptBR });
 
   const isFromMe = message.fromMe;
   const hasError = message.status === 'error' || message.status === 'failed';
-  const isPending = message.status === 'pending';
+  const isPending = message.status === 'pending' || message.status === 'sending';
 
   return (
     <div className={cn(
-      "message-item w-full px-4 py-2 transition-all duration-300",
+      "message-item w-full px-4 py-1 transition-all duration-300",
       "animate-in fade-in-0 slide-in-from-bottom-2",
-      isLastMessage && "pb-6", // Fixed: Updated to use isLastMessage
+      isLastMessage && "pb-4",
       className
     )}>
       <div className={cn(
         "flex w-full",
         isFromMe ? "justify-end" : "justify-start"
       )}>
+        {/* 🚀 CORREÇÃO: Balão de conversa estilo WhatsApp */}
         <div className={cn(
-          "group relative max-w-[70%] rounded-2xl p-4 shadow-lg transition-all duration-300",
-          "border backdrop-blur-lg",
-          "hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]",
+          "group relative max-w-[70%] rounded-2xl p-3 shadow-md transition-all duration-300",
+          "hover:shadow-lg",
           
-          // Glassmorphism para mensagens próprias
-          isFromMe && [
-            "bg-white/20 border-white/10",
-            "bg-gradient-to-br from-ticlin-500/20 to-ticlin-600/30",
-            "border-ticlin-400/20 text-white",
-            "shadow-ticlin-500/10"
-          ],
-          
-          // Glassmorphism para mensagens recebidas
-          !isFromMe && [
-            "bg-white/20 border-white/10 text-gray-800",
-            "shadow-black/5"
+          // 🚀 CORREÇÃO: Formato de balão assimétrico
+          isFromMe ? [
+            "rounded-br-sm", // Canto inferior direito menos arredondado
+            "bg-ticlin-500 text-white", // 🚀 CORREÇÃO: Balão escuro para mensagens enviadas
+            "shadow-ticlin-500/20"
+          ] : [
+            "rounded-bl-sm", // Canto inferior esquerdo menos arredondado
+            "bg-white/90 text-gray-800 border border-gray-200/50",
+            "shadow-gray-500/10"
           ],
           
           // Estados de erro
           hasError && [
-            "border-red-400/30 bg-red-50/30",
-            isFromMe ? "bg-gradient-to-br from-red-500/20 to-red-600/30" : "bg-red-50/30"
+            "border-red-400/50",
+            isFromMe ? "bg-red-600 text-white" : "bg-red-50 text-red-800"
           ],
           
           // Estados pendentes
           isPending && [
-            "border-yellow-400/30",
-            isFromMe ? "bg-gradient-to-br from-yellow-500/20 to-yellow-600/30" : "bg-yellow-50/30"
+            "border-yellow-400/50",
+            isFromMe ? "bg-ticlin-600/80 text-white" : "bg-yellow-50 text-yellow-800"
           ]
         )}>
         
-          {/* Efeito de brilho sutil */}
-          <div className={cn(
-            "absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300",
-            "bg-gradient-to-br from-white/5 to-white/0",
-            "group-hover:opacity-100 pointer-events-none"
-          )} />
-          
           {/* Status visual superior */}
           {(hasError || isPending) && (
-            <div className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 rounded-full bg-white/90 backdrop-blur-sm border border-white/20 shadow-lg">
+            <div className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-white shadow-md border border-gray-200">
               {hasError && <AlertCircle className="w-3 h-3 text-red-500" />}
               {isPending && <Info className="w-3 h-3 text-yellow-500 animate-pulse" />}
             </div>
           )}
 
           {/* Conteúdo da mensagem */}
-          <div className="relative z-10 space-y-3">
+          <div className="space-y-2">
             {/* Mídia */}
             {message.media_type !== 'text' && (
               <MessageMediaRenderer 
                 message={message}
-                className="rounded-xl overflow-hidden shadow-md"
+                className="rounded-lg overflow-hidden"
               />
             )}
             
             {/* Texto da mensagem */}
             {message.text && (
-              <div className={cn(
-                "text-sm leading-relaxed break-words",
-                isFromMe ? "text-white/90" : "text-gray-800/90"
-              )}>
+              <div className="text-sm leading-relaxed break-words">
                 {message.text}
               </div>
             )}
             
             {/* Rodapé da mensagem */}
-            <div className="flex items-center justify-between gap-2 mt-3">
-              <div className={cn(
-                "flex items-center gap-2 text-xs",
-                isFromMe ? "text-white/70" : "text-gray-600/70"
-              )}>
-                <span className="font-medium">
-                  {timeAgo}
+            <div className="flex items-center justify-between gap-2 mt-2">
+              <div className="flex items-center gap-1">
+                {/* 🚀 CORREÇÃO: Horário em formato HH:MM */}
+                <span className={cn(
+                  "text-xs font-medium",
+                  isFromMe ? "text-white/70" : "text-gray-600/70"
+                )}>
+                  {messageTime}
                 </span>
                 
                 {message.import_source && (
                   <span className={cn(
-                    "px-2 py-1 rounded-full text-xs",
-                    "bg-white/10 border border-white/20 backdrop-blur-sm"
+                    "px-2 py-0.5 rounded-full text-xs",
+                    "bg-black/10 text-current"
                   )}>
                     {message.import_source}
                   </span>
                 )}
               </div>
               
-              {/* Status da mensagem */}
+              {/* Status da mensagem - apenas ícone */}
               {isFromMe && (
                 <MessageStatus 
                   status={message.status}

@@ -1,10 +1,9 @@
-
 /**
- * 🎯 HOOK DE MENSAGENS OTIMIZADO - PAGINAÇÃO E PERFORMANCE
+ * 🎯 HOOK DE MENSAGENS OTIMIZADO - PAGINAÇÃO DE 20 MENSAGENS
  * 
  * CORREÇÕES IMPLEMENTADAS:
+ * ✅ Paginação alterada para 20 mensagens por vez
  * ✅ Query otimizada com JOIN condicional
- * ✅ Paginação eficiente com scroll detection
  * ✅ Cache inteligente de mensagens
  * ✅ Animações suaves para novas mensagens
  * ✅ Substitução instantânea de mensagens otimistas
@@ -36,7 +35,7 @@ interface UseWhatsAppChatMessagesReturn {
   updateMessage: (message: Message) => void;
 }
 
-const MESSAGES_PER_PAGE = 30; // Reduzido para melhor performance
+const MESSAGES_PER_PAGE = 20; // 🚀 ALTERADO: De 30 para 20 mensagens
 
 // Helper para normalizar mediaType
 const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "audio" | "document" => {

@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { Message } from '@/types/chat';
 import { useScrollDetection } from './messages/hooks/useScrollDetection';
 import { useMessagesList } from './messages/hooks/useMessagesList';
@@ -8,6 +8,8 @@ import { MessagesLoadingIndicator } from './messages/components/MessagesLoadingI
 import { LoadMoreIndicator } from './messages/components/LoadMoreIndicator';
 import { EmptyMessagesState } from './messages/components/EmptyMessagesState';
 import { ConversationStartIndicator } from './messages/components/ConversationStartIndicator';
+import { DateSeparator } from './messages/components/DateSeparator';
+import { isSameDay } from 'date-fns';
 
 interface WhatsAppMessagesListProps {
   messages: Message[];
@@ -16,6 +18,24 @@ interface WhatsAppMessagesListProps {
   hasMoreMessages?: boolean;
   onLoadMore?: () => Promise<void>;
 }
+
+// 🚀 CORREÇÃO: Função para agrupar mensagens por data
+const groupMessagesByDate = (messages: Message[]) => {
+  const groups: { date: Date; messages: Message[] }[] = [];
+  
+  messages.forEach((message) => {
+    const messageDate = new Date(message.timestamp);
+    const lastGroup = groups[groups.length - 1];
+    
+    if (!lastGroup || !isSameDay(lastGroup.date, messageDate)) {
+      groups.push({ date: messageDate, messages: [message] });
+    } else {
+      lastGroup.messages.push(message);
+    }
+  });
+  
+  return groups;
+};
 
 export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
   messages,
@@ -37,6 +57,9 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
     hasMoreMessages, 
     isLoadingMore
   });
+
+  // 🚀 CORREÇÃO: Agrupar mensagens por data
+  const messageGroups = useMemo(() => groupMessagesByDate(messagesList), [messagesList]);
 
   if (isLoading) {
     return <MessagesLoadingIndicator />;
@@ -67,19 +90,28 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
         messagesCount={messages.length}
       />
 
-      {/* Lista de mensagens com animações */}
-      <div className="px-2 space-y-1">
-        {messagesList.map((message, index) => {
-          const isLastMessage = index === messagesList.length - 1;
-          
-          return (
-            <MessageItem
-              key={message.id}
-              message={message}
-              isLastMessage={isLastMessage}
-            />
-          );
-        })}
+      {/* 🚀 CORREÇÃO: Lista de mensagens agrupadas por data */}
+      <div className="space-y-1">
+        {messageGroups.map((group, groupIndex) => (
+          <div key={group.date.toISOString()}>
+            {/* Separador de data */}
+            <DateSeparator date={group.date} />
+            
+            {/* Mensagens do grupo */}
+            {group.messages.map((message, messageIndex) => {
+              const isLastMessage = groupIndex === messageGroups.length - 1 && 
+                                  messageIndex === group.messages.length - 1;
+              
+              return (
+                <MessageItem
+                  key={message.id}
+                  message={message}
+                  isLastMessage={isLastMessage}
+                />
+              );
+            })}
+          </div>
+        ))}
       </div>
       
       {/* Elemento para scroll automático */}
