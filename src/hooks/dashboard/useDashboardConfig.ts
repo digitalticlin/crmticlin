@@ -44,10 +44,10 @@ export const useDashboardConfig = () => {
     saveScheduler(configToSave, saveTimeoutRef);
   }, [user?.id, companyId, setSaving, saveTimeoutRef, isMountedRef]);
 
-  // Initialize config
+  // Initialize config - CORRIGIDO: Usar fallback quando user/companyId não estiver disponível
   useConfigInitialization(
     user,
-    companyId,
+    companyId || 'default-company',
     setConfig,
     setLoading,
     triggerForceUpdate,
@@ -64,11 +64,21 @@ export const useDashboardConfig = () => {
     isInitializedRef
   );
 
+  // ADICIONADO: Função getCurrentState para compatibilidade
+  const getCurrentState = useCallback(() => {
+    return {
+      kpis: config.kpis,
+      charts: config.charts,
+      lastUpdate: Date.now()
+    };
+  }, [config]);
+
   return {
     config,
     loading,
     saving,
     forceUpdate,
+    getCurrentState,
     ...handlers
   };
 };
