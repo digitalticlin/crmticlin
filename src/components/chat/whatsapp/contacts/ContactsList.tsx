@@ -71,16 +71,16 @@ const ContactsList: React.FC<ContactsListProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="h-full" 
+      className="h-full overflow-y-auto glass-scrollbar"
     >
       {/* Lista de contatos */}
-      <div className="divide-y divide-white/10">
+      <div className="divide-y divide-white/10 p-2">
         {contacts.map((contact) => (
           <ContactItem
             key={contact.id}
             contact={contact}
             isSelected={selectedContact?.id === contact.id}
-            onClick={() => onSelectContact(contact)}
+            onSelect={() => onSelectContact(contact)}
             searchQuery={searchQuery}
           />
         ))}
