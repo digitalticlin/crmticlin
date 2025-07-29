@@ -2,7 +2,7 @@
 import { Contact, Message } from "@/types/chat";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { WhatsAppMessagesList } from "@/components/chat/whatsapp/WhatsAppMessagesList";
-import { MessageInput } from "@/components/chat/MessageInput";
+import { WhatsAppMessageInput } from "@/components/chat/whatsapp/WhatsAppMessageInput";
 
 interface ChatConversationProps {
   selectedContact: Contact;
@@ -30,7 +30,7 @@ export function ChatConversation({
         leadId={leadId}
       />
       <WhatsAppMessagesList messages={messages} />
-      <MessageInput onSendMessage={onSendMessage} />
+      <WhatsAppMessageInput onSendMessage={onSendMessage} />
     </div>
   );
 }

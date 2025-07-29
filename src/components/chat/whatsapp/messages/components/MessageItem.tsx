@@ -1,4 +1,3 @@
-
 import React, { memo } from 'react';
 import { Message } from '@/types/chat';
 import { cn } from '@/lib/utils';
