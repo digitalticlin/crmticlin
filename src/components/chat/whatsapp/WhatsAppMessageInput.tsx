@@ -1,14 +1,15 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send } from "lucide-react";
+import { Send, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuickMessagesPopover } from "./input/QuickMessagesPopover";
 import { QuickActionsPopover } from "./input/QuickActionsPopover";
 import { QuickMessagesPanel } from "./input/QuickMessagesPanel";
 import { PhotoUploadDialog } from "./media/PhotoUploadDialog";
 import { FileUploadDialog } from "./media/FileUploadDialog";
+import { VideoUploadDialog } from "./media/VideoUploadDialog";
+import { AudioRecordDialog } from "./media/AudioRecordDialog";
 
 interface WhatsAppMessageInputProps {
   onSendMessage: (message: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
@@ -23,16 +24,16 @@ export const WhatsAppMessageInput = ({
   const [showQuickMessages, setShowQuickMessages] = useState(false);
   const [showPhotoDialog, setShowPhotoDialog] = useState(false);
   const [showFileDialog, setShowFileDialog] = useState(false);
+  const [showVideoDialog, setShowVideoDialog] = useState(false);
+  const [showAudioDialog, setShowAudioDialog] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSend = async () => {
     const trimmedMessage = message.trim();
     if (trimmedMessage) {
       try {
-        // Limpar campo imediatamente para UX mais rápido
         setMessage("");
         
-        // Reset altura do textarea
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
         }
@@ -40,7 +41,6 @@ export const WhatsAppMessageInput = ({
         await onSendMessage(trimmedMessage);
       } catch (error) {
         console.error('[WhatsAppMessageInput] Erro ao enviar mensagem:', error);
-        // Se der erro, restaurar a mensagem
         setMessage(trimmedMessage);
       }
     }
@@ -56,7 +56,6 @@ export const WhatsAppMessageInput = ({
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
     
-    // Auto-resize textarea
     const textarea = e.target;
     textarea.style.height = 'auto';
     const scrollHeight = textarea.scrollHeight;
@@ -67,13 +66,11 @@ export const WhatsAppMessageInput = ({
     setMessage(quickMsg);
     setShowQuickMessages(false);
     
-    // Focar no textarea após selecionar mensagem rápida
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
   };
 
-  // ✅ FUNÇÃO CORRIGIDA: Lidar com envio de mídia
   const handleMediaSend = async (message: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
     try {
       return await onSendMessage(message, mediaType, mediaUrl);
@@ -95,7 +92,7 @@ export const WhatsAppMessageInput = ({
         />
       )}
 
-      {/* ✅ DIALOGS DE MÍDIA ATIVADOS */}
+      {/* ✅ TODOS OS DIALOGS DE MÍDIA */}
       <PhotoUploadDialog
         open={showPhotoDialog}
         onOpenChange={setShowPhotoDialog}
@@ -108,14 +105,31 @@ export const WhatsAppMessageInput = ({
         onSendMessage={handleMediaSend}
       />
 
-      <div className="p-4 border-t border-white/20 bg-white/10 backdrop-blur-sm">
+      <VideoUploadDialog
+        open={showVideoDialog}
+        onOpenChange={setShowVideoDialog}
+        onSendMessage={handleMediaSend}
+      />
+
+      <AudioRecordDialog
+        open={showAudioDialog}
+        onOpenChange={setShowAudioDialog}
+        onSendMessage={handleMediaSend}
+      />
+
+      <div className={cn(
+        "p-4 border-t border-white/20",
+        "bg-gradient-to-r from-white/10 via-white/5 to-white/10",
+        "backdrop-blur-lg backdrop-saturate-150"
+      )}>
         <div className="flex gap-3 items-end">
-          {/* Botões de Ação Rápida */}
+          {/* ✅ BOTÕES DE AÇÃO RÁPIDA - APENAS MÍDIA */}
           <div className="flex gap-1">
             <QuickActionsPopover 
               onSendMessage={handleMediaSend}
               onOpenPhotoDialog={() => setShowPhotoDialog(true)}
               onOpenFileDialog={() => setShowFileDialog(true)}
+              onOpenVideoDialog={() => setShowVideoDialog(true)}
             />
             <QuickMessagesPopover 
               onQuickMessage={handleQuickMessage}
@@ -131,10 +145,11 @@ export const WhatsAppMessageInput = ({
               placeholder="Digite uma mensagem..."
               className={cn(
                 "min-h-[44px] max-h-[120px] resize-none",
-                "bg-white/70 backdrop-blur-sm border-white/30 text-gray-900",
-                "focus:bg-white/80 focus:border-green-400/50 focus:ring-green-400/30",
+                "bg-white/80 backdrop-blur-sm border-white/40 text-gray-900",
+                "focus:bg-white/90 focus:border-green-400/60 focus:ring-green-400/30",
                 "placeholder:text-gray-500",
                 "rounded-2xl px-4 py-3",
+                "shadow-sm",
                 "transition-all duration-200"
               )}
             />
@@ -150,6 +165,24 @@ export const WhatsAppMessageInput = ({
             )}
           </div>
           
+          {/* ✅ BOTÃO DE GRAVAÇÃO DE ÁUDIO */}
+          <Button
+            onClick={() => setShowAudioDialog(true)}
+            disabled={isSending}
+            size="lg"
+            className={cn(
+              "h-[44px] w-[44px] rounded-full p-0 transition-all duration-200",
+              "bg-white/20 hover:bg-white/30 backdrop-blur-sm",
+              "border border-white/30 hover:border-orange-200/50",
+              "text-orange-600 hover:text-orange-700",
+              "shadow-sm hover:shadow-md hover:scale-105",
+              "disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            )}
+          >
+            <Mic className="h-5 w-5" />
+          </Button>
+          
+          {/* ✅ BOTÃO DE ENVIAR */}
           <Button
             onClick={handleSend}
             disabled={!canSend || isSending}
@@ -157,8 +190,8 @@ export const WhatsAppMessageInput = ({
             className={cn(
               "h-[44px] w-[44px] rounded-full p-0 transition-all duration-200",
               canSend && !isSending
-                ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                ? "bg-gradient-to-r from-green-500/90 to-green-600/90 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105 backdrop-blur-sm"
+                : "bg-gray-300/80 text-gray-500 cursor-not-allowed backdrop-blur-sm"
             )}
           >
             {isSending ? (
@@ -169,9 +202,9 @@ export const WhatsAppMessageInput = ({
           </Button>
         </div>
         
-        {/* Indicador discreto de mensagens sendo enviadas */}
+        {/* Indicador de envio */}
         {isSending && (
-          <div className="flex items-center gap-2 mt-1 text-xs text-green-600/70">
+          <div className="flex items-center gap-2 mt-2 text-xs text-green-600/80">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
             <span>Enviando...</span>
           </div>
