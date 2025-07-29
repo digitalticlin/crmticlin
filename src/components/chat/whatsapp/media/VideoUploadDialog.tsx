@@ -113,12 +113,12 @@ export const VideoUploadDialog: React.FC<VideoUploadDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(
         "sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col",
-        "bg-white/95 backdrop-blur-md border border-white/30",
-        "shadow-2xl backdrop-saturate-150"
+        "bg-white/95 backdrop-blur-xl border border-gray-200/30",
+        "shadow-xl backdrop-saturate-150"
       )}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <VideoIcon className="h-5 w-5 text-purple-600" />
+            <VideoIcon className="h-5 w-5 text-gray-600" />
             Enviar Vídeo{selectedFiles.length > 1 ? 's' : ''}
             {selectedFiles.length > 0 && (
               <span className="text-sm text-gray-500">({selectedFiles.length}/10)</span>
@@ -130,10 +130,10 @@ export const VideoUploadDialog: React.FC<VideoUploadDialogProps> = ({
           {/* Área de Upload */}
           {selectedFiles.length === 0 && (
             <div className={cn(
-              "border-2 border-dashed border-purple-300/50 rounded-2xl p-8 text-center",
-              "bg-gradient-to-br from-purple-50/50 to-white/30 backdrop-blur-sm"
+              "border-2 border-dashed border-gray-300/50 rounded-2xl p-8 text-center",
+              "bg-white/50 backdrop-blur-sm"
             )}>
-              <VideoIcon className="h-12 w-12 mx-auto text-purple-400 mb-4" />
+              <VideoIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
               <p className="text-gray-600 mb-2 font-medium">
                 Selecione vídeos para enviar
               </p>
@@ -143,7 +143,7 @@ export const VideoUploadDialog: React.FC<VideoUploadDialogProps> = ({
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="bg-purple-600 hover:bg-purple-700 shadow-lg"
+                className="bg-gray-800 hover:bg-gray-900 text-white shadow-lg"
               >
                 {isUploading ? (
                   <>
@@ -182,7 +182,7 @@ export const VideoUploadDialog: React.FC<VideoUploadDialogProps> = ({
                     size="sm"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={selectedFiles.length >= 10 || isProcessing}
-                    className="backdrop-blur-sm bg-white/50"
+                    className="backdrop-blur-sm bg-white/50 border-gray-200"
                   >
                     <VideoIcon className="h-4 w-4 mr-1" />
                     Adicionar Mais
@@ -192,7 +192,7 @@ export const VideoUploadDialog: React.FC<VideoUploadDialogProps> = ({
                     size="sm"
                     onClick={handleRemoveAll}
                     disabled={isProcessing}
-                    className="backdrop-blur-sm bg-white/50"
+                    className="backdrop-blur-sm bg-white/50 border-gray-200"
                   >
                     <X className="h-4 w-4 mr-1" />
                     Limpar Todos
@@ -205,7 +205,7 @@ export const VideoUploadDialog: React.FC<VideoUploadDialogProps> = ({
                   <div key={index} className="relative group">
                     <div className={cn(
                       "relative rounded-xl overflow-hidden aspect-video",
-                      "bg-gradient-to-br from-purple-50/80 to-white/50 backdrop-blur-sm border border-purple-200/30"
+                      "bg-white/30 backdrop-blur-sm border border-gray-200/30"
                     )}>
                       <video
                         src={file.url}
@@ -248,9 +248,9 @@ export const VideoUploadDialog: React.FC<VideoUploadDialogProps> = ({
 
           {/* Progresso de envio */}
           {isSending && (
-            <div className="bg-purple-50/80 backdrop-blur-sm p-3 rounded-xl border border-purple-200/30">
+            <div className="bg-gray-50/80 backdrop-blur-sm p-3 rounded-xl border border-gray-200/30">
               <div className="flex items-center gap-2 mb-2">
-                <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
+                <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
                 <span className="text-sm font-medium">
                   Enviando vídeo {currentProcessingIndex + 1} de {selectedFiles.length}
                 </span>
@@ -267,7 +267,7 @@ export const VideoUploadDialog: React.FC<VideoUploadDialogProps> = ({
             <Button
               variant="outline"
               onClick={handleClose}
-              className="flex-1 backdrop-blur-sm bg-white/50"
+              className="flex-1 backdrop-blur-sm bg-white/50 border-gray-200"
               disabled={isProcessing}
             >
               Cancelar
@@ -276,7 +276,7 @@ export const VideoUploadDialog: React.FC<VideoUploadDialogProps> = ({
               onClick={handleSendAll}
               disabled={!canSend}
               className={cn(
-                "flex-1 bg-purple-600 hover:bg-purple-700 shadow-lg",
+                "flex-1 bg-gray-800 hover:bg-gray-900 text-white shadow-lg",
                 !canSend && "opacity-50 cursor-not-allowed"
               )}
             >
