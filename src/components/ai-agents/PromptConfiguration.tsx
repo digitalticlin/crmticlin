@@ -6,7 +6,8 @@ import { AIAgent } from "@/types/aiAgent";
 import { useAIAgentPrompts } from "@/hooks/useAIAgentPrompts";
 import { ObjectivesList } from "./ObjectivesList";
 import { User, MessageSquare, Building, Package, AlertTriangle, ListChecks } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 
 interface PromptConfigurationProps {
   agent?: AIAgent | null;
@@ -34,6 +35,54 @@ export const PromptConfiguration = ({
 }: PromptConfigurationProps) => {
   const { createPrompt, updatePrompt, getPromptByAgentId } = useAIAgentPrompts();
   const [isLoading, setIsLoading] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
+
+  // Auto-save debounced function
+  const debouncedAutoSave = useCallback(
+    async (data: typeof promptData) => {
+      if (!agent?.id) return;
+      
+      setAutoSaving(true);
+      try {
+        const existingPrompt = await getPromptByAgentId(agent.id);
+        
+        if (existingPrompt) {
+          await updatePrompt(existingPrompt.id, data);
+        } else {
+          await createPrompt({
+            agent_id: agent.id,
+            ...data
+          });
+        }
+      } catch (error) {
+        console.error('Auto-save error:', error);
+      } finally {
+        setAutoSaving(false);
+      }
+    },
+    [agent?.id, createPrompt, updatePrompt, getPromptByAgentId]
+  );
+
+  // Auto-save effect with debounce
+  useEffect(() => {
+    if (!agent?.id) return;
+    
+    const timeoutId = setTimeout(() => {
+      // Only auto-save if there's actual data
+      const hasData = promptData.agent_function || 
+                     promptData.communication_style || 
+                     promptData.company_info || 
+                     promptData.product_service_info || 
+                     promptData.prohibitions || 
+                     promptData.objectives.length > 0;
+      
+      if (hasData) {
+        debouncedAutoSave(promptData);
+      }
+    }, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }, [promptData, agent?.id, debouncedAutoSave]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +90,6 @@ export const PromptConfiguration = ({
 
     setIsLoading(true);
     try {
-      // Check if prompt already exists
       const existingPrompt = await getPromptByAgentId(agent.id);
       
       if (existingPrompt) {
@@ -52,7 +100,11 @@ export const PromptConfiguration = ({
           ...promptData
         });
       }
+      toast.success('Configuração salva com sucesso!');
       onSave();
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Erro ao salvar configuração');
     } finally {
       setIsLoading(false);
     }
@@ -70,6 +122,9 @@ export const PromptConfiguration = ({
             <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
               <ListChecks className="h-5 w-5 text-yellow-500" />
               Fluxo de Conversação
+              {autoSaving && (
+                <span className="text-xs text-yellow-600 ml-auto">Salvando...</span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -105,6 +160,12 @@ export const PromptConfiguration = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {autoSaving && (
+        <div className="text-xs text-yellow-600 text-right mb-2">
+          Salvando automaticamente...
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Função do Agente */}
         <div className="md:col-span-2">

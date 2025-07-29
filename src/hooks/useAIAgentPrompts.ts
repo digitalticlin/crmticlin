@@ -41,10 +41,16 @@ export const useAIAgentPrompts = (agentId?: string) => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Usuário não autenticado');
 
+      // Ensure objectives is properly formatted
+      const formattedData = {
+        ...data,
+        objectives: Array.isArray(data.objectives) ? data.objectives : []
+      };
+
       const { data: prompt, error } = await supabase
         .from('ai_agent_prompts')
         .insert({
-          ...data,
+          ...formattedData,
           created_by_user_id: user.user.id
         })
         .select()
@@ -58,34 +64,34 @@ export const useAIAgentPrompts = (agentId?: string) => {
         objectives: Array.isArray(prompt.objectives) ? prompt.objectives as string[] : []
       };
       
-      // Refetch to ensure synchronization
+      // Update local state
       await fetchPrompts(data.agent_id);
-      toast.success('Prompt criado com sucesso');
       return typedPrompt;
     } catch (error) {
       console.error('Error creating AI agent prompt:', error);
-      toast.error('Erro ao criar prompt');
-      return null;
+      throw error;
     }
   };
 
   const updatePrompt = async (id: string, updates: Partial<AIAgentPrompt>): Promise<boolean> => {
     try {
+      // Ensure objectives is properly formatted
+      const formattedUpdates = {
+        ...updates,
+        objectives: Array.isArray(updates.objectives) ? updates.objectives : []
+      };
+
       const { error } = await supabase
         .from('ai_agent_prompts')
-        .update(updates)
+        .update(formattedUpdates)
         .eq('id', id);
 
       if (error) throw error;
       
-      // Refetch to ensure synchronization
-      await fetchPrompts();
-      toast.success('Prompt atualizado com sucesso');
       return true;
     } catch (error) {
       console.error('Error updating AI agent prompt:', error);
-      toast.error('Erro ao atualizar prompt');
-      return false;
+      throw error;
     }
   };
 
@@ -95,9 +101,9 @@ export const useAIAgentPrompts = (agentId?: string) => {
         .from('ai_agent_prompts')
         .select('*')
         .eq('agent_id', targetAgentId)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       
       if (!data) return null;
       

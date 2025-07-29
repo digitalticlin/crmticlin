@@ -18,10 +18,10 @@ interface AIAgentModalProps {
 
 export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalProps) => {
   const [activeTab, setActiveTab] = useState("basic");
-  const [currentAgent, setCurrentAgent] = useState<AIAgent | null>(agent || null);
+  const [workingAgent, setWorkingAgent] = useState<AIAgent | null>(null);
   const { getPromptByAgentId } = useAIAgentPrompts();
   
-  // Centralized form data state
+  // Centralized form data state with better initialization
   const [promptData, setPromptData] = useState({
     agent_function: "",
     communication_style: "",
@@ -31,41 +31,28 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     objectives: [] as string[]
   });
 
-  // Load existing prompt data when agent changes
+  // Auto-save functionality
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Initialize or reset state when modal opens/closes or agent changes
   useEffect(() => {
-    const loadPromptData = async () => {
-      if (currentAgent?.id || agent?.id) {
-        const existingPrompt = await getPromptByAgentId((currentAgent || agent)!.id);
-        if (existingPrompt) {
-          setPromptData({
-            agent_function: existingPrompt.agent_function || "",
-            communication_style: existingPrompt.communication_style || "",
-            company_info: existingPrompt.company_info || "",
-            product_service_info: existingPrompt.product_service_info || "",
-            prohibitions: existingPrompt.prohibitions || "",
-            objectives: Array.isArray(existingPrompt.objectives) ? existingPrompt.objectives : []
-          });
-        }
-      }
-    };
-    
-    if (isOpen) {
-      loadPromptData();
+    if (isOpen && agent) {
+      setWorkingAgent(agent);
+      loadPromptData(agent.id);
+    } else if (isOpen && !agent) {
+      // Reset state for new agent
+      setWorkingAgent(null);
+      resetPromptData();
+    } else if (!isOpen) {
+      // Reset everything when modal closes
+      setActiveTab("basic");
+      setWorkingAgent(null);
+      resetPromptData();
+      setHasUnsavedChanges(false);
     }
-  }, [currentAgent, agent, isOpen, getPromptByAgentId]);
+  }, [isOpen, agent]);
 
-  const handleAgentSaved = (savedAgent: AIAgent) => {
-    setCurrentAgent(savedAgent);
-    setActiveTab("prompt");
-  };
-
-  const handlePromptDataChange = (field: keyof typeof promptData, value: any) => {
-    setPromptData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleClose = () => {
-    setActiveTab("basic");
-    setCurrentAgent(null);
+  const resetPromptData = () => {
     setPromptData({
       agent_function: "",
       communication_style: "",
@@ -74,14 +61,54 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       prohibitions: "",
       objectives: []
     });
+  };
+
+  const loadPromptData = async (agentId: string) => {
+    try {
+      const existingPrompt = await getPromptByAgentId(agentId);
+      if (existingPrompt) {
+        setPromptData({
+          agent_function: existingPrompt.agent_function || "",
+          communication_style: existingPrompt.communication_style || "",
+          company_info: existingPrompt.company_info || "",
+          product_service_info: existingPrompt.product_service_info || "",
+          prohibitions: existingPrompt.prohibitions || "",
+          objectives: Array.isArray(existingPrompt.objectives) ? existingPrompt.objectives : []
+        });
+      } else {
+        resetPromptData();
+      }
+    } catch (error) {
+      console.error('Error loading prompt data:', error);
+      resetPromptData();
+    }
+  };
+
+  const handleAgentSaved = (savedAgent: AIAgent) => {
+    setWorkingAgent(savedAgent);
+    // Auto-navigate to prompt configuration after agent creation
+    setActiveTab("prompt");
+    // Load existing prompt data if any
+    loadPromptData(savedAgent.id);
+  };
+
+  const handlePromptDataChange = (field: keyof typeof promptData, value: any) => {
+    setPromptData(prev => ({ ...prev, [field]: value }));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleClose = () => {
     onClose();
   };
 
   const handleSave = () => {
+    setHasUnsavedChanges(false);
     onSave();
     handleClose();
   };
 
+  // Get current agent (either existing or newly created)
+  const currentAgent = workingAgent || agent;
   const stepsCount = promptData.objectives.length;
 
   return (
@@ -96,6 +123,9 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           </DialogTitle>
           <p className="text-gray-700 mt-1 text-sm font-medium">
             Configure seu assistente inteligente para automatizar conversas e processos
+            {hasUnsavedChanges && (
+              <span className="ml-2 text-yellow-600">• Alterações não salvas</span>
+            )}
           </p>
         </DialogHeader>
 
@@ -113,7 +143,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
               <TabsTrigger 
                 value="prompt" 
                 className="flex items-center gap-2 text-xs font-medium data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-glass data-[state=active]:border data-[state=active]:border-white/50 rounded-lg py-2 px-3 transition-all duration-300 hover:bg-white/30"
-                disabled={!currentAgent && !agent}
+                disabled={!currentAgent}
               >
                 <MessageSquare className="h-3 w-3" />
                 <span className="hidden sm:inline">Configuração do Prompt</span>
@@ -122,7 +152,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
               <TabsTrigger 
                 value="objectives" 
                 className="flex items-center gap-2 text-xs font-medium data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-glass data-[state=active]:border data-[state=active]:border-white/50 rounded-lg py-2 px-3 transition-all duration-300 hover:bg-white/30"
-                disabled={!currentAgent && !agent}
+                disabled={!currentAgent}
               >
                 <ListChecks className="h-3 w-3" />
                 <span className="hidden sm:inline">Fluxo do Agente</span>
@@ -173,7 +203,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
                 </CardHeader>
                 <CardContent className="p-4 bg-white/20 backdrop-blur-sm rounded-b-xl">
                   <PromptConfiguration 
-                    agent={currentAgent || agent} 
+                    agent={currentAgent} 
                     promptData={promptData}
                     onPromptDataChange={handlePromptDataChange}
                     onSave={handleSave}
@@ -203,7 +233,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
                 </CardHeader>
                 <CardContent className="p-4 bg-white/20 backdrop-blur-sm rounded-b-xl">
                   <PromptConfiguration 
-                    agent={currentAgent || agent} 
+                    agent={currentAgent} 
                     promptData={promptData}
                     onPromptDataChange={handlePromptDataChange}
                     onSave={handleSave}
