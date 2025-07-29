@@ -40,7 +40,7 @@ export const MessageItem = memo(({
   return (
     <div
       className={cn(
-        "flex mb-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300",
+        "flex mb-4 px-2 animate-in fade-in-0 slide-in-from-bottom-2 duration-300",
         isIncoming ? "justify-start" : "justify-end",
         isNewMessage && "duration-500"
       )}
