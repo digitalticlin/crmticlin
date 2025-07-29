@@ -81,7 +81,6 @@ const ContactsList: React.FC<ContactsListProps> = ({
             contact={contact}
             isSelected={selectedContact?.id === contact.id}
             onSelect={() => onSelectContact(contact)}
-            searchQuery={searchQuery}
           />
         ))}
       </div>
