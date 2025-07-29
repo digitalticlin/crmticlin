@@ -33,6 +33,13 @@ export interface WhatsAppInstance {
   created_by_user_id?: string;
 }
 
+// 🚀 CORREÇÃO: Interface para payload do realtime
+interface RealtimePayload {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new?: WhatsAppInstance;
+  old?: WhatsAppInstance;
+}
+
 export const useWhatsAppDatabase = () => {
   const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +55,15 @@ export const useWhatsAppDatabase = () => {
   // 🚀 CORREÇÃO: Throttling para atualizações em massa
   const throttleRef = useRef<NodeJS.Timeout | null>(null);
   const pendingUpdate = useRef<boolean>(false);
+
+  // 🚀 CORREÇÃO: Sistema de reconexão com backoff exponencial
+  const reconnectAttempts = useRef<number>(0);
+  const maxReconnectAttempts = 5;
+  const baseDelay = 1000; // 1 segundo
+
+  // 🚀 CORREÇÃO: Queue para mensagens perdidas durante desconexões
+  const messageQueue = useRef<RealtimePayload[]>([]);
+  const isProcessingQueue = useRef<boolean>(false);
 
   const throttledFetchInstances = useCallback(() => {
     if (throttleRef.current) {
@@ -65,6 +81,61 @@ export const useWhatsAppDatabase = () => {
       }
     }, 1000); // Throttle de 1 segundo
   }, []);
+
+  // 🚀 CORREÇÃO: Processar queue de mensagens perdidas
+  const processMessageQueue = useCallback(async () => {
+    if (isProcessingQueue.current || messageQueue.current.length === 0) return;
+    
+    isProcessingQueue.current = true;
+    console.log('[WhatsApp Database] 🔄 Processando queue de mensagens perdidas:', messageQueue.current.length);
+    
+    try {
+      // Processar todas as mensagens na queue
+      for (const queuedPayload of messageQueue.current) {
+        await new Promise(resolve => setTimeout(resolve, 100)); // Pequeno delay entre processamentos
+        // Reprocessar o payload
+        handleRealtimeUpdate(queuedPayload);
+      }
+      
+      // Limpar queue após processamento
+      messageQueue.current = [];
+      console.log('[WhatsApp Database] ✅ Queue processada com sucesso');
+      
+    } catch (error) {
+      console.error('[WhatsApp Database] ❌ Erro ao processar queue:', error);
+    } finally {
+      isProcessingQueue.current = false;
+    }
+  }, []);
+
+  // 🚀 CORREÇÃO: Sistema de reconexão automática
+  const attemptReconnection = useCallback(async () => {
+    if (reconnectAttempts.current >= maxReconnectAttempts) {
+      console.error('[WhatsApp Database] ❌ Máximo de tentativas de reconexão atingido');
+      setError('Falha na reconexão após múltiplas tentativas');
+      return;
+    }
+
+    const delay = baseDelay * Math.pow(2, reconnectAttempts.current);
+    reconnectAttempts.current++;
+    
+    console.log(`[WhatsApp Database] 🔄 Tentativa de reconexão ${reconnectAttempts.current}/${maxReconnectAttempts} em ${delay}ms`);
+    
+    setTimeout(async () => {
+      try {
+        await fetchInstances();
+        reconnectAttempts.current = 0; // Reset em caso de sucesso
+        console.log('[WhatsApp Database] ✅ Reconexão bem-sucedida');
+        
+        // Processar queue de mensagens perdidas
+        await processMessageQueue();
+        
+      } catch (error) {
+        console.error('[WhatsApp Database] ❌ Falha na reconexão:', error);
+        attemptReconnection(); // Tentar novamente
+      }
+    }, delay);
+  }, [fetchInstances, processMessageQueue]);
 
   const fetchInstances = useCallback(async () => {
     try {
@@ -135,10 +206,43 @@ export const useWhatsAppDatabase = () => {
     } catch (error: any) {
       console.error('[WhatsApp Database] ❌ Erro ao carregar instâncias:', error);
       setError(error.message);
+      
+      // 🚀 CORREÇÃO: Tentar reconexão em caso de erro de rede
+      if (error.message?.includes('Failed to fetch') || error.code === 'PGRST301') {
+        attemptReconnection();
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, user?.email]);
+  }, [user?.id, user?.email, attemptReconnection]);
+
+  // 🚀 CORREÇÃO: Handler para updates do realtime
+  const handleRealtimeUpdate = useCallback((payload: RealtimePayload) => {
+    if (!user?.id) return;
+
+    console.log('[WhatsApp Database] 📱 Realtime update para usuário:', {
+      userId: user.id,
+      event: payload.eventType,
+      instanceId: payload.new?.id || payload.old?.id
+    });
+    
+    // 🚀 CORREÇÃO: Validação dupla de ownership com tipagem correta
+    const instanceData = payload.new || payload.old;
+    if (instanceData && instanceData.created_by_user_id !== user.id) {
+      console.warn('[WhatsApp Database] 🚨 Tentativa de update cross-user bloqueada:', {
+        instanceOwner: instanceData.created_by_user_id,
+        currentUser: user.id,
+        instanceId: instanceData.id
+      });
+      return;
+    }
+    
+    // Invalidar cache
+    activeInstanceCache.current = {};
+    
+    // 🚀 CORREÇÃO: Usar throttling para updates
+    throttledFetchInstances();
+  }, [user?.id, throttledFetchInstances]);
 
   // 🚀 CORREÇÃO: getActiveInstance com cache inteligente
   const getActiveInstance = useMemo(() => {
@@ -272,7 +376,7 @@ export const useWhatsAppDatabase = () => {
     }
   }, [user?.id, fetchInstances]);
 
-  // 🚀 CORREÇÃO: Realtime subscription com validação rigorosa
+  // 🚀 CORREÇÃO: Realtime subscription com validação rigorosa e reconexão
   useEffect(() => {
     if (!user?.id) return;
 
@@ -289,37 +393,44 @@ export const useWhatsAppDatabase = () => {
           filter: `created_by_user_id=eq.${user.id}` // 🚀 CORREÇÃO: Filtro rigoroso
         },
         (payload) => {
-          console.log('[WhatsApp Database] 📱 Realtime update para usuário:', {
-            userId: user.id,
-            event: payload.eventType,
-            instanceId: (payload.new as any)?.id || (payload.old as any)?.id
-          });
-          
-          // 🚀 CORREÇÃO: Validação dupla de ownership
-          const instanceData = payload.new || payload.old;
-          if (instanceData && instanceData.created_by_user_id !== user.id) {
-            console.warn('[WhatsApp Database] 🚨 Tentativa de update cross-user bloqueada:', {
-              instanceOwner: instanceData.created_by_user_id,
-              currentUser: user.id,
-              instanceId: instanceData.id
-            });
+          // 🚀 CORREÇÃO: Verificar se a conexão está ativa
+          if (channel.state === 'closed') {
+            console.warn('[WhatsApp Database] ⚠️ Canal fechado, adicionando à queue');
+            messageQueue.current.push(payload as RealtimePayload);
             return;
           }
           
-          // Invalidar cache
-          activeInstanceCache.current = {};
-          
-          // 🚀 CORREÇÃO: Usar throttling para updates
-          throttledFetchInstances();
+          handleRealtimeUpdate(payload as RealtimePayload);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[WhatsApp Database] 📡 Status da subscription:', status);
+        
+        if (status === 'CHANNEL_ERROR') {
+          console.error('[WhatsApp Database] ❌ Erro no canal, tentando reconexão');
+          attemptReconnection();
+        }
+        
+        if (status === 'SUBSCRIBED') {
+          reconnectAttempts.current = 0; // Reset counter on successful connection
+          console.log('[WhatsApp Database] ✅ Subscription ativa');
+        }
+      });
+
+    // 🚀 CORREÇÃO: Heartbeat para detectar conexões mortas
+    const heartbeatInterval = setInterval(() => {
+      if (channel.state === 'closed') {
+        console.warn('[WhatsApp Database] 💔 Conexão morta detectada, tentando reconexão');
+        attemptReconnection();
+      }
+    }, 30000); // Check a cada 30 segundos
 
     return () => {
       console.log('[WhatsApp Database] 🔌 Removendo subscription para usuário:', user.id);
+      clearInterval(heartbeatInterval);
       supabase.removeChannel(channel);
     };
-  }, [user?.id, throttledFetchInstances]);
+  }, [user?.id, handleRealtimeUpdate, attemptReconnection]);
 
   // Cleanup ao desmontar
   useEffect(() => {
@@ -341,11 +452,13 @@ export const useWhatsAppDatabase = () => {
     healthScore,
     isHealthy,
     refetch,
-    // 🚀 CORREÇÃO: Expor estatísticas de cache
+    // 🚀 CORREÇÃO: Expor estatísticas de cache e conexão
     cacheStats: {
       activeInstancesCount: Object.keys(activeInstanceCache.current).length,
       cacheAge: Date.now() - cacheTimestamp.current,
-      isCacheValid: Date.now() - cacheTimestamp.current < cacheValidityMs
+      isCacheValid: Date.now() - cacheTimestamp.current < cacheValidityMs,
+      reconnectAttempts: reconnectAttempts.current,
+      queuedMessages: messageQueue.current.length
     }
   };
 };
