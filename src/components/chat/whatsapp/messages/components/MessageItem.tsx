@@ -10,7 +10,7 @@ import { CheckCircle, Info, AlertCircle } from 'lucide-react';
 
 interface MessageItemProps {
   message: any;
-  isLast: boolean;
+  isLastMessage: boolean; // Fixed: Changed from isLast to isLastMessage
   onResend?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   className?: string;
@@ -18,7 +18,7 @@ interface MessageItemProps {
 
 export function MessageItem({ 
   message, 
-  isLast, 
+  isLastMessage, // Fixed: Updated to match the prop name
   onResend, 
   onDelete,
   className = ""
@@ -28,7 +28,7 @@ export function MessageItem({
     locale: ptBR
   });
 
-  const isFromMe = message.from_me;
+  const isFromMe = message.fromMe;
   const hasError = message.status === 'error' || message.status === 'failed';
   const isPending = message.status === 'pending';
 
@@ -36,7 +36,7 @@ export function MessageItem({
     <div className={cn(
       "message-item w-full px-4 py-2 transition-all duration-300",
       "animate-in fade-in-0 slide-in-from-bottom-2",
-      isLast && "pb-6",
+      isLastMessage && "pb-6", // Fixed: Updated to use isLastMessage
       className
     )}>
       <div className={cn(
