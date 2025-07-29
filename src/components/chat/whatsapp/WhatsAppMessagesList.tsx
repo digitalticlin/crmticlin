@@ -55,7 +55,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
       style={{ 
         scrollBehavior: 'smooth',
         overflowAnchor: 'none',
-        // ✅ OTIMIZAÇÃO: Scroll interno otimizado
+        // Otimizações para scroll automático
         scrollPaddingBottom: '16px'
       }}
     >
@@ -68,10 +68,10 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
         messagesCount={messages.length}
       />
 
-      {/* ✅ SCROLL ESPECÍFICO: Lista de mensagens com padding lateral */}
+      {/* Lista de mensagens com padding lateral */}
       <div className="px-2">
         {messagesList.map((message, index) => {
-          const isNewMessage = index === messagesList.length - 1;
+          const isNewMessage = index === messagesList.length - 1; // Última mensagem é a mais nova
           
           return (
             <MessageItem
@@ -83,7 +83,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
         })}
       </div>
       
-      {/* ✅ ELEMENTO ÂNCORA: Para scroll automático otimizado */}
+      {/* Elemento para scroll automático - mais robusto */}
       <div 
         ref={messagesEndRef} 
         className="h-4 w-full" 

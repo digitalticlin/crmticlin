@@ -63,8 +63,8 @@ export const WhatsAppContactsList = React.memo(({
 
   return (
     <div className="h-full flex flex-col relative z-10">
-      {/* Header com busca - MANTÉM altura fixa */}
-      <div className="flex-shrink-0 p-4 border-b border-white/20 backdrop-blur-sm bg-gradient-to-r from-white/10 to-white/5">
+      {/* Header com busca */}
+      <div className="p-4 border-b border-white/20 backdrop-blur-sm bg-gradient-to-r from-white/10 to-white/5">
         <div className="space-y-3">
           {/* Título */}
           <div className="flex items-center justify-between">
@@ -130,23 +130,19 @@ export const WhatsAppContactsList = React.memo(({
         </div>
       </div>
 
-      {/* ✅ SCROLL INTERNO: Container da lista com scroll específico */}
-      <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto contacts-scrollbar">
-          <ContactsList
-            contacts={finalContacts}
-            selectedContact={selectedContact}
-            onSelectContact={onSelectContact}
-            searchQuery={searchQuery}
-            activeFilter={activeFilter}
-            isLoadingMore={isLoadingMore}
-            hasMoreContacts={hasMoreContacts}
-            onLoadMoreContacts={onLoadMoreContacts}
-            onRefreshContacts={onRefreshContacts}
-            totalContactsAvailable={totalContactsAvailable}
-          />
-        </div>
-      </div>
+      {/* Lista de contatos */}
+      <ContactsList
+        contacts={finalContacts}
+        selectedContact={selectedContact}
+        onSelectContact={onSelectContact}
+        searchQuery={searchQuery}
+        activeFilter={activeFilter}
+        isLoadingMore={isLoadingMore}
+        hasMoreContacts={hasMoreContacts}
+        onLoadMoreContacts={onLoadMoreContacts}
+        onRefreshContacts={onRefreshContacts}
+        totalContactsAvailable={totalContactsAvailable}
+      />
 
       {/* Loading indicator */}
       {isLoading && contacts.length === 0 && (
