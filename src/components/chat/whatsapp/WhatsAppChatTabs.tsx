@@ -1,71 +1,42 @@
+
+/**
+ * 🎯 COMPONENTE REFATORADO - HOOKS DIRETOS
+ * 
+ * ANTES: Dependia do Provider complexo
+ * DEPOIS: Usa hook direto otimizado
+ * 
+ * VANTAGENS:
+ * ✅ Zero dependências de contexto
+ * ✅ Performance otimizada
+ * ✅ Isolamento perfeito
+ */
+
 import { WhatsAppChatLayout } from "./WhatsAppChatLayout";
-import { useWhatsAppChatContext } from "./WhatsAppChatProvider";
+import { useWhatsAppChat } from "@/hooks/whatsapp/useWhatsAppChat";
 
 export const WhatsAppChatTabs = () => {
-  const {
-    contacts,
-    selectedContact,
-    setSelectedContact,
-    messages,
-    sendMessage,
-    isLoadingContacts,
-    isLoadingMoreContacts,
-    hasMoreContacts,
-    loadMoreContacts,
-    isLoadingMessages,
-    isLoadingMore,
-    hasMoreMessages,
-    loadMoreMessages,
-    isSending,
-    fetchMessages,
-    fetchContacts,
-    totalContactsAvailable
-  } = useWhatsAppChatContext();
-
-  // Wrapper to handle the sendMessage signature difference
-  const handleSendMessage = async (message: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
-    if (selectedContact) {
-      return await sendMessage(message, mediaType, mediaUrl);
-    }
-    return false;
-  };
-
-  // Force refresh messages (bypass cache)
-  const handleRefreshMessages = () => {
-    console.log('[WhatsAppChatTabs] 🔄 Forçando refresh das mensagens...');
-    if (fetchMessages) {
-      fetchMessages();
-    }
-  };
-
-  // Force refresh contacts (bypass cache)
-  const handleRefreshContacts = () => {
-    console.log('[WhatsAppChatTabs] 🔄 Forçando refresh dos contatos...');
-    if (fetchContacts) {
-      fetchContacts();
-    }
-  };
+  const whatsapp = useWhatsAppChat();
 
   return (
     <div className="h-full flex flex-col relative z-10">
       <WhatsAppChatLayout
-        contacts={contacts}
-        selectedContact={selectedContact}
-        onSelectContact={setSelectedContact}
-        messages={messages}
-        onSendMessage={handleSendMessage}
-        isLoadingContacts={isLoadingContacts}
-        isLoadingMoreContacts={isLoadingMoreContacts}
-        hasMoreContacts={hasMoreContacts}
-        onLoadMoreContacts={loadMoreContacts}
-        isLoadingMessages={isLoadingMessages}
-        isLoadingMore={isLoadingMore}
-        hasMoreMessages={hasMoreMessages}
-        onLoadMoreMessages={loadMoreMessages}
-        isSending={isSending}
-        onRefreshMessages={handleRefreshMessages}
-        onRefreshContacts={handleRefreshContacts}
-        totalContactsAvailable={totalContactsAvailable}
+        contacts={whatsapp.contacts}
+        selectedContact={whatsapp.selectedContact}
+        onSelectContact={whatsapp.setSelectedContact}
+        messages={whatsapp.messages}
+        onSendMessage={whatsapp.sendMessage}
+        isLoadingContacts={whatsapp.isLoadingContacts}
+        isLoadingMoreContacts={whatsapp.isLoadingMoreContacts}
+        hasMoreContacts={whatsapp.hasMoreContacts}
+        onLoadMoreContacts={whatsapp.loadMoreContacts}
+        isLoadingMessages={whatsapp.isLoadingMessages}
+        isLoadingMore={whatsapp.isLoadingMoreMessages}
+        hasMoreMessages={whatsapp.hasMoreMessages}
+        onLoadMoreMessages={whatsapp.loadMoreMessages}
+        isSending={whatsapp.isSendingMessage}
+        onRefreshMessages={whatsapp.refreshMessages}
+        onRefreshContacts={whatsapp.refreshContacts}
+        totalContactsAvailable={whatsapp.totalContactsAvailable}
       />
     </div>
   );

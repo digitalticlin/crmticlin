@@ -1,14 +1,26 @@
 
+/**
+ * 🎯 PÁGINA SIMPLIFICADA - SEM PROVIDER
+ * 
+ * ANTES: Provider complexo com muitas responsabilidades
+ * DEPOIS: Componente simples que usa hook direto
+ * 
+ * VANTAGENS:
+ * ✅ Código mais limpo e legível
+ * ✅ Sem overhead de contexto
+ * ✅ Performance superior
+ */
+
 import { LoadingSpinner } from "@/components/ui/spinner";
 import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 import { WhatsAppChatTabs } from "./WhatsAppChatTabs";
-import { WhatsAppChatProvider, useWhatsAppChatContext } from "./WhatsAppChatProvider";
+import { useWhatsAppChat } from "@/hooks/whatsapp/useWhatsAppChat";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { cn } from "@/lib/utils";
 
 const WhatsAppChatContent = () => {
-  const { companyLoading } = useWhatsAppChatContext();
+  const { companyLoading } = useWhatsAppChat();
 
   if (companyLoading) {
     return <WhatsAppChatLoadingState />;
@@ -97,7 +109,6 @@ const WhatsAppChatMainContent = () => {
             ? "left-[64px]" 
             : "left-[200px]"
       )}>
-        {/* Container com padding igual ao Dashboard */}
         <div className={cn(
           "main-content-scale p-4 md:p-6 h-full",
           isMobile && "pt-6"
@@ -109,11 +120,7 @@ const WhatsAppChatMainContent = () => {
   );
 };
 
-// Fixed: Ensure WhatsAppChatContent is always wrapped by the provider
+// Componente principal sem Provider
 export const WhatsAppChatPage = () => {
-  return (
-    <WhatsAppChatProvider>
-      <WhatsAppChatContent />
-    </WhatsAppChatProvider>
-  );
+  return <WhatsAppChatContent />;
 };
