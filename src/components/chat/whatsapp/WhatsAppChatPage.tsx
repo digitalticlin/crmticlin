@@ -109,6 +109,7 @@ const WhatsAppChatMainContent = () => {
   );
 };
 
+// Fixed: Ensure WhatsAppChatContent is always wrapped by the provider
 export const WhatsAppChatPage = () => {
   return (
     <WhatsAppChatProvider>

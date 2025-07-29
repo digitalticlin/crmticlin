@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Contact, Message } from '@/types/chat';
 import { WhatsAppConnectionStatus } from '@/types/whatsapp';
@@ -125,19 +125,19 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
   // Callbacks memoizados para realtime
   const handleMoveContactToTop = useCallback((contactId: string, newMessage?: any) => {
     contactsHook.moveContactToTop(contactId, newMessage);
-  }, [contactsHook.moveContactToTop]);
+  }, [contactsHook]);
 
   const handleUpdateUnreadCount = useCallback((contactId: string, increment = true) => {
     contactsHook.updateUnreadCount(contactId, increment);
-  }, [contactsHook.updateUnreadCount]);
+  }, [contactsHook]);
 
   const handleAddNewContact = useCallback((newContactData: any) => {
     contactsHook.addNewContact(newContactData);
-  }, [contactsHook.addNewContact]);
+  }, [contactsHook]);
 
   const handleContactRefresh = useCallback(() => {
     contactsHook.refreshContacts();
-  }, [contactsHook.refreshContacts]);
+  }, [contactsHook]);
 
   // Hook de mensagens
   const messagesHook = useWhatsAppChatMessages({
@@ -198,7 +198,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     } : undefined;
     
     return await messagesHook.sendMessage(text, media);
-  }, [messagesHook.sendMessage]);
+  }, [messagesHook]);
 
   // Saúde da instância memoizada
   const instanceHealth = useMemo(() => ({
@@ -268,7 +268,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
   }, [contactsHook.contacts, handleSelectContact, handleContactRefresh]);
 
   // Valor do contexto otimizado
-  const value = useMemo((): WhatsAppChatContextType => ({
+  const contextValue = useMemo((): WhatsAppChatContextType => ({
     contacts: contactsHook.contacts,
     isLoadingContacts: contactsHook.isLoading,
     isLoadingMoreContacts: contactsHook.isLoadingMore,
@@ -321,7 +321,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
   ]);
 
   return (
-    <WhatsAppChatContext.Provider value={value}>
+    <WhatsAppChatContext.Provider value={contextValue}>
       {children}
     </WhatsAppChatContext.Provider>
   );
