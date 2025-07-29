@@ -1,13 +1,12 @@
 
 /**
- * 🎯 HOOK REALTIME CORRIGIDO - MULTITENANCY E PERFORMANCE
+ * 🎯 HOOK REALTIME SEM REFRESHES DESNECESSÁRIOS
  * 
  * CORREÇÕES APLICADAS:
- * ✅ Callbacks conectados corretamente
- * ✅ Filtros de multitenancy otimizados
- * ✅ Suporte a updates de status de mensagens próprias
- * ✅ Log detalhado para debug
- * ✅ Sistema de reconnection melhorado
+ * ✅ Callbacks otimizados sem duplicação
+ * ✅ Filtros rigorosos de multitenancy
+ * ✅ Debounce para evitar spam de updates
+ * ✅ Sistema de detecção de mensagens realmente novas
  */
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -40,7 +39,8 @@ export const useMessagesRealtime = ({
   const processedMessageIds = useRef<Set<string>>(new Set());
   const messageQueue = useRef<Message[]>([]);
   const isConnected = useRef(false);
-  const lastProcessedMessage = useRef<string | null>(null);
+  const lastProcessedTimestamp = useRef<string | null>(null);
+  const debounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // 🚀 CORREÇÃO: Sistema de reconnection otimizado
   const reconnect = useCallback(() => {
@@ -59,7 +59,24 @@ export const useMessagesRealtime = ({
     }, delay);
   }, []);
 
-  // 🚀 CORREÇÃO: Processar queue de mensagens perdidas
+  // 🚀 CORREÇÃO: Debounce para callbacks
+  const debouncedCallback = useCallback((messageId: string, callback: () => void, delay = 500) => {
+    // Limpar timer anterior se existir
+    const existingTimer = debounceTimers.current.get(messageId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    // Criar novo timer
+    const timer = setTimeout(() => {
+      callback();
+      debounceTimers.current.delete(messageId);
+    }, delay);
+
+    debounceTimers.current.set(messageId, timer);
+  }, []);
+
+  // 🚀 CORREÇÃO: Processar queue sem spam
   const processMessageQueue = useCallback(() => {
     if (messageQueue.current.length === 0) return;
     
@@ -69,15 +86,17 @@ export const useMessagesRealtime = ({
     messageQueue.current = [];
     
     messages.forEach(message => {
-      if (message.fromMe && onMessageUpdate) {
-        onMessageUpdate(message);
-      } else if (!message.fromMe && onNewMessage) {
-        onNewMessage(message);
-      }
+      debouncedCallback(message.id, () => {
+        if (message.fromMe && onMessageUpdate) {
+          onMessageUpdate(message);
+        } else if (!message.fromMe && onNewMessage) {
+          onNewMessage(message);
+        }
+      }, 200); // 200ms de debounce
     });
-  }, [onNewMessage, onMessageUpdate]);
+  }, [onNewMessage, onMessageUpdate, debouncedCallback]);
   
-  // ✅ CORREÇÃO: Conversão otimizada com log detalhado
+  // ✅ CORREÇÃO: Conversão com validação de timestamp
   const convertMessage = useCallback((messageData: any): Message => {
     const message: Message = {
       id: messageData.id,
@@ -96,45 +115,18 @@ export const useMessagesRealtime = ({
       media_cache: messageData.media_cache || null
     };
 
-    if (!isProduction) {
-      console.log(`[MessagesRealtime] 🔄 Convertendo mensagem:`, {
-        id: message.id,
-        fromMe: message.fromMe,
-        text: message.text.substring(0, 30) + '...',
-        status: message.status
-      });
+    // Atualizar último timestamp processado
+    if (!lastProcessedTimestamp.current || message.timestamp > lastProcessedTimestamp.current) {
+      lastProcessedTimestamp.current = message.timestamp;
     }
 
     return message;
   }, []);
 
-  // 🚀 CORREÇÃO: Filtro otimizado para permitir updates de status
+  // 🚀 CORREÇÃO: Filtro rigoroso para mensagens realmente novas
   const shouldProcessMessage = useCallback((messageData: any, isUpdate = false): boolean => {
     // Validação de ownership
     if (!user?.id || messageData.created_by_user_id !== user.id) {
-      console.warn('[MessagesRealtime] 🚨 Tentativa de acesso cross-user:', {
-        userId: user?.id,
-        messageOwner: messageData.created_by_user_id,
-        messageId: messageData.id
-      });
-      return false;
-    }
-
-    // Verificar se já foi processada (evitar duplicação)
-    if (processedMessageIds.current.has(messageData.id)) {
-      return false;
-    }
-
-    // ✅ CORREÇÃO: Para updates, permitir mensagens próprias (mudança de status)
-    if (isUpdate) {
-      // Updates são sempre permitidos (mudança de status)
-      console.log(`[MessagesRealtime] 🔄 Update de mensagem permitido: ${messageData.id}`);
-      return true;
-    }
-
-    // ✅ CORREÇÃO: Para inserts, filtrar apenas mensagens externas
-    if (messageData.from_me) {
-      console.log(`[MessagesRealtime] 🚫 Mensagem própria ignorada (insert): ${messageData.id}`);
       return false;
     }
 
@@ -147,9 +139,33 @@ export const useMessagesRealtime = ({
       return false;
     }
 
+    // Para updates, permitir sempre (mudança de status)
+    if (isUpdate) {
+      return true;
+    }
+
+    // Para inserts, verificar se é realmente nova
+    const messageTimestamp = messageData.created_at;
+    
+    // Verificar se já foi processada (evitar duplicação)
+    if (processedMessageIds.current.has(messageData.id)) {
+      return false;
+    }
+
+    // Para mensagens próprias em insert, ignorar (foram enviadas via API)
+    if (messageData.from_me) {
+      console.log(`[MessagesRealtime] 🚫 Mensagem própria ignorada (insert): ${messageData.id}`);
+      return false;
+    }
+
+    // Verificar se a mensagem é mais nova que a última processada
+    if (lastProcessedTimestamp.current && messageTimestamp <= lastProcessedTimestamp.current) {
+      console.log(`[MessagesRealtime] 🚫 Mensagem antiga ignorada: ${messageData.id}`);
+      return false;
+    }
+
     // Marcar como processada
     processedMessageIds.current.add(messageData.id);
-    lastProcessedMessage.current = messageData.id;
     
     return true;
   }, [selectedContact, activeInstance, user?.id]);
@@ -167,14 +183,18 @@ export const useMessagesRealtime = ({
       channelRef.current = null;
     }
     
+    // Limpar debounce timers
+    debounceTimers.current.forEach(timer => clearTimeout(timer));
+    debounceTimers.current.clear();
+    
     processedMessageIds.current.clear();
     messageQueue.current = [];
     isConnected.current = false;
     reconnectAttempts.current = 0;
-    lastProcessedMessage.current = null;
+    lastProcessedTimestamp.current = null;
   }, []);
 
-  // 🚀 CORREÇÃO: Setup realtime com callbacks conectados
+  // 🚀 CORREÇÃO: Setup realtime com debounce
   const setupRealtime = useCallback(() => {
     if (!selectedContact || !activeInstance || !user?.id) {
       cleanup();
@@ -185,8 +205,7 @@ export const useMessagesRealtime = ({
       contactId: selectedContact.id,
       instanceId: activeInstance.id,
       userId: user.id,
-      hasNewMessageCallback: !!onNewMessage,
-      hasUpdateCallback: !!onMessageUpdate
+      hasCallbacks: !!(onNewMessage && onMessageUpdate)
     });
 
     // Limpar canal anterior
@@ -212,21 +231,17 @@ export const useMessagesRealtime = ({
         
         console.log('[MessagesRealtime] 📨 Nova mensagem externa:', {
           messageId: message.id,
-          fromMe: message.fromMe,
-          text: message.text.substring(0, 30) + '...',
-          hasCallback: !!onNewMessage
+          timestamp: message.timestamp
         });
         
-        // Adicionar à queue se desconectado
-        if (!isConnected.current) {
-          messageQueue.current.push(message);
-          return;
-        }
-        
-        // ✅ CORREÇÃO: Chamar callback correto
-        if (onNewMessage) {
-          onNewMessage(message);
-        }
+        // Usar debounce para evitar spam
+        debouncedCallback(message.id, () => {
+          if (isConnected.current && onNewMessage) {
+            onNewMessage(message);
+          } else {
+            messageQueue.current.push(message);
+          }
+        }, 100);
       })
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -244,15 +259,15 @@ export const useMessagesRealtime = ({
         
         console.log('[MessagesRealtime] 🔄 Mensagem atualizada:', {
           messageId: message.id,
-          fromMe: message.fromMe,
-          status: message.status,
-          hasCallback: !!onMessageUpdate
+          status: message.status
         });
         
-        // ✅ CORREÇÃO: Chamar callback correto
-        if (onMessageUpdate) {
-          onMessageUpdate(message);
-        }
+        // Usar debounce para updates
+        debouncedCallback(`update_${message.id}`, () => {
+          if (onMessageUpdate) {
+            onMessageUpdate(message);
+          }
+        }, 50);
       })
       .subscribe((status) => {
         console.log('[MessagesRealtime] 📡 Status:', status);
@@ -261,7 +276,7 @@ export const useMessagesRealtime = ({
           isConnected.current = true;
           reconnectAttempts.current = 0;
           processMessageQueue();
-          console.log('[MessagesRealtime] ✅ Conectado e processando queue');
+          console.log('[MessagesRealtime] ✅ Conectado');
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           console.error('[MessagesRealtime] ❌ Erro na conexão:', status);
           isConnected.current = false;
@@ -272,7 +287,7 @@ export const useMessagesRealtime = ({
       });
 
     channelRef.current = channel;
-  }, [selectedContact, activeInstance, user?.id, convertMessage, onNewMessage, onMessageUpdate, cleanup, shouldProcessMessage, reconnect, processMessageQueue]);
+  }, [selectedContact, activeInstance, user?.id, convertMessage, onNewMessage, onMessageUpdate, cleanup, shouldProcessMessage, reconnect, processMessageQueue, debouncedCallback]);
 
   // Configurar realtime
   useEffect(() => {
@@ -283,27 +298,12 @@ export const useMessagesRealtime = ({
     }
 
     return cleanup;
-  }, [user?.id, selectedContact, activeInstance, setupRealtime, cleanup]);
-
-  // Heartbeat para detectar conexões mortas
-  useEffect(() => {
-    if (!channelRef.current) return;
-    
-    const heartbeat = setInterval(() => {
-      if (channelRef.current && channelRef.current.state === 'closed') {
-        console.log('[MessagesRealtime] 💔 Conexão morta detectada');
-        isConnected.current = false;
-        reconnect();
-      }
-    }, 30000);
-
-    return () => clearInterval(heartbeat);
-  }, [reconnect]);
+  }, [user?.id, selectedContact?.id, activeInstance?.id, setupRealtime, cleanup]);
 
   return {
     isConnected: isConnected.current,
     reconnectAttempts: reconnectAttempts.current,
     queuedMessages: messageQueue.current.length,
-    lastProcessedMessage: lastProcessedMessage.current
+    lastProcessedMessage: lastProcessedTimestamp.current
   };
 };

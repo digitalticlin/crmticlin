@@ -1,12 +1,12 @@
 
 /**
- * 🎯 HOOK DE SCROLL DETECTION OTIMIZADO
+ * 🎯 HOOK DE SCROLL DETECTION SEM CONFLITOS
  * 
  * CORREÇÕES IMPLEMENTADAS:
- * ✅ Detecção otimizada de scroll no topo
- * ✅ Throttling para melhor performance
+ * ✅ Removido scroll automático conflitante
+ * ✅ Foco apenas na detecção e paginação
+ * ✅ Throttling otimizado para performance
  * ✅ Preservação de posição após carregar mais
- * ✅ Auto-scroll inteligente apenas quando necessário
  */
 
 import { useEffect, useState, useRef, useCallback } from 'react';
@@ -27,44 +27,48 @@ export const useScrollDetection = ({
   const [isNearTop, setIsNearTop] = useState(false);
   const [isNearBottom, setIsNearBottom] = useState(true);
   const lastScrollTop = useRef<number>(0);
-  const scrollingDown = useRef<boolean>(false);
+  const isLoadingRef = useRef(false);
 
-  // 🚀 CORREÇÃO: Função para detectar posição do scroll
+  // 🚀 CORREÇÃO: Função apenas para detectar posição (sem scroll automático)
   const detectScrollPosition = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const { scrollTop, scrollHeight, clientHeight } = container;
-    const isAtTop = scrollTop <= 150; // 150px do topo
-    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 150; // 150px do final
+    const isAtTop = scrollTop <= 150;
+    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 150;
 
-    // Detectar direção do scroll
-    scrollingDown.current = scrollTop > lastScrollTop.current;
     lastScrollTop.current = scrollTop;
-
     setIsNearTop(isAtTop);
     setIsNearBottom(isAtBottom);
 
-    // 🚀 CORREÇÃO: Trigger loadMore quando próximo do topo
-    if (isAtTop && hasMoreMessages && !isLoadingMore && onLoadMore) {
+    // 🚀 CORREÇÃO: Trigger loadMore apenas quando necessário
+    if (isAtTop && hasMoreMessages && !isLoadingMore && !isLoadingRef.current && onLoadMore) {
       console.log('[useScrollDetection] 📄 Carregando mais mensagens...');
       
-      // Salvar posição atual
+      isLoadingRef.current = true;
+      
+      // Salvar posição atual para restauração
       const currentScrollHeight = scrollHeight;
       const currentScrollTop = scrollTop;
 
       onLoadMore().then(() => {
-        // Restaurar posição após carregar
+        // Restaurar posição após carregar (sem scroll automático)
         setTimeout(() => {
-          const newScrollHeight = container.scrollHeight;
-          const addedHeight = newScrollHeight - currentScrollHeight;
-          container.scrollTop = currentScrollTop + addedHeight;
+          if (container) {
+            const newScrollHeight = container.scrollHeight;
+            const addedHeight = newScrollHeight - currentScrollHeight;
+            container.scrollTop = currentScrollTop + addedHeight;
+          }
+          isLoadingRef.current = false;
         }, 100);
+      }).catch(() => {
+        isLoadingRef.current = false;
       });
     }
   }, [onLoadMore, hasMoreMessages, isLoadingMore]);
 
-  // 🚀 CORREÇÃO: Throttled scroll handler
+  // 🚀 CORREÇÃO: Throttled scroll handler otimizado
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -94,25 +98,8 @@ export const useScrollDetection = ({
     };
   }, [detectScrollPosition]);
 
-  // 🚀 CORREÇÃO: Auto-scroll para novas mensagens apenas se próximo do final
-  const shouldAutoScroll = useCallback(() => {
-    return isNearBottom && !scrollingDown.current;
-  }, [isNearBottom]);
-
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior
-    });
-  }, []);
-
   return { 
     isNearTop, 
-    isNearBottom, 
-    shouldAutoScroll,
-    scrollToBottom
+    isNearBottom
   };
 };

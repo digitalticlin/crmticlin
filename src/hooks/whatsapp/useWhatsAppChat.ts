@@ -1,12 +1,12 @@
 
 /**
- * 🎯 HOOK PRINCIPAL CORRIGIDO - MULTITENANCY E RESILÊNCIA
+ * 🎯 HOOK PRINCIPAL SEM REFRESHES AUTOMÁTICOS
  * 
  * CORREÇÕES APLICADAS:
- * ✅ Conexão direta com useAuth (sem useCompanyData)
- * ✅ Validação rigorosa de multitenancy
  * ✅ Callbacks otimizados sem duplicação
- * ✅ Estatísticas de realtime melhoradas
+ * ✅ Validação rigorosa de multitenancy
+ * ✅ Eliminação de refreshes desnecessários
+ * ✅ Sistema de detecção de mensagens realmente novas
  */
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -58,7 +58,7 @@ interface UseWhatsAppChatReturn {
     totalInstances: number;
   };
   
-  // Estatísticas realtime melhoradas
+  // Estatísticas realtime
   realtimeStats: {
     chatsConnected: boolean;
     messagesConnected: boolean;
@@ -74,7 +74,7 @@ interface UseWhatsAppChatReturn {
 }
 
 export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
-  const { user } = useAuth(); // 🚀 CORREÇÃO: Conectar diretamente ao useAuth
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   
@@ -82,7 +82,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   
-  // 🚀 CORREÇÃO: Hooks isolados com validação de usuário
+  // Hooks isolados
   const database = useWhatsAppDatabase();
   const activeInstance = useMemo(() => database.getActiveInstance(), [database.instances]);
   
@@ -119,8 +119,10 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     activeInstance: webActiveInstance
   });
   
-  // 🚀 CORREÇÃO: Callbacks otimizados para realtime
+  // 🚀 CORREÇÃO: Callbacks otimizados sem refreshes automáticos
   const handleContactRefresh = useCallback(() => {
+    // Apenas refresh manual quando necessário
+    console.log('[useWhatsAppChat] 🔄 Refresh manual de contatos');
     contacts.refreshContacts();
   }, [contacts]);
 
@@ -136,19 +138,23 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     contacts.addNewContact(newContactData);
   }, [contacts]);
 
-  // ✅ CORREÇÃO: Callbacks sem duplicação
+  // ✅ CORREÇÃO: Callbacks sem duplicação e com validação rigorosa
   const handleNewMessage = useCallback((message: Message) => {
-    // Só processar mensagens externas
+    // Só processar mensagens externas realmente novas
     if (!message.fromMe) {
+      console.log('[useWhatsAppChat] 📨 Nova mensagem externa recebida:', message.id);
       messages.addOptimisticMessage(message);
+    } else {
+      console.log('[useWhatsAppChat] 🚫 Mensagem própria ignorada no realtime:', message.id);
     }
   }, [messages]);
 
   const handleMessageUpdate = useCallback((message: Message) => {
+    console.log('[useWhatsAppChat] 🔄 Atualizando mensagem:', message.id);
     messages.updateMessage(message);
   }, [messages]);
 
-  // 🚀 CORREÇÃO: Realtime hooks com validação rigorosa
+  // Realtime hooks com validação rigorosa
   const chatsRealtime = useChatsRealtime({
     activeInstanceId: webActiveInstance?.id || null,
     onContactUpdate: handleContactRefresh,
@@ -169,25 +175,22 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
   // Ações principais
   const markAsRead = useCallback(async (contactId: string) => {
     if (!user?.id) {
-      console.warn('[useWhatsAppChat] ⚠️ Usuário não autenticado para marcar como lida');
       return;
     }
 
     try {
-      // 🚀 CORREÇÃO: Validação rigorosa de ownership
       const { error } = await supabase
         .from('leads')
         .update({ unread_count: 0 })
         .eq('id', contactId)
-        .eq('created_by_user_id', user.id); // 🚀 CORREÇÃO: Filtro rigoroso
+        .eq('created_by_user_id', user.id);
       
       if (error) throw error;
       
-      handleContactRefresh();
     } catch (error) {
       console.error('[useWhatsAppChat] ❌ Erro ao marcar como lida:', error);
     }
-  }, [user?.id, handleContactRefresh]);
+  }, [user?.id]);
 
   const handleSelectContact = useCallback(async (contact: Contact | null) => {
     if (contact && contact.unreadCount && contact.unreadCount > 0) {
@@ -201,24 +204,17 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     setSelectedContact(contact);
   }, [markAsRead]);
 
-  // ✅ CORREÇÃO: Função sendMessage otimizada
+  // ✅ CORREÇÃO: Função sendMessage sem auto-refresh
   const sendMessage = useCallback(async (text: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
     if (!user?.id) {
-      console.warn('[useWhatsAppChat] ⚠️ Usuário não autenticado para enviar mensagem');
       return false;
     }
 
-    console.log('[useWhatsAppChat] 📤 Enviando mensagem:', {
-      text: text.substring(0, 50) + '...',
-      mediaType: mediaType || 'text',
-      hasMediaUrl: !!mediaUrl,
-      userId: user.id
-    });
-
+    console.log('[useWhatsAppChat] 📤 Enviando mensagem via hook principal');
     return await messages.sendMessage(text, mediaType, mediaUrl);
   }, [messages, user?.id]);
 
-  // 🚀 CORREÇÃO: Saúde com cache stats
+  // Saúde do sistema
   const instanceHealth = useMemo(() => ({
     score: database.healthScore,
     isHealthy: database.isHealthy,
@@ -226,7 +222,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     totalInstances: database.totalInstances
   }), [database.healthScore, database.isHealthy, database.connectedInstances, database.totalInstances]);
 
-  // 🚀 CORREÇÃO: Estatísticas de realtime melhoradas
+  // Estatísticas de realtime
   const realtimeStats = useMemo(() => ({
     chatsConnected: chatsRealtime.isConnected,
     messagesConnected: messagesRealtime.isConnected,
@@ -251,20 +247,20 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     }
   }, [leadId, contacts.contacts, selectedContact, hasInitialized, handleSelectContact]);
 
-  // 🚀 CORREÇÃO: Notificações de saúde com validação de usuário
+  // 🚀 CORREÇÃO: Notificações de saúde apenas quando necessário
   useEffect(() => {
     if (!user?.id) return;
     
     if (database.totalInstances > 0 && database.connectedInstances === 0) {
       const timeoutId = setTimeout(() => {
         toast.error('🚨 Nenhuma instância WhatsApp conectada');
-      }, 5000);
+      }, 10000); // 10 segundos para evitar notificação prematura
 
       return () => clearTimeout(timeoutId);
     }
   }, [database.totalInstances, database.connectedInstances, user?.id]);
 
-  // Listener para seleção via notificação
+  // Listener para seleção via notificação (sem auto-refresh)
   useEffect(() => {
     if (!user?.id) return;
     
@@ -277,8 +273,6 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
       
       if (targetContact) {
         handleSelectContact(targetContact);
-      } else {
-        handleContactRefresh();
       }
     };
 
@@ -287,13 +281,13 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     return () => {
       window.removeEventListener('selectContact', handleSelectContactEvent as EventListener);
     };
-  }, [contacts.contacts, handleSelectContact, handleContactRefresh, user?.id]);
+  }, [contacts.contacts, handleSelectContact, user?.id]);
 
   return {
     // Estados principais
     selectedContact,
     setSelectedContact: handleSelectContact,
-    companyLoading: false, // 🚀 CORREÇÃO: Sem dependência de useCompanyData
+    companyLoading: false,
     
     // Contatos
     contacts: contacts.contacts,
