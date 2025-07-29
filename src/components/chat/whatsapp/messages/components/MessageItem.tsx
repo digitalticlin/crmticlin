@@ -45,11 +45,12 @@ export function MessageItem({
       )}>
         <div className={cn(
           "group relative max-w-[70%] rounded-2xl p-4 shadow-lg transition-all duration-300",
-          "border border-white/10 backdrop-blur-lg",
+          "border backdrop-blur-lg",
           "hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]",
           
           // Glassmorphism para mensagens próprias
           isFromMe && [
+            "bg-white/20 border-white/10",
             "bg-gradient-to-br from-ticlin-500/20 to-ticlin-600/30",
             "border-ticlin-400/20 text-white",
             "shadow-ticlin-500/10"
@@ -74,78 +75,79 @@ export function MessageItem({
           ]
         )}>
         
-        {/* Efeito de brilho sutil */}
-        <div className={cn(
-          "absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300",
-          "bg-gradient-to-br from-white/5 to-white/0",
-          "group-hover:opacity-100 pointer-events-none"
-        )} />
-        
-        {/* Status visual superior */}
-        {(hasError || isPending) && (
-          <div className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 rounded-full bg-white/90 backdrop-blur-sm border border-white/20 shadow-lg">
-            {hasError && <AlertCircle className="w-3 h-3 text-red-500" />}
-            {isPending && <Info className="w-3 h-3 text-yellow-500 animate-pulse" />}
-          </div>
-        )}
+          {/* Efeito de brilho sutil */}
+          <div className={cn(
+            "absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300",
+            "bg-gradient-to-br from-white/5 to-white/0",
+            "group-hover:opacity-100 pointer-events-none"
+          )} />
+          
+          {/* Status visual superior */}
+          {(hasError || isPending) && (
+            <div className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 rounded-full bg-white/90 backdrop-blur-sm border border-white/20 shadow-lg">
+              {hasError && <AlertCircle className="w-3 h-3 text-red-500" />}
+              {isPending && <Info className="w-3 h-3 text-yellow-500 animate-pulse" />}
+            </div>
+          )}
 
-        {/* Conteúdo da mensagem */}
-        <div className="relative z-10 space-y-3">
-          {/* Mídia */}
-          {message.media_type !== 'text' && (
-            <MessageMediaRenderer 
-              message={message}
-              className="rounded-xl overflow-hidden shadow-md"
-            />
-          )}
-          
-          {/* Texto da mensagem */}
-          {message.text && (
-            <div className={cn(
-              "text-sm leading-relaxed break-words",
-              isFromMe ? "text-white/90" : "text-gray-800/90"
-            )}>
-              {message.text}
-            </div>
-          )}
-          
-          {/* Rodapé da mensagem */}
-          <div className="flex items-center justify-between gap-2 mt-3">
-            <div className={cn(
-              "flex items-center gap-2 text-xs",
-              isFromMe ? "text-white/70" : "text-gray-600/70"
-            )}>
-              <span className="font-medium">
-                {timeAgo}
-              </span>
-              
-              {message.import_source && (
-                <span className={cn(
-                  "px-2 py-1 rounded-full text-xs",
-                  "bg-white/10 border border-white/20"
-                )}>
-                  {message.import_source}
-                </span>
-              )}
-            </div>
-            
-            {/* Status da mensagem */}
-            {isFromMe && (
-              <MessageStatus 
-                status={message.status}
-                className="flex-shrink-0"
+          {/* Conteúdo da mensagem */}
+          <div className="relative z-10 space-y-3">
+            {/* Mídia */}
+            {message.media_type !== 'text' && (
+              <MessageMediaRenderer 
+                message={message}
+                className="rounded-xl overflow-hidden shadow-md"
               />
             )}
+            
+            {/* Texto da mensagem */}
+            {message.text && (
+              <div className={cn(
+                "text-sm leading-relaxed break-words",
+                isFromMe ? "text-white/90" : "text-gray-800/90"
+              )}>
+                {message.text}
+              </div>
+            )}
+            
+            {/* Rodapé da mensagem */}
+            <div className="flex items-center justify-between gap-2 mt-3">
+              <div className={cn(
+                "flex items-center gap-2 text-xs",
+                isFromMe ? "text-white/70" : "text-gray-600/70"
+              )}>
+                <span className="font-medium">
+                  {timeAgo}
+                </span>
+                
+                {message.import_source && (
+                  <span className={cn(
+                    "px-2 py-1 rounded-full text-xs",
+                    "bg-white/10 border border-white/20 backdrop-blur-sm"
+                  )}>
+                    {message.import_source}
+                  </span>
+                )}
+              </div>
+              
+              {/* Status da mensagem */}
+              {isFromMe && (
+                <MessageStatus 
+                  status={message.status}
+                  className="flex-shrink-0"
+                />
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Ações da mensagem */}
-        <MessageActions
-          message={message}
-          onResend={onResend}
-          onDelete={onDelete}
-          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-        />
+          {/* Ações da mensagem */}
+          <MessageActions
+            message={message}
+            onResend={onResend}
+            onDelete={onDelete}
+            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          />
+        </div>
       </div>
     </div>
   );
