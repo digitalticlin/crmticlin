@@ -7,18 +7,24 @@ interface CreateInstanceButtonProps {
   variant?: "default" | "outline" | "whatsapp";
   size?: "default" | "sm" | "lg";
   className?: string;
+  onSuccess?: () => void | Promise<void>;
 }
 
 export const CreateInstanceButton = ({ 
   variant = "whatsapp", 
   size = "lg",
-  className = ""
+  className = "",
+  onSuccess
 }: CreateInstanceButtonProps) => {
   const { createInstance, isCreating } = useInstanceCreation();
 
   const handleCreate = async () => {
     console.log('[CreateInstanceButton] 🚀 Iniciando criação de instância');
-    await createInstance();
+    const result = await createInstance();
+    
+    if (result.success && onSuccess) {
+      await onSuccess();
+    }
   };
 
   return (

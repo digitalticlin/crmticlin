@@ -1,48 +1,53 @@
 
-import React from 'react';
-import { useDashboardConfig } from '@/hooks/dashboard/useDashboardConfig';
-import { useDashboardKPIs } from '@/hooks/dashboard/useDashboardKPIs';
-import { KPIGrid } from './KPIGrid';
-import StatsSection from './StatsSection';
-import ChartCard from './ChartCard';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 
 export const DashboardContent = () => {
   const { config } = useDashboardConfig();
-  const { data: kpiData } = useDashboardKPIs(config.periodFilter);
 
   return (
-    <div className="space-y-6 p-6">
-      {/* KPI Grid */}
-      <KPIGrid
-        totalLeads={kpiData.total_leads}
-        newLeads={kpiData.novos_leads}
-        conversions={Math.round(kpiData.taxa_conversao)}
-        responseRate={kpiData.tempo_resposta}
-      />
-
-      {/* Stats Section */}
-      <StatsSection />
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard
-          title="Leads por Período"
-          description="Evolução dos leads ao longo do tempo"
-        >
-          <div className="h-64 flex items-center justify-center text-muted-foreground">
-            Gráfico de leads será implementado aqui
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Dashboard</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Período Atual</h3>
+              <p className="text-muted-foreground">{config.period_filter}</p>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-2">KPIs Ativos</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {Object.entries(config.kpis).map(([key, kpi]) => (
+                  kpi.visible && (
+                    <div key={key} className="p-3 bg-muted rounded-lg">
+                      <p className="font-medium">{key}</p>
+                      <p className="text-sm text-muted-foreground">Configurado</p>
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Gráficos Ativos</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {Object.entries(config.charts).map(([key, chart]) => (
+                  chart.visible && (
+                    <div key={key} className="p-3 bg-muted rounded-lg">
+                      <p className="font-medium">{key}</p>
+                      <p className="text-sm text-muted-foreground">Configurado</p>
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
           </div>
-        </ChartCard>
-
-        <ChartCard
-          title="Taxa de Conversão"
-          description="Performance de conversão por período"
-        >
-          <div className="h-64 flex items-center justify-center text-muted-foreground">
-            Gráfico de conversão será implementado aqui
-          </div>
-        </ChartCard>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
