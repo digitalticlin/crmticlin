@@ -24,7 +24,6 @@ interface ContactsListProps {
   totalContactsAvailable?: number;
 }
 
-// Função para determinar se deve mostrar nome ou telefone (estilo WhatsApp)
 const getDisplayName = (contact: Contact): string => {
   if (contact.name && contact.name !== contact.phone && contact.name.trim() !== '') {
     return contact.name;
@@ -47,23 +46,18 @@ export const ContactsList = ({
   const { user } = useAuth();
   const [highlightedContacts, setHighlightedContacts] = useState<Set<string>>(new Set());
   
-  // REFS PARA SCROLL INFINITO
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
   const lastLoadTimeRef = useRef(0);
 
-  // Usar o hook de sincronização de tags
   useTagsSync(user?.id || null, () => {
     if (onRefreshContacts) {
       onRefreshContacts();
     }
   });
 
-  // Handlers para o menu de contexto
   const handleDeleteConversation = useCallback(async (contactId: string) => {
     try {
-      // Excluir todas as mensagens da conversa
       const { error } = await supabase
         .from('messages')
         .delete()
@@ -71,18 +65,15 @@ export const ContactsList = ({
 
       if (error) throw error;
 
-      // Resetar contador de mensagens não lidas
       await supabase
         .from('leads')
         .update({ unread_count: 0 })
         .eq('id', contactId);
 
-      // Atualizar lista local
       if (onRefreshContacts) {
         onRefreshContacts();
       }
 
-      // Se era o contato selecionado, desselecionar
       if (selectedContact?.id === contactId) {
         onSelectContact(null);
       }
@@ -95,7 +86,6 @@ export const ContactsList = ({
 
   const handleCloseConversation = useCallback(async (contactId: string) => {
     try {
-      // Marcar conversa como fechada usando o campo notes
       const { error } = await supabase
         .from('leads')
         .update({ 
@@ -105,12 +95,10 @@ export const ContactsList = ({
 
       if (error) throw error;
 
-      // Atualizar lista local
       if (onRefreshContacts) {
         onRefreshContacts();
       }
 
-      // Se era o contato selecionado, desselecionar
       if (selectedContact?.id === contactId) {
         onSelectContact(null);
       }
@@ -122,8 +110,6 @@ export const ContactsList = ({
   }, [onRefreshContacts, selectedContact, onSelectContact]);
 
   const handleEditContact = useCallback((contact: Contact) => {
-    // Por enquanto, apenas selecionar o contato
-    // Futuramente pode abrir modal de edição
     onSelectContact(contact);
     toast.info('Função de edição será implementada em breve');
   }, [onSelectContact]);
@@ -153,6 +139,14 @@ export const ContactsList = ({
     }
   }, [onLoadMoreContacts, hasMoreContacts, isLoadingMore]);
 
+  const handleSelectContact = async (contact: Contact) => {
+    if (contact.unreadCount && contact.unreadCount > 0 && contact.leadId) {
+      await UnreadMessagesService.markAsRead(contact.leadId);
+    }
+    
+    onSelectContact(contact);
+  };
+
   useEffect(() => {
     const trigger = loadMoreTriggerRef.current;
     if (!trigger || !hasMoreContacts || !onLoadMoreContacts) {
@@ -171,7 +165,6 @@ export const ContactsList = ({
         }
       },
       {
-        root: scrollContainerRef.current,
         rootMargin: '50px',
         threshold: 0.5
       }
@@ -181,26 +174,6 @@ export const ContactsList = ({
     return () => observer.disconnect();
   }, [hasMoreContacts, handleLoadMore, onLoadMoreContacts]);
 
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const container = e.currentTarget;
-    const { scrollTop, scrollHeight, clientHeight } = container;
-    
-    const isNearEnd = (scrollTop + clientHeight) / scrollHeight > 0.9;
-    
-    if (isNearEnd && hasMoreContacts && !isLoadingRef.current && !isLoadingMore && onLoadMoreContacts) {
-      handleLoadMore();
-    }
-  }, [hasMoreContacts, isLoadingMore, onLoadMoreContacts, handleLoadMore]);
-
-  const handleSelectContact = async (contact: Contact) => {
-    if (contact.unreadCount && contact.unreadCount > 0 && contact.leadId) {
-      await UnreadMessagesService.markAsRead(contact.leadId);
-    }
-    
-    onSelectContact(contact);
-  };
-
-  // Renderização dos contatos com menu de contexto
   const renderedContacts = useMemo(() => {
     return contacts.map((contact, index) => {
       const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
@@ -222,7 +195,6 @@ export const ContactsList = ({
             )}
           >
             <div className="flex items-start gap-3" onClick={() => handleSelectContact(contact)}>
-              {/* Avatar com padrão preto e T amarelo */}
               <div className="relative">
                 <div className="h-12 w-12 rounded-full bg-black flex items-center justify-center ring-2 ring-white/10">
                   <span className="text-yellow-400 font-extrabold text-lg" style={{ fontFamily: 'Montserrat, sans-serif' }}>
@@ -230,7 +202,6 @@ export const ContactsList = ({
                   </span>
                 </div>
                 
-                {/* Badge de mensagens não lidas */}
                 {hasUnreadMessages && contact.unreadCount > 0 && (
                   <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full h-6 min-w-[24px] flex items-center justify-center text-xs font-bold animate-pulse">
                     {contact.unreadCount > 99 ? '99+' : contact.unreadCount}
@@ -277,7 +248,7 @@ export const ContactsList = ({
 
   if (contacts.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex items-center justify-center p-8">
         <div className="text-center space-y-4 max-w-sm">
           <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-blue-100 to-green-100 flex items-center justify-center">
             <MessageCircle className="h-8 w-8 text-blue-500" />
@@ -302,11 +273,7 @@ export const ContactsList = ({
   }
 
   return (
-    <div 
-      className="flex-1 overflow-y-auto glass-scrollbar"
-      ref={scrollContainerRef}
-      onScroll={handleScroll}
-    >
+    <div className="w-full">
       <div className="divide-y divide-gray-200/20">
         {renderedContacts}
         

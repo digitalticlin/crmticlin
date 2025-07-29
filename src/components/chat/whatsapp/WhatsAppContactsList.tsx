@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Search, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -130,8 +129,14 @@ export const WhatsAppContactsList = React.memo(({
         </div>
       </div>
 
-      {/* Container da lista com scroll interno minimalista */}
-      <div className="flex-1 overflow-y-auto glass-scrollbar">
+      {/* Container da lista com scroll interno - ALTURA FIXA E SCROLL FORÇADO */}
+      <div 
+        className="flex-1 min-h-0 glass-scrollbar"
+        style={{ 
+          overflowY: 'auto',
+          maxHeight: 'calc(100vh - 200px)' 
+        }}
+      >
         <ContactsList
           contacts={finalContacts}
           selectedContact={selectedContact}
