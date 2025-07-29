@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -12,7 +13,8 @@ import {
   Kanban,
   ListPlus,
   Menu,
-  X
+  X,
+  CreditCard
 } from "lucide-react";
 import SidebarLogo from "./SidebarLogo";
 import SidebarNavGroup from "./SidebarNavGroup";
@@ -86,6 +88,13 @@ export default function ResponsiveSidebar() {
   ];
 
   const systemNavItems = [
+    {
+      icon: CreditCard,
+      label: "Planos",
+      href: "/plans",
+      comingSoon: false,
+      requiredPermission: null // Todos podem acessar
+    },
     {
       icon: Settings,
       label: "Configurações",
