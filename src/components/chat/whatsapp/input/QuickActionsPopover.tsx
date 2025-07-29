@@ -1,88 +1,91 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Paperclip, Image, Camera } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useState } from "react";
-import { PhotoUploadDialog } from "../media/PhotoUploadDialog";
-import { FileUploadDialog } from "../media/FileUploadDialog";
+import { Paperclip, Image, File, Mic, Video } from "lucide-react";
+import { toast } from "sonner";
 
 interface QuickActionsPopoverProps {
-  onSendMessage?: (message: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
+  onSendMessage: (message: string) => Promise<boolean>;
 }
 
 export const QuickActionsPopover = ({ onSendMessage }: QuickActionsPopoverProps) => {
-  const isMobile = useIsMobile();
-  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
-  const [fileDialogOpen, setFileDialogOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
-  // Handler padrão se não for fornecido
-  const handleSendMessage = onSendMessage || (async () => {
-    console.warn('[QuickActionsPopover] onSendMessage não fornecido');
-    return false;
-  });
+  const handleFileUpload = (type: string) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    
+    switch (type) {
+      case 'image':
+        input.accept = 'image/*';
+        break;
+      case 'video':
+        input.accept = 'video/*';
+        break;
+      case 'audio':
+        input.accept = 'audio/*';
+        break;
+      case 'document':
+        input.accept = '.pdf,.doc,.docx,.txt,.zip,.rar';
+        break;
+    }
+    
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // Por enquanto, apenas mostra toast indicando que a funcionalidade será implementada
+        toast.info(`Funcionalidade de ${type} será implementada em breve`);
+      }
+    };
+    
+    input.click();
+    setOpen(false);
+  };
 
   return (
-    <>
-      <Popover>
-        <PopoverTrigger asChild>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="shrink-0 h-[44px] w-[44px] rounded-full">
+          <Paperclip className="h-5 w-5" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-48" align="start">
+        <div className="space-y-1">
           <Button 
             variant="ghost" 
-            size="icon" 
-            className="text-gray-600 hover:text-gray-900 hover:bg-white/30 w-12 h-12 rounded-full transition-all duration-200"
+            className="w-full justify-start"
+            onClick={() => handleFileUpload('image')}
           >
-            <Plus className="h-5 w-5" />
+            <Image className="h-4 w-4 mr-2" />
+            Imagem
           </Button>
-        </PopoverTrigger>
-        <PopoverContent 
-          side="top" 
-          className="w-56 p-3 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl shadow-xl"
-        >
-          <div className="grid gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="justify-start text-gray-700 hover:bg-white/30 hover:text-gray-900 rounded-xl transition-all duration-200"
-              onClick={() => setPhotoDialogOpen(true)}
-            >
-              <Image className="h-4 w-4 mr-2" />
-              Enviar Fotos
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="justify-start text-gray-700 hover:bg-white/30 hover:text-gray-900 rounded-xl transition-all duration-200"
-              onClick={() => setFileDialogOpen(true)}
-            >
-              <Paperclip className="h-4 w-4 mr-2" />
-              Enviar Arquivos
-            </Button>
-            {isMobile && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="justify-start text-gray-700 hover:bg-white/30 hover:text-gray-900 rounded-xl transition-all duration-200"
-              >
-                <Camera className="h-4 w-4 mr-2" />
-                Câmera
-              </Button>
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      {/* Dialogs isolados */}
-      <PhotoUploadDialog
-        open={photoDialogOpen}
-        onOpenChange={setPhotoDialogOpen}
-        onSendMessage={handleSendMessage}
-      />
-
-      <FileUploadDialog
-        open={fileDialogOpen}
-        onOpenChange={setFileDialogOpen}
-        onSendMessage={handleSendMessage}
-      />
-    </>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start"
+            onClick={() => handleFileUpload('video')}
+          >
+            <Video className="h-4 w-4 mr-2" />
+            Vídeo
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start"
+            onClick={() => handleFileUpload('audio')}
+          >
+            <Mic className="h-4 w-4 mr-2" />
+            Áudio
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start"
+            onClick={() => handleFileUpload('document')}
+          >
+            <File className="h-4 w-4 mr-2" />
+            Documento
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };

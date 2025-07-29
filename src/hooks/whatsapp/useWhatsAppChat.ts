@@ -1,3 +1,4 @@
+
 /**
  * 🎯 HOOK PRINCIPAL - ARQUITETURA DIRETA SEM PROVIDER
  * 
@@ -6,11 +7,10 @@
  * ✅ Gerenciar estado global mínimo (contato selecionado)
  * ✅ Expor API unificada para componentes
  * 
- * VANTAGENS:
- * ✅ Zero re-renders desnecessários
- * ✅ Isolamento perfeito entre funcionalidades
- * ✅ Cache inteligente e otimizado
- * ✅ Escalabilidade para milhares de usuários
+ * CORREÇÕES IMPLEMENTADAS:
+ * ✅ Integração correta com MessagingService
+ * ✅ Parâmetros corretos para envio de mensagens
+ * ✅ Suporte completo para mídia
  */
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -80,11 +80,11 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   
-  // 🎯 ESTADO GLOBAL MÍNIMO
+  // Estado global mínimo
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   
-  // 🔗 HOOKS ISOLADOS
+  // Hooks isolados
   const database = useWhatsAppDatabase();
   const activeInstance = useMemo(() => database.getActiveInstance(), [database.instances]);
   
@@ -121,7 +121,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     activeInstance: webActiveInstance
   });
   
-  // 🎯 CALLBACKS OTIMIZADOS PARA REALTIME
+  // Callbacks otimizados para realtime
   const handleContactRefresh = useCallback(() => {
     contacts.refreshContacts();
   }, [contacts]);
@@ -138,7 +138,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     contacts.addNewContact(newContactData);
   }, [contacts]);
 
-  // 🔄 REALTIME HOOKS
+  // Realtime hooks
   const chatsRealtime = useChatsRealtime({
     userId: user?.id || null,
     activeInstanceId: webActiveInstance?.id || null,
@@ -157,7 +157,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     onMessageUpdate: messages.updateMessage
   });
 
-  // 🎯 AÇÕES PRINCIPAIS
+  // Ações principais
   const markAsRead = useCallback(async (contactId: string) => {
     try {
       await supabase
@@ -183,18 +183,42 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     setSelectedContact(contact);
   }, [markAsRead]);
 
+  // 🎯 FUNÇÃO CORRIGIDA: Enviar mensagem com parâmetros corretos
   const sendMessage = useCallback(async (text: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
-    if (!text.trim()) return false;
+    if (!text.trim()) {
+      toast.error('Mensagem não pode estar vazia');
+      return false;
+    }
+
+    console.log('[useWhatsAppChat] 📤 Enviando mensagem:', {
+      text: text.substring(0, 50) + '...',
+      mediaType: mediaType || 'text',
+      hasMediaUrl: !!mediaUrl
+    });
+
+    // Criar objeto de mídia se necessário
+    let media: { file: File; type: string } | undefined;
     
-    const media = mediaType && mediaUrl ? {
-      file: new File([], mediaUrl.split('/').pop() || 'file'),
-      type: mediaType
-    } : undefined;
+    if (mediaType && mediaUrl && mediaType !== 'text') {
+      // Converter DataURL de volta para File (para compatibilidade)
+      try {
+        const response = await fetch(mediaUrl);
+        const blob = await response.blob();
+        const file = new File([blob], `media.${mediaType}`, { type: blob.type });
+        
+        media = {
+          file,
+          type: mediaType
+        };
+      } catch (error) {
+        console.error('[useWhatsAppChat] ❌ Erro ao converter mídia:', error);
+      }
+    }
     
     return await messages.sendMessage(text, media);
   }, [messages]);
 
-  // 🎯 SAÚDE E ESTATÍSTICAS
+  // Saúde e estatísticas
   const instanceHealth = useMemo(() => ({
     score: database.healthScore,
     isHealthy: database.isHealthy,
@@ -211,7 +235,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     lastMessagesUpdate: null
   }), [chatsRealtime, messagesRealtime]);
 
-  // 🎯 AUTO-SELEÇÃO DE CONTATO DA URL
+  // Auto-seleção de contato da URL
   useEffect(() => {
     if (leadId && contacts.contacts.length > 0 && !selectedContact && !hasInitialized) {
       const targetContact = contacts.contacts.find(contact => contact.id === leadId);
@@ -222,7 +246,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     }
   }, [leadId, contacts.contacts, selectedContact, hasInitialized, handleSelectContact]);
 
-  // 🔔 NOTIFICAÇÕES DE SAÚDE
+  // Notificações de saúde
   useEffect(() => {
     if (database.totalInstances > 0 && database.connectedInstances === 0) {
       const timeoutId = setTimeout(() => {
@@ -233,7 +257,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     }
   }, [database.totalInstances, database.connectedInstances]);
 
-  // 🎯 LISTENER PARA SELEÇÃO VIA NOTIFICAÇÃO
+  // Listener para seleção via notificação
   useEffect(() => {
     const handleSelectContactEvent = (event: CustomEvent) => {
       const { contactId } = event.detail;

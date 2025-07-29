@@ -2,14 +2,14 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2 } from "lucide-react";
+import { Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuickMessagesPopover } from "./input/QuickMessagesPopover";
 import { QuickActionsPopover } from "./input/QuickActionsPopover";
 import { QuickMessagesPanel } from "./input/QuickMessagesPanel";
 
 interface WhatsAppMessageInputProps {
-  onSendMessage: (message: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
+  onSendMessage: (message: string) => Promise<boolean>;
   isSending: boolean;
 }
 
@@ -25,7 +25,7 @@ export const WhatsAppMessageInput = ({
     const trimmedMessage = message.trim();
     if (trimmedMessage) {
       try {
-        // ✅ LIMPAR CAMPO IMEDIATAMENTE para UX mais rápido
+        // Limpar campo imediatamente para UX mais rápido
         setMessage("");
         
         // Reset altura do textarea
@@ -36,7 +36,7 @@ export const WhatsAppMessageInput = ({
         await onSendMessage(trimmedMessage);
       } catch (error) {
         console.error('[WhatsAppMessageInput] Erro ao enviar mensagem:', error);
-        // ✅ Se der erro, restaurar a mensagem
+        // Se der erro, restaurar a mensagem
         setMessage(trimmedMessage);
       }
     }
@@ -121,16 +121,20 @@ export const WhatsAppMessageInput = ({
           
           <Button
             onClick={handleSend}
-            disabled={!canSend}
+            disabled={!canSend || isSending}
             size="lg"
             className={cn(
               "h-[44px] w-[44px] rounded-full p-0 transition-all duration-200",
-              canSend
+              canSend && !isSending
                 ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
             )}
           >
-            <Send className="h-5 w-5" />
+            {isSending ? (
+              <div className="w-5 h-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
           </Button>
         </div>
         
