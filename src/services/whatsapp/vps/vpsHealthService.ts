@@ -1,5 +1,5 @@
 
-import { VPS_CONFIG } from "../config/vpsConfig";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface VPSHealthResult {
   success: boolean;
@@ -16,7 +16,7 @@ export interface VPSHealthResult {
 
 export class VPSHealthService {
   /**
-   * Diagnóstico completo da VPS
+   * Diagnóstico completo da VPS via Edge Function segura
    */
   static async performHealthCheck(): Promise<VPSHealthResult> {
     console.log('[VPS Health] 🏥 Iniciando diagnóstico completo da VPS...');
@@ -35,62 +35,37 @@ export class VPSHealthService {
     };
 
     try {
-      // Teste 1: Conectividade básica
-      console.log('[VPS Health] 🔗 Testando conectividade básica...');
-      const connectivityTest = await this.testConnectivity();
-      result.details.connectivity = connectivityTest.success;
-      
-      if (!connectivityTest.success) {
-        result.details.errors.push(`Conectividade falhou: ${connectivityTest.error}`);
-        result.recommendations.push('Verificar se a VPS está online e acessível');
+      const { data, error } = await supabase.functions.invoke('secure_whatsapp_service', {
+        body: {
+          action: 'health_check'
+        }
+      });
+
+      if (error) {
+        result.details.errors.push(`Edge Function error: ${error.message}`);
+        result.status = 'error';
         return result;
       }
 
-      // Teste 2: Autenticação
-      console.log('[VPS Health] 🔐 Testando autenticação...');
-      const authTest = await this.testAuthentication();
-      result.details.authentication = authTest.success;
-      
-      if (!authTest.success) {
-        result.details.errors.push(`Autenticação falhou: ${authTest.error}`);
-        result.recommendations.push('Verificar token de autenticação VPS_API_TOKEN');
-      }
-
-      // Teste 3: Processo do servidor
-      console.log('[VPS Health] ⚙️ Testando processo do servidor...');
-      const processTest = await this.testServerProcess();
-      result.details.serverProcess = processTest.success;
-      
-      if (!processTest.success) {
-        result.details.errors.push(`Processo do servidor: ${processTest.error}`);
-        result.recommendations.push('Verificar se whatsapp-server.js está rodando na VPS');
-      }
-
-      // Teste 4: Contar instâncias
-      if (result.details.authentication && result.details.serverProcess) {
-        console.log('[VPS Health] 📊 Contando instâncias ativas...');
-        const instancesTest = await this.countInstances();
-        result.details.instanceCount = instancesTest.count;
+      if (data?.healthCheck) {
+        const healthData = data.healthCheck;
+        result.details = {
+          connectivity: healthData.connectivity || false,
+          authentication: healthData.authentication || false,
+          serverProcess: healthData.serverProcess || false,
+          instanceCount: healthData.instanceCount || 0,
+          errors: healthData.errors || []
+        };
         
-        if (instancesTest.count === 0) {
-          result.recommendations.push('Nenhuma instância ativa encontrada - possível perda após restart');
-        }
-      }
-
-      // Determinar status geral
-      if (result.details.connectivity && result.details.authentication && result.details.serverProcess) {
-        result.success = true;
-        result.status = 'healthy';
-      } else if (result.details.connectivity) {
-        result.status = 'partial';
-      } else {
-        result.status = 'offline';
+        result.success = healthData.success || false;
+        result.status = healthData.status || 'unknown';
+        result.recommendations = healthData.recommendations || [];
       }
 
       console.log('[VPS Health] ✅ Diagnóstico concluído:', result);
       return result;
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('[VPS Health] ❌ Erro durante diagnóstico:', error);
       result.details.errors.push(`Erro inesperado: ${error.message}`);
       result.status = 'error';
@@ -99,20 +74,28 @@ export class VPSHealthService {
   }
 
   /**
-   * Teste de conectividade básica
+   * Teste de conectividade básica via Edge Function
    */
   private static async testConnectivity(): Promise<{success: boolean; error?: string}> {
     try {
-      const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(10000)
+      const { data, error } = await supabase.functions.invoke('secure_whatsapp_service', {
+        body: {
+          action: 'test_connectivity'
+        }
       });
 
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
       return {
-        success: response.ok,
-        error: response.ok ? undefined : `HTTP ${response.status}`
+        success: data?.success || false,
+        error: data?.error
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error.message
@@ -121,31 +104,28 @@ export class VPSHealthService {
   }
 
   /**
-   * Teste de autenticação
+   * Teste de autenticação via Edge Function
    */
   private static async testAuthentication(): Promise<{success: boolean; error?: string}> {
     try {
-      const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-        },
-        signal: AbortSignal.timeout(10000)
+      const { data, error } = await supabase.functions.invoke('secure_whatsapp_service', {
+        body: {
+          action: 'test_auth'
+        }
       });
 
-      if (response.status === 401) {
+      if (error) {
         return {
           success: false,
-          error: 'Token de autenticação inválido'
+          error: error.message
         };
       }
 
       return {
-        success: response.ok,
-        error: response.ok ? undefined : `HTTP ${response.status}`
+        success: data?.success || false,
+        error: data?.error
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error.message
@@ -154,32 +134,28 @@ export class VPSHealthService {
   }
 
   /**
-   * Teste do processo do servidor
+   * Teste do processo do servidor via Edge Function
    */
   private static async testServerProcess(): Promise<{success: boolean; error?: string}> {
     try {
-      const response = await fetch(`${VPS_CONFIG.baseUrl}/status`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-        },
-        signal: AbortSignal.timeout(10000)
+      const { data, error } = await supabase.functions.invoke('secure_whatsapp_service', {
+        body: {
+          action: 'test_server_process'
+        }
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (error) {
         return {
-          success: data.status === 'online',
-          error: data.status !== 'online' ? `Status: ${data.status}` : undefined
+          success: false,
+          error: error.message
         };
       }
 
       return {
-        success: false,
-        error: `HTTP ${response.status}`
+        success: data?.success || false,
+        error: data?.error
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         success: false,
         error: error.message
@@ -188,31 +164,28 @@ export class VPSHealthService {
   }
 
   /**
-   * Contar instâncias ativas
+   * Contar instâncias ativas via Edge Function
    */
   private static async countInstances(): Promise<{count: number; error?: string}> {
     try {
-      const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-        },
-        signal: AbortSignal.timeout(10000)
+      const { data, error } = await supabase.functions.invoke('secure_whatsapp_service', {
+        body: {
+          action: 'count_instances'
+        }
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (error) {
         return {
-          count: data.instances?.length || 0
+          count: 0,
+          error: error.message
         };
       }
 
       return {
-        count: 0,
-        error: `HTTP ${response.status}`
+        count: data?.count || 0,
+        error: data?.error
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         count: 0,
         error: error.message

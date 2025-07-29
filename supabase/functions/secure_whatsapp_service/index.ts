@@ -1,250 +1,340 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const vpsToken = Deno.env.get("VPS_API_TOKEN")!;
-
-// Input validation helper
-function validateInput(data: any): { valid: boolean; error?: string } {
-  if (!data || typeof data !== 'object') {
-    return { valid: false, error: 'Invalid request body' };
-  }
-  
-  // Add specific validation based on action
-  if (data.action === 'create_instance' && (!data.instanceName || data.instanceName.length > 50)) {
-    return { valid: false, error: 'Invalid instance name' };
-  }
-  
-  if (data.phone && !/^\+?[1-9]\d{1,14}$/.test(data.phone)) {
-    return { valid: false, error: 'Invalid phone number format' };
-  }
-  
-  return { valid: true };
 }
 
-// Rate limiting helper (simple in-memory implementation)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-
-function checkRateLimit(ip: string, limit: number = 10, windowMs: number = 60000): boolean {
-  const now = Date.now();
-  const userLimit = rateLimitMap.get(ip);
-  
-  if (!userLimit || now > userLimit.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs });
-    return true;
-  }
-  
-  if (userLimit.count >= limit) {
-    return false;
-  }
-  
-  userLimit.count++;
-  return true;
+interface VPSConfig {
+  baseUrl: string;
+  authToken: string;
 }
 
-serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  const clientIP = req.headers.get("x-forwarded-for") || "unknown";
-  
-  // Rate limiting
-  if (!checkRateLimit(clientIP)) {
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: "Rate limit exceeded" 
-    }), {
-      status: 429,
-      headers: corsHeaders
-    });
-  }
-
   try {
-    // Get authenticated user
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Authentication required" 
-      }), {
-        status: 401,
-        headers: corsHeaders
-      });
+    console.log('[Secure WhatsApp Service] 🔐 Processando requisição segura...');
+    
+    // Get VPS configuration from secrets
+    const vpsToken = Deno.env.get('VPS_API_TOKEN');
+    if (!vpsToken) {
+      console.error('[Secure WhatsApp Service] ❌ VPS_API_TOKEN não configurado');
+      throw new Error('VPS token não configurado');
     }
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    const vpsConfig: VPSConfig = {
+      baseUrl: 'http://31.97.163.57:3001',
+      authToken: vpsToken
+    };
+
+    // Parse request body
+    const { action, instanceId, ...params } = await req.json();
+    console.log('[Secure WhatsApp Service] 📝 Ação solicitada:', action);
+
+    // Validate user authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Token de autorização necessário');
+    }
+
+    // Initialize Supabase client with service role for validation
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Validate user session
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
     if (authError || !user) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Invalid authentication" 
-      }), {
-        status: 401,
-        headers: corsHeaders
-      });
+      throw new Error('Token de autorização inválido');
     }
 
-    const requestData = await req.json();
-    const validation = validateInput(requestData);
-    
-    if (!validation.valid) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: validation.error 
-      }), {
-        status: 400,
-        headers: corsHeaders
-      });
-    }
+    console.log('[Secure WhatsApp Service] ✅ Usuário autenticado:', user.id);
 
-    const { action, ...params } = requestData;
-    
-    // Security: Verify user has permission to perform this action
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || !['admin', 'manager'].includes(profile.role)) {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Insufficient permissions" 
-      }), {
-        status: 403,
-        headers: corsHeaders
-      });
-    }
-
-    // Handle different actions securely
     let result;
+
     switch (action) {
-      case 'create_instance':
-        result = await createWhatsAppInstance(params, user.id);
+      case 'list_instances':
+        result = await listInstances(vpsConfig);
         break;
-      case 'get_qr_code':
-        result = await getQRCode(params, user.id);
+      
+      case 'get_instance_status':
+        if (!instanceId) throw new Error('instanceId é obrigatório');
+        result = await getInstanceStatus(vpsConfig, instanceId);
         break;
-      case 'send_message':
-        result = await sendMessage(params, user.id);
+      
+      case 'health_check':
+        result = await performHealthCheck(vpsConfig);
         break;
+      
+      case 'test_connectivity':
+        result = await testConnectivity(vpsConfig);
+        break;
+      
+      case 'test_auth':
+        result = await testAuthentication(vpsConfig);
+        break;
+      
+      case 'test_server_process':
+        result = await testServerProcess(vpsConfig);
+        break;
+      
+      case 'count_instances':
+        result = await countInstances(vpsConfig);
+        break;
+      
       default:
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "Invalid action" 
-        }), {
-          status: 400,
-          headers: corsHeaders
-        });
+        throw new Error(`Ação não suportada: ${action}`);
     }
 
-    return new Response(JSON.stringify(result), {
-      status: result.success ? 200 : 400,
-      headers: corsHeaders
-    });
-
-  } catch (error: any) {
-    console.error('Secure WhatsApp Service Error:', error);
+    console.log('[Secure WhatsApp Service] ✅ Operação concluída com sucesso');
     
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: "Internal server error" 
-    }), {
-      status: 500,
-      headers: corsHeaders
-    });
+    return new Response(
+      JSON.stringify(result),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    );
+
+  } catch (error) {
+    console.error('[Secure WhatsApp Service] ❌ Erro:', error.message);
+    
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message 
+      }),
+      { 
+        status: 400,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    );
   }
 });
 
-async function createWhatsAppInstance(params: any, userId: string) {
-  try {
-    const response = await fetch(`http://31.97.163.57:3001/instances`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${vpsToken}`,
-      },
-      body: JSON.stringify({
-        instanceName: params.instanceName,
-        webhookUrl: `https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_whatsapp_web`,
-        userId: userId
-      })
-    });
+async function listInstances(config: VPSConfig) {
+  const response = await fetch(`${config.baseUrl}/instances`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.authToken}`
+    }
+  });
 
-    if (!response.ok) {
-      throw new Error(`VPS error: ${response.status}`);
+  if (!response.ok) {
+    throw new Error(`VPS request failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return { instances: data.instances || [] };
+}
+
+async function getInstanceStatus(config: VPSConfig, instanceId: string) {
+  const response = await fetch(`${config.baseUrl}/instance/${instanceId}/status`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.authToken}`
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Status check failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return { status: data.status };
+}
+
+async function performHealthCheck(config: VPSConfig) {
+  const healthCheck = {
+    success: false,
+    status: 'unknown',
+    connectivity: false,
+    authentication: false,
+    serverProcess: false,
+    instanceCount: 0,
+    errors: [],
+    recommendations: []
+  };
+
+  try {
+    // Test connectivity
+    const connectivityTest = await testConnectivity(config);
+    healthCheck.connectivity = connectivityTest.success;
+    
+    if (!connectivityTest.success) {
+      healthCheck.errors.push(`Conectividade falhou: ${connectivityTest.error}`);
+      healthCheck.recommendations.push('Verificar se a VPS está online e acessível');
+      return { healthCheck };
     }
 
-    const data = await response.json();
-    return { success: true, data };
+    // Test authentication
+    const authTest = await testAuthentication(config);
+    healthCheck.authentication = authTest.success;
+    
+    if (!authTest.success) {
+      healthCheck.errors.push(`Autenticação falhou: ${authTest.error}`);
+      healthCheck.recommendations.push('Verificar token de autenticação VPS_API_TOKEN');
+    }
+
+    // Test server process
+    const processTest = await testServerProcess(config);
+    healthCheck.serverProcess = processTest.success;
+    
+    if (!processTest.success) {
+      healthCheck.errors.push(`Processo do servidor: ${processTest.error}`);
+      healthCheck.recommendations.push('Verificar se whatsapp-server.js está rodando na VPS');
+    }
+
+    // Count instances
+    if (healthCheck.authentication && healthCheck.serverProcess) {
+      const instancesTest = await countInstances(config);
+      healthCheck.instanceCount = instancesTest.count;
+      
+      if (instancesTest.count === 0) {
+        healthCheck.recommendations.push('Nenhuma instância ativa encontrada - possível perda após restart');
+      }
+    }
+
+    // Determine overall status
+    if (healthCheck.connectivity && healthCheck.authentication && healthCheck.serverProcess) {
+      healthCheck.success = true;
+      healthCheck.status = 'healthy';
+    } else if (healthCheck.connectivity) {
+      healthCheck.status = 'partial';
+    } else {
+      healthCheck.status = 'offline';
+    }
+
+    return { healthCheck };
   } catch (error) {
-    console.error('Create instance error:', error);
-    return { success: false, error: 'Failed to create instance' };
+    healthCheck.errors.push(`Erro inesperado: ${error.message}`);
+    healthCheck.status = 'error';
+    return { healthCheck };
   }
 }
 
-async function getQRCode(params: any, userId: string) {
+async function testConnectivity(config: VPSConfig) {
   try {
-    const response = await fetch(`http://31.97.163.57:3001/instance/${params.instanceId}/qr`, {
+    const response = await fetch(`${config.baseUrl}/health`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(10000)
+    });
+
+    return {
+      success: response.ok,
+      error: response.ok ? undefined : `HTTP ${response.status}`
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+async function testAuthentication(config: VPSConfig) {
+  try {
+    const response = await fetch(`${config.baseUrl}/instances`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${vpsToken}`,
-      }
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.authToken}`
+      },
+      signal: AbortSignal.timeout(10000)
     });
 
-    if (!response.ok) {
-      throw new Error(`VPS error: ${response.status}`);
+    if (response.status === 401) {
+      return {
+        success: false,
+        error: 'Token de autenticação inválido'
+      };
     }
 
-    const data = await response.json();
-    return { success: true, data };
+    return {
+      success: response.ok,
+      error: response.ok ? undefined : `HTTP ${response.status}`
+    };
   } catch (error) {
-    console.error('Get QR code error:', error);
-    return { success: false, error: 'Failed to get QR code' };
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }
 
-async function sendMessage(params: any, userId: string) {
+async function testServerProcess(config: VPSConfig) {
   try {
-    // Additional validation for message sending
-    if (!params.phone || !params.message) {
-      return { success: false, error: 'Phone and message are required' };
-    }
-
-    const response = await fetch(`http://31.97.163.57:3001/send`, {
-      method: 'POST',
+    const response = await fetch(`${config.baseUrl}/status`, {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${vpsToken}`,
+        'Authorization': `Bearer ${config.authToken}`
       },
-      body: JSON.stringify({
-        instanceId: params.instanceId,
-        phone: params.phone,
-        message: params.message,
-        userId: userId
-      })
+      signal: AbortSignal.timeout(10000)
     });
 
-    if (!response.ok) {
-      throw new Error(`VPS error: ${response.status}`);
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        success: data.status === 'online',
+        error: data.status !== 'online' ? `Status: ${data.status}` : undefined
+      };
     }
 
-    const data = await response.json();
-    return { success: true, data };
+    return {
+      success: false,
+      error: `HTTP ${response.status}`
+    };
   } catch (error) {
-    console.error('Send message error:', error);
-    return { success: false, error: 'Failed to send message' };
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+async function countInstances(config: VPSConfig) {
+  try {
+    const response = await fetch(`${config.baseUrl}/instances`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.authToken}`
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        count: data.instances?.length || 0
+      };
+    }
+
+    return {
+      count: 0,
+      error: `HTTP ${response.status}`
+    };
+  } catch (error) {
+    return {
+      count: 0,
+      error: error.message
+    };
   }
 }
