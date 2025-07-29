@@ -7,6 +7,7 @@ import { AudioMessage } from '../renderers/AudioMessage';
 import { DocumentMessage } from '../renderers/DocumentMessage';
 
 interface MessageMediaProps {
+  messageId: string;
   mediaType?: string;
   mediaUrl?: string;
   mediaCache?: any;
@@ -16,6 +17,7 @@ interface MessageMediaProps {
 }
 
 export const MessageMedia: React.FC<MessageMediaProps> = ({
+  messageId,
   mediaType,
   mediaUrl,
   mediaCache,
@@ -28,6 +30,7 @@ export const MessageMedia: React.FC<MessageMediaProps> = ({
   }
 
   const commonProps = {
+    messageId,
     url: mediaUrl,
     fileName: fileName || 'arquivo',
     isIncoming,
@@ -45,7 +48,7 @@ export const MessageMedia: React.FC<MessageMediaProps> = ({
       return <AudioMessage {...commonProps} />;
     
     case 'document':
-      return <DocumentMessage {...commonProps} />;
+      return <DocumentMessage {...commonProps} filename={fileName || 'arquivo'} />;
     
     default:
       return (

@@ -9,7 +9,7 @@ interface ChatConversationProps {
   messages: Message[];
   onOpenContactDetails: () => void;
   onBack: () => void;
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string) => Promise<boolean>;
   leadId?: string;
 }
 
@@ -21,6 +21,17 @@ export function ChatConversation({
   onSendMessage,
   leadId
 }: ChatConversationProps) {
+  // Wrapper to handle async message sending
+  const handleSendMessage = async (message: string): Promise<boolean> => {
+    try {
+      await onSendMessage(message);
+      return true;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      return false;
+    }
+  };
+
   return (
     <div className="h-full flex flex-col bg-white/5 dark:bg-black/5 backdrop-blur-lg">
       <ChatHeader 
@@ -30,7 +41,7 @@ export function ChatConversation({
         leadId={leadId}
       />
       <WhatsAppMessagesList messages={messages} />
-      <WhatsAppMessageInput onSendMessage={onSendMessage} />
+      <WhatsAppMessageInput onSendMessage={handleSendMessage} />
     </div>
   );
 }

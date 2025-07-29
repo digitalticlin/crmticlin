@@ -2,21 +2,32 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 
+export interface UploadedFile {
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+}
+
 interface MediaUploadState {
   isUploading: boolean;
-  progress: number;
+  uploadProgress: number;
   error: string | null;
 }
 
-export const useMediaUpload = () => {
+interface UseMediaUploadOptions {
+  onSendMessage: (message: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
+}
+
+export const useMediaUpload = (options?: UseMediaUploadOptions) => {
   const [state, setState] = useState<MediaUploadState>({
     isUploading: false,
-    progress: 0,
+    uploadProgress: 0,
     error: null
   });
 
-  const uploadFile = useCallback(async (file: File): Promise<string | null> => {
-    setState(prev => ({ ...prev, isUploading: true, error: null, progress: 0 }));
+  const processFile = useCallback(async (file: File): Promise<UploadedFile | null> => {
+    setState(prev => ({ ...prev, isUploading: true, error: null, uploadProgress: 0 }));
 
     try {
       // Convert file to base64 DataURL
@@ -27,10 +38,22 @@ export const useMediaUpload = () => {
         reader.readAsDataURL(file);
       });
 
-      setState(prev => ({ ...prev, progress: 100, isUploading: false }));
-      return dataUrl;
+      setState(prev => ({ ...prev, uploadProgress: 100, isUploading: false }));
+      
+      // Determine media type
+      let mediaType = 'document';
+      if (file.type.startsWith('image/')) mediaType = 'image';
+      else if (file.type.startsWith('video/')) mediaType = 'video';
+      else if (file.type.startsWith('audio/')) mediaType = 'audio';
+
+      return {
+        name: file.name,
+        size: file.size,
+        type: mediaType,
+        url: dataUrl
+      };
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('Error processing file:', error);
       setState(prev => ({ 
         ...prev, 
         isUploading: false, 
@@ -41,10 +64,29 @@ export const useMediaUpload = () => {
     }
   }, []);
 
+  const sendFile = useCallback(async (file: UploadedFile, caption: string): Promise<boolean> => {
+    if (!options?.onSendMessage) {
+      console.error('onSendMessage not provided');
+      return false;
+    }
+
+    try {
+      return await options.onSendMessage(caption, file.type, file.url);
+    } catch (error) {
+      console.error('Error sending file:', error);
+      return false;
+    }
+  }, [options]);
+
+  const uploadFile = useCallback(async (file: File): Promise<string | null> => {
+    const processedFile = await processFile(file);
+    return processedFile?.url || null;
+  }, [processFile]);
+
   const resetState = useCallback(() => {
     setState({
       isUploading: false,
-      progress: 0,
+      uploadProgress: 0,
       error: null
     });
   }, []);
@@ -52,6 +94,8 @@ export const useMediaUpload = () => {
   return {
     ...state,
     uploadFile,
+    processFile,
+    sendFile,
     resetState
   };
 };
