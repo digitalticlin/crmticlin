@@ -1,3 +1,4 @@
+
 import { Contact, Message } from "@/types/chat";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useState } from "react";
@@ -9,7 +10,7 @@ interface ChatAreaProps {
   messages: Message[];
   onOpenContactDetails: () => void;
   onBack: () => void;
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string) => Promise<boolean>;
   leadId?: string;
 }
 

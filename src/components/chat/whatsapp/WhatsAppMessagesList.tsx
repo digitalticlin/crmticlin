@@ -72,13 +72,13 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
       {/* Lista de mensagens com padding lateral */}
       <div className="px-2">
         {messagesList.map((message, index) => {
-          const isNewMessage = index === messagesList.length - 1; // Última mensagem é a mais nova
+          const isLastMessage = index === messagesList.length - 1;
           
           return (
             <MessageItem
               key={message.id}
               message={message}
-              isNewMessage={isNewMessage}
+              isLastMessage={isLastMessage}
             />
           );
         })}

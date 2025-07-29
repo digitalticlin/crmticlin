@@ -3,6 +3,7 @@ import { Contact, Message } from "@/types/chat";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { WhatsAppMessagesList } from "@/components/chat/whatsapp/WhatsAppMessagesList";
 import { WhatsAppMessageInput } from "@/components/chat/whatsapp/WhatsAppMessageInput";
+import { useState } from "react";
 
 interface ChatConversationProps {
   selectedContact: Contact;
@@ -21,14 +22,19 @@ export function ChatConversation({
   onSendMessage,
   leadId
 }: ChatConversationProps) {
+  const [isSending, setIsSending] = useState(false);
+
   // Wrapper to handle async message sending
   const handleSendMessage = async (message: string): Promise<boolean> => {
+    setIsSending(true);
     try {
-      await onSendMessage(message);
-      return true;
+      const result = await onSendMessage(message);
+      return result;
     } catch (error) {
       console.error('Error sending message:', error);
       return false;
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -41,7 +47,10 @@ export function ChatConversation({
         leadId={leadId}
       />
       <WhatsAppMessagesList messages={messages} />
-      <WhatsAppMessageInput onSendMessage={handleSendMessage} />
+      <WhatsAppMessageInput 
+        onSendMessage={handleSendMessage} 
+        isSending={isSending}
+      />
     </div>
   );
 }

@@ -17,7 +17,7 @@ export const MessageItem = memo<MessageItemProps>(({
   message, 
   isLastMessage = false 
 }) => {
-  const isIncoming = message.type === 'incoming';
+  const isIncoming = !message.fromMe;
   const isOptimistic = message.id?.startsWith('temp_');
   
   return (
@@ -32,30 +32,21 @@ export const MessageItem = memo<MessageItemProps>(({
           : "bg-green-500 text-white rounded-br-sm",
         isOptimistic && "opacity-70"
       )}>
-        {/* Contact name for incoming messages in groups */}
-        {isIncoming && (
-          <div className="flex items-center gap-1 mb-1 text-xs text-gray-500">
-            <User className="h-3 w-3" />
-            <span>{message.contact?.name || 'Unknown'}</span>
-          </div>
-        )}
-
         {/* Media content */}
         {message.mediaType && message.mediaUrl && (
           <MessageMedia
             messageId={message.id}
             mediaType={message.mediaType}
             mediaUrl={message.mediaUrl}
-            fileName={message.fileName}
             isIncoming={isIncoming}
             className="mb-2"
           />
         )}
 
         {/* Text content */}
-        {message.content && (
+        {message.text && (
           <MessageContent 
-            content={message.content} 
+            content={message.text} 
             isIncoming={isIncoming}
           />
         )}
@@ -77,7 +68,7 @@ export const MessageItem = memo<MessageItemProps>(({
           
           {!isIncoming && !isOptimistic && (
             <MessageStatus 
-              status={message.status} 
+              status={message.status || 'sent'} 
               isLastMessage={isLastMessage}
             />
           )}
