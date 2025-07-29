@@ -1,20 +1,22 @@
+
 /**
- * 🚀 TIPOS PARA SISTEMA DE REALTIME MODULAR E ISOLADO
+ * 🚀 TIPOS CORRIGIDOS PARA SISTEMA DE REALTIME MULTITENANCY
  * 
- * Este arquivo define os tipos compartilhados entre os hooks de realtime
- * para chats e mensagens, garantindo consistência e tipagem forte.
+ * CORREÇÕES APLICADAS:
+ * ✅ Remoção de userId dos props (obtido diretamente do useAuth)
+ * ✅ Adição de campos de monitoramento de reconnection
+ * ✅ Tipagem mais rigorosa para callbacks
  */
 
 import { Contact, Message } from '@/types/chat';
 
 // 👥 TIPOS PARA REALTIME DE CHATS/CONTATOS
 export interface ChatsRealtimeConfig {
-  userId: string | null;
   activeInstanceId: string | null;
   onContactUpdate?: (contactId: string, messageText?: string) => void;
   onNewContact?: (contact: Contact) => void;
   onContactsRefresh?: () => void;
-  // 🚀 NOVAS CALLBACKS GRANULARES
+  // 🚀 CORREÇÃO: Callbacks granulares com tipagem rigorosa
   onMoveContactToTop?: (contactId: string, newMessage?: { text: string; timestamp: string; unreadCount?: number }) => void;
   onUpdateUnreadCount?: (contactId: string, increment?: boolean) => void;
   onAddNewContact?: (newContactData: Partial<Contact>) => void;
@@ -27,7 +29,7 @@ export interface MessagesRealtimeConfig {
   onMessageUpdate?: (message: Message) => void;
   onNewMessage?: (message: Message) => void;
   onMessagesRefresh?: () => void;
-  // 🚀 NOVAS CALLBACKS GRANULARES
+  // 🚀 CORREÇÃO: Callbacks granulares com tipagem rigorosa
   onAddNewMessage?: (message: Message) => void;
   onUpdateMessageStatus?: (messageId: string, newStatus: 'sent' | 'delivered' | 'read') => void;
 }
@@ -48,6 +50,10 @@ export interface RealtimeStats {
   lastMessagesUpdate: number | null;
   totalChatsEvents: number;
   totalMessagesEvents: number;
+  // 🚀 CORREÇÃO: Adicionar estatísticas de reconnection
+  chatsReconnectAttempts: number;
+  messagesReconnectAttempts: number;
+  queuedMessages: number;
 }
 
 // ⚙️ STATUS DE CONEXÃO
@@ -56,4 +62,5 @@ export type RealtimeConnectionStatus =
   | 'connected' 
   | 'disconnected' 
   | 'error'
-  | 'failed'; 
+  | 'failed'
+  | 'reconnecting'; // 🚀 CORREÇÃO: Adicionar status de reconnection
