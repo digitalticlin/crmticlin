@@ -106,7 +106,13 @@ export class UsageTrackingService {
         return null;
       }
 
-      return data;
+      // Fazer cast correto do status para o tipo esperado
+      const typedUsage: MessageUsageTracking = {
+        ...data,
+        status: data.status as 'active' | 'warning' | 'exceeded' | 'blocked'
+      };
+
+      return typedUsage;
 
     } catch (error) {
       console.error('[UsageTracking] Erro ao buscar uso atual:', error);

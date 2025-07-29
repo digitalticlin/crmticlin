@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { UsageTrackingService } from '../services/usageTrackingService';
 import { MessageUsageTracking, UsageLimitCheck } from '../types/billing';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useMessageUsage = () => {
   const { user } = useAuth();
