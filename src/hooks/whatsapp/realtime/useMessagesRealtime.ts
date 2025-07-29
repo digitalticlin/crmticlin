@@ -1,13 +1,12 @@
 
 /**
- * 🎯 HOOK REALTIME CORRIGIDO PARA RECEBER MENSAGENS EXTERNAS
+ * 🎯 HOOK REALTIME OTIMIZADO - SEM RECONEXÕES EXCESSIVAS
  * 
  * CORREÇÕES APLICADAS:
- * ✅ Permitir mensagens externas (from_me = false) no INSERT
- * ✅ Callbacks otimizados sem duplicação
- * ✅ Filtros rigorosos de multitenancy
- * ✅ Debounce para evitar spam de updates
- * ✅ Sistema de detecção de mensagens realmente novas
+ * ✅ Conexão estável sem recreação desnecessária
+ * ✅ Debounce eficiente
+ * ✅ Cache de mensagens processadas
+ * ✅ Logs detalhados para debug
  */
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -40,26 +39,23 @@ export const useMessagesRealtime = ({
   const isConnected = useRef(false);
   const lastProcessedTimestamp = useRef<string | null>(null);
   const debounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const currentChannelKey = useRef<string | null>(null);
 
-  // 🚀 Sistema de reconnection otimizado
-  const reconnect = useCallback(() => {
-    if (reconnectAttempts.current >= maxReconnectAttempts) {
-      console.error('[MessagesRealtime] ❌ Máximo de tentativas de reconnection atingido');
-      return;
-    }
-
-    const delay = Math.min(Math.pow(2, reconnectAttempts.current) * 1000, 30000);
-    reconnectAttempts.current++;
+  // Helper para normalizar mediaType
+  const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "audio" | "document" => {
+    if (!mediaType) return 'text';
     
-    console.log(`[MessagesRealtime] 🔄 Reconnecting em ${delay}ms (tentativa ${reconnectAttempts.current})`);
+    const normalizedType = mediaType.toLowerCase();
+    if (normalizedType.includes('image')) return 'image';
+    if (normalizedType.includes('video')) return 'video';
+    if (normalizedType.includes('audio')) return 'audio';
+    if (normalizedType.includes('document')) return 'document';
     
-    reconnectTimeoutRef.current = setTimeout(() => {
-      setupRealtime();
-    }, delay);
-  }, []);
+    return 'text';
+  };
 
-  // 🚀 Debounce para callbacks
-  const debouncedCallback = useCallback((messageId: string, callback: () => void, delay = 500) => {
+  // 🚀 Debounce otimizado
+  const debouncedCallback = useCallback((messageId: string, callback: () => void, delay = 300) => {
     const existingTimer = debounceTimers.current.get(messageId);
     if (existingTimer) {
       clearTimeout(existingTimer);
@@ -73,7 +69,7 @@ export const useMessagesRealtime = ({
     debounceTimers.current.set(messageId, timer);
   }, []);
 
-  // 🚀 Processar queue sem spam
+  // 🚀 Processar queue de mensagens
   const processMessageQueue = useCallback(() => {
     if (messageQueue.current.length === 0) return;
     
@@ -93,7 +89,7 @@ export const useMessagesRealtime = ({
     });
   }, [onNewMessage, onMessageUpdate, debouncedCallback]);
   
-  // ✅ Conversão com validação de timestamp
+  // ✅ Conversão otimizada
   const convertMessage = useCallback((messageData: any): Message => {
     const message: Message = {
       id: messageData.id,
@@ -101,7 +97,7 @@ export const useMessagesRealtime = ({
       fromMe: messageData.from_me || false,
       timestamp: messageData.created_at || new Date().toISOString(),
       status: messageData.status || 'sent',
-      mediaType: messageData.media_type || 'text',
+      mediaType: normalizeMediaType(messageData.media_type),
       mediaUrl: messageData.media_url || undefined,
       sender: messageData.from_me ? 'user' : 'contact',
       time: new Date(messageData.created_at || Date.now()).toLocaleTimeString('pt-BR', {
@@ -112,7 +108,6 @@ export const useMessagesRealtime = ({
       media_cache: messageData.media_cache || null
     };
 
-    // Atualizar último timestamp processado
     if (!lastProcessedTimestamp.current || message.timestamp > lastProcessedTimestamp.current) {
       lastProcessedTimestamp.current = message.timestamp;
     }
@@ -120,65 +115,39 @@ export const useMessagesRealtime = ({
     return message;
   }, []);
 
-  // 🚀 CORREÇÃO PRINCIPAL: Filtro mais permissivo para mensagens externas
+  // 🚀 CORREÇÃO: Filtro permissivo para mensagens externas
   const shouldProcessMessage = useCallback((messageData: any, isUpdate = false): boolean => {
-    // Validação de ownership
+    // Validação básica de ownership
     if (!user?.id || messageData.created_by_user_id !== user.id) {
-      console.log(`[MessagesRealtime] ❌ Mensagem de outro usuário ignorada: ${messageData.id}`);
       return false;
     }
 
     // Filtrar por instância e contato
     if (messageData.whatsapp_number_id !== activeInstance?.id) {
-      console.log(`[MessagesRealtime] ❌ Mensagem de outra instância ignorada: ${messageData.id}`);
       return false;
     }
 
     if (messageData.lead_id !== selectedContact?.id) {
-      console.log(`[MessagesRealtime] ❌ Mensagem de outro contato ignorada: ${messageData.id}`);
       return false;
     }
 
-    // Para updates, permitir sempre (mudança de status)
+    // Para updates, permitir sempre
     if (isUpdate) {
-      console.log(`[MessagesRealtime] ✅ Update de mensagem permitido: ${messageData.id}`);
       return true;
     }
 
-    // Para inserts, verificar se é realmente nova
-    const messageTimestamp = messageData.created_at;
-    
-    // Verificar se já foi processada (evitar duplicação)
+    // 🚀 CORREÇÃO PRINCIPAL: Permitir mensagens externas no INSERT
+    if (messageData.from_me === false) {
+      console.log(`[MessagesRealtime] ✅ MENSAGEM EXTERNA ACEITA: ${messageData.id}`);
+      return true;
+    }
+
+    // Para mensagens próprias, verificar duplicação
     if (processedMessageIds.current.has(messageData.id)) {
-      console.log(`[MessagesRealtime] ❌ Mensagem já processada ignorada: ${messageData.id}`);
+      console.log(`[MessagesRealtime] ❌ Mensagem já processada: ${messageData.id}`);
       return false;
     }
 
-    // 🚀 CORREÇÃO CRÍTICA: Permitir mensagens externas no INSERT
-    if (messageData.from_me === false) {
-      console.log(`[MessagesRealtime] ✅ MENSAGEM EXTERNA RECEBIDA: ${messageData.id} | De: ${selectedContact?.name}`);
-      // Marcar como processada
-      processedMessageIds.current.add(messageData.id);
-      return true;
-    }
-
-    // Para mensagens próprias em insert, verificar se não foram enviadas via UI
-    if (messageData.from_me === true) {
-      // Verificar se a mensagem é mais nova que a última processada
-      if (lastProcessedTimestamp.current && messageTimestamp <= lastProcessedTimestamp.current) {
-        console.log(`[MessagesRealtime] 🚫 Mensagem própria antiga ignorada: ${messageData.id}`);
-        return false;
-      }
-      
-      // Permitir mensagens próprias novas (vindas do webhook)
-      console.log(`[MessagesRealtime] ✅ Mensagem própria nova permitida: ${messageData.id}`);
-      processedMessageIds.current.add(messageData.id);
-      return true;
-    }
-
-    // Marcar como processada
-    processedMessageIds.current.add(messageData.id);
-    
     return true;
   }, [selectedContact, activeInstance, user?.id]);
 
@@ -195,7 +164,6 @@ export const useMessagesRealtime = ({
       channelRef.current = null;
     }
     
-    // Limpar debounce timers
     debounceTimers.current.forEach(timer => clearTimeout(timer));
     debounceTimers.current.clear();
     
@@ -204,27 +172,39 @@ export const useMessagesRealtime = ({
     isConnected.current = false;
     reconnectAttempts.current = 0;
     lastProcessedTimestamp.current = null;
+    currentChannelKey.current = null;
   }, []);
 
-  // 🚀 Setup realtime com logs detalhados
+  // 🚀 Setup realtime com controle de reconexão
   const setupRealtime = useCallback(() => {
     if (!selectedContact || !activeInstance || !user?.id) {
       cleanup();
       return;
     }
 
-    console.log('[MessagesRealtime] 🚀 Configurando realtime CORRIGIDO:', {
+    const newChannelKey = `${selectedContact.id}-${activeInstance.id}-${user.id}`;
+    
+    // 🚀 CORREÇÃO: Evitar reconexão desnecessária
+    if (currentChannelKey.current === newChannelKey && channelRef.current) {
+      console.log('[MessagesRealtime] ⏭️ Canal já conectado, evitando reconexão');
+      return;
+    }
+
+    console.log('[MessagesRealtime] 🚀 Configurando realtime OTIMIZADO:', {
       contactId: selectedContact.id,
       contactName: selectedContact.name,
       instanceId: activeInstance.id,
       userId: user.id,
-      hasCallbacks: !!(onNewMessage && onMessageUpdate)
+      channelKey: newChannelKey
     });
 
-    // Limpar canal anterior
-    cleanup();
+    // Limpar canal anterior apenas se diferente
+    if (currentChannelKey.current !== newChannelKey) {
+      cleanup();
+    }
 
-    const channelId = `messages-${selectedContact.id}-${activeInstance.id}-${user.id}-${Date.now()}`;
+    currentChannelKey.current = newChannelKey;
+    const channelId = `messages-${newChannelKey}-${Date.now()}`;
 
     const channel = supabase
       .channel(channelId)
@@ -240,7 +220,7 @@ export const useMessagesRealtime = ({
           messageId: messageData.id,
           fromMe: messageData.from_me,
           leadId: messageData.lead_id,
-          text: messageData.text?.substring(0, 50) + '...'
+          text: messageData.text?.substring(0, 30) + '...'
         });
 
         if (!shouldProcessMessage(messageData, false)) {
@@ -249,14 +229,16 @@ export const useMessagesRealtime = ({
 
         const message = convertMessage(messageData);
         
-        console.log('[MessagesRealtime] ✅ MENSAGEM ACEITA:', {
+        console.log('[MessagesRealtime] ✅ MENSAGEM PROCESSADA:', {
           messageId: message.id,
           fromMe: message.fromMe,
-          timestamp: message.timestamp,
-          text: message.text.substring(0, 30) + '...'
+          isExternal: !message.fromMe
         });
         
-        // Usar debounce para evitar spam
+        // Marcar como processada
+        processedMessageIds.current.add(message.id);
+        
+        // Processar com debounce
         debouncedCallback(message.id, () => {
           if (isConnected.current && onNewMessage) {
             onNewMessage(message);
@@ -284,7 +266,6 @@ export const useMessagesRealtime = ({
           status: message.status
         });
         
-        // Usar debounce para updates
         debouncedCallback(`update_${message.id}`, () => {
           if (onMessageUpdate) {
             onMessageUpdate(message);
@@ -298,22 +279,24 @@ export const useMessagesRealtime = ({
           isConnected.current = true;
           reconnectAttempts.current = 0;
           processMessageQueue();
-          console.log('[MessagesRealtime] ✅ CONECTADO E PRONTO PARA RECEBER MENSAGENS EXTERNAS');
+          console.log('[MessagesRealtime] ✅ CONECTADO - PRONTO PARA RECEBER MENSAGENS');
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           console.error('[MessagesRealtime] ❌ Erro na conexão:', status);
           isConnected.current = false;
-          reconnect();
+          // Não reconectar automaticamente para evitar loops
         } else if (status === 'CLOSED') {
           isConnected.current = false;
         }
       });
 
     channelRef.current = channel;
-  }, [selectedContact, activeInstance, user?.id, convertMessage, onNewMessage, onMessageUpdate, cleanup, shouldProcessMessage, reconnect, processMessageQueue, debouncedCallback]);
+  }, [selectedContact, activeInstance, user?.id, convertMessage, onNewMessage, onMessageUpdate, cleanup, shouldProcessMessage, processMessageQueue, debouncedCallback]);
 
-  // Configurar realtime
+  // 🚀 CORREÇÃO: Effect otimizado - evitar reconexões desnecessárias
   useEffect(() => {
-    if (user?.id && selectedContact && activeInstance) {
+    const shouldConnect = user?.id && selectedContact && activeInstance;
+    
+    if (shouldConnect) {
       setupRealtime();
     } else {
       cleanup();
