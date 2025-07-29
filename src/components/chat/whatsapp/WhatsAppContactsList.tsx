@@ -63,8 +63,8 @@ export const WhatsAppContactsList = React.memo(({
 
   return (
     <div className="h-full flex flex-col relative z-10">
-      {/* Header com busca */}
-      <div className="p-4 border-b border-white/20 backdrop-blur-sm bg-gradient-to-r from-white/10 to-white/5">
+      {/* Header fixo sem scroll */}
+      <div className="flex-shrink-0 p-4 border-b border-white/20 backdrop-blur-sm bg-gradient-to-r from-white/10 to-white/5">
         <div className="space-y-3">
           {/* Título */}
           <div className="flex items-center justify-between">
@@ -130,21 +130,23 @@ export const WhatsAppContactsList = React.memo(({
         </div>
       </div>
 
-      {/* Lista de contatos */}
-      <ContactsList
-        contacts={finalContacts}
-        selectedContact={selectedContact}
-        onSelectContact={onSelectContact}
-        searchQuery={searchQuery}
-        activeFilter={activeFilter}
-        isLoadingMore={isLoadingMore}
-        hasMoreContacts={hasMoreContacts}
-        onLoadMoreContacts={onLoadMoreContacts}
-        onRefreshContacts={onRefreshContacts}
-        totalContactsAvailable={totalContactsAvailable}
-      />
+      {/* Container da lista com scroll interno minimalista */}
+      <div className="flex-1 overflow-y-auto glass-scrollbar">
+        <ContactsList
+          contacts={finalContacts}
+          selectedContact={selectedContact}
+          onSelectContact={onSelectContact}
+          searchQuery={searchQuery}
+          activeFilter={activeFilter}
+          isLoadingMore={isLoadingMore}
+          hasMoreContacts={hasMoreContacts}
+          onLoadMoreContacts={onLoadMoreContacts}
+          onRefreshContacts={onRefreshContacts}
+          totalContactsAvailable={totalContactsAvailable}
+        />
+      </div>
 
-      {/* Loading indicator */}
+      {/* Loading indicator fixo */}
       {isLoading && contacts.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
           <div className="flex items-center space-x-2 text-gray-800">
