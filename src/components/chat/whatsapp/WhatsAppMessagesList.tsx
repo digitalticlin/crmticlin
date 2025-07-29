@@ -51,7 +51,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
   });
 
   // Hook para detectar scroll e carregar mais mensagens
-  const { isNearTop, shouldAutoScroll } = useScrollDetection({
+  const { isNearTop, isNearBottom } = useScrollDetection({
     containerRef, 
     onLoadMore, 
     hasMoreMessages, 
