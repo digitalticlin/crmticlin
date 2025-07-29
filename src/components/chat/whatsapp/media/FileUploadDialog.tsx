@@ -27,7 +27,6 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     onSendMessage
   });
 
-  // Resetar estado ao fechar
   const handleClose = () => {
     setSelectedFiles([]);
     setIsSending(false);
@@ -35,12 +34,10 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     onOpenChange(false);
   };
 
-  // Selecionar múltiplos arquivos
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
-    // Limitar a 25 arquivos
     if (files.length > 25) {
       toast.error('Máximo de 25 arquivos por vez');
       return;
@@ -59,13 +56,11 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     setSelectedFiles(uploadedFiles);
     setCurrentProcessingIndex(-1);
 
-    // Limpar input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Enviar todos os arquivos em fila
   const handleSendAll = async () => {
     if (selectedFiles.length === 0) return;
 
@@ -75,11 +70,10 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     try {
       for (let i = 0; i < selectedFiles.length; i++) {
         setCurrentProcessingIndex(i);
-        const success = await sendFile(selectedFiles[i], ''); // Sem descrição
+        const success = await sendFile(selectedFiles[i], '');
         if (success) {
           successCount++;
         }
-        // Pequeno delay entre envios para não sobrecarregar
         if (i < selectedFiles.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
@@ -97,17 +91,14 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     }
   };
 
-  // Remover arquivo específico
   const handleRemoveFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Remover todos os arquivos
   const handleRemoveAll = () => {
     setSelectedFiles([]);
   };
 
-  // Ícone baseado no tipo de arquivo
   const getFileIcon = (type: string) => {
     switch (type) {
       case 'video':
@@ -121,7 +112,6 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
     }
   };
 
-  // Nome amigável do tipo
   const getFileTypeName = (type: string) => {
     switch (type) {
       case 'video':
@@ -140,13 +130,21 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileIcon className="h-5 w-5" />
+      <DialogContent className={cn(
+        "sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col",
+        "bg-white/95 backdrop-blur-xl border border-white/30",
+        "shadow-glass-lg rounded-3xl"
+      )}>
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-3 text-gray-800 font-semibold">
+            <div className="p-2 bg-blue-100/80 backdrop-blur-sm rounded-xl">
+              <FileIcon className="h-5 w-5 text-blue-600" />
+            </div>
             Enviar Arquivo{selectedFiles.length > 1 ? 's' : ''}
             {selectedFiles.length > 0 && (
-              <span className="text-sm text-gray-500">({selectedFiles.length}/25)</span>
+              <span className="text-sm text-gray-500 bg-gray-100/60 px-2 py-1 rounded-full">
+                ({selectedFiles.length}/25)
+              </span>
             )}
           </DialogTitle>
         </DialogHeader>
@@ -154,18 +152,29 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
         <div className="flex-1 overflow-hidden flex flex-col space-y-4">
           {/* Área de Upload */}
           {selectedFiles.length === 0 && (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <FileIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600 mb-2">
+            <div className={cn(
+              "border-2 border-dashed border-blue-300/50 rounded-2xl p-8 text-center",
+              "bg-gradient-to-br from-blue-50/80 to-indigo-50/60 backdrop-blur-sm",
+              "transition-all duration-300 hover:border-blue-400/60 hover:bg-gradient-to-br hover:from-blue-50/90 hover:to-indigo-50/80"
+            )}>
+              <div className="p-4 bg-white/60 backdrop-blur-sm rounded-2xl w-fit mx-auto mb-4">
+                <FileIcon className="h-12 w-12 text-blue-600" />
+              </div>
+              <p className="text-gray-700 font-medium mb-2">
                 Selecione arquivos para enviar
               </p>
-              <p className="text-xs text-gray-500 mb-4">
-                Suporta: Documentos, Vídeos, Áudios (máx. 25 arquivos, 50MB cada)
+              <p className="text-sm text-gray-500 mb-6">
+                Suporta: Documentos, Vídeos, Áudios • Máx. 25 arquivos, 50MB cada
               </p>
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="bg-green-600 hover:bg-green-700"
+                className={cn(
+                  "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700",
+                  "text-white font-medium px-6 py-3 rounded-xl shadow-lg",
+                  "transition-all duration-300 hover:shadow-xl hover:scale-105",
+                  "backdrop-blur-sm border border-white/20"
+                )}
               >
                 {isUploading ? (
                   <>
@@ -182,9 +191,9 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
               
               {/* Progress Bar para processamento */}
               {isUploading && (
-                <div className="mt-4">
-                  <Progress value={uploadProgress} className="w-full" />
-                  <p className="text-xs text-gray-500 mt-2">
+                <div className="mt-6 bg-white/70 backdrop-blur-sm rounded-xl p-4">
+                  <Progress value={uploadProgress} className="w-full h-2 mb-2" />
+                  <p className="text-sm text-gray-600 font-medium">
                     Processando arquivo {currentProcessingIndex + 1}... {uploadProgress}%
                   </p>
                 </div>
@@ -195,8 +204,12 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
           {/* Lista de Arquivos Selecionados */}
           {selectedFiles.length > 0 && (
             <div className="flex-1 overflow-y-auto">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium">
+              <div className={cn(
+                "flex items-center justify-between mb-4 p-3 rounded-xl",
+                "bg-gradient-to-r from-blue-50/80 to-indigo-50/60 backdrop-blur-sm",
+                "border border-blue-200/30"
+              )}>
+                <span className="text-sm font-semibold text-gray-700">
                   {selectedFiles.length} arquivo{selectedFiles.length > 1 ? 's' : ''} selecionado{selectedFiles.length > 1 ? 's' : ''}
                 </span>
                 <div className="flex gap-2">
@@ -205,6 +218,11 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                     size="sm"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={selectedFiles.length >= 25 || isProcessing}
+                    className={cn(
+                      "bg-white/70 hover:bg-white/90 backdrop-blur-sm",
+                      "border-blue-200/50 text-blue-700 hover:text-blue-800",
+                      "rounded-lg transition-all duration-200"
+                    )}
                   >
                     <FileIcon className="h-4 w-4 mr-1" />
                     Adicionar Mais
@@ -214,6 +232,11 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                     size="sm"
                     onClick={handleRemoveAll}
                     disabled={isProcessing}
+                    className={cn(
+                      "bg-red-50/70 hover:bg-red-100/80 backdrop-blur-sm",
+                      "border-red-200/50 text-red-600 hover:text-red-700",
+                      "rounded-lg transition-all duration-200"
+                    )}
                   >
                     <X className="h-4 w-4 mr-1" />
                     Limpar Todos
@@ -221,17 +244,25 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-3 max-h-64 overflow-y-auto">
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
                 {selectedFiles.map((file, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-3 relative">
-                    <div className="flex items-start gap-3">
-                      {getFileIcon(file.type)}
+                  <div key={index} className={cn(
+                    "border border-white/30 rounded-xl p-4 relative",
+                    "bg-gradient-to-br from-white/80 to-gray-50/60 backdrop-blur-sm",
+                    "shadow-md hover:shadow-lg transition-all duration-300 hover:scale-[1.02]"
+                  )}>
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 bg-white/60 backdrop-blur-sm rounded-xl">
+                        {getFileIcon(file.type)}
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 truncate">
+                        <h4 className="font-semibold text-gray-800 truncate">
                           {file.name}
                         </h4>
-                        <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                          <span>{getFileTypeName(file.type)}</span>
+                        <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                          <span className="bg-gray-100/60 px-2 py-1 rounded-lg font-medium">
+                            {getFileTypeName(file.type)}
+                          </span>
                           <span>•</span>
                           <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
                         </div>
@@ -243,7 +274,7 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                           <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
                         )}
                         {isSending && currentProcessingIndex > index && (
-                          <div className="bg-green-500 rounded-full p-1">
+                          <div className="bg-green-500/90 backdrop-blur-sm rounded-full p-1.5 shadow-lg">
                             <Check className="h-3 w-3 text-white" />
                           </div>
                         )}
@@ -252,7 +283,10 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
                           size="sm"
                           onClick={() => handleRemoveFile(index)}
                           disabled={isProcessing}
-                          className="text-gray-400 hover:text-gray-600"
+                          className={cn(
+                            "text-gray-400 hover:text-red-600 hover:bg-red-50/80 backdrop-blur-sm",
+                            "rounded-lg transition-all duration-200"
+                          )}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -261,10 +295,10 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
 
                     {/* Preview especial para vídeo */}
                     {file.type === 'video' && (
-                      <div className="mt-3">
+                      <div className="mt-4">
                         <video 
                           src={file.url} 
-                          className="w-full h-32 object-cover rounded bg-gray-100"
+                          className="w-full h-32 object-cover rounded-lg bg-gray-100 shadow-inner"
                           controls={false}
                           muted
                         />
@@ -278,26 +312,33 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
 
           {/* Progresso de envio */}
           {isSending && (
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                <span className="text-sm font-medium">
+            <div className={cn(
+              "bg-gradient-to-r from-blue-50/80 to-indigo-50/60 backdrop-blur-sm",
+              "border border-blue-200/30 rounded-xl p-4"
+            )}>
+              <div className="flex items-center gap-3 mb-3">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                <span className="text-sm font-semibold text-blue-800">
                   Enviando arquivo {currentProcessingIndex + 1} de {selectedFiles.length}
                 </span>
               </div>
               <Progress 
                 value={((currentProcessingIndex + 1) / selectedFiles.length) * 100} 
-                className="w-full" 
+                className="w-full h-2" 
               />
             </div>
           )}
 
           {/* Botões de Ação */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-3 pt-2">
             <Button
               variant="outline"
               onClick={handleClose}
-              className="flex-1"
+              className={cn(
+                "flex-1 bg-white/70 hover:bg-white/90 backdrop-blur-sm",
+                "border-gray-200/50 text-gray-700 hover:text-gray-800",
+                "rounded-xl font-medium transition-all duration-200"
+              )}
               disabled={isProcessing}
             >
               Cancelar
@@ -306,8 +347,11 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
               onClick={handleSendAll}
               disabled={!canSend}
               className={cn(
-                "flex-1 bg-green-600 hover:bg-green-700",
-                !canSend && "opacity-50 cursor-not-allowed"
+                "flex-1 bg-gradient-to-r from-blue-600 to-indigo-600",
+                "hover:from-blue-700 hover:to-indigo-700 text-white font-medium",
+                "rounded-xl shadow-lg transition-all duration-300",
+                "hover:shadow-xl hover:scale-105 backdrop-blur-sm",
+                !canSend && "opacity-50 cursor-not-allowed hover:scale-100"
               )}
             >
               {isSending ? (
@@ -337,4 +381,4 @@ export const FileUploadDialog: React.FC<FileUploadDialogProps> = ({
       </DialogContent>
     </Dialog>
   );
-}; 
+};
