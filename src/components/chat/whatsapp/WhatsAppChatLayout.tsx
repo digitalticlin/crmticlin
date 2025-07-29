@@ -10,6 +10,7 @@ import { WhatsAppChatArea } from "./WhatsAppChatArea";
 import { WhatsAppEmptyState } from "./WhatsAppEmptyState";
 import { LeadDetailsSidebar } from "./LeadDetailsSidebar";
 import { Contact, Message } from "@/types/chat";
+import { useWhatsAppContacts } from "@/hooks/whatsapp/useWhatsAppContacts";
 
 interface WhatsAppChatLayoutProps {
   contacts: Contact[];
@@ -86,13 +87,13 @@ export const WhatsAppChatLayout = ({
   };
 
   return (
-    <div className="h-full flex relative z-10">
+    <div className="h-full flex overflow-hidden relative z-10">
       {/* Container principal com max-width de 1200px */}
-      <div className="w-full max-w-[1200px] mx-auto flex relative">
+      <div className="w-full max-w-[1200px] mx-auto flex overflow-hidden relative">
         {/* Mobile layout - comportamento atual */}
         <div className="lg:hidden w-full">
           {!selectedContact ? (
-            <div className="w-full h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
+            <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
               <WhatsAppContactsList
                 contacts={contacts}
                 selectedContact={selectedContact}
@@ -106,7 +107,7 @@ export const WhatsAppChatLayout = ({
               />
             </div>
           ) : (
-            <div className="w-full h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
+            <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10">
               <WhatsAppChatArea
                 selectedContact={selectedContact}
                 messages={messages}
@@ -126,19 +127,19 @@ export const WhatsAppChatLayout = ({
 
         {/* Desktop layout - com redimensionamento e ajuste para sidebar */}
         <div className={cn(
-          "hidden lg:flex w-full h-full relative transition-all duration-300",
+          "hidden lg:flex w-full relative transition-all duration-300",
           isDetailsSidebarOpen && "mr-80"
         )}>
           <ResizablePanelGroup 
             direction="horizontal" 
-            className="w-full h-full relative z-20"
+            className="w-full relative z-20"
           >
             {/* Painel da Lista de Conversas */}
             <ResizablePanel 
               defaultSize={30} 
               minSize={20} 
               maxSize={50}
-              className="relative h-full"
+              className="relative"
             >
               <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
                 <WhatsAppContactsList
@@ -165,9 +166,9 @@ export const WhatsAppChatLayout = ({
             <ResizablePanel 
               defaultSize={70} 
               minSize={50}
-              className="relative h-full"
+              className="relative"
             >
-              <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
+              <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10">
                 {selectedContact ? (
                   <WhatsAppChatArea
                     selectedContact={selectedContact}

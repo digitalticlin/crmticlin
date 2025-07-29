@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
@@ -29,8 +30,7 @@ export const ContactsList = ({
 
   return (
     <div className="h-full w-full max-w-sm border-r border-gray-200 dark:border-gray-700 flex flex-col bg-white/10 dark:bg-black/10 backdrop-blur-lg">
-      {/* Header Fixo */}
-      <div className="flex-shrink-0 p-3 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-3 border-b border-gray-200 dark:border-gray-700">
         <h2 className="text-xl font-semibold mb-3">Conversas</h2>
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -43,8 +43,7 @@ export const ContactsList = ({
         </div>
       </div>
       
-      {/* Lista com Scroll Interno */}
-      <div className="flex-1 overflow-y-auto contacts-scrollbar">
+      <ScrollArea className="flex-1">
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
           {filteredContacts.map((contact) => {
             // CORREÇÃO: Verificar se há mensagens não lidas de forma mais rigorosa
@@ -56,7 +55,7 @@ export const ContactsList = ({
               <div
                 key={contact.id}
                 className={cn(
-                  "p-3 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer contact-item-hover",
+                  "p-3 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer",
                   selectedContact?.id === contact.id && "bg-gray-100 dark:bg-gray-800"
                 )}
                 onClick={() => onSelectContact(contact)}
@@ -101,7 +100,7 @@ export const ContactsList = ({
             </div>
           )}
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 };
