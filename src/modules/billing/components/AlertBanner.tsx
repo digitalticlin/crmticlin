@@ -1,89 +1,113 @@
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, MessageCircle, CreditCard } from 'lucide-react';
+import { AlertTriangle, Info, Clock, XCircle } from 'lucide-react';
 import { useMessageUsage } from '../hooks/useMessageUsage';
 import { useStripeCheckout } from '../hooks/useStripeCheckout';
+import { messagePlans, getPlanByType } from '../data/messagePlans';
 
 export const AlertBanner = () => {
-  const { limitCheck, loading } = useMessageUsage();
-  const { openCustomerPortal, loading: checkoutLoading } = useStripeCheckout();
+  const { usage, limitCheck, loading } = useMessageUsage();
+  const { createCheckoutSession } = useStripeCheckout();
 
-  if (loading || !limitCheck) return null;
+  // Se ainda está carregando ou não há dados, não mostrar nada
+  if (loading || !usage || !limitCheck) {
+    return null;
+  }
 
-  // Não mostrar banner se tudo está ok
-  if (limitCheck.status === 'active') return null;
+  const currentPlan = getPlanByType(usage.plan_subscription_id);
+  
+  // Função para determinar o próximo plano recomendado
+  const getRecommendedPlan = () => {
+    const currentIndex = messagePlans.findIndex(p => p.id === usage.plan_subscription_id);
+    return currentIndex < messagePlans.length - 1 ? messagePlans[currentIndex + 1] : null;
+  };
 
-  const getAlertConfig = () => {
+  const recommendedPlan = getRecommendedPlan();
+
+  // Determinar qual alerta mostrar baseado no status
+  const getAlert = () => {
     switch (limitCheck.status) {
       case 'blocked':
         return {
+          icon: XCircle,
           variant: 'destructive' as const,
-          icon: <AlertTriangle className="h-4 w-4" />,
-          title: 'Limite de Mensagens Esgotado',
-          description: 'Suas mensagens foram bloqueadas. Faça upgrade do seu plano para continuar.',
-          action: 'Fazer Upgrade',
+          title: 'Limite de Mensagens Atingido',
+          description: 'Suas mensagens foram bloqueadas. Faça upgrade do seu plano para continuar enviando.',
+          actionText: 'Fazer Upgrade Agora',
           urgent: true
         };
+      
       case 'exceeded':
         return {
-          variant: 'destructive' as const,
-          icon: <MessageCircle className="h-4 w-4" />,
+          icon: AlertTriangle,
+          variant: 'default' as const,
           title: 'Limite Quase Esgotado',
-          description: `Restam apenas ${limitCheck.remaining} mensagens (${(100 - limitCheck.percentage_used).toFixed(1)}%).`,
-          action: 'Gerenciar Plano',
+          description: `Você usou ${limitCheck.percentage_used.toFixed(1)}% do seu plano. Restam apenas ${limitCheck.remaining} mensagens.`,
+          actionText: 'Considerar Upgrade',
           urgent: true
         };
+      
       case 'warning':
         return {
+          icon: Clock,
           variant: 'default' as const,
-          icon: <MessageCircle className="h-4 w-4" />,
-          title: 'Atenção ao Limite',
-          description: `Você já utilizou ${limitCheck.percentage_used.toFixed(1)}% do seu plano de mensagens.`,
-          action: 'Ver Planos',
+          title: 'Atenção ao Uso',
+          description: `Você já utilizou ${limitCheck.percentage_used.toFixed(1)}% do seu plano atual.`,
+          actionText: 'Ver Planos',
           urgent: false
         };
+      
       default:
         return null;
     }
   };
 
-  const config = getAlertConfig();
-  if (!config) return null;
+  const alert = getAlert();
 
-  const handleAction = () => {
-    if (config.urgent) {
-      // Para casos urgentes, abrir portal do cliente
-      openCustomerPortal();
-    } else {
-      // Para avisos, redirecionar para página de planos
-      window.location.href = '/plans';
+  if (!alert) {
+    return null;
+  }
+
+  const handleActionClick = () => {
+    if (recommendedPlan && alert.urgent) {
+      createCheckoutSession(recommendedPlan);
     }
   };
 
+  const Icon = alert.icon;
+
   return (
-    <Alert variant={config.variant} className="mb-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-start gap-3 flex-1">
-          {config.icon}
-          <div className="flex-1">
-            <h4 className="font-semibold text-sm">{config.title}</h4>
-            <AlertDescription className="text-xs mt-1">
-              {config.description}
-            </AlertDescription>
-          </div>
+    <Alert variant={alert.variant} className={`border-l-4 ${
+      alert.urgent 
+        ? 'border-l-orange-500 bg-orange-50 dark:bg-orange-900/20' 
+        : 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20'
+    }`}>
+      <Icon className="h-4 w-4" />
+      <AlertDescription className="flex items-center justify-between">
+        <div>
+          <div className="font-medium">{alert.title}</div>
+          <div className="text-sm text-muted-foreground mt-1">{alert.description}</div>
         </div>
-        <Button
-          size="sm"
-          variant={config.urgent ? "default" : "outline"}
-          onClick={handleAction}
-          disabled={checkoutLoading}
-          className="ml-4"
-        >
-          <CreditCard className="h-3 w-3 mr-1" />
-          {config.action}
-        </Button>
-      </div>
+        
+        {(alert.urgent && recommendedPlan) ? (
+          <Button 
+            size="sm" 
+            onClick={handleActionClick}
+            className="ml-4 whitespace-nowrap"
+          >
+            {alert.actionText}
+          </Button>
+        ) : (
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="ml-4 whitespace-nowrap"
+          >
+            {alert.actionText}
+          </Button>
+        )}
+      </AlertDescription>
     </Alert>
   );
 };

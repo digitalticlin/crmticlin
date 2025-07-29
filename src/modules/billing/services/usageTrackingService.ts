@@ -4,12 +4,11 @@ import { MessageUsageTracking, UsageLimitCheck } from '../types/billing';
 
 export class UsageTrackingService {
   /**
-   * Verifica se o usuário pode enviar mensagens
+   * Busca o uso atual do usuário
    */
-  static async checkMessageLimit(userId: string): Promise<UsageLimitCheck> {
+  static async getCurrentUsage(userId: string): Promise<MessageUsageTracking | null> {
     try {
-      // Buscar uso atual do período
-      const { data: usage, error } = await supabase
+      const { data, error } = await supabase
         .from('message_usage_tracking')
         .select('*')
         .eq('user_id', userId)
@@ -17,8 +16,34 @@ export class UsageTrackingService {
         .gte('period_end', new Date().toISOString())
         .single();
 
-      if (error || !usage) {
-        // Se não há tracking ativo, usuário pode estar sem plano
+      if (error) {
+        console.error('[UsageTracking] Erro ao buscar uso atual:', error);
+        return null;
+      }
+
+      // Cast explícito do status para o tipo correto
+      return {
+        ...data,
+        status: data.status as 'active' | 'warning' | 'exceeded' | 'blocked'
+      };
+
+    } catch (error) {
+      console.error('[UsageTracking] Erro no getCurrentUsage:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Verifica o limite de mensagens
+   */
+  static async checkMessageLimit(userId: string): Promise<UsageLimitCheck> {
+    try {
+      const { data, error } = await supabase.functions.invoke('plan-limit-checker', {
+        body: { user_id: userId }
+      });
+
+      if (error) {
+        console.error('[UsageTracking] Erro ao verificar limite:', error);
         return {
           allowed: false,
           remaining: 0,
@@ -29,25 +54,10 @@ export class UsageTrackingService {
         };
       }
 
-      const remaining = Math.max(0, usage.plan_limit - usage.total_messages_count);
-      const percentage_used = (usage.total_messages_count / usage.plan_limit) * 100;
-
-      let status: 'active' | 'warning' | 'exceeded' | 'blocked' = 'active';
-      if (percentage_used >= 100) status = 'blocked';
-      else if (percentage_used >= 90) status = 'exceeded';
-      else if (percentage_used >= 75) status = 'warning';
-
-      return {
-        allowed: remaining > 0,
-        remaining,
-        current_usage: usage.total_messages_count,
-        plan_limit: usage.plan_limit,
-        percentage_used: Math.round(percentage_used * 100) / 100,
-        status
-      };
+      return data;
 
     } catch (error) {
-      console.error('[UsageTracking] Erro ao verificar limite:', error);
+      console.error('[UsageTracking] Erro no checkMessageLimit:', error);
       return {
         allowed: false,
         remaining: 0,
@@ -62,61 +72,82 @@ export class UsageTrackingService {
   /**
    * Incrementa contador de mensagens
    */
-  static async incrementMessageCount(
-    userId: string, 
-    messageType: 'sent' | 'received' = 'sent'
-  ): Promise<boolean> {
+  static async incrementMessageCount(userId: string, type: 'sent' | 'received' = 'sent'): Promise<boolean> {
     try {
-      const { error } = await supabase.functions.invoke('message-usage-tracker', {
-        body: {
+      const { error } = await supabase.functions.invoke('increment-message-count', {
+        body: { 
           user_id: userId,
-          message_type: messageType,
-          increment: 1
+          message_type: type
         }
       });
 
       if (error) {
-        console.error('[UsageTracking] Erro ao incrementar:', error);
+        console.error('[UsageTracking] Erro ao incrementar contador:', error);
         return false;
       }
 
       return true;
 
     } catch (error) {
-      console.error('[UsageTracking] Erro ao incrementar mensagem:', error);
+      console.error('[UsageTracking] Erro no incrementMessageCount:', error);
       return false;
     }
   }
 
   /**
-   * Busca uso atual do usuário
+   * Cria nova sessão de uso (para novos planos)
    */
-  static async getCurrentUsage(userId: string): Promise<MessageUsageTracking | null> {
+  static async createUsageSession(userId: string, planType: string, messageLimit: number): Promise<boolean> {
     try {
-      const { data, error } = await supabase
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1); // Próximo mês
+
+      const { error } = await supabase
         .from('message_usage_tracking')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .gte('period_end', new Date().toISOString())
-        .single();
+        .insert({
+          user_id: userId,
+          plan_subscription_id: planType,
+          plan_limit: messageLimit,
+          period_start: startDate.toISOString(),
+          period_end: endDate.toISOString(),
+          status: 'active',
+          messages_sent_count: 0,
+          messages_received_count: 0,
+          total_messages_count: 0
+        });
 
       if (error) {
-        console.error('[UsageTracking] Erro ao buscar uso:', error);
-        return null;
+        console.error('[UsageTracking] Erro ao criar sessão de uso:', error);
+        return false;
       }
 
-      // Fazer cast correto do status para o tipo esperado
-      const typedUsage: MessageUsageTracking = {
-        ...data,
-        status: data.status as 'active' | 'warning' | 'exceeded' | 'blocked'
-      };
-
-      return typedUsage;
+      return true;
 
     } catch (error) {
-      console.error('[UsageTracking] Erro ao buscar uso atual:', error);
-      return null;
+      console.error('[UsageTracking] Erro no createUsageSession:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Atualiza o tipo de plano do usuário
+   */
+  static async updateUserPlan(userId: string, newPlanType: string, newMessageLimit: number): Promise<boolean> {
+    try {
+      // Finalizar sessão atual
+      await supabase
+        .from('message_usage_tracking')
+        .update({ status: 'completed' })
+        .eq('user_id', userId)
+        .eq('status', 'active');
+
+      // Criar nova sessão
+      return await this.createUsageSession(userId, newPlanType, newMessageLimit);
+
+    } catch (error) {
+      console.error('[UsageTracking] Erro no updateUserPlan:', error);
+      return false;
     }
   }
 }
