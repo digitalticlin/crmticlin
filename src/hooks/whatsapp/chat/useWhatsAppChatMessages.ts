@@ -7,6 +7,7 @@
  * ✅ Prevenção de duplicação via realtime
  * ✅ Suporte completo para mídia
  * ✅ Scroll inteligente sem refresh
+ * ✅ CORREÇÃO DE TIPOS TYPESCRIPT
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -37,7 +38,7 @@ interface UseWhatsAppChatMessagesReturn {
 
 const MESSAGES_PER_PAGE = 50;
 
-// Helper para normalizar mediaType
+// Helper para normalizar mediaType com tipagem correta
 const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "audio" | "document" => {
   if (!mediaType) return 'text';
   
@@ -50,7 +51,7 @@ const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "a
   return 'text';
 };
 
-// Helper para detectar tipo de mídia
+// Helper para detectar tipo de mídia com tipagem correta
 const detectMediaType = (mediaUrl?: string): "text" | "image" | "video" | "audio" | "document" => {
   if (!mediaUrl) return 'text';
   
@@ -215,13 +216,13 @@ export const useWhatsAppChatMessages = ({
     });
   }, []);
 
-  // ✅ CORRIGIDO: Substituir mensagem otimista INSTANTANEAMENTE
+  // ✅ CORRIGIDO: Substituir mensagem otimista INSTANTANEAMENTE com tipo correto
   const replaceOptimisticMessage = useCallback((tempId: string, realMessage: Message) => {
     console.log(`[useWhatsAppChatMessages] 🔄 Substituindo INSTANTANEAMENTE: ${tempId} → ${realMessage.id}`);
     
     setMessages(prev => {
       const updated = prev.map(msg => 
-        msg.id === tempId ? { ...realMessage, status: 'sent' } : msg
+        msg.id === tempId ? { ...realMessage, status: 'sent' as const } : msg
       );
       
       // Remover do controle de otimistas
@@ -240,7 +241,7 @@ export const useWhatsAppChatMessages = ({
     pendingOptimisticIds.current.delete(tempId);
   }, []);
 
-  // ✅ FUNÇÃO PRINCIPAL CORRIGIDA: Enviar mensagem com mídia
+  // ✅ FUNÇÃO PRINCIPAL CORRIGIDA: Enviar mensagem com mídia e tipos corretos
   const sendMessage = useCallback(async (text: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
     if (!selectedContact || !activeInstance || !user) {
       toast.error('Dados necessários não disponíveis');
@@ -266,17 +267,19 @@ export const useWhatsAppChatMessages = ({
     pendingOptimisticIds.current.add(tempId);
 
     try {
-      // ✅ ETAPA 1: Detectar tipo de mídia se necessário
-      const finalMediaType = mediaType || detectMediaType(mediaUrl);
+      // ✅ ETAPA 1: Detectar tipo de mídia se necessário com tipo correto
+      const finalMediaType: "text" | "image" | "video" | "audio" | "document" = mediaType 
+        ? normalizeMediaType(mediaType) 
+        : detectMediaType(mediaUrl);
       
-      // ✅ ETAPA 2: Criar mensagem otimista
+      // ✅ ETAPA 2: Criar mensagem otimista com tipos corretos
       const optimisticMessage: Message = {
         id: tempId,
         text: text.trim(),
         fromMe: true,
         timestamp: new Date().toISOString(),
-        status: 'sending',
-        mediaType: normalizeMediaType(finalMediaType),
+        status: 'sending' as const,
+        mediaType: finalMediaType,
         mediaUrl,
         sender: 'user',
         time: new Date().toLocaleTimeString('pt-BR', {
@@ -309,7 +312,7 @@ export const useWhatsAppChatMessages = ({
           ...optimisticMessage,
           id: result.messageId || tempId,
           timestamp: result.timestamp || new Date().toISOString(),
-          status: 'sent'
+          status: 'sent' as const
         };
 
         // Substituição INSTANTÂNEA sem timeout
