@@ -1,12 +1,12 @@
 
 /**
- * 🎯 HOOK DE SCROLL CORRIGIDO - FLUIDO E INTELIGENTE
+ * 🎯 HOOK DE LISTA DE MENSAGENS COM ANIMAÇÕES
  * 
- * CORREÇÕES:
- * ✅ Scroll inteligente baseado no tipo de mensagem
- * ✅ Sem múltiplos backups desnecessários
- * ✅ Detecção de necessidade de scroll
- * ✅ Scroll suave apenas para mensagens externas
+ * CORREÇÕES IMPLEMENTADAS:
+ * ✅ Animações suaves para novas mensagens
+ * ✅ Scroll inteligente baseado no contexto
+ * ✅ Detecção melhorada de necessidade de scroll
+ * ✅ Performance otimizada com refs
  */
 
 import { useRef, useEffect, useMemo } from 'react';
@@ -19,15 +19,13 @@ interface UseMessagesListProps {
 
 export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLengthRef = useRef(messages.length);
   const prevLastMessageIdRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
 
-  // ✅ SCROLL INTELIGENTE: Detectar quando scroll é necessário
-  const shouldAutoScroll = useRef(true);
-
-  // ✅ FUNÇÃO AUXILIAR: Verificar se está próximo do final
+  // 🚀 CORREÇÃO: Função para verificar se está próximo do final
   const isNearBottom = (): boolean => {
     if (!containerRef.current) return true;
     
@@ -37,8 +35,8 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
     return distanceFromBottom < 100; // 100px do final
   };
 
-  // ✅ FUNÇÃO AUXILIAR: Scroll otimizado
-  const scrollToBottom = (behavior: 'instant' | 'smooth' = 'smooth') => {
+  // 🚀 CORREÇÃO: Scroll otimizado com animações
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ 
         behavior,
@@ -48,13 +46,20 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
     }
   };
 
-  // ✅ SCROLL PRINCIPAL: Inteligente e fluido
+  // 🚀 CORREÇÃO: Detectar quando aplicar animações
+  const shouldShowAnimation = (message: Message, index: number): boolean => {
+    const isNewMessage = (message as any).isNew;
+    const isLastMessage = index === messages.length - 1;
+    
+    return isNewMessage || (isLastMessage && !message.fromMe);
+  };
+
+  // 🚀 CORREÇÃO: Scroll principal com detecção inteligente
   useEffect(() => {
     const currentLength = messages.length;
     const wasNewMessage = currentLength > prevMessagesLengthRef.current;
     const wasInitialLoad = isInitialLoadRef.current && currentLength > 0;
     
-    // Verificar se houve mudança na última mensagem
     const currentLastMessage = messages[currentLength - 1];
     const lastMessageChanged = currentLastMessage?.id !== prevLastMessageIdRef.current;
     
@@ -62,54 +67,51 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
     prevMessagesLengthRef.current = currentLength;
     prevLastMessageIdRef.current = currentLastMessage?.id || null;
 
-    // ✅ CARREGAMENTO INICIAL: Scroll instantâneo
+    // Carregamento inicial
     if (wasInitialLoad) {
-      console.log('[useMessagesList] 🚀 Carregamento inicial - scroll instantâneo');
+      console.log('[useMessagesList] 🚀 Carregamento inicial');
       scrollToBottom('instant');
       isInitialLoadRef.current = false;
       return;
     }
 
-    // ✅ NOVA MENSAGEM: Scroll apenas se necessário
+    // Nova mensagem
     if (wasNewMessage && !isLoadingMore) {
       const lastMessage = messages[currentLength - 1];
       const isOwnMessage = lastMessage?.fromMe;
-      const isOptimistic = lastMessage?.id?.startsWith('temp_');
       
-      // Scroll automático apenas se:
-      // 1. É mensagem própria (sempre scroll)
-      // 2. É mensagem externa E usuário está próximo do final
+      // Auto-scroll para mensagens próprias ou se próximo do final
       const shouldScroll = isOwnMessage || (!isOwnMessage && isNearBottom());
       
       if (shouldScroll) {
-        console.log('[useMessagesList] 🔽 Scroll automático:', {
+        console.log('[useMessagesList] 📨 Auto-scroll para nova mensagem:', {
           isOwnMessage,
-          isOptimistic,
           behavior: isOwnMessage ? 'instant' : 'smooth'
         });
         
         // Mensagens próprias: scroll instantâneo
         // Mensagens externas: scroll suave
-        scrollToBottom(isOwnMessage ? 'instant' : 'smooth');
+        setTimeout(() => {
+          scrollToBottom(isOwnMessage ? 'instant' : 'smooth');
+        }, 100); // Pequeno delay para animação
       }
     }
 
-    // ✅ ATUALIZAÇÃO DE MENSAGEM: Não fazer scroll
+    // Atualização de mensagem (não fazer scroll)
     if (lastMessageChanged && !wasNewMessage) {
       console.log('[useMessagesList] 🔄 Mensagem atualizada - sem scroll');
-      // Não fazer scroll para atualizações de status
     }
 
   }, [messages, isLoadingMore]);
 
-  // ✅ DETECTAR SCROLL MANUAL: Desabilitar auto-scroll temporariamente
+  // 🚀 CORREÇÃO: Detectar scroll manual
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleScroll = () => {
       const nearBottom = isNearBottom();
-      shouldAutoScroll.current = nearBottom;
+      shouldAutoScrollRef.current = nearBottom;
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
@@ -119,7 +121,7 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
     };
   }, []);
 
-  // ✅ MEMOIZAR LISTA: Sem reordenação desnecessária
+  // 🚀 CORREÇÃO: Processar mensagens com flags de animação
   const messagesList = useMemo(() => {
     console.log('[useMessagesList] 📋 Processando mensagens:', {
       total: messages.length,
@@ -127,12 +129,29 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
       ultima: messages[messages.length - 1]?.id?.substring(0, 8)
     });
 
-    return messages; // Usar diretamente
+    return messages.map((message, index) => ({
+      ...message,
+      shouldAnimate: shouldShowAnimation(message, index)
+    }));
   }, [messages]);
+
+  // 🚀 CORREÇÃO: Função para animar mensagem específica
+  const animateMessage = (messageId: string) => {
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (messageElement) {
+      messageElement.classList.add('animate-bounce');
+      setTimeout(() => {
+        messageElement.classList.remove('animate-bounce');
+      }, 1000);
+    }
+  };
 
   return {
     messagesList,
     messagesEndRef,
-    containerRef
+    containerRef,
+    scrollToBottom,
+    animateMessage,
+    shouldAutoScroll: shouldAutoScrollRef.current
   };
 };

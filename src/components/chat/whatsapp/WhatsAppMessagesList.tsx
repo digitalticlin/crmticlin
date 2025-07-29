@@ -24,14 +24,14 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
   hasMoreMessages = false,
   onLoadMore
 }) => {
-  // Hook para gerenciar lista de mensagens com scroll inteligente
-  const { messagesList, messagesEndRef, containerRef } = useMessagesList({
+  // Hook para gerenciar lista de mensagens com animações
+  const { messagesList, messagesEndRef, containerRef, scrollToBottom } = useMessagesList({
     messages,
     isLoadingMore
   });
 
   // Hook para detectar scroll e carregar mais mensagens
-  const { isNearTop } = useScrollDetection({
+  const { isNearTop, shouldAutoScroll } = useScrollDetection({
     containerRef, 
     onLoadMore, 
     hasMoreMessages, 
@@ -67,8 +67,8 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
         messagesCount={messages.length}
       />
 
-      {/* Lista de mensagens */}
-      <div className="px-2">
+      {/* Lista de mensagens com animações */}
+      <div className="px-2 space-y-1">
         {messagesList.map((message, index) => {
           const isLastMessage = index === messagesList.length - 1;
           

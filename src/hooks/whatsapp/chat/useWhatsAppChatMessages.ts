@@ -1,13 +1,13 @@
 
 /**
- * 🎯 HOOK DE MENSAGENS CORRIGIDO - SEM DUPLICAÇÃO
+ * 🎯 HOOK DE MENSAGENS OTIMIZADO - PAGINAÇÃO E PERFORMANCE
  * 
  * CORREÇÕES IMPLEMENTADAS:
- * ✅ Substituição instantânea de mensagens otimistas
- * ✅ Prevenção de duplicação via realtime
- * ✅ Suporte completo para mídia
- * ✅ Scroll inteligente sem refresh
- * ✅ CORREÇÃO DE TIPOS TYPESCRIPT
+ * ✅ Query otimizada com JOIN condicional
+ * ✅ Paginação eficiente com scroll detection
+ * ✅ Cache inteligente de mensagens
+ * ✅ Animações suaves para novas mensagens
+ * ✅ Substitução instantânea de mensagens otimistas
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -36,9 +36,9 @@ interface UseWhatsAppChatMessagesReturn {
   updateMessage: (message: Message) => void;
 }
 
-const MESSAGES_PER_PAGE = 50;
+const MESSAGES_PER_PAGE = 30; // Reduzido para melhor performance
 
-// Helper para normalizar mediaType com tipagem correta
+// Helper para normalizar mediaType
 const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "audio" | "document" => {
   if (!mediaType) return 'text';
   
@@ -47,19 +47,6 @@ const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "a
   if (normalizedType.includes('video')) return 'video';
   if (normalizedType.includes('audio')) return 'audio';
   if (normalizedType.includes('document')) return 'document';
-  
-  return 'text';
-};
-
-// Helper para detectar tipo de mídia com tipagem correta
-const detectMediaType = (mediaUrl?: string): "text" | "image" | "video" | "audio" | "document" => {
-  if (!mediaUrl) return 'text';
-  
-  const url = mediaUrl.toLowerCase();
-  if (url.includes('image/') || url.includes('.jpg') || url.includes('.jpeg') || url.includes('.png') || url.includes('.gif')) return 'image';
-  if (url.includes('video/') || url.includes('.mp4') || url.includes('.webm')) return 'video';
-  if (url.includes('audio/') || url.includes('.mp3') || url.includes('.ogg') || url.includes('.wav')) return 'audio';
-  if (url.includes('application/') || url.includes('.pdf') || url.includes('.doc')) return 'document';
   
   return 'text';
 };
@@ -78,11 +65,13 @@ export const useWhatsAppChatMessages = ({
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   
-  // Refs para controle de duplicação
+  // Refs para controle de duplicação e cache
   const pendingOptimisticIds = useRef<Set<string>>(new Set());
   const sentMessageIds = useRef<Set<string>>(new Set());
+  const messagesCache = useRef<Map<string, Message[]>>(new Map());
+  const lastFetchTime = useRef<number>(0);
 
-  // Função para converter mensagem do banco para UI
+  // 🚀 CORREÇÃO: Função para converter mensagem com cache inteligente
   const convertMessage = useCallback((messageData: any): Message => {
     return {
       id: messageData.id,
@@ -102,11 +91,28 @@ export const useWhatsAppChatMessages = ({
     };
   }, []);
 
-  // Buscar mensagens
+  // 🚀 CORREÇÃO: Query otimizada com JOIN condicional
   const fetchMessages = useCallback(async (page = 0, append = false) => {
-    if (!selectedContact || !activeInstance) {
+    if (!selectedContact || !activeInstance || !user?.id) {
       setMessages([]);
       setHasMoreMessages(false);
+      return;
+    }
+
+    // Cache key para evitar fetches desnecessários
+    const cacheKey = `${selectedContact.id}-${activeInstance.id}-${page}`;
+    const now = Date.now();
+
+    // Verificar cache (válido por 30 segundos)
+    if (messagesCache.current.has(cacheKey) && (now - lastFetchTime.current) < 30000) {
+      const cachedMessages = messagesCache.current.get(cacheKey)!;
+      console.log(`[useWhatsAppChatMessages] 📦 Usando cache para página ${page}`);
+      
+      if (append) {
+        setMessages(prev => [...cachedMessages.reverse(), ...prev]);
+      } else {
+        setMessages(cachedMessages.reverse());
+      }
       return;
     }
 
@@ -114,18 +120,20 @@ export const useWhatsAppChatMessages = ({
       if (page === 0) {
         setIsLoadingMessages(true);
         setMessages([]);
-        // Limpar controles de duplicação
         pendingOptimisticIds.current.clear();
         sentMessageIds.current.clear();
       } else {
         setIsLoadingMore(true);
       }
 
+      console.log(`[useWhatsAppChatMessages] 🔍 Buscando mensagens página ${page}`);
+
+      // ✅ CORREÇÃO: Query otimizada com LEFT JOIN condicional
       const { data, error } = await supabase
         .from('messages')
         .select(`
           *,
-          media_cache (
+          media_cache!left (
             id,
             base64_data,
             original_url,
@@ -136,6 +144,7 @@ export const useWhatsAppChatMessages = ({
         `)
         .eq('lead_id', selectedContact.id)
         .eq('whatsapp_number_id', activeInstance.id)
+        .eq('created_by_user_id', user.id)
         .order('created_at', { ascending: false })
         .range(page * MESSAGES_PER_PAGE, (page + 1) * MESSAGES_PER_PAGE - 1);
 
@@ -143,6 +152,12 @@ export const useWhatsAppChatMessages = ({
 
       const newMessages = (data || []).map(convertMessage);
       
+      // Atualizar cache
+      messagesCache.current.set(cacheKey, newMessages);
+      lastFetchTime.current = now;
+      
+      console.log(`[useWhatsAppChatMessages] ✅ ${newMessages.length} mensagens carregadas`);
+
       if (append) {
         setMessages(prev => [...newMessages.reverse(), ...prev]);
       } else {
@@ -159,54 +174,66 @@ export const useWhatsAppChatMessages = ({
       setIsLoadingMessages(false);
       setIsLoadingMore(false);
     }
-  }, [selectedContact, activeInstance, convertMessage]);
+  }, [selectedContact, activeInstance, user?.id, convertMessage]);
 
-  // Carregar mais mensagens
+  // 🚀 CORREÇÃO: Carregar mais mensagens otimizado
   const loadMoreMessages = useCallback(async () => {
-    if (!hasMoreMessages || isLoadingMore) return;
+    if (!hasMoreMessages || isLoadingMore) {
+      console.log('[useWhatsAppChatMessages] 🚫 Não há mais mensagens ou já carregando');
+      return;
+    }
+    
+    console.log('[useWhatsAppChatMessages] 📄 Carregando mais mensagens...');
     await fetchMessages(currentPage + 1, true);
   }, [hasMoreMessages, isLoadingMore, currentPage, fetchMessages]);
 
   // Refresh mensagens
   const refreshMessages = useCallback(() => {
+    console.log('[useWhatsAppChatMessages] 🔄 Refresh mensagens');
+    messagesCache.current.clear();
     setCurrentPage(0);
     fetchMessages(0, false);
   }, [fetchMessages]);
 
-  // ✅ CORRIGIDO: Adicionar mensagem otimista SEM duplicação
+  // ✅ CORREÇÃO: Adicionar mensagem otimista com animação
   const addOptimisticMessage = useCallback((message: Message) => {
-    // Evitar duplicação de mensagens externas
+    // Evitar duplicação
     if (!message.fromMe && sentMessageIds.current.has(message.id)) {
-      console.log(`[useWhatsAppChatMessages] 🚫 Mensagem externa já existe: ${message.id}`);
+      console.log(`[useWhatsAppChatMessages] 🚫 Mensagem já existe: ${message.id}`);
       return;
     }
 
     setMessages(prev => {
       const exists = prev.some(msg => msg.id === message.id);
       if (exists) {
-        console.log(`[useWhatsAppChatMessages] 🚫 Mensagem já existe: ${message.id}`);
         return prev;
       }
       
-      console.log(`[useWhatsAppChatMessages] ➕ Adicionando mensagem: ${message.id} (fromMe: ${message.fromMe})`);
+      console.log(`[useWhatsAppChatMessages] ➕ Adicionando mensagem: ${message.id}`);
       
       // Marcar como existente
       if (!message.fromMe) {
         sentMessageIds.current.add(message.id);
       }
       
-      return [...prev, message];
+      // Adicionar com flag para animação
+      const messageWithAnimation = {
+        ...message,
+        isNew: true // Flag para trigger animação
+      };
+      
+      return [...prev, messageWithAnimation];
     });
   }, []);
 
-  // ✅ CORRIGIDO: Atualizar mensagem existente
+  // ✅ CORREÇÃO: Atualizar mensagem existente
   const updateMessage = useCallback((updatedMessage: Message) => {
     setMessages(prev => {
       const updated = prev.map(msg => 
         msg.id === updatedMessage.id ? updatedMessage : msg
       );
       
-      // Se não encontrou, adicionar (pode ser nova mensagem)
+      // Se não encontrou, adicionar
       if (!prev.some(msg => msg.id === updatedMessage.id)) {
         console.log(`[useWhatsAppChatMessages] ➕ Mensagem não encontrada, adicionando: ${updatedMessage.id}`);
         return [...prev, updatedMessage];
@@ -216,16 +243,15 @@ export const useWhatsAppChatMessages = ({
     });
   }, []);
 
-  // ✅ CORRIGIDO: Substituir mensagem otimista INSTANTANEAMENTE com tipo correto
+  // ✅ CORREÇÃO: Substituir mensagem otimista INSTANTANEAMENTE
   const replaceOptimisticMessage = useCallback((tempId: string, realMessage: Message) => {
-    console.log(`[useWhatsAppChatMessages] 🔄 Substituindo INSTANTANEAMENTE: ${tempId} → ${realMessage.id}`);
+    console.log(`[useWhatsAppChatMessages] 🔄 Substituindo: ${tempId} → ${realMessage.id}`);
     
     setMessages(prev => {
       const updated = prev.map(msg => 
         msg.id === tempId ? { ...realMessage, status: 'sent' as const } : msg
       );
       
-      // Remover do controle de otimistas
       pendingOptimisticIds.current.delete(tempId);
       sentMessageIds.current.add(realMessage.id);
       
@@ -233,7 +259,7 @@ export const useWhatsAppChatMessages = ({
     });
   }, []);
 
-  // ✅ CORRIGIDO: Remover mensagem otimista em erro
+  // Remover mensagem otimista em erro
   const removeOptimisticMessage = useCallback((tempId: string) => {
     console.log(`[useWhatsAppChatMessages] ❌ Removendo mensagem otimista: ${tempId}`);
     
@@ -241,7 +267,7 @@ export const useWhatsAppChatMessages = ({
     pendingOptimisticIds.current.delete(tempId);
   }, []);
 
-  // ✅ FUNÇÃO PRINCIPAL CORRIGIDA: Enviar mensagem com mídia e tipos corretos
+  // ✅ FUNÇÃO DE ENVIO otimizada
   const sendMessage = useCallback(async (text: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
     if (!selectedContact || !activeInstance || !user) {
       toast.error('Dados necessários não disponíveis');
@@ -254,8 +280,6 @@ export const useWhatsAppChatMessages = ({
     }
 
     console.log('[useWhatsAppChatMessages] 📤 Enviando mensagem:', {
-      contactId: selectedContact.id,
-      instanceId: activeInstance.id,
       hasMedia: !!mediaUrl,
       mediaType: mediaType || 'text'
     });
@@ -263,16 +287,12 @@ export const useWhatsAppChatMessages = ({
     setIsSendingMessage(true);
     const tempId = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     
-    // Marcar como pendente
     pendingOptimisticIds.current.add(tempId);
 
     try {
-      // ✅ ETAPA 1: Detectar tipo de mídia se necessário com tipo correto
-      const finalMediaType: "text" | "image" | "video" | "audio" | "document" = mediaType 
-        ? normalizeMediaType(mediaType) 
-        : detectMediaType(mediaUrl);
+      const finalMediaType = mediaType ? normalizeMediaType(mediaType) : 'text';
       
-      // ✅ ETAPA 2: Criar mensagem otimista com tipos corretos
+      // Mensagem otimista
       const optimisticMessage: Message = {
         id: tempId,
         text: text.trim(),
@@ -290,12 +310,10 @@ export const useWhatsAppChatMessages = ({
         media_cache: null
       };
 
-      // Adicionar mensagem otimista imediatamente
+      // Adicionar mensagem otimista
       addOptimisticMessage(optimisticMessage);
 
-      // ✅ ETAPA 3: Enviar via MessagingService
-      console.log('[useWhatsAppChatMessages] 🚀 Enviando via MessagingService...');
-      
+      // Enviar via service
       const result = await MessagingService.sendMessage({
         instanceId: activeInstance.id,
         phone: selectedContact.phone,
@@ -305,9 +323,8 @@ export const useWhatsAppChatMessages = ({
       });
 
       if (result.success) {
-        console.log('[useWhatsAppChatMessages] ✅ Mensagem enviada com sucesso:', result.messageId);
+        console.log('[useWhatsAppChatMessages] ✅ Mensagem enviada:', result.messageId);
 
-        // ✅ ETAPA 4: Substituir mensagem otimista INSTANTANEAMENTE
         const realMessage: Message = {
           ...optimisticMessage,
           id: result.messageId || tempId,
@@ -315,36 +332,30 @@ export const useWhatsAppChatMessages = ({
           status: 'sent' as const
         };
 
-        // Substituição INSTANTÂNEA sem timeout
+        // Substituição INSTANTÂNEA
         replaceOptimisticMessage(tempId, realMessage);
 
-        toast.success('Mensagem enviada com sucesso!');
+        toast.success('Mensagem enviada!');
         return true;
 
       } else {
         console.error('[useWhatsAppChatMessages] ❌ Erro no envio:', result.error);
-        
-        // Remover mensagem otimista em caso de erro
         removeOptimisticMessage(tempId);
-        
         toast.error(result.error || 'Erro ao enviar mensagem');
         return false;
       }
 
     } catch (error: any) {
-      console.error('[useWhatsAppChatMessages] ❌ Erro crítico no envio:', error);
-      
-      // Remover mensagem otimista em caso de erro
+      console.error('[useWhatsAppChatMessages] ❌ Erro crítico:', error);
       removeOptimisticMessage(tempId);
-      
-      toast.error(`Erro ao enviar mensagem: ${error.message}`);
+      toast.error(`Erro: ${error.message}`);
       return false;
     } finally {
       setIsSendingMessage(false);
     }
   }, [selectedContact, activeInstance, user, addOptimisticMessage, replaceOptimisticMessage, removeOptimisticMessage]);
 
-  // Efeito para carregar mensagens quando contato muda
+  // Carregar mensagens quando contato muda
   useEffect(() => {
     if (selectedContact && activeInstance) {
       fetchMessages(0, false);
@@ -353,6 +364,13 @@ export const useWhatsAppChatMessages = ({
       setHasMoreMessages(false);
     }
   }, [selectedContact, activeInstance, fetchMessages]);
+
+  // Limpar cache quando necessário
+  useEffect(() => {
+    return () => {
+      messagesCache.current.clear();
+    };
+  }, []);
 
   return {
     messages,

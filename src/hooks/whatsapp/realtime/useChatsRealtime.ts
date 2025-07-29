@@ -1,22 +1,18 @@
 
 /**
- * 🎯 HOOK ISOLADO: REALTIME PARA CARDS DE CONTATOS - MULTITENANCY CORRIGIDO
+ * 🎯 HOOK REALTIME PARA CARDS DE CONTATOS - OTIMIZADO
  * 
  * CORREÇÕES APLICADAS:
- * ✅ Validação dupla de ownership em todos os callbacks
- * ✅ Debounce para evitar atualizações múltiplas simultâneas
- * ✅ Sistema de reconnection com retry exponencial
- * ✅ Heartbeat para detectar conexões mortas
- * ✅ Filtros rigorosos de multitenancy
- * ✅ Isolamento total por usuário
+ * ✅ Callbacks otimizados para mover cards para o topo
+ * ✅ Animações suaves para atualizações de cards
+ * ✅ Debounce para evitar atualizações múltiplas
+ * ✅ Sistema de reconnection melhorado
  */
 
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChatsRealtimeConfig, RealtimeConnectionStatus } from './types';
-import { BigQueryOptimizer } from '@/utils/immediate-bigquery-fix';
-import { realtimeLogger } from '@/utils/logger';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -30,13 +26,11 @@ export const useChatsRealtime = ({
   onAddNewContact
 }: ChatsRealtimeConfig) => {
   
-  const { user } = useAuth(); // 🚀 CORREÇÃO: Conectar diretamente ao useAuth
+  const { user } = useAuth();
   const channelRef = useRef<any>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
-  const lastUserIdRef = useRef<string | null>(null);
-  const lastInstanceIdRef = useRef<string | null>(null);
   const isSubscribedRef = useRef(false);
   const statsRef = useRef({
     totalEvents: 0,
@@ -44,7 +38,7 @@ export const useChatsRealtime = ({
     connectionStatus: 'disconnected' as RealtimeConnectionStatus
   });
 
-  // 🚀 CORREÇÃO: Debounce para callbacks
+  // Debounce para callbacks
   const debouncedCallbacks = useRef<{
     [key: string]: NodeJS.Timeout;
   }>({});
@@ -57,42 +51,38 @@ export const useChatsRealtime = ({
     debouncedCallbacks.current[key] = setTimeout(callback, delay);
   }, []);
 
-  // 🚀 CORREÇÃO: Sistema de reconnection com retry exponencial
+  // Sistema de reconnection
   const reconnect = useCallback(() => {
     if (reconnectAttempts.current >= maxReconnectAttempts) {
-      console.error('[ChatsRealtime] ❌ Máximo de tentativas de reconnection atingido');
+      console.error('[ChatsRealtime] ❌ Máximo de tentativas atingido');
       statsRef.current.connectionStatus = 'error';
       return;
     }
 
-    const delay = Math.pow(2, reconnectAttempts.current) * 1000;
+    const delay = Math.min(Math.pow(2, reconnectAttempts.current) * 1000, 30000);
     reconnectAttempts.current++;
     
-    console.log(`[ChatsRealtime] 🔄 Tentativa de reconnection ${reconnectAttempts.current}/${maxReconnectAttempts} em ${delay}ms`);
+    console.log(`[ChatsRealtime] 🔄 Reconnecting em ${delay}ms`);
     
     reconnectTimeoutRef.current = setTimeout(() => {
       setupRealtime();
     }, delay);
   }, []);
 
-  // Cleanup otimizado
+  // Cleanup
   const cleanup = useCallback(() => {
-    // Limpar timeouts de reconnection
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
     
-    // Limpar timeouts de debounce
     Object.values(debouncedCallbacks.current).forEach(timeout => {
       if (timeout) clearTimeout(timeout);
     });
     debouncedCallbacks.current = {};
     
     if (channelRef.current) {
-      if (!isProduction) {
-        realtimeLogger.log('🧹 Removendo canal de chats');
-      }
+      console.log('[ChatsRealtime] 🧹 Removendo canal');
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
       isSubscribedRef.current = false;
@@ -102,27 +92,22 @@ export const useChatsRealtime = ({
     reconnectAttempts.current = 0;
   }, []);
 
-  // Handler para novos leads otimizado com validação de ownership
+  // 🚀 CORREÇÃO: Handler para novos leads com animação
   const handleNewLead = useCallback((payload: any) => {
     try {
       const newLead = payload.new;
       
-      // 🚀 CORREÇÃO: Validação dupla de ownership
       if (!user?.id || newLead?.created_by_user_id !== user.id) {
-        console.warn('[ChatsRealtime] 🚨 Tentativa de acesso cross-user bloqueada:', {
-          userId: user?.id,
-          leadOwner: newLead?.created_by_user_id,
-          leadId: newLead?.id
-        });
         return;
       }
       
-      // Verificar se é da instância ativa
       if (activeInstanceId && newLead?.whatsapp_number_id === activeInstanceId) {
         statsRef.current.totalEvents++;
         statsRef.current.lastUpdate = Date.now();
 
-        // 🚀 CORREÇÃO: Aplicar debounce nos callbacks
+        console.log('[ChatsRealtime] 👤 Novo lead:', newLead.id);
+
+        // ✅ CORREÇÃO: Usar callback otimizado para adicionar contato
         if (onAddNewContact) {
           const newContactData = {
             id: newLead.id,
@@ -134,80 +119,86 @@ export const useChatsRealtime = ({
             lastMessageTime: newLead.created_at || new Date().toISOString(),
             unreadCount: 1,
             stageId: newLead.kanban_stage_id || null,
-            createdAt: newLead.created_at
+            createdAt: newLead.created_at,
+            isNew: true // Flag para animação
           };
           
-          debounceCallback(() => onAddNewContact(newContactData), 'addNewContact');
+          debounceCallback(() => {
+            onAddNewContact(newContactData);
+          }, 'addNewContact', 100); // Delay menor para novos contatos
+          
           return;
         }
 
-        // Fallback para callbacks legados
-        if (onNewContact) {
-          const contact = {
-            id: newLead.id,
-            name: newLead.name || newLead.phone || 'Contato',
-            phone: newLead.phone
-          };
-          debounceCallback(() => onNewContact(contact), 'newContact');
-        }
-
-        // Último recurso: refresh completo
-        if (onContactsRefresh && !onAddNewContact) {
+        // Fallback
+        if (onContactsRefresh) {
           debounceCallback(() => onContactsRefresh(), 'contactsRefresh');
         }
       }
     } catch (error) {
       console.error('[ChatsRealtime] ❌ Erro processando novo lead:', error);
-      BigQueryOptimizer.handleError(error);
     }
-  }, [activeInstanceId, onNewContact, onContactsRefresh, onAddNewContact, user?.id, debounceCallback]);
+  }, [activeInstanceId, onAddNewContact, onContactsRefresh, user?.id, debounceCallback]);
 
-  // Handler para atualizações de leads otimizado com validação de ownership
+  // 🚀 CORREÇÃO: Handler para updates de leads com animação
   const handleLeadUpdate = useCallback((payload: any) => {
     try {
       const updatedLead = payload.new;
       const oldLead = payload.old;
       
-      // 🚀 CORREÇÃO: Validação dupla de ownership
       if (!user?.id || updatedLead?.created_by_user_id !== user.id) {
-        console.warn('[ChatsRealtime] 🚨 Tentativa de acesso cross-user bloqueada:', {
-          userId: user?.id,
-          leadOwner: updatedLead?.created_by_user_id,
-          leadId: updatedLead?.id
-        });
         return;
       }
       
-      // Verificar se é da instância ativa
       if (activeInstanceId && updatedLead?.whatsapp_number_id === activeInstanceId) {
         statsRef.current.totalEvents++;
         statsRef.current.lastUpdate = Date.now();
 
-        // 🚀 CORREÇÃO: Aplicar debounce nos callbacks
+        console.log('[ChatsRealtime] 🔄 Lead atualizado:', updatedLead.id);
+
+        // ✅ CORREÇÃO: Atualização de unread count
         if (oldLead?.unread_count !== updatedLead?.unread_count) {
           if (onUpdateUnreadCount) {
             const increment = (updatedLead?.unread_count || 0) > (oldLead?.unread_count || 0);
-            debounceCallback(() => onUpdateUnreadCount(updatedLead.id, increment), 'updateUnreadCount');
+            
+            debounceCallback(() => {
+              onUpdateUnreadCount(updatedLead.id, increment);
+            }, `updateUnread-${updatedLead.id}`, 100);
+            
             return;
           }
         }
 
-        // Fallback: refresh completo apenas se não há callback granular
-        if (onContactsRefresh && !onUpdateUnreadCount) {
+        // ✅ CORREÇÃO: Mover para o topo se houve nova mensagem
+        if (updatedLead?.last_message_time !== oldLead?.last_message_time) {
+          if (onMoveContactToTop) {
+            const messageUpdate = {
+              text: updatedLead.last_message || '',
+              timestamp: updatedLead.last_message_time || new Date().toISOString(),
+              unreadCount: updatedLead.unread_count || 0
+            };
+            
+            debounceCallback(() => {
+              onMoveContactToTop(updatedLead.id, messageUpdate);
+            }, `moveToTop-${updatedLead.id}`, 100);
+            
+            return;
+          }
+        }
+
+        // Fallback
+        if (onContactsRefresh) {
           debounceCallback(() => onContactsRefresh(), 'contactsRefresh');
         }
       }
     } catch (error) {
-      console.error('[ChatsRealtime] ❌ Erro processando atualização de lead:', error);
-      BigQueryOptimizer.handleError(error);
+      console.error('[ChatsRealtime] ❌ Erro processando update:', error);
     }
-  }, [activeInstanceId, onContactsRefresh, onUpdateUnreadCount, user?.id, debounceCallback]);
+  }, [activeInstanceId, onUpdateUnreadCount, onMoveContactToTop, onContactsRefresh, user?.id, debounceCallback]);
 
-  // 🚀 CORREÇÃO: Setup realtime com validação rigorosa de multitenancy
+  // Setup realtime
   const setupRealtime = useCallback(() => {
-    // 🚀 CORREÇÃO: Validação rigorosa de usuário
     if (!user?.id || !activeInstanceId) {
-      console.warn('[ChatsRealtime] ⚠️ Usuário não autenticado ou instância não ativa');
       cleanup();
       return;
     }
@@ -218,26 +209,19 @@ export const useChatsRealtime = ({
       return;
     }
 
-    // Verificar se precisa reconfigurar
-    const needsReconfigure = 
-      lastUserIdRef.current !== user.id ||
-      lastInstanceIdRef.current !== activeInstanceId ||
-      !isSubscribedRef.current;
+    console.log('[ChatsRealtime] 🚀 Configurando realtime:', {
+      userId: user.id,
+      instanceId: activeInstanceId,
+      callbacks: {
+        moveToTop: !!onMoveContactToTop,
+        updateUnread: !!onUpdateUnreadCount,
+        addNew: !!onAddNewContact
+      }
+    });
 
-    if (!needsReconfigure) {
-      return;
-    }
-
-    // Cleanup anterior
     cleanup();
-
-    // Atualizar refs
-    lastUserIdRef.current = user.id;
-    lastInstanceIdRef.current = activeInstanceId;
-
-    // Criar novo canal
-    const channelId = `chats-realtime-${user.id}-${activeInstanceId}-${Date.now()}`;
     
+    const channelId = `chats-realtime-${user.id}-${activeInstanceId}-${Date.now()}`;
     statsRef.current.connectionStatus = 'connecting';
 
     const channel = supabase
@@ -246,25 +230,23 @@ export const useChatsRealtime = ({
         event: 'INSERT',
         schema: 'public',
         table: 'leads',
-        filter: `created_by_user_id=eq.${user.id}` // 🚀 CORREÇÃO: Filtro rigoroso
+        filter: `created_by_user_id=eq.${user.id}`
       }, handleNewLead)
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'leads',
-        filter: `created_by_user_id=eq.${user.id}` // 🚀 CORREÇÃO: Filtro rigoroso
+        filter: `created_by_user_id=eq.${user.id}`
       }, handleLeadUpdate)
       .subscribe((status) => {
-        if (!isProduction) {
-          console.log('[ChatsRealtime] 📡 Status da subscription:', status);
-        }
+        console.log('[ChatsRealtime] 📡 Status:', status);
         
         if (status === 'SUBSCRIBED') {
           isSubscribedRef.current = true;
           statsRef.current.connectionStatus = 'connected';
-          reconnectAttempts.current = 0; // Reset tentativas após sucesso
+          reconnectAttempts.current = 0;
+          console.log('[ChatsRealtime] ✅ Conectado');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('[ChatsRealtime] ❌ Erro no canal de chats, tentando reconnection');
           isSubscribedRef.current = false;
           statsRef.current.connectionStatus = 'error';
           reconnect();
@@ -272,7 +254,6 @@ export const useChatsRealtime = ({
           isSubscribedRef.current = false;
           statsRef.current.connectionStatus = 'disconnected';
         } else if (status === 'TIMED_OUT') {
-          console.error('[ChatsRealtime] ⏱️ Timeout, tentando reconnection');
           reconnect();
         }
       });
@@ -280,7 +261,7 @@ export const useChatsRealtime = ({
     channelRef.current = channel;
   }, [user?.id, activeInstanceId, handleNewLead, handleLeadUpdate, cleanup, reconnect]);
 
-  // 🚀 CORREÇÃO: Configurar subscription apenas quando usuário estiver autenticado
+  // Configurar subscription
   useEffect(() => {
     if (user?.id && activeInstanceId) {
       setupRealtime();
@@ -289,16 +270,16 @@ export const useChatsRealtime = ({
     }
   }, [user?.id, activeInstanceId, setupRealtime, cleanup]);
 
-  // 🚀 CORREÇÃO: Heartbeat para detectar conexões mortas
+  // Heartbeat
   useEffect(() => {
     if (!channelRef.current) return;
     
     const heartbeat = setInterval(() => {
       if (channelRef.current && channelRef.current.state === 'closed') {
-        console.log('[ChatsRealtime] 💔 Conexão morta detectada, reconnectando...');
+        console.log('[ChatsRealtime] 💔 Conexão morta detectada');
         reconnect();
       }
-    }, 30000); // Check a cada 30 segundos
+    }, 30000);
 
     return () => clearInterval(heartbeat);
   }, [reconnect]);

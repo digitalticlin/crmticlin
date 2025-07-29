@@ -1,81 +1,162 @@
 
-import React, { memo } from 'react';
+/**
+ * 🎯 COMPONENTE DE MENSAGEM COM ANIMAÇÕES
+ * 
+ * CORREÇÕES IMPLEMENTADAS:
+ * ✅ Animações suaves para aparição
+ * ✅ Bounce effect para mensagens novas
+ * ✅ Transições otimizadas
+ * ✅ Suporte a mídia melhorado
+ */
+
+import React, { useEffect, useRef } from 'react';
 import { Message } from '@/types/chat';
 import { cn } from '@/lib/utils';
-import { MessageContent } from './MessageContent';
-import { MessageMedia } from './MessageMedia';
-import { MessageStatus } from './MessageStatus';
-import { MessageTimestamp } from './MessageTimestamp';
-import { CheckCircle2, XCircle, Clock, User } from 'lucide-react';
+import { Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
 
 interface MessageItemProps {
-  message: Message;
+  message: Message & { shouldAnimate?: boolean };
   isLastMessage?: boolean;
 }
 
-export const MessageItem = memo<MessageItemProps>(({ 
+export const MessageItem: React.FC<MessageItemProps> = ({ 
   message, 
   isLastMessage = false 
 }) => {
-  const isIncoming = !message.fromMe;
-  const isOptimistic = message.id?.startsWith('temp_');
-  
+  const messageRef = useRef<HTMLDivElement>(null);
+  const isNewMessage = (message as any).isNew;
+
+  // 🚀 CORREÇÃO: Trigger animação para mensagens novas
+  useEffect(() => {
+    if (isNewMessage && messageRef.current) {
+      // Remover flag após animação
+      setTimeout(() => {
+        if (messageRef.current) {
+          messageRef.current.classList.remove('animate-fade-in');
+        }
+      }, 500);
+    }
+  }, [isNewMessage]);
+
+  // 🚀 CORREÇÃO: Bounce effect para mensagens externas
+  useEffect(() => {
+    if (message.shouldAnimate && !message.fromMe && messageRef.current) {
+      messageRef.current.classList.add('animate-bounce');
+      setTimeout(() => {
+        if (messageRef.current) {
+          messageRef.current.classList.remove('animate-bounce');
+        }
+      }, 1000);
+    }
+  }, [message.shouldAnimate, message.fromMe]);
+
+  // Status icon baseado no status da mensagem
+  const getStatusIcon = () => {
+    if (!message.fromMe) return null;
+    
+    switch (message.status) {
+      case 'sending':
+        return <Clock className="w-3 h-3 text-gray-400 animate-spin" />;
+      case 'sent':
+        return <Check className="w-3 h-3 text-gray-400" />;
+      case 'delivered':
+        return <CheckCheck className="w-3 h-3 text-gray-400" />;
+      case 'read':
+        return <CheckCheck className="w-3 h-3 text-blue-500" />;
+      case 'failed':
+        return <AlertCircle className="w-3 h-3 text-red-500" />;
+      default:
+        return <Check className="w-3 h-3 text-gray-400" />;
+    }
+  };
+
+  // 🚀 CORREÇÃO: Renderizar mídia se disponível
+  const renderMedia = () => {
+    if (!message.mediaUrl || message.mediaType === 'text') return null;
+
+    const mediaClasses = "max-w-xs rounded-lg shadow-md";
+
+    switch (message.mediaType) {
+      case 'image':
+        return (
+          <img 
+            src={message.mediaUrl} 
+            alt="Imagem" 
+            className={cn(mediaClasses, "hover:scale-105 transition-transform cursor-pointer")}
+            onClick={() => window.open(message.mediaUrl, '_blank')}
+          />
+        );
+      case 'video':
+        return (
+          <video 
+            src={message.mediaUrl} 
+            controls 
+            className={mediaClasses}
+            preload="metadata"
+          />
+        );
+      case 'audio':
+        return (
+          <audio 
+            src={message.mediaUrl} 
+            controls 
+            className="w-full max-w-xs"
+          />
+        );
+      default:
+        return (
+          <a 
+            href={message.mediaUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-700 underline"
+          >
+            📎 Arquivo anexado
+          </a>
+        );
+    }
+  };
+
   return (
-    <div className={cn(
-      "flex mb-3 px-4",
-      isIncoming ? "justify-start" : "justify-end"
-    )}>
-      <div className={cn(
-        "max-w-[85%] sm:max-w-[70%] rounded-2xl px-3 py-2 relative",
-        isIncoming 
-          ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-sm" 
-          : "bg-green-500 text-white rounded-br-sm",
-        isOptimistic && "opacity-70"
-      )}>
-        {/* Media content */}
-        {message.mediaType && message.mediaUrl && (
-          <MessageMedia
-            messageId={message.id}
-            mediaType={message.mediaType}
-            mediaUrl={message.mediaUrl}
-            isIncoming={isIncoming}
-            className="mb-2"
-          />
+    <div
+      ref={messageRef}
+      data-message-id={message.id}
+      className={cn(
+        "flex mb-2 transition-all duration-300",
+        message.fromMe ? "justify-end" : "justify-start",
+        isNewMessage && "animate-fade-in",
+        message.shouldAnimate && !message.fromMe && "animate-bounce"
+      )}
+    >
+      <div
+        className={cn(
+          "max-w-xs lg:max-w-md px-3 py-2 rounded-lg shadow-sm transition-all duration-200",
+          message.fromMe
+            ? "bg-blue-500 text-white ml-auto hover:bg-blue-600"
+            : "bg-gray-100 text-gray-800 mr-auto hover:bg-gray-200",
+          message.status === 'sending' && "opacity-70",
+          message.status === 'failed' && "bg-red-100 border border-red-300"
         )}
-
-        {/* Text content */}
+      >
+        {/* Renderizar mídia */}
+        {renderMedia()}
+        
+        {/* Texto da mensagem */}
         {message.text && (
-          <MessageContent 
-            content={message.text} 
-            isIncoming={isIncoming}
-          />
+          <p className="text-sm whitespace-pre-wrap break-words">
+            {message.text}
+          </p>
         )}
-
-        {/* Optimistic message status */}
-        {isOptimistic && (
-          <div className="flex items-center gap-1 mt-1">
-            <Clock className="h-3 w-3 text-yellow-500" />
-            <span className="text-xs text-gray-500">Enviando...</span>
-          </div>
-        )}
-
-        {/* Message footer */}
+        
+        {/* Footer com hora e status */}
         <div className={cn(
-          "flex items-center justify-between gap-2 mt-1 text-xs",
-          isIncoming ? "text-gray-500" : "text-white/70"
+          "flex items-center justify-end mt-1 gap-1",
+          message.fromMe ? "text-blue-100" : "text-gray-500"
         )}>
-          <MessageTimestamp timestamp={message.timestamp} />
-          
-          {!isIncoming && !isOptimistic && (
-            <MessageStatus 
-              status={message.status || 'sent'} 
-              isLastMessage={isLastMessage}
-            />
-          )}
+          <span className="text-xs">{message.time}</span>
+          {getStatusIcon()}
         </div>
       </div>
     </div>
   );
-});
-
-MessageItem.displayName = 'MessageItem';
+};
