@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import React from "react";
 import { cn } from "@/lib/utils";
@@ -53,7 +52,6 @@ export const WhatsAppChatLayout = ({
 }: WhatsAppChatLayoutProps) => {
   const [isDetailsSidebarOpen, setIsDetailsSidebarOpen] = useState(false);
 
-  // ✅ CORREÇÃO: Atualizar contato completo e propagação para lista
   const handleUpdateContact = (updatedContact: Contact) => {
     console.log('[WhatsAppChatLayout] 🔄 Atualizando contato selecionado:', {
       contactId: updatedContact.id,
@@ -66,10 +64,8 @@ export const WhatsAppChatLayout = ({
       }
     });
 
-    // ✅ ATUALIZAR: Contato selecionado
     onSelectContact(updatedContact);
 
-    // ✅ PROPAGAR: Atualização para a lista de contatos via evento customizado
     if (updatedContact.leadId || updatedContact.id) {
       window.dispatchEvent(new CustomEvent('leadUpdated', {
         detail: {
@@ -89,11 +85,11 @@ export const WhatsAppChatLayout = ({
   return (
     <div className="h-full flex relative z-10">
       {/* Container principal com max-width de 1200px */}
-      <div className="w-full max-w-[1200px] mx-auto flex relative">
+      <div className="w-full max-w-[1200px] mx-auto flex relative h-full">
         {/* Mobile layout - comportamento atual */}
-        <div className="lg:hidden w-full">
+        <div className="lg:hidden w-full h-full">
           {!selectedContact ? (
-            <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
+            <div className="w-full h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
               <WhatsAppContactsList
                 contacts={contacts}
                 selectedContact={selectedContact}
@@ -107,7 +103,7 @@ export const WhatsAppChatLayout = ({
               />
             </div>
           ) : (
-            <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
+            <div className="w-full h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
               <WhatsAppChatArea
                 selectedContact={selectedContact}
                 messages={messages}
@@ -127,19 +123,19 @@ export const WhatsAppChatLayout = ({
 
         {/* Desktop layout - com redimensionamento e ajuste para sidebar */}
         <div className={cn(
-          "hidden lg:flex w-full relative transition-all duration-300",
+          "hidden lg:flex w-full h-full relative transition-all duration-300",
           isDetailsSidebarOpen && "mr-80"
         )}>
           <ResizablePanelGroup 
             direction="horizontal" 
-            className="w-full relative z-20"
+            className="w-full h-full relative z-20"
           >
             {/* Painel da Lista de Conversas */}
             <ResizablePanel 
               defaultSize={30} 
               minSize={20} 
               maxSize={50}
-              className="relative"
+              className="relative h-full"
             >
               <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
                 <WhatsAppContactsList
@@ -166,7 +162,7 @@ export const WhatsAppChatLayout = ({
             <ResizablePanel 
               defaultSize={70} 
               minSize={50}
-              className="relative"
+              className="relative h-full"
             >
               <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
                 {selectedContact ? (

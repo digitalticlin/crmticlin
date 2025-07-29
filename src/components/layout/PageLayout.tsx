@@ -37,11 +37,10 @@ export function PageLayout({ children, className }: PageLayoutProps) {
       
       <ResponsiveSidebar />
       
-      {/* CORRIGIDO: Main container com z-index correto e max-width universal */}
+      {/* CORRIGIDO: Main container SEM scroll geral */}
       <main className={cn(
         "fixed top-0 right-0 bottom-0 z-30 transition-all duration-300",
-        // CRITICAL: For kanban pages, no overflow restrictions to allow drag portals
-        className?.includes("kanban") ? "overflow-visible" : "overflow-auto",
+        "overflow-hidden h-full", // Removido overflow-auto, forçando scroll interno
         isMobile 
           ? "left-0 pt-14" 
           : isCollapsed 
@@ -49,7 +48,7 @@ export function PageLayout({ children, className }: PageLayoutProps) {
             : "left-[200px]",
         className
       )}>
-        {/* NOVO: Container universal com max-width de 1200px */}
+        {/* Container universal com max-width de 1200px */}
         <div className="w-full max-w-[1200px] mx-auto h-full">
           {className?.includes("kanban") ? (
             // SPECIAL layout for Kanban - optimized for drag and drop
@@ -59,8 +58,8 @@ export function PageLayout({ children, className }: PageLayoutProps) {
               </div>
             </div>
           ) : (
-            // Layout padrão para outras páginas
-            <div className="main-content-scale p-4 md:p-6 space-y-6 md:space-y-8 min-h-full">
+            // Layout padrão SEM scroll geral
+            <div className="main-content-scale h-full p-4 md:p-6 flex flex-col">
               {children}
             </div>
           )}

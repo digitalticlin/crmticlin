@@ -51,11 +51,12 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
   return (
     <div 
       ref={containerRef}
-      className="flex-1 overflow-y-auto pb-4 px-4 scroll-smooth glass-scrollbar"
+      className="pb-4 px-4 glass-scrollbar"
       style={{ 
+        height: 'calc(100vh - 280px)', // Altura fixa para forçar scroll interno
+        overflowY: 'auto', // Forçar scroll vertical
         scrollBehavior: 'smooth',
         overflowAnchor: 'none',
-        // Otimizações para scroll automático
         scrollPaddingBottom: '16px'
       }}
     >
