@@ -33,11 +33,11 @@ export interface WhatsAppInstance {
   created_by_user_id?: string;
 }
 
-// 🚀 CORREÇÃO: Interface para payload do realtime
+// 🚀 CORREÇÃO: Interface para payload do realtime corrigida
 interface RealtimePayload {
   eventType: 'INSERT' | 'UPDATE' | 'DELETE';
-  new?: WhatsAppInstance;
-  old?: WhatsAppInstance;
+  new?: WhatsAppInstance | null;
+  old?: WhatsAppInstance | null;
 }
 
 export const useWhatsAppDatabase = () => {
@@ -62,81 +62,10 @@ export const useWhatsAppDatabase = () => {
   const baseDelay = 1000; // 1 segundo
 
   // 🚀 CORREÇÃO: Queue para mensagens perdidas durante desconexões
-  const messageQueue = useRef<RealtimePayload[]>([]);
+  const messageQueue = useRef<any[]>([]);
   const isProcessingQueue = useRef<boolean>(false);
 
-  const throttledFetchInstances = useCallback(() => {
-    if (throttleRef.current) {
-      pendingUpdate.current = true;
-      return;
-    }
-    
-    throttleRef.current = setTimeout(() => {
-      fetchInstances();
-      throttleRef.current = null;
-      
-      if (pendingUpdate.current) {
-        pendingUpdate.current = false;
-        throttledFetchInstances();
-      }
-    }, 1000); // Throttle de 1 segundo
-  }, []);
-
-  // 🚀 CORREÇÃO: Processar queue de mensagens perdidas
-  const processMessageQueue = useCallback(async () => {
-    if (isProcessingQueue.current || messageQueue.current.length === 0) return;
-    
-    isProcessingQueue.current = true;
-    console.log('[WhatsApp Database] 🔄 Processando queue de mensagens perdidas:', messageQueue.current.length);
-    
-    try {
-      // Processar todas as mensagens na queue
-      for (const queuedPayload of messageQueue.current) {
-        await new Promise(resolve => setTimeout(resolve, 100)); // Pequeno delay entre processamentos
-        // Reprocessar o payload
-        handleRealtimeUpdate(queuedPayload);
-      }
-      
-      // Limpar queue após processamento
-      messageQueue.current = [];
-      console.log('[WhatsApp Database] ✅ Queue processada com sucesso');
-      
-    } catch (error) {
-      console.error('[WhatsApp Database] ❌ Erro ao processar queue:', error);
-    } finally {
-      isProcessingQueue.current = false;
-    }
-  }, []);
-
-  // 🚀 CORREÇÃO: Sistema de reconexão automática
-  const attemptReconnection = useCallback(async () => {
-    if (reconnectAttempts.current >= maxReconnectAttempts) {
-      console.error('[WhatsApp Database] ❌ Máximo de tentativas de reconexão atingido');
-      setError('Falha na reconexão após múltiplas tentativas');
-      return;
-    }
-
-    const delay = baseDelay * Math.pow(2, reconnectAttempts.current);
-    reconnectAttempts.current++;
-    
-    console.log(`[WhatsApp Database] 🔄 Tentativa de reconexão ${reconnectAttempts.current}/${maxReconnectAttempts} em ${delay}ms`);
-    
-    setTimeout(async () => {
-      try {
-        await fetchInstances();
-        reconnectAttempts.current = 0; // Reset em caso de sucesso
-        console.log('[WhatsApp Database] ✅ Reconexão bem-sucedida');
-        
-        // Processar queue de mensagens perdidas
-        await processMessageQueue();
-        
-      } catch (error) {
-        console.error('[WhatsApp Database] ❌ Falha na reconexão:', error);
-        attemptReconnection(); // Tentar novamente
-      }
-    }, delay);
-  }, [fetchInstances, processMessageQueue]);
-
+  // 🚀 CORREÇÃO: Definir fetchInstances primeiro para resolver dependência circular
   const fetchInstances = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -214,10 +143,82 @@ export const useWhatsAppDatabase = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, user?.email, attemptReconnection]);
+  }, [user?.id, user?.email]);
 
-  // 🚀 CORREÇÃO: Handler para updates do realtime
-  const handleRealtimeUpdate = useCallback((payload: RealtimePayload) => {
+  const throttledFetchInstances = useCallback(() => {
+    if (throttleRef.current) {
+      pendingUpdate.current = true;
+      return;
+    }
+    
+    throttleRef.current = setTimeout(() => {
+      fetchInstances();
+      throttleRef.current = null;
+      
+      if (pendingUpdate.current) {
+        pendingUpdate.current = false;
+        throttledFetchInstances();
+      }
+    }, 1000); // Throttle de 1 segundo
+  }, [fetchInstances]);
+
+  // 🚀 CORREÇÃO: Processar queue de mensagens perdidas
+  const processMessageQueue = useCallback(async () => {
+    if (isProcessingQueue.current || messageQueue.current.length === 0) return;
+    
+    isProcessingQueue.current = true;
+    console.log('[WhatsApp Database] 🔄 Processando queue de mensagens perdidas:', messageQueue.current.length);
+    
+    try {
+      // Processar todas as mensagens na queue
+      for (const queuedPayload of messageQueue.current) {
+        await new Promise(resolve => setTimeout(resolve, 100)); // Pequeno delay entre processamentos
+        // Reprocessar o payload
+        handleRealtimeUpdate(queuedPayload);
+      }
+      
+      // Limpar queue após processamento
+      messageQueue.current = [];
+      console.log('[WhatsApp Database] ✅ Queue processada com sucesso');
+      
+    } catch (error) {
+      console.error('[WhatsApp Database] ❌ Erro ao processar queue:', error);
+    } finally {
+      isProcessingQueue.current = false;
+    }
+  }, []);
+
+  // 🚀 CORREÇÃO: Sistema de reconexão automática
+  const attemptReconnection = useCallback(async () => {
+    if (reconnectAttempts.current >= maxReconnectAttempts) {
+      console.error('[WhatsApp Database] ❌ Máximo de tentativas de reconexão atingido');
+      setError('Falha na reconexão após múltiplas tentativas');
+      return;
+    }
+
+    const delay = baseDelay * Math.pow(2, reconnectAttempts.current);
+    reconnectAttempts.current++;
+    
+    console.log(`[WhatsApp Database] 🔄 Tentativa de reconexão ${reconnectAttempts.current}/${maxReconnectAttempts} em ${delay}ms`);
+    
+    setTimeout(async () => {
+      try {
+        await fetchInstances();
+        reconnectAttempts.current = 0; // Reset em caso de sucesso
+        console.log('[WhatsApp Database] ✅ Reconexão bem-sucedida');
+        
+        // Processar queue de mensagens perdidas
+        await processMessageQueue();
+        
+      } catch (error) {
+        console.error('[WhatsApp Database] ❌ Falha na reconexão:', error);
+        attemptReconnection(); // Tentar novamente
+      }
+    }, delay);
+  }, [fetchInstances, processMessageQueue]);
+
+  // 🚀 CORREÇÃO: Handler para updates do realtime com tipagem corrigida
+  const handleRealtimeUpdate = useCallback((payload: any) => {
     if (!user?.id) return;
 
     console.log('[WhatsApp Database] 📱 Realtime update para usuário:', {
@@ -226,7 +227,7 @@ export const useWhatsAppDatabase = () => {
       instanceId: payload.new?.id || payload.old?.id
     });
     
-    // 🚀 CORREÇÃO: Validação dupla de ownership com tipagem correta
+    // 🚀 CORREÇÃO: Validação dupla de ownership com tipagem mais flexível
     const instanceData = payload.new || payload.old;
     if (instanceData && instanceData.created_by_user_id !== user.id) {
       console.warn('[WhatsApp Database] 🚨 Tentativa de update cross-user bloqueada:', {
@@ -396,11 +397,18 @@ export const useWhatsAppDatabase = () => {
           // 🚀 CORREÇÃO: Verificar se a conexão está ativa
           if (channel.state === 'closed') {
             console.warn('[WhatsApp Database] ⚠️ Canal fechado, adicionando à queue');
-            messageQueue.current.push(payload as RealtimePayload);
+            messageQueue.current.push(payload);
             return;
           }
           
-          handleRealtimeUpdate(payload as RealtimePayload);
+          // 🚀 CORREÇÃO: Converter payload do Supabase para nossa interface
+          const convertedPayload = {
+            eventType: payload.eventType,
+            new: payload.new as WhatsAppInstance | null,
+            old: payload.old as WhatsAppInstance | null
+          };
+          
+          handleRealtimeUpdate(convertedPayload);
         }
       )
       .subscribe((status) => {
