@@ -1,6 +1,7 @@
+
 import { Contact, Message } from "@/types/chat";
 import { ChatHeader } from "@/components/chat/ChatHeader";
-import { MessagesList } from "@/components/chat/MessagesList";
+import { WhatsAppMessagesList } from "@/components/chat/whatsapp/WhatsAppMessagesList";
 import { MessageInput } from "@/components/chat/MessageInput";
 
 interface ChatConversationProps {
@@ -28,7 +29,7 @@ export function ChatConversation({
         onBack={onBack}
         leadId={leadId}
       />
-      <MessagesList messages={messages} />
+      <WhatsAppMessagesList messages={messages} />
       <MessageInput onSendMessage={onSendMessage} />
     </div>
   );
