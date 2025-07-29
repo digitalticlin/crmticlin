@@ -1,4 +1,3 @@
-
 /**
  * 🎯 HOOK DE MENSAGENS OTIMIZADO
  * 
@@ -42,6 +41,19 @@ interface UseWhatsAppChatMessagesReturn {
 
 const MESSAGES_PER_PAGE = 50;
 
+// Helper function to ensure mediaType conforms to expected union type
+const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "audio" | "document" => {
+  if (!mediaType) return 'text';
+  
+  const normalizedType = mediaType.toLowerCase();
+  if (normalizedType.includes('image')) return 'image';
+  if (normalizedType.includes('video')) return 'video';
+  if (normalizedType.includes('audio')) return 'audio';
+  if (normalizedType.includes('document')) return 'document';
+  
+  return 'text';
+};
+
 export const useWhatsAppChatMessages = ({
   selectedContact,
   activeInstance
@@ -64,7 +76,7 @@ export const useWhatsAppChatMessages = ({
       fromMe: messageData.from_me || false,
       timestamp: messageData.created_at || new Date().toISOString(),
       status: messageData.status || 'sent',
-      mediaType: messageData.media_type || 'text',
+      mediaType: normalizeMediaType(messageData.media_type),
       mediaUrl: messageData.media_url || undefined,
       sender: messageData.from_me ? 'user' : 'contact',
       time: new Date(messageData.created_at || Date.now()).toLocaleTimeString('pt-BR', {
@@ -177,7 +189,7 @@ export const useWhatsAppChatMessages = ({
         fromMe: true,
         timestamp: new Date().toISOString(),
         status: 'sending',
-        mediaType: media?.type || 'text',
+        mediaType: normalizeMediaType(media?.type),
         mediaUrl: media ? URL.createObjectURL(media.file) : undefined,
         sender: 'user',
         time: new Date().toLocaleTimeString('pt-BR', {
@@ -246,8 +258,19 @@ export const useWhatsAppChatMessages = ({
     hasMoreMessages,
     isSendingMessage,
     sendMessage,
-    loadMoreMessages,
-    refreshMessages,
+    loadMoreMessages: async () => {
+      if (!hasMoreMessages || isLoadingMore) return;
+      setIsLoadingMore(true);
+      try {
+        await fetchMessages(currentPage + 1, true);
+      } finally {
+        setIsLoadingMore(false);
+      }
+    },
+    refreshMessages: () => {
+      setCurrentPage(0);
+      fetchMessages(0, false);
+    },
     addOptimisticMessage,
     updateMessage
   };

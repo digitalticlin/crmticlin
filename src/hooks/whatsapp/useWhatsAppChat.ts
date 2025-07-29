@@ -1,4 +1,3 @@
-
 /**
  * 🎯 HOOK PRINCIPAL - ARQUITETURA DIRETA SEM PROVIDER
  * 
@@ -109,8 +108,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
       date_disconnected: activeInstance.date_disconnected,
       created_by_user_id: activeInstance.created_by_user_id || '',
       created_at: activeInstance.created_at || new Date().toISOString(),
-      updated_at: activeInstance.updated_at || new Date().toISOString(),
-      history_imported: false
+      updated_at: activeInstance.updated_at || new Date().toISOString()
     };
   }, [activeInstance]);
 
