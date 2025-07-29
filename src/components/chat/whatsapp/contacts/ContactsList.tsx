@@ -95,12 +95,13 @@ export const ContactsList = ({
 
   const handleCloseConversation = useCallback(async (contactId: string) => {
     try {
-      // Marcar conversa como arquivada/fechada
+      // Marcar conversa como fechada usando um campo de notes ou status
+      // Como não temos campo is_archived, vamos usar o campo notes para marcar como fechada
       const { error } = await supabase
         .from('leads')
         .update({ 
-          is_archived: true,
-          archived_at: new Date().toISOString()
+          notes: 'CONVERSA_FECHADA_' + new Date().toISOString(),
+          unread_count: 0
         })
         .eq('id', contactId);
 
@@ -115,6 +116,8 @@ export const ContactsList = ({
       if (selectedContact?.id === contactId) {
         onSelectContact(null);
       }
+
+      toast.success('Conversa fechada com sucesso');
 
     } catch (error) {
       console.error('Error closing conversation:', error);
