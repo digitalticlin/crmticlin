@@ -10,10 +10,10 @@ const periodOptions = [
 ];
 
 export default function PeriodFilter() {
-  const { config, updateConfig, loading } = useDashboardConfig();
+  const { config, updatePeriodFilter, loading } = useDashboardConfig();
 
   const handlePeriodChange = (value: string) => {
-    updateConfig({ period_filter: value });
+    updatePeriodFilter(value);
   };
 
   if (loading) {
