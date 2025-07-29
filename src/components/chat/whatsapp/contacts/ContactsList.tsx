@@ -95,12 +95,11 @@ export const ContactsList = ({
 
   const handleCloseConversation = useCallback(async (contactId: string) => {
     try {
-      // Marcar conversa como arquivada/fechada
+      // Marcar conversa como fechada usando o campo notes
       const { error } = await supabase
         .from('leads')
         .update({ 
-          is_archived: true,
-          archived_at: new Date().toISOString()
+          notes: 'Conversa fechada'
         })
         .eq('id', contactId);
 
@@ -304,7 +303,7 @@ export const ContactsList = ({
 
   return (
     <div 
-      className="flex-1 overflow-y-auto"
+      className="flex-1 overflow-y-auto glass-scrollbar"
       ref={scrollContainerRef}
       onScroll={handleScroll}
     >

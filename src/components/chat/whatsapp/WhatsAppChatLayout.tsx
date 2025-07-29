@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import React from "react";
 import { cn } from "@/lib/utils";
@@ -87,55 +88,12 @@ export const WhatsAppChatLayout = ({
 
   return (
     <div className="h-full flex overflow-hidden relative z-10">
-      {/* Mobile layout - comportamento atual */}
-      <div className="lg:hidden w-full">
-        {!selectedContact ? (
-          <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
-            <WhatsAppContactsList
-              contacts={contacts}
-              selectedContact={selectedContact}
-              onSelectContact={onSelectContact}
-              isLoading={isLoadingContacts}
-              isLoadingMore={isLoadingMoreContacts}
-              hasMoreContacts={hasMoreContacts}
-              onLoadMoreContacts={onLoadMoreContacts}
-              onRefreshContacts={onRefreshContacts}
-              totalContactsAvailable={totalContactsAvailable}
-            />
-          </div>
-        ) : (
-          <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10">
-            <WhatsAppChatArea
-              selectedContact={selectedContact}
-              messages={messages}
-              onSendMessage={onSendMessage}
-              onBack={() => onSelectContact(null)}
-              isLoadingMessages={isLoadingMessages}
-              isLoadingMore={isLoadingMore}
-              hasMoreMessages={hasMoreMessages}
-              onLoadMoreMessages={onLoadMoreMessages}
-              isSending={isSending}
-              onEditLead={handleEditLead}
-              onRefreshMessages={onRefreshMessages}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Desktop layout - com redimensionamento */}
-      <div className="hidden lg:flex w-full relative">
-        <ResizablePanelGroup 
-          direction="horizontal" 
-          className="w-full"
-        >
-          {/* Painel da Lista de Conversas */}
-          <ResizablePanel 
-            defaultSize={30} 
-            minSize={20} 
-            maxSize={50}
-            className="relative"
-          >
-            <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
+      {/* Container principal com max-width de 1200px */}
+      <div className="w-full max-w-[1200px] mx-auto flex overflow-hidden relative">
+        {/* Mobile layout - comportamento atual */}
+        <div className="lg:hidden w-full">
+          {!selectedContact ? (
+            <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
               <WhatsAppContactsList
                 contacts={contacts}
                 selectedContact={selectedContact}
@@ -148,54 +106,100 @@ export const WhatsAppChatLayout = ({
                 totalContactsAvailable={totalContactsAvailable}
               />
             </div>
-          </ResizablePanel>
-
-          {/* Handle para redimensionar - SEM ícone */}
-          <ResizableHandle 
-            withHandle={false}
-            className="w-1 bg-transparent hover:bg-white/10 transition-colors duration-200 rounded-full border-0 relative group"
-          />
-
-          {/* Painel da Área de Chat */}
-          <ResizablePanel 
-            defaultSize={70} 
-            minSize={50}
-            className={cn(
-              "relative",
-              isDetailsSidebarOpen && "mr-80"
-            )}
-          >
-            <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10">
-              {selectedContact ? (
-                <WhatsAppChatArea
-                  selectedContact={selectedContact}
-                  messages={messages}
-                  onSendMessage={onSendMessage}
-                  onBack={() => onSelectContact(null)}
-                  isLoadingMessages={isLoadingMessages}
-                  isLoadingMore={isLoadingMore}
-                  hasMoreMessages={hasMoreMessages}
-                  onLoadMoreMessages={onLoadMoreMessages}
-                  isSending={isSending}
-                  onEditLead={handleEditLead}
-                  onRefreshMessages={onRefreshMessages}
-                  leadId={selectedContact.id}
-                />
-              ) : (
-                <WhatsAppEmptyState />
-              )}
+          ) : (
+            <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10">
+              <WhatsAppChatArea
+                selectedContact={selectedContact}
+                messages={messages}
+                onSendMessage={onSendMessage}
+                onBack={() => onSelectContact(null)}
+                isLoadingMessages={isLoadingMessages}
+                isLoadingMore={isLoadingMore}
+                hasMoreMessages={hasMoreMessages}
+                onLoadMoreMessages={onLoadMoreMessages}
+                isSending={isSending}
+                onEditLead={handleEditLead}
+                onRefreshMessages={onRefreshMessages}
+              />
             </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
+          )}
+        </div>
 
-      {/* Sidebar de Detalhes do Lead */}
-      <LeadDetailsSidebar
-        selectedContact={selectedContact}
-        isOpen={isDetailsSidebarOpen}
-        onClose={() => setIsDetailsSidebarOpen(false)}
-        onUpdateContact={handleUpdateContact}
-      />
+        {/* Desktop layout - com redimensionamento e ajuste para sidebar */}
+        <div className={cn(
+          "hidden lg:flex w-full relative transition-all duration-300",
+          isDetailsSidebarOpen && "mr-80"
+        )}>
+          <ResizablePanelGroup 
+            direction="horizontal" 
+            className="w-full relative z-20"
+          >
+            {/* Painel da Lista de Conversas */}
+            <ResizablePanel 
+              defaultSize={30} 
+              minSize={20} 
+              maxSize={50}
+              className="relative"
+            >
+              <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
+                <WhatsAppContactsList
+                  contacts={contacts}
+                  selectedContact={selectedContact}
+                  onSelectContact={onSelectContact}
+                  isLoading={isLoadingContacts}
+                  isLoadingMore={isLoadingMoreContacts}
+                  hasMoreContacts={hasMoreContacts}
+                  onLoadMoreContacts={onLoadMoreContacts}
+                  onRefreshContacts={onRefreshContacts}
+                  totalContactsAvailable={totalContactsAvailable}
+                />
+              </div>
+            </ResizablePanel>
+
+            {/* Handle para redimensionar - SEM ícone */}
+            <ResizableHandle 
+              withHandle={false}
+              className="w-1 bg-transparent hover:bg-white/10 transition-colors duration-200 rounded-full border-0 relative group"
+            />
+
+            {/* Painel da Área de Chat */}
+            <ResizablePanel 
+              defaultSize={70} 
+              minSize={50}
+              className="relative"
+            >
+              <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10">
+                {selectedContact ? (
+                  <WhatsAppChatArea
+                    selectedContact={selectedContact}
+                    messages={messages}
+                    onSendMessage={onSendMessage}
+                    onBack={() => onSelectContact(null)}
+                    isLoadingMessages={isLoadingMessages}
+                    isLoadingMore={isLoadingMore}
+                    hasMoreMessages={hasMoreMessages}
+                    onLoadMoreMessages={onLoadMoreMessages}
+                    isSending={isSending}
+                    onEditLead={handleEditLead}
+                    onRefreshMessages={onRefreshMessages}
+                    leadId={selectedContact.id}
+                  />
+                ) : (
+                  <WhatsAppEmptyState />
+                )}
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
+
+        {/* Sidebar de Detalhes do Lead - posicionada corretamente */}
+        <LeadDetailsSidebar
+          selectedContact={selectedContact}
+          isOpen={isDetailsSidebarOpen}
+          onClose={() => setIsDetailsSidebarOpen(false)}
+          onUpdateContact={handleUpdateContact}
+        />
+      </div>
     </div>
   );
 };

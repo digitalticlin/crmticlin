@@ -1,19 +1,22 @@
-
 import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { X, Save, User, Building2, Mail, DollarSign, Calendar, Tag, Phone } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useLeadDeals } from "@/hooks/salesFunnel/useLeadDeals";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
-import { BasicInfoSection } from "./sidebar/BasicInfoSection";
-import { NotesSection } from "./sidebar/NotesSection";
 import { SalesHistorySection } from "./sidebar/SalesHistorySection";
-import { PurchaseValueField } from "@/components/sales/leadDetail/PurchaseValueField";
-import { AssignedUserSection } from "./sidebar/AssignedUserSection";
 
 interface LeadDetailsSidebarProps {
-  selectedContact: Contact;
+  selectedContact: Contact | null;
   isOpen: boolean;
   onClose: () => void;
   onUpdateContact: (contact: Contact) => void;
@@ -26,314 +29,337 @@ export const LeadDetailsSidebar = ({
   onUpdateContact
 }: LeadDetailsSidebarProps) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedContact, setEditedContact] = useState<Partial<Contact>>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [localContact, setLocalContact] = useState<Contact>(selectedContact);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    company: "",
+    purchaseValue: "",
+    notes: ""
+  });
 
-  const { data: deals = [], refetch: refetchDeals } = useLeadDeals(selectedContact?.leadId);
-
-  // ✅ NOVO: Atualizar estado local quando selectedContact muda
   useEffect(() => {
     if (selectedContact) {
-      setLocalContact(selectedContact);
-      setEditedContact({});
-      setIsEditing(false);
+      setFormData({
+        name: selectedContact.name || "",
+        email: selectedContact.email || "",
+        company: selectedContact.company || "",
+        purchaseValue: selectedContact.purchaseValue ? selectedContact.purchaseValue.toString() : "",
+        notes: selectedContact.notes || ""
+      });
     }
-  }, [selectedContact?.id]);
+  }, [selectedContact]);
 
-  // ✅ CORREÇÃO: Função estável para atualizar contato local
-  const updateLocalContact = useCallback((updatedLead: any) => {
-    console.log('[LeadDetailsSidebar] 🔄 Atualizando contato local via realtime:', updatedLead);
-    
-    setLocalContact(prevContact => {
-      const updatedLocalContact: Contact = {
-        ...prevContact,
-        name: updatedLead.name || prevContact.name,
-        email: updatedLead.email || prevContact.email,
-        company: updatedLead.company || prevContact.company,
-        documentId: updatedLead.document_id || prevContact.documentId,
-        address: updatedLead.address || prevContact.address,
-        notes: updatedLead.notes || prevContact.notes,
-        purchaseValue: updatedLead.purchase_value || prevContact.purchaseValue,
-        assignedUser: updatedLead.owner_id || prevContact.assignedUser
-      };
-      
-      // Disparar atualização para o componente pai
-      onUpdateContact(updatedLocalContact);
-      
-      return updatedLocalContact;
-    });
-  }, [onUpdateContact]);
+  const handleSave = useCallback(async () => {
+    if (!selectedContact) return;
 
-  // ✅ CORREÇÃO: Subscription em tempo real SEM dependências problemáticas
-  useEffect(() => {
-    if (!selectedContact?.leadId) return;
-
-    console.log('[LeadDetailsSidebar] 📡 Configurando realtime para lead:', selectedContact.leadId);
-
-    const channel = supabase
-      .channel(`lead-realtime-${selectedContact.leadId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'leads',
-          filter: `id=eq.${selectedContact.leadId}`
-        },
-        (payload) => {
-          updateLocalContact(payload.new);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('[LeadDetailsSidebar] 🔌 Removendo subscription realtime');
-      supabase.removeChannel(channel);
-    };
-  }, [selectedContact?.leadId, updateLocalContact]); // ✅ CORREÇÃO: Apenas leadId e função estável
-
-  if (!selectedContact || !isOpen) return null;
-
-  // ✅ CORREÇÃO: Verificar leadId antes de todas as operações
-  const validateLeadId = () => {
-    if (!selectedContact.leadId) {
-      toast.error('ID do lead não encontrado - Impossível editar');
-      return false;
-    }
-    return true;
-  };
-
-  // ✅ CORREÇÃO: Atualização genérica para campos básicos com atualização local imediata
-  const handleUpdateBasicInfo = async (field: string, value: string) => {
-    if (!validateLeadId()) return;
-
-    // ✅ OTIMISTIC UPDATE: Atualizar UI imediatamente
-    const updatedLocalContact = {
-      ...localContact,
-      [field === 'document_id' ? 'documentId' : field]: value
-    };
-    
-    setLocalContact(updatedLocalContact);
-
-    // ✅ PROPAGAR: Disparar evento para lista e header se for nome
-    if (field === 'name') {
-      window.dispatchEvent(new CustomEvent('contactNameUpdated', {
-        detail: {
-          leadId: selectedContact.leadId,
-          contactId: selectedContact.id,
-          newName: value,
-          oldName: localContact.name
-        }
-      }));
-      
-      console.log('[LeadDetailsSidebar] 📡 Evento de nome atualizado disparado');
-    }
-
-    // ✅ PROPAGAR: Atualização completa para o componente pai
-    onUpdateContact(updatedLocalContact);
-
-    setIsLoading(true);
-
+    setIsSaving(true);
     try {
-      console.log('[LeadDetailsSidebar] 📝 Atualizando campo:', { field, value, leadId: selectedContact.leadId });
+      const { name, email, company, purchaseValue, notes } = formData;
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('leads')
-        .update({ [field]: value })
-        .eq('id', selectedContact.leadId);
+        .update({
+          name,
+          email,
+          company,
+          purchase_value: purchaseValue ? parseFloat(purchaseValue) : null,
+          notes
+        })
+        .eq('id', selectedContact.id)
+        .select()
+        .single();
 
-      if (error) throw error;
-
-      toast.success(`${field} atualizado com sucesso!`);
-
-    } catch (error: any) {
-      console.error(`[LeadDetailsSidebar] ❌ Erro ao atualizar ${field}:`, error);
-      toast.error(`Erro ao atualizar ${field}`);
-      
-      // ✅ ROLLBACK: Reverter se erro
-      setLocalContact(selectedContact);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleUpdatePurchaseValue = async (value: number | null) => {
-    if (!validateLeadId()) return;
-
-    // ✅ OTIMISTIC UPDATE
-    setLocalContact(prev => ({ ...prev, purchaseValue: value }));
-
-    setIsLoading(true);
-
-    try {
-      console.log('[LeadDetailsSidebar] 💰 Atualizando valor de compra:', { value, leadId: selectedContact.leadId });
-
-      const { error } = await supabase
-        .from('leads')
-        .update({ purchase_value: value })
-        .eq('id', selectedContact.leadId);
-
-      if (error) throw error;
-
-      toast.success('Valor de compra atualizado!');
-
-    } catch (error: any) {
-      console.error('[LeadDetailsSidebar] ❌ Erro ao atualizar valor de compra:', error);
-      toast.error('Erro ao atualizar valor de compra');
-      
-      // ✅ ROLLBACK
-      setLocalContact(prev => ({ ...prev, purchaseValue: selectedContact.purchaseValue }));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleUpdateAssignedUser = async (userId: string) => {
-    if (!validateLeadId()) return;
-
-    // ✅ OTIMISTIC UPDATE
-    setLocalContact(prev => ({ ...prev, assignedUser: userId }));
-
-    setIsLoading(true);
-
-    try {
-      console.log('[LeadDetailsSidebar] 👤 Atualizando usuário responsável:', { userId, leadId: selectedContact.leadId });
-
-      const { error } = await supabase
-        .from('leads')
-        .update({ owner_id: userId })
-        .eq('id', selectedContact.leadId);
-
-      if (error) throw error;
-
-      toast.success('Usuário responsável atualizado!');
-
-    } catch (error: any) {
-      console.error('[LeadDetailsSidebar] ❌ Erro ao atualizar usuário responsável:', error);
-      toast.error('Erro ao atualizar usuário responsável');
-      
-      // ✅ ROLLBACK
-      setLocalContact(prev => ({ ...prev, assignedUser: selectedContact.assignedUser }));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleUpdateNotes = async (notes: string) => {
-    if (!validateLeadId()) return;
-
-    // ✅ OTIMISTIC UPDATE
-    setLocalContact(prev => ({ ...prev, notes }));
-
-    setIsLoading(true);
-
-    try {
-      console.log('[LeadDetailsSidebar] 📋 Atualizando observações:', { notes: notes.substring(0, 50), leadId: selectedContact.leadId });
-
-      const { error } = await supabase
-        .from('leads')
-        .update({ notes })
-        .eq('id', selectedContact.leadId);
-
-      if (error) throw error;
-
-      toast.success('Observações atualizadas!');
-
-    } catch (error: any) {
-      console.error('[LeadDetailsSidebar] ❌ Erro ao atualizar observações:', error);
-      toast.error('Erro ao atualizar observações');
-      
-      // ✅ ROLLBACK
-      setLocalContact(prev => ({ ...prev, notes: selectedContact.notes }));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!validateLeadId()) return;
-
-    setIsLoading(true);
-
-    try {
-      console.log('[LeadDetailsSidebar] 💾 Salvando edições em lote:', editedContact);
-
-      const updateData = Object.keys(editedContact).reduce((acc, key) => {
-        const value = editedContact[key as keyof Contact];
-        if (value !== undefined && value !== null && value !== '') {
-          acc[key] = value;
-        }
-        return acc;
-      }, {} as any);
-
-      if (Object.keys(updateData).length === 0) {
-        toast.info('Nenhuma alteração para salvar');
-        setIsEditing(false);
+      if (error) {
+        console.error("Erro ao atualizar lead:", error);
+        toast.error("Erro ao salvar as informações do lead.");
         return;
       }
 
-      const { error } = await supabase
-        .from('leads')
-        .update(updateData)
-        .eq('id', selectedContact.leadId);
+      const updatedContact: Contact = {
+        ...selectedContact,
+        name: data.name,
+        email: data.email,
+        company: data.company,
+        purchaseValue: data.purchase_value,
+        notes: data.notes
+      };
 
-      if (error) throw error;
-
-      setEditedContact({});
+      onUpdateContact(updatedContact);
       setIsEditing(false);
-      toast.success('Alterações salvas com sucesso!');
-
-    } catch (error: any) {
-      console.error('[LeadDetailsSidebar] ❌ Erro ao salvar:', error);
-      toast.error('Erro ao salvar alterações');
+      toast.success("Informações do lead salvas com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar lead:", error);
+      toast.error("Erro ao salvar as informações do lead.");
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
+  }, [selectedContact, formData, onUpdateContact]);
+
+  const handleEditToggle = () => {
+    setIsEditing(prev => !prev);
   };
 
-  // ✅ USAR localContact em vez de selectedContact para mostrar dados atualizados
+  if (!selectedContact || !isOpen) {
+    return null;
+  }
+
+  const displayName = selectedContact.name || formatPhoneDisplay(selectedContact.phone);
+
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-96 bg-white/20 backdrop-blur-md border-l border-white/30 z-50 transform transition-transform duration-300 shadow-xl">
-      <div className="h-full flex flex-col">
-        <SidebarHeader onClose={onClose} />
+    <>
+      {/* Overlay para mobile */}
+      <div 
+        className={cn(
+          "fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 lg:hidden z-40",
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        onClick={onClose}
+      />
+      
+      {/* Sidebar */}
+      <div className={cn(
+        "fixed right-0 top-0 h-full w-80 bg-white/15 backdrop-blur-md border-l border-white/30 shadow-2xl transform transition-transform duration-300 ease-out z-50",
+        isOpen ? "translate-x-0" : "translate-x-full"
+      )}>
+        <div className="flex flex-col h-full">
+          <SidebarHeader onClose={onClose} />
+          
+          <div className="flex-1 overflow-y-auto glass-scrollbar p-6 space-y-6">
+            {/* Informações básicas do contato */}
+            <Card className="bg-white/20 backdrop-blur-sm border-white/40">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Informações do Lead
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Nome */}
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Nome
+                  </Label>
+                  {isEditing ? (
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      className="bg-white/30 border-white/50"
+                      placeholder="Nome do lead"
+                    />
+                  ) : (
+                    <p className="text-gray-800 font-medium">{displayName}</p>
+                  )}
+                </div>
 
-        <ScrollArea className="flex-1 px-6 py-4">
-          <div className="space-y-6">
-            <BasicInfoSection
-              selectedContact={localContact}
-              isEditing={isEditing}
-              setIsEditing={setIsEditing}
-              editedContact={editedContact}
-              setEditedContact={setEditedContact}
-              onSave={handleSave}
-              isLoading={isLoading}
-              onUpdateBasicInfo={handleUpdateBasicInfo}
-            />
+                {/* Telefone (sempre readonly) */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    Telefone
+                  </Label>
+                  <p className="text-gray-800 font-mono text-sm bg-gray-50/50 px-3 py-2 rounded-md">
+                    {formatPhoneDisplay(selectedContact.phone)}
+                  </p>
+                </div>
 
-            <PurchaseValueField
-              purchaseValue={localContact.purchaseValue}
-              onUpdatePurchaseValue={handleUpdatePurchaseValue}
-            />
+                {/* Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Email
+                  </Label>
+                  {isEditing ? (
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                      className="bg-white/30 border-white/50"
+                      placeholder="email@exemplo.com"
+                    />
+                  ) : (
+                    <p className="text-gray-800">{selectedContact.email || "Não informado"}</p>
+                  )}
+                </div>
 
-            {/* ✅ FOCO: Apenas Usuário Responsável para gestão da equipe */}
-            <AssignedUserSection
-              assignedUser={localContact.assignedUser}
-              onUpdateAssignedUser={handleUpdateAssignedUser}
-              isLoading={isLoading}
-            />
+                {/* Empresa */}
+                <div className="space-y-2">
+                  <Label htmlFor="company" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Empresa
+                  </Label>
+                  {isEditing ? (
+                    <Input
+                      id="company"
+                      value={formData.company}
+                      onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
+                      className="bg-white/30 border-white/50"
+                      placeholder="Nome da empresa"
+                    />
+                  ) : (
+                    <p className="text-gray-800">{selectedContact.company || "Não informado"}</p>
+                  )}
+                </div>
 
-            <NotesSection
-              selectedContact={localContact}
-              editedContact={editedContact}
-              setEditedContact={setEditedContact}
-              onUpdateNotes={handleUpdateNotes}
-            />
+                {/* Valor de compra */}
+                <div className="space-y-2">
+                  <Label htmlFor="purchaseValue" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    Valor de Compra
+                  </Label>
+                  {isEditing ? (
+                    <Input
+                      id="purchaseValue"
+                      type="number"
+                      step="0.01"
+                      value={formData.purchaseValue}
+                      onChange={(e) => setFormData(prev => ({ ...prev, purchaseValue: e.target.value }))}
+                      className="bg-white/30 border-white/50"
+                      placeholder="0.00"
+                    />
+                  ) : (
+                    <p className="text-gray-800">
+                      {selectedContact.purchaseValue 
+                        ? `R$ ${Number(selectedContact.purchaseValue).toFixed(2)}` 
+                        : "Não informado"
+                      }
+                    </p>
+                  )}
+                </div>
 
-            <SalesHistorySection deals={deals} />
+                {/* Notas */}
+                <div className="space-y-2">
+                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Observações
+                  </Label>
+                  {isEditing ? (
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                      className="bg-white/30 border-white/50 min-h-[80px]"
+                      placeholder="Observações sobre o lead..."
+                    />
+                  ) : (
+                    <p className="text-gray-800 text-sm">
+                      {selectedContact.notes || "Nenhuma observação"}
+                    </p>
+                  )}
+                </div>
+
+                {/* Botões de ação */}
+                <div className="flex gap-2 pt-4">
+                  {isEditing ? (
+                    <>
+                      <Button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        size="sm"
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        {isSaving ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                            Salvando...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Salvar
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={() => setIsEditing(false)}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 bg-white/20 border-white/40 text-gray-700 hover:bg-white/30"
+                      >
+                        Cancelar
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      onClick={handleEditToggle}
+                      size="sm"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Editar Informações
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tags */}
+            {selectedContact.tags && selectedContact.tags.length > 0 && (
+              <Card className="bg-white/20 backdrop-blur-sm border-white/40">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
+                    <Tag className="h-5 w-5" />
+                    Tags
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedContact.tags.map((tag, index) => (
+                      <Badge 
+                        key={index} 
+                        variant="secondary" 
+                        className="bg-blue-100 text-blue-800 hover:bg-blue-200"
+                      >
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Histórico de vendas */}
+            {selectedContact.deals && selectedContact.deals.length > 0 && (
+              <SalesHistorySection deals={selectedContact.deals} />
+            )}
+
+            {/* Informações de contato adicionais */}
+            <Card className="bg-white/20 backdrop-blur-sm border-white/40">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Informações Adicionais
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Última mensagem:</span>
+                  <span className="text-gray-800 font-medium">
+                    {selectedContact.lastMessageTime 
+                      ? new Date(selectedContact.lastMessageTime).toLocaleDateString('pt-BR')
+                      : "Nunca"
+                    }
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Mensagens não lidas:</span>
+                  <Badge variant={selectedContact.unreadCount > 0 ? "destructive" : "secondary"}>
+                    {selectedContact.unreadCount || 0}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Status:</span>
+                  <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                    Ativo
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </ScrollArea>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
