@@ -22,7 +22,7 @@ export const WhatsAppChatTabs = () => {
       <WhatsAppChatLayout
         contacts={whatsapp.contacts}
         selectedContact={whatsapp.selectedContact}
-        onSelectContact={whatsapp.setSelectedContact}
+        onSelectContact={whatsapp.selectContact}
         messages={whatsapp.messages}
         onSendMessage={whatsapp.sendMessage}
         isLoadingContacts={whatsapp.isLoadingContacts}
@@ -33,7 +33,7 @@ export const WhatsAppChatTabs = () => {
         isLoadingMore={whatsapp.isLoadingMoreMessages}
         hasMoreMessages={whatsapp.hasMoreMessages}
         onLoadMoreMessages={whatsapp.loadMoreMessages}
-        isSending={whatsapp.isSendingMessage}
+        isSending={whatsapp.isSending}
         onRefreshMessages={whatsapp.refreshMessages}
         onRefreshContacts={whatsapp.refreshContacts}
         totalContactsAvailable={whatsapp.totalContactsAvailable}

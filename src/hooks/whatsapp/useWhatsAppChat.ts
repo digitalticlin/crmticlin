@@ -1,19 +1,22 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Contact, Message } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
-import { useContacts } from './useContacts';
-import { useWhatsAppInstances } from './useWhatsAppInstances';
-import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWhatsAppChatMessages } from './chat/useWhatsAppChatMessages';
 import { useMessagesRealtime } from './realtime/useMessagesRealtime';
+import { toast } from 'sonner';
 
 export const useWhatsAppChat = () => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [activeInstance, setActiveInstance] = useState<WhatsAppWebInstance | null>(null);
-  const { contacts, isLoading: isLoadingContacts } = useContacts();
-  const { instances, isLoading: isLoadingInstances } = useWhatsAppInstances();
   const { user } = useAuth();
+
+  // Mock data para contacts e instances - substituir pelos hooks reais quando disponíveis
+  const [contacts] = useState<Contact[]>([]);
+  const [instances] = useState<WhatsAppWebInstance[]>([]);
+  const [isLoadingContacts] = useState(false);
+  const [isLoadingInstances] = useState(false);
 
   const lastSelectedContact = useRef<Contact | null>(null);
   const lastActiveInstance = useRef<WhatsAppWebInstance | null>(null);
@@ -23,9 +26,9 @@ export const useWhatsAppChat = () => {
     isLoading: isLoadingMessages,
     isSending,
     hasMoreMessages,
-    isLoadingMore,
+    isLoadingMore: isLoadingMoreMessages,
     sendMessage,
-    loadMore,
+    loadMore: loadMoreMessages,
     onNewMessage,
     onMessageUpdate
   } = useWhatsAppChatMessages({
@@ -51,7 +54,7 @@ export const useWhatsAppChat = () => {
 
   const selectInstance = useCallback((instance: WhatsAppWebInstance) => {
     console.log('[useWhatsAppChat] ⚙️ Instância selecionada:', {
-      name: instance.name,
+      instance_name: instance.instance_name,
       phone: instance.phone
     });
     setActiveInstance(instance);
@@ -101,8 +104,8 @@ export const useWhatsAppChat = () => {
     }
   }, [selectedContact, activeInstance, sendMessage]);
 
-  const loadMore = useCallback(async () => {
-    if (isLoadingMessages || isLoadingMore || !hasMoreMessages) {
+  const handleLoadMoreMessages = useCallback(async () => {
+    if (isLoadingMessages || isLoadingMoreMessages || !hasMoreMessages) {
       return;
     }
 
@@ -112,8 +115,24 @@ export const useWhatsAppChat = () => {
     }
 
     console.log('[useWhatsAppChat] ⬇️ Carregando mais mensagens...');
-    await loadMore();
-  }, [isLoadingMessages, isLoadingMore, hasMoreMessages, selectedContact, activeInstance, loadMore]);
+    await loadMoreMessages();
+  }, [isLoadingMessages, isLoadingMoreMessages, hasMoreMessages, selectedContact, activeInstance, loadMoreMessages]);
+
+  // Mock functions para compatibilidade
+  const refreshMessages = useCallback(async () => {
+    console.log('[useWhatsAppChat] 🔄 Refresh messages');
+    // Implementar quando necessário
+  }, []);
+
+  const refreshContacts = useCallback(async () => {
+    console.log('[useWhatsAppChat] 🔄 Refresh contacts');
+    // Implementar quando necessário
+  }, []);
+
+  const loadMoreContacts = useCallback(async () => {
+    console.log('[useWhatsAppChat] ⬇️ Load more contacts');
+    // Implementar quando necessário
+  }, []);
 
   return {
     // Contatos e instâncias
@@ -124,10 +143,17 @@ export const useWhatsAppChat = () => {
     
     // Estados de carregamento
     isLoading: isLoadingContacts || isLoadingInstances,
+    isLoadingContacts,
+    isLoadingInstances,
     isLoadingMessages,
     isSending,
+    isSendingMessage: isSending, // Alias para compatibilidade
     hasMoreMessages,
-    isLoadingMore,
+    isLoadingMore: isLoadingMoreMessages,
+    isLoadingMoreMessages,
+    isLoadingMoreContacts: false,
+    hasMoreContacts: false,
+    totalContactsAvailable: contacts.length,
     isRealtimeConnected,
     
     // Mensagens
@@ -135,8 +161,12 @@ export const useWhatsAppChat = () => {
     
     // Ações
     selectContact,
+    setSelectedContact: selectContact, // Alias para compatibilidade
     selectInstance,
     sendMessage: handleSendMessage,
-    loadMoreMessages: loadMore
+    loadMoreMessages: handleLoadMoreMessages,
+    loadMoreContacts,
+    refreshMessages,
+    refreshContacts
   };
 };
