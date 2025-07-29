@@ -5,6 +5,7 @@ import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWhatsAppChatMessages } from './chat/useWhatsAppChatMessages';
 import { useMessagesRealtime } from './realtime/useMessagesRealtime';
+import { useWhatsAppWebInstances } from './useWhatsAppWebInstances';
 import { toast } from 'sonner';
 
 export const useWhatsAppChat = () => {
@@ -12,11 +13,21 @@ export const useWhatsAppChat = () => {
   const [activeInstance, setActiveInstance] = useState<WhatsAppWebInstance | null>(null);
   const { user } = useAuth();
 
-  // Mock data para contacts e instances - substituir pelos hooks reais quando disponíveis
-  const [contacts] = useState<Contact[]>([]);
-  const [instances] = useState<WhatsAppWebInstance[]>([]);
+  // Usar hooks reais em vez de mock data
+  const { instances, isLoading: isLoadingInstances } = useWhatsAppWebInstances();
+  
+  // Mock data temporário para contatos - será substituído por hook real posteriormente
+  const [contacts] = useState<Contact[]>([
+    {
+      id: '1',
+      name: 'Contato Teste',
+      phone: '+5511999999999',
+      lastMessage: 'Olá! Como posso ajudar?',
+      lastMessageTime: new Date().toISOString(),
+      unreadCount: 0
+    }
+  ]);
   const [isLoadingContacts] = useState(false);
-  const [isLoadingInstances] = useState(false);
 
   const lastSelectedContact = useRef<Contact | null>(null);
   const lastActiveInstance = useRef<WhatsAppWebInstance | null>(null);
@@ -43,6 +54,22 @@ export const useWhatsAppChat = () => {
     onMessageUpdate
   });
 
+  // Definir instância ativa automaticamente
+  useEffect(() => {
+    if (instances.length > 0 && !activeInstance) {
+      const connectedInstance = instances.find(
+        instance => instance.connection_status === 'connected' || instance.connection_status === 'ready'
+      );
+      if (connectedInstance) {
+        setActiveInstance(connectedInstance);
+        console.log('[useWhatsAppChat] ⚙️ Instância ativa definida automaticamente:', {
+          instance_name: connectedInstance.instance_name,
+          phone: connectedInstance.phone
+        });
+      }
+    }
+  }, [instances, activeInstance]);
+
   const selectContact = useCallback((contact: Contact) => {
     console.log('[useWhatsAppChat] 👤 Contato selecionado:', {
       name: contact.name,
@@ -66,7 +93,7 @@ export const useWhatsAppChat = () => {
     mediaType?: string, 
     mediaUrl?: string
   ): Promise<boolean> => {
-    if (!message.trim()) {
+    if (!message.trim() && !mediaUrl) {
       console.warn('[useWhatsAppChat] Tentativa de envio de mensagem vazia');
       return false;
     }
@@ -118,7 +145,7 @@ export const useWhatsAppChat = () => {
     await loadMoreMessages();
   }, [isLoadingMessages, isLoadingMoreMessages, hasMoreMessages, selectedContact, activeInstance, loadMoreMessages]);
 
-  // Mock functions para compatibilidade
+  // Funções de compatibilidade
   const refreshMessages = useCallback(async () => {
     console.log('[useWhatsAppChat] 🔄 Refresh messages');
     // Implementar quando necessário
