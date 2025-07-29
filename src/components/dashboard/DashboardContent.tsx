@@ -21,8 +21,8 @@ export const DashboardContent = () => {
             <div>
               <h3 className="text-lg font-semibold mb-2">KPIs Ativos</h3>
               <div className="grid grid-cols-2 gap-4">
-                {Object.entries(config.kpis).map(([key, kpi]) => (
-                  kpi.visible && (
+                {Object.entries(config.kpis).map(([key, isVisible]) => (
+                  isVisible && (
                     <div key={key} className="p-3 bg-muted rounded-lg">
                       <p className="font-medium">{key}</p>
                       <p className="text-sm text-muted-foreground">Configurado</p>
@@ -35,8 +35,8 @@ export const DashboardContent = () => {
             <div>
               <h3 className="text-lg font-semibold mb-2">Gráficos Ativos</h3>
               <div className="grid grid-cols-2 gap-4">
-                {Object.entries(config.charts).map(([key, chart]) => (
-                  chart.visible && (
+                {Object.entries(config.charts).map(([key, isVisible]) => (
+                  isVisible && (
                     <div key={key} className="p-3 bg-muted rounded-lg">
                       <p className="font-medium">{key}</p>
                       <p className="text-sm text-muted-foreground">Configurado</p>
