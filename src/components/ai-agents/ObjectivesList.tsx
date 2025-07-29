@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, X, Target } from "lucide-react";
+import { Plus, X, ListChecks } from "lucide-react";
 
 interface ObjectivesListProps {
   objectives: string[];
@@ -32,12 +32,12 @@ export const ObjectivesList = ({ objectives, onChange }: ObjectivesListProps) =>
 
   return (
     <div className="space-y-3">
-      {/* Adicionar novo objetivo */}
+      {/* Adicionar novo passo */}
       <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-lg transition-all duration-300 hover:bg-white/50">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-800">
             <Plus className="h-4 w-4 text-yellow-500" />
-            Adicionar Objetivo
+            Adicionar Passo
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -45,7 +45,7 @@ export const ObjectivesList = ({ objectives, onChange }: ObjectivesListProps) =>
             <Input
               value={newObjective}
               onChange={(e) => setNewObjective(e.target.value)}
-              placeholder="Descreva um objetivo específico do agente..."
+              placeholder="Ex: Passo 1: Se apresentar e perguntar o nome do lead"
               className="flex-1 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-lg text-sm h-8"
               onKeyPress={(e) => e.key === 'Enter' && addObjective()}
             />
@@ -59,13 +59,13 @@ export const ObjectivesList = ({ objectives, onChange }: ObjectivesListProps) =>
         </CardContent>
       </Card>
 
-      {/* Lista de objetivos */}
+      {/* Lista de passos */}
       {objectives.length > 0 && (
         <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-lg transition-all duration-300 hover:bg-white/50">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base font-bold text-gray-800">
-              <Target className="h-4 w-4 text-yellow-500" />
-              Objetivos Configurados ({objectives.length})
+              <ListChecks className="h-4 w-4 text-yellow-500" />
+              Fluxo Configurado ({objectives.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -100,9 +100,9 @@ export const ObjectivesList = ({ objectives, onChange }: ObjectivesListProps) =>
 
       {objectives.length === 0 && (
         <div className="text-center py-6 text-gray-600">
-          <Target className="h-10 w-10 mx-auto mb-2 text-yellow-500" />
-          <p className="font-medium text-sm">Nenhum objetivo configurado ainda.</p>
-          <p className="text-xs">Adicione objetivos para guiar o comportamento do seu agente.</p>
+          <ListChecks className="h-10 w-10 mx-auto mb-2 text-yellow-500" />
+          <p className="font-medium text-sm">Nenhum passo configurado ainda.</p>
+          <p className="text-xs">Defina o fluxo que seu agente deve seguir na conversa.</p>
         </div>
       )}
     </div>

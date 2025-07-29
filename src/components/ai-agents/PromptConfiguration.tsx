@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AIAgent } from "@/types/aiAgent";
 import { useAIAgentPrompts } from "@/hooks/useAIAgentPrompts";
 import { ObjectivesList } from "./ObjectivesList";
-import { User, MessageSquare, Building, Package, AlertTriangle, Target } from "lucide-react";
+import { User, MessageSquare, Building, Package, AlertTriangle, ListChecks } from "lucide-react";
 import { useState } from "react";
 
 interface PromptConfigurationProps {
@@ -68,8 +68,8 @@ export const PromptConfiguration = ({
         <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-lg transition-all duration-300 hover:bg-white/50">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
-              <Target className="h-5 w-5 text-yellow-500" />
-              Objetivos do Agente
+              <ListChecks className="h-5 w-5 text-yellow-500" />
+              Fluxo de Conversação
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -95,7 +95,7 @@ export const PromptConfiguration = ({
               disabled={isLoading} 
               className="px-6 h-9 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg shadow-glass hover:shadow-glass-lg transition-all duration-200 text-sm"
             >
-              {isLoading ? "Salvando..." : "Salvar Objetivos"}
+              {isLoading ? "Salvando..." : "Salvar Fluxo"}
             </Button>
           </div>
         </form>
