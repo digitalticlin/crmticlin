@@ -1,3 +1,4 @@
+
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
@@ -36,31 +37,34 @@ export function PageLayout({ children, className }: PageLayoutProps) {
       
       <ResponsiveSidebar />
       
-      {/* OPTIMIZED Main container for drag and drop */}
-             <main className={cn(
-         "fixed top-0 right-0 bottom-0 z-10 transition-all duration-300",
-         // CRITICAL: For kanban pages, no overflow restrictions to allow drag portals
-         className?.includes("kanban") ? "overflow-visible" : "overflow-auto",
-         isMobile 
-           ? "left-0" 
-           : isCollapsed 
-             ? "left-[64px]" 
-             : "left-[200px]",
-         className
-       )}>
-        {className?.includes("kanban") ? (
-          // SPECIAL layout for Kanban - optimized for drag and drop
-          <div className="main-content-scale h-full p-4 md:p-6 flex flex-col" style={{ position: 'relative', zIndex: 1 }}>
-            <div className="flex-1 min-h-0" style={{ position: 'relative' }}>
+      {/* CORRIGIDO: Main container com z-index correto e max-width universal */}
+      <main className={cn(
+        "fixed top-0 right-0 bottom-0 z-30 transition-all duration-300",
+        // CRITICAL: For kanban pages, no overflow restrictions to allow drag portals
+        className?.includes("kanban") ? "overflow-visible" : "overflow-auto",
+        isMobile 
+          ? "left-0 pt-14" 
+          : isCollapsed 
+            ? "left-[64px]" 
+            : "left-[200px]",
+        className
+      )}>
+        {/* NOVO: Container universal com max-width de 1200px */}
+        <div className="w-full max-w-[1200px] mx-auto h-full">
+          {className?.includes("kanban") ? (
+            // SPECIAL layout for Kanban - optimized for drag and drop
+            <div className="main-content-scale h-full p-4 md:p-6 flex flex-col" style={{ position: 'relative', zIndex: 1 }}>
+              <div className="flex-1 min-h-0" style={{ position: 'relative' }}>
+                {children}
+              </div>
+            </div>
+          ) : (
+            // Layout padrão para outras páginas
+            <div className="main-content-scale p-4 md:p-6 space-y-6 md:space-y-8 min-h-full">
               {children}
             </div>
-          </div>
-        ) : (
-          // Layout padrão para outras páginas
-          <div className="main-content-scale p-4 md:p-6 space-y-6 md:space-y-8 min-h-full">
-            {children}
-          </div>
-        )}
+          )}
+        </div>
       </main>
     </div>
   );
