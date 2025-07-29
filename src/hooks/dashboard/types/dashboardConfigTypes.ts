@@ -28,21 +28,21 @@ export const defaultConfig: DashboardConfig = {
     novos_leads: true,
     total_leads: true,
     taxa_conversao: true,
-    taxa_perda: false,
-    valor_pipeline: true,
+    taxa_perda: true,
+    valor_pipeline: false,
     ticket_medio: false,
     tempo_resposta: false
   },
   charts: {
     funil_conversao: true,
-    performance_vendedores: false,
-    evolucao_temporal: true,
+    performance_vendedores: true,
+    evolucao_temporal: false,
     leads_etiquetas: false,
     distribuicao_fonte: false
   },
   layout: {
-    kpi_order: ['novos_leads', 'total_leads', 'taxa_conversao', 'taxa_perda', 'valor_pipeline', 'ticket_medio', 'tempo_resposta'],
-    chart_order: ['funil_conversao', 'performance_vendedores', 'evolucao_temporal', 'leads_etiquetas', 'distribuicao_fonte']
+    kpi_order: ["novos_leads", "total_leads", "taxa_conversao", "taxa_perda", "valor_pipeline", "ticket_medio", "tempo_resposta"],
+    chart_order: ["funil_conversao", "performance_vendedores", "evolucao_temporal", "leads_etiquetas", "distribuicao_fonte"]
   },
-  period_filter: '30d'
+  period_filter: "30"
 };

@@ -1,199 +1,297 @@
+/**
+ * 🎯 HOOK PRINCIPAL CORRIGIDO
+ * 
+ * CORREÇÕES:
+ * ✅ Função sendMessage com suporte completo para mídia
+ * ✅ Callbacks de realtime sem duplicação
+ * ✅ Parâmetros corretos para todos os hooks
+ */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Contact, Message } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
-import { useAuth } from '@/contexts/AuthContext';
+import { useWhatsAppDatabase } from './useWhatsAppDatabase';
+import { useWhatsAppContacts } from './useWhatsAppContacts';
 import { useWhatsAppChatMessages } from './chat/useWhatsAppChatMessages';
+import { useChatsRealtime } from './realtime/useChatsRealtime';
 import { useMessagesRealtime } from './realtime/useMessagesRealtime';
-import { useWhatsAppWebInstances } from './useWhatsAppWebInstances';
+import { useCompanyData } from '../useCompanyData';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
-export const useWhatsAppChat = () => {
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  const [activeInstance, setActiveInstance] = useState<WhatsAppWebInstance | null>(null);
-  const { user } = useAuth();
-
-  // Usar hooks reais em vez de mock data
-  const { instances, isLoading: isLoadingInstances } = useWhatsAppWebInstances();
+interface UseWhatsAppChatReturn {
+  // Estados principais
+  selectedContact: Contact | null;
+  setSelectedContact: (contact: Contact | null) => void;
+  companyLoading: boolean;
   
-  // Mock data temporário para contatos - será substituído por hook real posteriormente
-  const [contacts] = useState<Contact[]>([
-    {
-      id: '1',
-      name: 'Contato Teste',
-      phone: '+5511999999999',
-      lastMessage: 'Olá! Como posso ajudar?',
-      lastMessageTime: new Date().toISOString(),
-      unreadCount: 0
-    }
-  ]);
-  const [isLoadingContacts] = useState(false);
+  // Contatos
+  contacts: Contact[];
+  isLoadingContacts: boolean;
+  isLoadingMoreContacts: boolean;
+  hasMoreContacts: boolean;
+  totalContactsAvailable: number;
+  loadMoreContacts: () => Promise<void>;
+  refreshContacts: () => void;
+  
+  // Mensagens
+  messages: Message[];
+  isLoadingMessages: boolean;
+  isLoadingMoreMessages: boolean;
+  hasMoreMessages: boolean;
+  isSendingMessage: boolean;
+  sendMessage: (text: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
+  loadMoreMessages: () => Promise<void>;
+  refreshMessages: () => void;
+  
+  // Ações
+  markAsRead: (contactId: string) => Promise<void>;
+  
+  // Saúde do sistema
+  instanceHealth: {
+    score: number;
+    isHealthy: boolean;
+    connectedInstances: number;
+    totalInstances: number;
+  };
+  
+  // Estatísticas realtime
+  realtimeStats: {
+    chatsConnected: boolean;
+    messagesConnected: boolean;
+    totalChatsEvents: number;
+    totalMessagesEvents: number;
+    lastChatsUpdate: number | null;
+    lastMessagesUpdate: number | null;
+  };
+}
 
-  const lastSelectedContact = useRef<Contact | null>(null);
-  const lastActiveInstance = useRef<WhatsAppWebInstance | null>(null);
+export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
+  const { user } = useAuth();
+  const { userId, loading: companyLoading } = useCompanyData();
+  const [searchParams] = useSearchParams();
+  const leadId = searchParams.get('leadId');
+  
+  // Estado global mínimo
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  
+  // Hooks isolados
+  const database = useWhatsAppDatabase();
+  const activeInstance = useMemo(() => database.getActiveInstance(), [database.instances]);
+  
+  // Conversão para compatibilidade
+  const webActiveInstance = useMemo((): WhatsAppWebInstance | null => {
+    if (!activeInstance) return null;
+    
+    return {
+      id: activeInstance.id,
+      instance_name: activeInstance.instance_name,
+      connection_type: activeInstance.connection_type || 'web',
+      server_url: activeInstance.server_url || '',
+      vps_instance_id: activeInstance.vps_instance_id || '',
+      web_status: activeInstance.web_status || '',
+      connection_status: activeInstance.connection_status as any,
+      qr_code: activeInstance.qr_code,
+      phone: activeInstance.phone,
+      profile_name: activeInstance.profile_name,
+      profile_pic_url: activeInstance.profile_pic_url,
+      date_connected: activeInstance.date_connected,
+      date_disconnected: activeInstance.date_disconnected,
+      created_by_user_id: activeInstance.created_by_user_id || '',
+      created_at: activeInstance.created_at || new Date().toISOString(),
+      updated_at: activeInstance.updated_at || new Date().toISOString()
+    };
+  }, [activeInstance]);
 
-  const {
-    messages,
-    isLoading: isLoadingMessages,
-    isSending,
-    hasMoreMessages,
-    isLoadingMore: isLoadingMoreMessages,
-    sendMessage,
-    loadMore: loadMoreMessages,
-    onNewMessage,
-    onMessageUpdate
-  } = useWhatsAppChatMessages({
+  // Hook de contatos
+  const contacts = useWhatsAppContacts(webActiveInstance?.id);
+  
+  // Hook de mensagens
+  const messages = useWhatsAppChatMessages({
     selectedContact,
-    activeInstance
+    activeInstance: webActiveInstance
+  });
+  
+  // Callbacks otimizados para realtime
+  const handleContactRefresh = useCallback(() => {
+    contacts.refreshContacts();
+  }, [contacts]);
+
+  const handleMoveContactToTop = useCallback((contactId: string, newMessage?: any) => {
+    contacts.moveContactToTop(contactId, newMessage);
+  }, [contacts]);
+
+  const handleUpdateUnreadCount = useCallback((contactId: string, increment = true) => {
+    contacts.updateUnreadCount(contactId, increment);
+  }, [contacts]);
+
+  const handleAddNewContact = useCallback((newContactData: any) => {
+    contacts.addNewContact(newContactData);
+  }, [contacts]);
+
+  // ✅ CALLBACKS CORRIGIDOS: Sem duplicação
+  const handleNewMessage = useCallback((message: Message) => {
+    // Só processar mensagens externas
+    if (!message.fromMe) {
+      messages.addOptimisticMessage(message);
+    }
+  }, [messages]);
+
+  const handleMessageUpdate = useCallback((message: Message) => {
+    messages.updateMessage(message);
+  }, [messages]);
+
+  // Realtime hooks
+  const chatsRealtime = useChatsRealtime({
+    userId: user?.id || null,
+    activeInstanceId: webActiveInstance?.id || null,
+    onContactUpdate: handleContactRefresh,
+    onNewContact: handleContactRefresh,
+    onContactsRefresh: handleContactRefresh,
+    onMoveContactToTop: handleMoveContactToTop,
+    onUpdateUnreadCount: handleUpdateUnreadCount,
+    onAddNewContact: handleAddNewContact
   });
 
-  const { isConnected: isRealtimeConnected } = useMessagesRealtime({
+  const messagesRealtime = useMessagesRealtime({
     selectedContact,
-    activeInstance,
-    onNewMessage,
-    onMessageUpdate
+    activeInstance: webActiveInstance,
+    onNewMessage: handleNewMessage,
+    onMessageUpdate: handleMessageUpdate
   });
 
-  // Definir instância ativa automaticamente
-  useEffect(() => {
-    if (instances.length > 0 && !activeInstance) {
-      const connectedInstance = instances.find(
-        instance => instance.connection_status === 'connected' || instance.connection_status === 'ready'
-      );
-      if (connectedInstance) {
-        setActiveInstance(connectedInstance);
-        console.log('[useWhatsAppChat] ⚙️ Instância ativa definida automaticamente:', {
-          instance_name: connectedInstance.instance_name,
-          phone: connectedInstance.phone
-        });
-      }
-    }
-  }, [instances, activeInstance]);
-
-  const selectContact = useCallback((contact: Contact) => {
-    console.log('[useWhatsAppChat] 👤 Contato selecionado:', {
-      name: contact.name,
-      phone: contact.phone
-    });
-    setSelectedContact(contact);
-    lastSelectedContact.current = contact;
-  }, []);
-
-  const selectInstance = useCallback((instance: WhatsAppWebInstance) => {
-    console.log('[useWhatsAppChat] ⚙️ Instância selecionada:', {
-      instance_name: instance.instance_name,
-      phone: instance.phone
-    });
-    setActiveInstance(instance);
-    lastActiveInstance.current = instance;
-  }, []);
-
-  const handleSendMessage = useCallback(async (
-    message: string, 
-    mediaType?: string, 
-    mediaUrl?: string
-  ): Promise<boolean> => {
-    if (!message.trim() && !mediaUrl) {
-      console.warn('[useWhatsAppChat] Tentativa de envio de mensagem vazia');
-      return false;
-    }
-
-    if (!selectedContact) {
-      toast.error('Nenhum contato selecionado');
-      return false;
-    }
-
-    if (!activeInstance) {
-      toast.error('Nenhuma instância ativa');
-      return false;
-    }
-
-    console.log('[useWhatsAppChat] 📤 Enviando mensagem:', {
-      contactId: selectedContact.id,
-      instanceId: activeInstance.id,
-      messageLength: message.length,
-      mediaType: mediaType || 'text',
-      hasMedia: !!mediaUrl
-    });
-
+  // Ações principais
+  const markAsRead = useCallback(async (contactId: string) => {
     try {
-      const success = await sendMessage(message, mediaType, mediaUrl);
+      await supabase
+        .from('leads')
+        .update({ unread_count: 0 })
+        .eq('id', contactId);
       
-      if (success && !mediaType) {
-        toast.success('Mensagem enviada');
+      handleContactRefresh();
+    } catch (error) {
+      console.error('[useWhatsAppChat] ❌ Erro ao marcar como lida:', error);
+    }
+  }, [handleContactRefresh]);
+
+  const handleSelectContact = useCallback(async (contact: Contact | null) => {
+    if (contact && contact.unreadCount && contact.unreadCount > 0) {
+      try {
+        await markAsRead(contact.id);
+      } catch (error) {
+        console.error('[useWhatsAppChat] ❌ Erro ao marcar como lida:', error);
       }
+    }
+    
+    setSelectedContact(contact);
+  }, [markAsRead]);
+
+  // ✅ FUNÇÃO CORRIGIDA: Enviar mensagem com mídia
+  const sendMessage = useCallback(async (text: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
+    console.log('[useWhatsAppChat] 📤 Enviando mensagem:', {
+      text: text.substring(0, 50) + '...',
+      mediaType: mediaType || 'text',
+      hasMediaUrl: !!mediaUrl
+    });
+
+    return await messages.sendMessage(text, mediaType, mediaUrl);
+  }, [messages]);
+
+  // Saúde e estatísticas
+  const instanceHealth = useMemo(() => ({
+    score: database.healthScore,
+    isHealthy: database.isHealthy,
+    connectedInstances: database.connectedInstances,
+    totalInstances: database.totalInstances
+  }), [database.healthScore, database.isHealthy, database.connectedInstances, database.totalInstances]);
+
+  const realtimeStats = useMemo(() => ({
+    chatsConnected: chatsRealtime.isConnected,
+    messagesConnected: messagesRealtime.isConnected,
+    totalChatsEvents: chatsRealtime.totalEvents,
+    totalMessagesEvents: 0,
+    lastChatsUpdate: chatsRealtime.lastUpdate,
+    lastMessagesUpdate: null
+  }), [chatsRealtime, messagesRealtime]);
+
+  // Auto-seleção de contato da URL
+  useEffect(() => {
+    if (leadId && contacts.contacts.length > 0 && !selectedContact && !hasInitialized) {
+      const targetContact = contacts.contacts.find(contact => contact.id === leadId);
+      if (targetContact) {
+        handleSelectContact(targetContact);
+      }
+      setHasInitialized(true);
+    }
+  }, [leadId, contacts.contacts, selectedContact, hasInitialized, handleSelectContact]);
+
+  // Notificações de saúde
+  useEffect(() => {
+    if (database.totalInstances > 0 && database.connectedInstances === 0) {
+      const timeoutId = setTimeout(() => {
+        toast.error('🚨 Nenhuma instância WhatsApp conectada');
+      }, 5000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [database.totalInstances, database.connectedInstances]);
+
+  // Listener para seleção via notificação
+  useEffect(() => {
+    const handleSelectContactEvent = (event: CustomEvent) => {
+      const { contactId } = event.detail;
       
-      return success;
-    } catch (error: any) {
-      console.error('[useWhatsAppChat] Erro ao enviar mensagem:', error);
-      toast.error('Erro ao enviar mensagem');
-      return false;
-    }
-  }, [selectedContact, activeInstance, sendMessage]);
+      const targetContact = contacts.contacts.find(contact => 
+        contact.id === contactId || contact.leadId === contactId
+      );
+      
+      if (targetContact) {
+        handleSelectContact(targetContact);
+      } else {
+        handleContactRefresh();
+      }
+    };
 
-  const handleLoadMoreMessages = useCallback(async () => {
-    if (isLoadingMessages || isLoadingMoreMessages || !hasMoreMessages) {
-      return;
-    }
-
-    if (!selectedContact || !activeInstance) {
-      console.warn('[useWhatsAppChat] Carregar mais mensagens sem contato/instância');
-      return;
-    }
-
-    console.log('[useWhatsAppChat] ⬇️ Carregando mais mensagens...');
-    await loadMoreMessages();
-  }, [isLoadingMessages, isLoadingMoreMessages, hasMoreMessages, selectedContact, activeInstance, loadMoreMessages]);
-
-  // Funções de compatibilidade
-  const refreshMessages = useCallback(async () => {
-    console.log('[useWhatsAppChat] 🔄 Refresh messages');
-    // Implementar quando necessário
-  }, []);
-
-  const refreshContacts = useCallback(async () => {
-    console.log('[useWhatsAppChat] 🔄 Refresh contacts');
-    // Implementar quando necessário
-  }, []);
-
-  const loadMoreContacts = useCallback(async () => {
-    console.log('[useWhatsAppChat] ⬇️ Load more contacts');
-    // Implementar quando necessário
-  }, []);
+    window.addEventListener('selectContact', handleSelectContactEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener('selectContact', handleSelectContactEvent as EventListener);
+    };
+  }, [contacts.contacts, handleSelectContact, handleContactRefresh]);
 
   return {
-    // Contatos e instâncias
-    contacts,
-    instances,
+    // Estados principais
     selectedContact,
-    activeInstance,
+    setSelectedContact: handleSelectContact,
+    companyLoading,
     
-    // Estados de carregamento
-    isLoading: isLoadingContacts || isLoadingInstances,
-    isLoadingContacts,
-    isLoadingInstances,
-    isLoadingMessages,
-    isSending,
-    isSendingMessage: isSending, // Alias para compatibilidade
-    hasMoreMessages,
-    isLoadingMore: isLoadingMoreMessages,
-    isLoadingMoreMessages,
-    isLoadingMoreContacts: false,
-    hasMoreContacts: false,
-    totalContactsAvailable: contacts.length,
-    isRealtimeConnected,
+    // Contatos
+    contacts: contacts.contacts,
+    isLoadingContacts: contacts.isLoading,
+    isLoadingMoreContacts: contacts.isLoadingMore,
+    hasMoreContacts: contacts.hasMoreContacts,
+    totalContactsAvailable: contacts.totalContactsAvailable,
+    loadMoreContacts: contacts.loadMoreContacts,
+    refreshContacts: handleContactRefresh,
     
     // Mensagens
-    messages,
+    messages: messages.messages,
+    isLoadingMessages: messages.isLoadingMessages,
+    isLoadingMoreMessages: messages.isLoadingMore,
+    hasMoreMessages: messages.hasMoreMessages,
+    isSendingMessage: messages.isSendingMessage,
+    sendMessage,
+    loadMoreMessages: messages.loadMoreMessages,
+    refreshMessages: messages.refreshMessages,
     
     // Ações
-    selectContact,
-    setSelectedContact: selectContact, // Alias para compatibilidade
-    selectInstance,
-    sendMessage: handleSendMessage,
-    loadMoreMessages: handleLoadMoreMessages,
-    loadMoreContacts,
-    refreshMessages,
-    refreshContacts
+    markAsRead,
+    
+    // Saúde
+    instanceHealth,
+    realtimeStats
   };
 };

@@ -1,93 +1,134 @@
-import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 
-export const DashboardCustomizer = () => {
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Settings } from "lucide-react";
+import { useDashboardConfig, DashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
+import { DragDropContext, DropResult } from "react-beautiful-dnd";
+import { CustomizerSidebar } from "./CustomizerSidebar";
+import { useCallback, memo } from "react";
+
+// ETAPA 4: Memoizar para otimizar performance
+const DashboardCustomizer = memo(() => {
   const { 
     config, 
-    updateKPIVisibility,
-    updateChartVisibility,
-    updatePeriodFilter,
-    resetToDefault,
-    loading 
+    loading, 
+    updateConfig, 
+    resetToDefault, 
+    handleKPIToggle, 
+    handleChartToggle,
+    forceUpdate
   } = useDashboardConfig();
+  
+  const [open, setOpen] = useState(false);
 
-  // Create handler functions to match expected names
-  const handleKPIToggle = (kpiKey: string, visible: boolean) => {
-    updateKPIVisibility(kpiKey, visible);
-  };
+  console.log("🎛️ DashboardCustomizer render - forceUpdate:", forceUpdate);
 
-  const handleChartToggle = (chartKey: string, visible: boolean) => {
-    updateChartVisibility(chartKey, visible);
-  };
-
-  const updateConfig = (updates: any) => {
-    // Handle general config updates
-    if (updates.period_filter) {
-      updatePeriodFilter(updates.period_filter);
+  // ETAPA 4: Handler otimizado com logs de debug
+  const handleDragEnd = useCallback((result: DropResult) => {
+    if (!result.destination) {
+      console.log("❌ Drag cancelled - no destination");
+      return;
     }
-  };
 
-  if (loading) {
-    return (
-      <div className="p-6 animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-1/2 mb-4"></div>
-        <div className="space-y-3">
-          <div className="h-6 bg-gray-200 rounded"></div>
-          <div className="h-6 bg-gray-200 rounded"></div>
-          <div className="h-6 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
+    const { source, destination } = result;
+    
+    if (source.droppableId === destination.droppableId && source.index === destination.index) {
+      console.log("❌ Drag cancelled - same position");
+      return;
+    }
+
+    console.log("=== DRAG END START ===", { source, destination });
+
+    try {
+      if (source.droppableId === 'kpis-list') {
+        const newKpiOrder = [...config.layout.kpi_order];
+        const [removed] = newKpiOrder.splice(source.index, 1);
+        newKpiOrder.splice(destination.index, 0, removed);
+
+        console.log("📊 New KPI order:", newKpiOrder);
+
+        updateConfig({
+          layout: {
+            ...config.layout,
+            kpi_order: newKpiOrder
+          }
+        });
+        
+      } else if (source.droppableId === 'charts-list') {
+        const newChartOrder = [...config.layout.chart_order];
+        const [removed] = newChartOrder.splice(source.index, 1);
+        newChartOrder.splice(destination.index, 0, removed);
+
+        console.log("📈 New Chart order:", newChartOrder);
+
+        updateConfig({
+          layout: {
+            ...config.layout,
+            chart_order: newChartOrder
+          }
+        });
+      }
+      
+      console.log("✅ DRAG END SUCCESS");
+    } catch (error) {
+      console.error("❌ Drag error:", error);
+    }
+  }, [config.layout, updateConfig]);
+
+  // ETAPA 4: Handlers wrapper com logs
+  const handleKPIToggleWithLog = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
+    console.log(`🔄 CUSTOMIZER KPI TOGGLE: ${kpiKey}`);
+    handleKPIToggle(kpiKey);
+  }, [handleKPIToggle]);
+
+  const handleChartToggleWithLog = useCallback((chartKey: keyof DashboardConfig['charts']) => {
+    console.log(`🔄 CUSTOMIZER CHART TOGGLE: ${chartKey}`);
+    handleChartToggle(chartKey);
+  }, [handleChartToggle]);
+
+  const handleResetWithLog = useCallback(() => {
+    console.log("🔄 CUSTOMIZER RESET");
+    resetToDefault();
+  }, [resetToDefault]);
+
+  if (loading) return null;
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Personalizar Dashboard</h3>
-        
-        {/* KPIs Section */}
-        <div className="mb-6">
-          <h4 className="text-sm font-medium mb-3">KPIs Visíveis</h4>
-          <div className="space-y-2">
-            {Object.entries(config.kpis).map(([key, visible]) => (
-              <div key={key} className="flex items-center justify-between">
-                <span className="text-sm">{key}</span>
-                <input
-                  type="checkbox"
-                  checked={visible}
-                  onChange={(e) => handleKPIToggle(key, e.target.checked)}
-                  className="rounded"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Charts Section */}
-        <div className="mb-6">
-          <h4 className="text-sm font-medium mb-3">Gráficos Visíveis</h4>
-          <div className="space-y-2">
-            {Object.entries(config.charts).map(([key, visible]) => (
-              <div key={key} className="flex items-center justify-between">
-                <span className="text-sm">{key}</span>
-                <input
-                  type="checkbox"
-                  checked={visible}
-                  onChange={(e) => handleChartToggle(key, e.target.checked)}
-                  className="rounded"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Reset Button */}
-        <button
-          onClick={resetToDefault}
-          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button
+          variant="outline"
+          className="bg-white/10 border border-[#D3D800]/30 text-[#D3D800] hover:bg-[#D3D800]/20 hover:border-[#D3D800]/50 backdrop-blur-lg rounded-2xl font-medium transition-all duration-300 hover:scale-105 px-4 py-2"
         >
-          Restaurar Padrão
-        </button>
-      </div>
-    </div>
+          <Settings className="w-4 h-4 mr-2" />
+          PERSONALIZAR
+        </Button>
+      </SheetTrigger>
+      
+      <SheetContent 
+        side="right" 
+        className="w-[520px] overflow-hidden border-0 p-0"
+        style={{
+          background: `radial-gradient(circle at 30% 70%, #D3D800 0%, transparent 50%), 
+                       radial-gradient(circle at 80% 20%, #17191c 0%, transparent 60%),
+                       radial-gradient(circle at 60% 40%, #D3D800 0%, transparent 40%),
+                       linear-gradient(135deg, rgba(211, 216, 0, 0.1) 0%, rgba(23, 25, 28, 0.95) 100%)`
+        }}
+      >
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <CustomizerSidebar
+            config={config}
+            onKPIToggle={handleKPIToggleWithLog}
+            onChartToggle={handleChartToggleWithLog}
+            onReset={handleResetWithLog}
+          />
+        </DragDropContext>
+      </SheetContent>
+    </Sheet>
   );
-};
+});
+
+DashboardCustomizer.displayName = "DashboardCustomizer";
+
+export default DashboardCustomizer;

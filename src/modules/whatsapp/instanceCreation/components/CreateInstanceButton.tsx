@@ -4,27 +4,23 @@ import { Plus, Loader2 } from "lucide-react";
 import { useInstanceCreation } from '../hooks/useInstanceCreation';
 
 interface CreateInstanceButtonProps {
+  onSuccess?: (result: any) => void;
   variant?: "default" | "outline" | "whatsapp";
   size?: "default" | "sm" | "lg";
   className?: string;
-  onSuccess?: () => void | Promise<void>;
 }
 
 export const CreateInstanceButton = ({ 
+  onSuccess, 
   variant = "whatsapp", 
   size = "lg",
-  className = "",
-  onSuccess
+  className = ""
 }: CreateInstanceButtonProps) => {
-  const { createInstance, isCreating } = useInstanceCreation();
+  const { createInstance, isCreating } = useInstanceCreation(onSuccess);
 
   const handleCreate = async () => {
     console.log('[CreateInstanceButton] 🚀 Iniciando criação de instância');
-    const result = await createInstance();
-    
-    if (result.success && onSuccess) {
-      await onSuccess();
-    }
+    await createInstance();
   };
 
   return (

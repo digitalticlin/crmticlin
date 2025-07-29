@@ -10,21 +10,22 @@ import { useInstanceCreation } from '../hooks/useInstanceCreation';
 interface InstanceCreationModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: (result: any) => void;
 }
 
-export const InstanceCreationModal = ({ isOpen, onOpenChange }: InstanceCreationModalProps) => {
+export const InstanceCreationModal = ({ isOpen, onOpenChange, onSuccess }: InstanceCreationModalProps) => {
   const [instanceName, setInstanceName] = useState('');
-  const { createInstance, isCreating } = useInstanceCreation();
+  const { createInstance, isCreating } = useInstanceCreation((result) => {
+    if (onSuccess) onSuccess(result);
+    onOpenChange(false);
+    setInstanceName('');
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!instanceName.trim()) return;
     
-    const result = await createInstance(instanceName);
-    if (result.success) {
-      onOpenChange(false);
-      setInstanceName('');
-    }
+    await createInstance(instanceName);
   };
 
   return (
