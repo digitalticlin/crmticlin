@@ -58,6 +58,7 @@ export const useAIAgentPrompts = (agentId?: string) => {
         objectives: Array.isArray(prompt.objectives) ? prompt.objectives as string[] : []
       };
       
+      // Refetch to ensure synchronization
       await fetchPrompts(data.agent_id);
       toast.success('Prompt criado com sucesso');
       return typedPrompt;
@@ -77,6 +78,7 @@ export const useAIAgentPrompts = (agentId?: string) => {
 
       if (error) throw error;
       
+      // Refetch to ensure synchronization
       await fetchPrompts();
       toast.success('Prompt atualizado com sucesso');
       return true;
@@ -99,7 +101,7 @@ export const useAIAgentPrompts = (agentId?: string) => {
       
       if (!data) return null;
       
-      // Convert database record to typed AIAgentPrompt object
+      // Convert database record to typed AIAgentPrompt object with proper array handling
       const typedPrompt: AIAgentPrompt = {
         ...data,
         objectives: Array.isArray(data.objectives) ? data.objectives as string[] : []
@@ -110,6 +112,11 @@ export const useAIAgentPrompts = (agentId?: string) => {
       console.error('Error fetching prompt by agent ID:', error);
       return null;
     }
+  };
+
+  // Enhanced refetch function
+  const refetch = async (targetAgentId?: string) => {
+    await fetchPrompts(targetAgentId);
   };
 
   useEffect(() => {
@@ -124,6 +131,6 @@ export const useAIAgentPrompts = (agentId?: string) => {
     createPrompt,
     updatePrompt,
     getPromptByAgentId,
-    refetch: fetchPrompts
+    refetch
   };
 };
