@@ -3,6 +3,7 @@ import React, { memo } from 'react';
 import { Message } from '@/types/chat';
 import { cn } from '@/lib/utils';
 import { MessageMedia } from './MessageMedia';
+import { Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
 
 interface MessageItemProps {
   message: Message;
@@ -16,64 +17,89 @@ export const MessageItem = memo(({
   const isIncoming = message.isIncoming;
   const hasMedia = message.mediaType && message.mediaType !== 'text';
 
+  // Render status icon with better visibility
+  const renderStatusIcon = () => {
+    if (isIncoming) return null;
+    
+    switch (message.status) {
+      case 'sending':
+        return <Clock className="h-3 w-3 text-white/60 animate-spin" />;
+      case 'sent':
+        return <Check className="h-3 w-3 text-white/70" />;
+      case 'delivered':
+        return <CheckCheck className="h-3 w-3 text-white/70" />;
+      case 'read':
+        return <CheckCheck className="h-3 w-3 text-green-400" />;
+      case 'failed':
+        return <AlertCircle className="h-3 w-3 text-red-400" />;
+      default:
+        return <Check className="h-3 w-3 text-white/70" />;
+    }
+  };
+
   return (
     <div
       className={cn(
-        "flex mb-3 animate-in fade-in-0 slide-in-from-bottom-1",
+        "flex mb-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300",
         isIncoming ? "justify-start" : "justify-end",
-        isNewMessage && "duration-300"
+        isNewMessage && "duration-500"
       )}
     >
       <div
         className={cn(
-          "max-w-[70%] rounded-lg p-3 shadow-sm",
+          "group relative max-w-[75%] rounded-2xl shadow-glass border backdrop-blur-md transition-all duration-200 hover:shadow-lg",
           isIncoming
-            ? "bg-white dark:bg-gray-800 rounded-tl-none"
-            : "bg-primary text-primary-foreground rounded-tr-none"
+            ? "bg-white/20 border-white/30 text-gray-800 dark:text-gray-200 rounded-tl-md hover:bg-white/25"
+            : "bg-gradient-to-br from-blue-500/80 to-blue-600/90 border-blue-400/30 text-white rounded-tr-md hover:from-blue-500/90 hover:to-blue-600/95"
         )}
       >
-        {/* Renderizar mídia se existir */}
-        {hasMedia && (
-          <MessageMedia
-            mediaType={message.mediaType}
-            mediaUrl={message.mediaUrl}
-            mediaCache={message.media_cache}
-            fileName={message.media_cache?.file_name}
-            isIncoming={isIncoming}
-          />
-        )}
-
-        {/* Renderizar texto se existir */}
-        {message.text && (
-          <p className={cn(
-            "text-sm leading-relaxed",
-            hasMedia && "mt-2"
-          )}>
-            {message.text}
-          </p>
-        )}
-
-        {/* Timestamp e status */}
-        <div className={cn(
-          "flex items-center justify-end mt-1 text-xs gap-1",
-          isIncoming 
-            ? "text-gray-500 dark:text-gray-400" 
-            : "text-primary-foreground/70"
-        )}>
-          <span>{message.time}</span>
-          {!isIncoming && message.status && (
-            <span className="text-xs">
-              {message.status === "sent" && "✓"}
-              {message.status === "delivered" && "✓✓"}
-              {message.status === "read" && "✓✓"}
-            </span>
+        {/* Main content container */}
+        <div className="px-4 py-3">
+          {/* Media content */}
+          {hasMedia && (
+            <div className="mb-3 -mx-1">
+              <MessageMedia
+                mediaType={message.mediaType}
+                mediaUrl={message.mediaUrl}
+                mediaCache={message.media_cache}
+                fileName={message.media_cache?.file_name}
+                isIncoming={isIncoming}
+              />
+            </div>
           )}
+
+          {/* Text content */}
+          {message.text && (
+            <div className={cn(
+              "text-sm leading-relaxed break-words",
+              hasMedia && "mt-2"
+            )}>
+              {message.text}
+            </div>
+          )}
+
+          {/* Timestamp and status row */}
+          <div className={cn(
+            "flex items-center justify-end gap-2 mt-2 text-xs",
+            isIncoming 
+              ? "text-gray-600 dark:text-gray-400" 
+              : "text-white/80"
+          )}>
+            <span className="font-medium">
+              {message.time}
+            </span>
+            {renderStatusIcon()}
+          </div>
         </div>
+
+        {/* Subtle shine effect for sent messages */}
+        {!isIncoming && (
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        )}
       </div>
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Comparação otimizada para evitar re-renders desnecessários
   return (
     prevProps.message.id === nextProps.message.id &&
     prevProps.message.text === nextProps.message.text &&
