@@ -23,7 +23,7 @@ export const useWhatsAppChatMessages = ({
 
       console.log('[WhatsApp Messages] 🔍 Buscando mensagens:', { leadId, instanceId });
 
-      // ✅ QUERY OTIMIZADA COM MEDIA_CACHE INCLUÍDO
+      // ✅ QUERY CORRIGIDA - sem 'updated_at' que não existe
       let query = supabase
         .from('messages')
         .select(`
@@ -36,8 +36,7 @@ export const useWhatsAppChatMessages = ({
           media_url,
           external_message_id,
           created_at,
-          updated_at,
-          media_cache!inner(
+          media_cache!left(
             id,
             base64_data,
             original_url,
@@ -98,7 +97,9 @@ export const useWhatsAppChatMessages = ({
           media_cache: mediaCache,
           // ✅ DEBUG: Campos para debugging
           hasMediaCache: !!mediaCache,
-          mediaCacheId: mediaCache?.id || null
+          mediaCacheId: mediaCache?.id || null,
+          // ✅ FILENAME do cache se disponível
+          fileName: mediaCache?.file_name || undefined
         };
 
         // ✅ LOG DETALHADO PARA MENSAGENS COM MÍDIA
@@ -109,7 +110,8 @@ export const useWhatsAppChatMessages = ({
             hasUrl: !!msg.media_url,
             hasCache: !!mediaCache,
             cacheHasBase64: !!(mediaCache?.base64_data),
-            cacheSize: mediaCache?.file_size || 0
+            cacheSize: mediaCache?.file_size || 0,
+            fileName: mediaCache?.file_name
           });
         }
 

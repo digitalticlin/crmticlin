@@ -69,6 +69,8 @@ export interface Message {
   mediaCacheId?: string;
   // ✅ UI OTIMISTA: Flag para identificar mensagens temporárias
   isOptimistic?: boolean;
+  // ✅ FILENAME: Campo para nome do arquivo
+  fileName?: string;
 }
 
 import { KanbanTag } from "./kanban";

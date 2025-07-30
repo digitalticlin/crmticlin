@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useWhatsAppDatabase } from '@/hooks/whatsapp/useWhatsAppDatabase';
+import { useWhatsAppChatState } from '@/hooks/whatsapp/useWhatsAppChatContext';
 import { useWhatsAppChatMessages } from '@/hooks/whatsapp/useWhatsAppChatMessages';
 import { WhatsAppMessagesListEnhanced } from './WhatsAppMessagesListEnhanced';
 import { ChatInputArea } from '../conversation/ChatInputArea';
@@ -13,9 +13,10 @@ interface WhatsAppChatPageEnhancedProps {
 export const WhatsAppChatPageEnhanced: React.FC<WhatsAppChatPageEnhancedProps> = ({
   selectedContactId
 }) => {
-  const { selectedContact, activeInstance } = useWhatsAppDatabase();
+  // ✅ CORRIGIDO: Usar hook simples sem contexto complexo
+  const { selectedContact, activeInstance } = useWhatsAppChatState();
   
-  // Usar o contactId passado por props ou o selecionado no contexto
+  // Usar o contactId passado por props ou o selecionado no estado
   const leadId = selectedContactId || selectedContact?.leadId;
   const instanceId = activeInstance?.id;
 
@@ -69,7 +70,9 @@ export const WhatsAppChatPageEnhanced: React.FC<WhatsAppChatPageEnhancedProps> =
       {selectedContact && (
         <ContactHeader
           contact={selectedContact}
-          onOpenContactDetails={() => {}}
+          onOpenContactDetails={() => {
+            console.log('Abrir detalhes do contato:', selectedContact.name);
+          }}
         />
       )}
       
@@ -86,6 +89,7 @@ export const WhatsAppChatPageEnhanced: React.FC<WhatsAppChatPageEnhancedProps> =
         <ChatInputArea
           onSendMessage={async (message) => {
             console.log('Enviar mensagem:', message);
+            // TODO: Implementar lógica de envio
             return true;
           }}
           placeholder="Digite uma mensagem..."

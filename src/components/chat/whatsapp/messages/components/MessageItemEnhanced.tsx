@@ -37,7 +37,7 @@ export const MessageItemEnhanced: React.FC<MessageItemEnhancedProps> = React.mem
               messageId={message.id}
               mediaType={message.mediaType as any}
               mediaUrl={message.mediaUrl}
-              fileName={message.fileName || undefined}
+              fileName={message.fileName}
               isIncoming={isIncoming}
               mediaCache={message.media_cache}
               className="max-w-full"
@@ -63,7 +63,7 @@ export const MessageItemEnhanced: React.FC<MessageItemEnhancedProps> = React.mem
           {!isIncoming && (
             <div className="flex">
               {message.status === 'sent' && "✓"}
-              {message.status === 'delivered' && "✓✓"}
+              {message status === 'delivered' && "✓✓"}
               {message.status === 'read' && <span className="text-blue-300">✓✓</span>}
               {message.status === 'failed' && <span className="text-red-300">✗</span>}
             </div>
@@ -75,6 +75,7 @@ export const MessageItemEnhanced: React.FC<MessageItemEnhancedProps> = React.mem
           <div className="mt-2 text-xs opacity-50 border-t pt-1">
             <div>Cache: {message.hasMediaCache ? '✅' : '❌'}</div>
             <div>ID: {message.mediaCacheId || 'N/A'}</div>
+            <div>File: {message.fileName || 'N/A'}</div>
           </div>
         )}
       </div>
