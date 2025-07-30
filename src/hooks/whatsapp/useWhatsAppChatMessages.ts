@@ -66,16 +66,14 @@ export const useWhatsAppChatMessages = ({
       console.log('[WhatsApp Messages] ✅ Mensagens carregadas:', {
         total: messagesData?.length || 0,
         withMedia: messagesData?.filter(m => m.media_type !== 'text').length || 0,
-        withCache: messagesData?.filter(m => m.media_cache && m.media_cache.length > 0).length || 0
+        withCache: messagesData?.filter(m => m.media_cache && m.media_cache.id).length || 0
       });
 
       // ✅ TRANSFORMAR DADOS PARA INTERFACE
       const messages: Message[] = messagesData.map((msg) => {
-        // Garantir que media_cache seja um objeto ou null
+        // ✅ CORRIGIDO: media_cache é um objeto único, não array
         let mediaCache = null;
-        if (msg.media_cache && Array.isArray(msg.media_cache) && msg.media_cache.length > 0) {
-          mediaCache = msg.media_cache[0]; // Pegar primeiro cache
-        } else if (msg.media_cache && !Array.isArray(msg.media_cache)) {
+        if (msg.media_cache && msg.media_cache.id) {
           mediaCache = msg.media_cache;
         }
 
