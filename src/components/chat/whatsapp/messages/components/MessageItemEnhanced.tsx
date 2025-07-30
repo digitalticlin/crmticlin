@@ -63,7 +63,7 @@ export const MessageItemEnhanced: React.FC<MessageItemEnhancedProps> = React.mem
           {!isIncoming && (
             <div className="flex">
               {message.status === 'sent' && "✓"}
-              {message status === 'delivered' && "✓✓"}
+              {message.status === 'delivered' && "✓✓"}
               {message.status === 'read' && <span className="text-blue-300">✓✓</span>}
               {message.status === 'failed' && <span className="text-red-300">✗</span>}
             </div>
