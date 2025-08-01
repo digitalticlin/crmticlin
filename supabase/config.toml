@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.secure_whatsapp_service]
 verify_jwt = true
+
+[functions.ai_messaging_service]
+verify_jwt = false
