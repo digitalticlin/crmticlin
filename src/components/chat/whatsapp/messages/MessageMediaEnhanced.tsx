@@ -49,6 +49,19 @@ export const MessageMediaEnhanced: React.FC<MessageMediaEnhancedProps> = React.m
     mediaCache
   });
 
+  // ✅ LOG DE DEBUG PARA RENDERIZAÇÃO
+  React.useEffect(() => {
+    console.log(`[MessageMediaEnhanced] 🎬 Renderizando mídia:`, {
+      messageId: messageId.substring(0, 8),
+      type: mediaType,
+      hasUrl: !!finalUrl,
+      isLoading,
+      hasError: !!error,
+      hasCache: !!mediaCache,
+      status: mediaStatus
+    });
+  }, [messageId, mediaType, finalUrl, isLoading, error, mediaCache, mediaStatus]);
+
   // ✅ ESTADO DE CARREGAMENTO
   if (isLoading) {
     return (
@@ -58,8 +71,15 @@ export const MessageMediaEnhanced: React.FC<MessageMediaEnhancedProps> = React.m
     );
   }
 
-  // ✅ ESTADO DE ERRO
+  // ✅ ESTADO DE ERRO COM LOG
   if (error || !finalUrl) {
+    console.warn(`[MessageMediaEnhanced] ❌ Erro na mídia ${messageId.substring(0, 8)}:`, {
+      error,
+      finalUrl,
+      mediaType,
+      hasCache: !!mediaCache
+    });
+    
     return (
       <div className={cn("p-2", className)}>
         <MediaErrorState 
@@ -79,6 +99,8 @@ export const MessageMediaEnhanced: React.FC<MessageMediaEnhancedProps> = React.m
     isLoading: false,
     className
   };
+
+  console.log(`[MessageMediaEnhanced] ✅ Renderizando ${mediaType} com URL:`, finalUrl.substring(0, 50) + '...');
 
   switch (mediaType) {
     case 'image':
@@ -100,6 +122,7 @@ export const MessageMediaEnhanced: React.FC<MessageMediaEnhancedProps> = React.m
       );
       
     default:
+      console.error(`[MessageMediaEnhanced] ❌ Tipo não suportado: ${mediaType}`);
       return (
         <div className={cn("p-3 bg-gray-50 rounded-lg border border-gray-200", className)}>
           <span className="text-sm text-gray-500">

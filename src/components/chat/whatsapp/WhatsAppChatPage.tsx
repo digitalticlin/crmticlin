@@ -1,11 +1,7 @@
 
-import { PageLayout } from "@/components/layout/PageLayout";
-import { WhatsAppChatContainer } from "./WhatsAppChatContainer";
+import React from 'react';
+import { WhatsAppChatPageEnhanced } from './WhatsAppChatPageEnhanced';
 
-export function WhatsAppChatPage() {
-  return (
-    <PageLayout>
-      <WhatsAppChatContainer />
-    </PageLayout>
-  );
-}
+export const WhatsAppChatPage: React.FC = () => {
+  return <WhatsAppChatPageEnhanced />;
+};
