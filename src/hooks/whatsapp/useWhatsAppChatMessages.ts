@@ -23,7 +23,7 @@ export const useWhatsAppChatMessages = ({
 
       console.log('[WhatsApp Messages] 🔍 Buscando mensagens:', { leadId, instanceId });
 
-      // ✅ QUERY APRIMORADA - incluir mais campos do media_cache
+      // ✅ QUERY CORRIGIDA - sem 'updated_at' que não existe
       let query = supabase
         .from('messages')
         .select(`
@@ -69,7 +69,7 @@ export const useWhatsAppChatMessages = ({
         withCache: messagesData?.filter(m => m.media_cache && m.media_cache.id).length || 0
       });
 
-      // ✅ TRANSFORMAR DADOS PARA INTERFACE COM DEBUG DETALHADO
+      // ✅ TRANSFORMAR DADOS PARA INTERFACE
       const messages: Message[] = messagesData.map((msg) => {
         // ✅ CORRIGIDO: media_cache é um objeto único, não array
         let mediaCache = null;
@@ -100,7 +100,7 @@ export const useWhatsAppChatMessages = ({
           fileName: mediaCache?.file_name || undefined
         };
 
-        // ✅ LOG DETALHADO PARA MENSAGENS COM MÍDIA PROBLEMÁTICAS
+        // ✅ LOG DETALHADO PARA MENSAGENS COM MÍDIA
         if (msg.media_type !== 'text') {
           console.log(`[WhatsApp Messages] 📎 Mídia processada:`, {
             id: msg.id.substring(0, 8),
@@ -108,45 +108,13 @@ export const useWhatsAppChatMessages = ({
             hasUrl: !!msg.media_url,
             hasCache: !!mediaCache,
             cacheHasBase64: !!(mediaCache?.base64_data),
-            cacheHasCachedUrl: !!(mediaCache?.cached_url),
-            cacheHasOriginalUrl: !!(mediaCache?.original_url),
             cacheSize: mediaCache?.file_size || 0,
-            fileName: mediaCache?.file_name,
-            externalId: msg.external_message_id
+            fileName: mediaCache?.file_name
           });
-
-          // ✅ AVISO ESPECIAL PARA MÍDIAS SEM CACHE
-          if (!mediaCache) {
-            console.warn(`[WhatsApp Messages] ⚠️ MÍDIA SEM CACHE:`, {
-              messageId: msg.id,
-              mediaType: msg.media_type,
-              mediaUrl: msg.media_url,
-              externalId: msg.external_message_id,
-              leadId: leadId
-            });
-          }
         }
 
         return transformedMessage;
       });
-
-      // ✅ ESTATÍSTICAS FINAIS
-      const mediaMessages = messages.filter(m => m.mediaType !== 'text');
-      const withCache = mediaMessages.filter(m => m.hasMediaCache);
-      const withoutCache = mediaMessages.filter(m => !m.hasMediaCache);
-
-      console.log('[WhatsApp Messages] 📊 RESUMO DE MÍDIA:', {
-        totalMessages: messages.length,
-        mediaMessages: mediaMessages.length,
-        withCache: withCache.length,
-        withoutCache: withoutCache.length,
-        cacheSuccessRate: mediaMessages.length > 0 ? `${Math.round((withCache.length / mediaMessages.length) * 100)}%` : 'N/A'
-      });
-
-      // ✅ ALERTAR SOBRE MÍDIAS SEM CACHE
-      if (withoutCache.length > 0) {
-        console.warn('[WhatsApp Messages] 🚨 ATENÇÃO: Encontradas', withoutCache.length, 'mídias sem cache que podem não renderizar');
-      }
 
       return messages;
     },

@@ -1,41 +1,38 @@
 
 import React from 'react';
-import { useWhatsAppChatByPhone } from '@/hooks/whatsapp/useWhatsAppChatByPhone';
+import { useWhatsAppChatState } from '@/hooks/whatsapp/useWhatsAppChatContext';
+import { useWhatsAppChatMessages } from '@/hooks/whatsapp/useWhatsAppChatMessages';
 import { WhatsAppMessagesListEnhanced } from './WhatsAppMessagesListEnhanced';
 import { ChatInputArea } from '../conversation/ChatInputArea';
 import { ContactHeader } from '../conversation/ContactHeader';
 
 interface WhatsAppChatPageEnhancedProps {
-  selectedContactPhone?: string;
+  selectedContactId?: string;
 }
 
 export const WhatsAppChatPageEnhanced: React.FC<WhatsAppChatPageEnhancedProps> = ({
-  selectedContactPhone = '556299212484' // ✅ USAR O TELEFONE DO SEU TESTE
+  selectedContactId
 }) => {
-  // Buscar mensagens por telefone
+  // ✅ CORRIGIDO: Usar hook simples sem contexto complexo
+  const { selectedContact, activeInstance } = useWhatsAppChatState();
+  
+  // Usar o contactId passado por props ou o selecionado no estado
+  const leadId = selectedContactId || selectedContact?.leadId;
+  const instanceId = activeInstance?.id;
+
+  // Buscar mensagens com cache de mídia incluído
   const {
     data: messages = [],
     isLoading,
     isError,
     error
-  } = useWhatsAppChatByPhone({
-    phone: selectedContactPhone,
-    enabled: !!selectedContactPhone
+  } = useWhatsAppChatMessages({
+    leadId,
+    instanceId,
+    enabled: !!(leadId || instanceId)
   });
 
-  // ✅ LOG DE DEBUG PARA ACOMPANHAR CARREGAMENTO
-  React.useEffect(() => {
-    if (messages.length > 0) {
-      const mediaMessages = messages.filter(m => m.mediaType !== 'text');
-      console.log('[WhatsAppChatPageEnhanced] 🎯 RENDERIZANDO:', {
-        totalMessages: messages.length,
-        mediaMessages: mediaMessages.length,
-        phone: selectedContactPhone
-      });
-    }
-  }, [messages, selectedContactPhone]);
-
-  if (!selectedContactPhone) {
+  if (!leadId && !instanceId) {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -62,32 +59,24 @@ export const WhatsAppChatPageEnhanced: React.FC<WhatsAppChatPageEnhancedProps> =
           <p className="text-gray-500">
             {error?.message || 'Erro desconhecido'}
           </p>
-          <p className="text-sm text-gray-400 mt-2">
-            Telefone: {selectedContactPhone}
-          </p>
         </div>
       </div>
     );
   }
 
-  const mockContact = {
-    id: selectedContactPhone,
-    name: `Contato ${selectedContactPhone}`,
-    phone: selectedContactPhone,
-    isOnline: true
-  };
-
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header do contato */}
-      <ContactHeader
-        contact={mockContact}
-        onOpenContactDetails={() => {
-          console.log('Abrir detalhes do contato:', mockContact.name);
-        }}
-      />
+      {selectedContact && (
+        <ContactHeader
+          contact={selectedContact}
+          onOpenContactDetails={() => {
+            console.log('Abrir detalhes do contato:', selectedContact.name);
+          }}
+        />
+      )}
       
-      {/* ✅ Lista de mensagens ENHANCED - VAI RENDERIZAR MÍDIA CORRETAMENTE */}
+      {/* Lista de mensagens aprimorada */}
       <div className="flex-1 overflow-hidden">
         <WhatsAppMessagesListEnhanced
           messages={messages}
@@ -103,19 +92,10 @@ export const WhatsAppChatPageEnhanced: React.FC<WhatsAppChatPageEnhancedProps> =
             // TODO: Implementar lógica de envio
             return true;
           }}
-          placeholder={`Digite uma mensagem para ${selectedContactPhone}...`}
-          disabled={false}
+          placeholder="Digite uma mensagem..."
+          disabled={!selectedContact}
         />
       </div>
-
-      {/* ✅ DEBUG INFO VISUAL */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="bg-yellow-100 p-2 text-xs">
-          <strong>DEBUG:</strong> {messages.length} mensagens | 
-          Mídia: {messages.filter(m => m.mediaType !== 'text').length} | 
-          Com Cache: {messages.filter(m => m.hasMediaCache).length}
-        </div>
-      )}
     </div>
   );
 };
