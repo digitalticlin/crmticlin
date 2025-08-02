@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -21,7 +20,7 @@ serve(async (req) => {
   try {
     console.log('[Secure WhatsApp Service] 🔐 Processando requisição segura...');
     
-    // Get VPS configuration from secrets
+    // Get VPS configuration from secrets - SECURITY FIX
     const vpsToken = Deno.env.get('VPS_API_TOKEN');
     if (!vpsToken) {
       console.error('[Secure WhatsApp Service] ❌ VPS_API_TOKEN não configurado');
@@ -33,8 +32,22 @@ serve(async (req) => {
       authToken: vpsToken
     };
 
-    // Parse request body
-    const { action, instanceId, ...params } = await req.json();
+    // Parse request body with input validation
+    const requestBody = await req.json();
+    const { action, instanceId, ...params } = requestBody;
+    
+    // Input validation
+    if (!action || typeof action !== 'string') {
+      throw new Error('Action é obrigatória e deve ser uma string');
+    }
+    
+    if (action !== 'list_instances' && action !== 'health_check' && action !== 'test_connectivity' && 
+        action !== 'test_auth' && action !== 'test_server_process' && action !== 'count_instances') {
+      if (!instanceId || typeof instanceId !== 'string') {
+        throw new Error('instanceId é obrigatório para esta ação');
+      }
+    }
+    
     console.log('[Secure WhatsApp Service] 📝 Ação solicitada:', action);
 
     // Validate user authentication
@@ -57,7 +70,18 @@ serve(async (req) => {
       throw new Error('Token de autorização inválido');
     }
 
-    console.log('[Secure WhatsApp Service] ✅ Usuário autenticado:', user.id);
+    // Verify user role for admin operations
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || (profile.role !== 'admin' && profile.role !== 'manager')) {
+      throw new Error('Permissões insuficientes para esta operação');
+    }
+
+    console.log('[Secure WhatsApp Service] ✅ Usuário autenticado e autorizado:', user.id);
 
     let result;
 
@@ -132,7 +156,8 @@ async function listInstances(config: VPSConfig) {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${config.authToken}`
-    }
+    },
+    signal: AbortSignal.timeout(10000)
   });
 
   if (!response.ok) {
@@ -144,12 +169,16 @@ async function listInstances(config: VPSConfig) {
 }
 
 async function getInstanceStatus(config: VPSConfig, instanceId: string) {
-  const response = await fetch(`${config.baseUrl}/instance/${instanceId}/status`, {
+  // Input sanitization
+  const sanitizedId = instanceId.replace(/[^a-zA-Z0-9_-]/g, '');
+  
+  const response = await fetch(`${config.baseUrl}/instance/${sanitizedId}/status`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${config.authToken}`
-    }
+    },
+    signal: AbortSignal.timeout(10000)
   });
 
   if (!response.ok) {

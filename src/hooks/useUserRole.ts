@@ -3,14 +3,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useUserRole = () => {
-  const [isAdmin, setIsAdmin] = useState(true); // Acesso total
-  const [loading, setLoading] = useState(false); // Sem loading
-  const [role, setRole] = useState<"admin" | "operational" | "manager">("admin"); // Todos são admin
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<"admin" | "operational" | "manager">("operational");
 
   useEffect(() => {
     const checkUserRole = async () => {
       try {
-        console.log('[useUserRole] 🔓 ACESSO TOTAL LIBERADO - sem restrições');
+        console.log('[useUserRole] 🔍 Verificando role real do usuário');
         
         const { data: { user } } = await supabase.auth.getUser();
         
@@ -18,20 +18,52 @@ export const useUserRole = () => {
           console.log('[useUserRole] ❌ Usuário não autenticado');
           setIsAdmin(false);
           setRole("operational");
+          setLoading(false);
           return;
         }
 
-        console.log('[useUserRole] ✅ Usuário autenticado com ACESSO TOTAL:', { userId: user.id, email: user.email });
+        console.log('[useUserRole] 👤 Buscando perfil do usuário:', user.id);
         
-        // ACESSO TOTAL - todos os usuários autenticados têm acesso completo
-        setRole('admin');
-        setIsAdmin(true);
+        // Buscar o perfil real do usuário no banco
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role, created_by_user_id')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('[useUserRole] ❌ Erro ao buscar perfil:', error);
+          setIsAdmin(false);
+          setRole("operational");
+          setLoading(false);
+          return;
+        }
+
+        if (!profile) {
+          console.log('[useUserRole] ❌ Perfil não encontrado');
+          setIsAdmin(false);
+          setRole("operational");
+          setLoading(false);
+          return;
+        }
+
+        const userRole = profile.role as "admin" | "operational" | "manager";
+        const userIsAdmin = userRole === 'admin';
+
+        console.log('[useUserRole] ✅ Role real encontrada:', {
+          userId: user.id,
+          role: userRole,
+          isAdmin: userIsAdmin,
+          createdByUserId: profile.created_by_user_id
+        });
+        
+        setRole(userRole);
+        setIsAdmin(userIsAdmin);
         
       } catch (error) {
-        console.error('[useUserRole] ❌ Erro ao verificar usuário:', error);
-        // Mesmo com erro, dar acesso total
-        setRole('admin');
-        setIsAdmin(true);
+        console.error('[useUserRole] ❌ Erro ao verificar role:', error);
+        setIsAdmin(false);
+        setRole("operational");
       } finally {
         setLoading(false);
       }
@@ -40,8 +72,7 @@ export const useUserRole = () => {
     checkUserRole();
   }, []);
 
-  console.log('[useUserRole] 📊 Estado atual (ACESSO TOTAL):', { isAdmin: true, role: 'admin', loading: false });
+  console.log('[useUserRole] 📊 Estado atual:', { isAdmin, role, loading });
 
-  // SEMPRE retornar acesso total
-  return { isAdmin: true, role: 'admin' as const, loading: false };
+  return { isAdmin, role, loading };
 };

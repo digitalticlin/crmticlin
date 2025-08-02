@@ -36,17 +36,20 @@ export const useUserPermissions = () => {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
+          console.log('[useUserPermissions] ❌ Usuário não autenticado');
           setLoading(false);
           return;
         }
 
-        const { data: profile } = await supabase
+        // Buscar perfil real do usuário
+        const { data: profile, error } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", user.id)
           .single();
 
-        if (!profile) {
+        if (error || !profile) {
+          console.error('[useUserPermissions] ❌ Erro ao buscar perfil:', error);
           setLoading(false);
           return;
         }
@@ -54,9 +57,11 @@ export const useUserPermissions = () => {
         const role = profile.role as UserRole;
         let newPermissions: UserPermissions;
 
+        console.log('[useUserPermissions] 🔍 Role do usuário:', role);
+
         switch (role) {
           case "admin":
-            // Admin: Full access except they cannot create super-admin accounts
+            // Admin: Full access
             newPermissions = {
               canViewAllData: true,
               canDeleteData: true,
@@ -111,9 +116,10 @@ export const useUserPermissions = () => {
             };
         }
 
+        console.log('[useUserPermissions] ✅ Permissões definidas:', newPermissions);
         setPermissions(newPermissions);
       } catch (error) {
-        console.error("Erro ao verificar permissões:", error);
+        console.error("[useUserPermissions] ❌ Erro ao verificar permissões:", error);
       } finally {
         setLoading(false);
       }
