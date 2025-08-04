@@ -1,4 +1,5 @@
 
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -21,7 +22,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[AI Messaging Service] 🚀 Iniciando processamento - N8N AI Agent');
+    console.log('[AI Messaging Service] 🚀 Iniciando processamento - N8N AI Agent com suporte a áudio');
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -42,7 +43,8 @@ serve(async (req) => {
       });
     }
 
-    const { apiKey, instanceId, leadId, createdByUserId, phone, message, mediaType, mediaUrl, agentId } = requestBody;
+    // ✅ NOVO: Extrair audioBase64 do payload
+    const { apiKey, instanceId, leadId, createdByUserId, phone, message, mediaType, mediaUrl, agentId, audioBase64 } = requestBody;
 
     // ✅ AUTENTICAÇÃO VIA API KEY
     if (!apiKey || !aiAgentApiKey || apiKey !== aiAgentApiKey) {
@@ -57,7 +59,7 @@ serve(async (req) => {
     }
 
     // ✅ VALIDAÇÃO DOS PARÂMETROS OBRIGATÓRIOS
-    if (!instanceId || !leadId || !createdByUserId || !phone || !message) {
+    if (!instanceId || !leadId || !createdByUserId || !phone) {
       console.error('[AI Messaging Service] ❌ Parâmetros obrigatórios ausentes:', {
         instanceId: !!instanceId,
         leadId: !!leadId,
@@ -67,10 +69,32 @@ serve(async (req) => {
       });
       return new Response(JSON.stringify({
         success: false,
-        error: 'instanceId, leadId, createdByUserId, phone e message são obrigatórios'
+        error: 'instanceId, leadId, createdByUserId e phone são obrigatórios'
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ✅ NOVO: Processar áudio se presente
+    let processedMediaUrl = mediaUrl;
+    let processedMediaType = mediaType || 'text';
+    let messageText = message || '';
+
+    if (audioBase64 && audioBase64.trim().length > 0) {
+      console.log('[AI Messaging Service] 🎵 Processando áudio Base64:', {
+        audioSize: audioBase64.length,
+        sizeKB: Math.round(audioBase64.length / 1024)
+      });
+
+      // Converter Base64 para DataURL no formato correto
+      processedMediaUrl = `data:audio/mp3;base64,${audioBase64}`;
+      processedMediaType = 'audio';
+      messageText = messageText || 'Mensagem de áudio do agente'; // Fallback para mensagem vazia
+
+      console.log('[AI Messaging Service] ✅ Áudio convertido para DataURL:', {
+        mediaType: processedMediaType,
+        dataUrlLength: processedMediaUrl.length
       });
     }
 
@@ -79,9 +103,10 @@ serve(async (req) => {
       leadId,
       createdByUserId,
       phone: phone.substring(0, 4) + '****',
-      messageLength: message.length,
-      mediaType: mediaType || 'text',
-      hasMediaUrl: !!mediaUrl,
+      messageLength: messageText.length,
+      mediaType: processedMediaType,
+      hasAudio: !!audioBase64,
+      hasMediaUrl: !!processedMediaUrl,
       agentId: agentId || 'N/A'
     });
 
@@ -166,6 +191,8 @@ serve(async (req) => {
       vpsInstanceId,
       leadName: leadData.name,
       phoneMatch: phone.replace(/\D/g, '') === leadData.phone.replace(/\D/g, ''),
+      mediaType: processedMediaType,
+      hasAudio: !!audioBase64,
       agentId: agentId || 'N/A'
     });
 
@@ -173,9 +200,9 @@ serve(async (req) => {
     const vpsPayload = {
       instanceId: vpsInstanceId,
       phone: phone.replace(/\D/g, ''), // Limpar caracteres não numéricos
-      message: message.trim(),
-      mediaType: mediaType || 'text',
-      mediaUrl: mediaUrl || null
+      message: messageText.trim(),
+      mediaType: processedMediaType,
+      mediaUrl: processedMediaUrl || null
     };
 
     console.log('[AI Messaging Service] 📡 Enviando para VPS:', {
@@ -247,6 +274,8 @@ serve(async (req) => {
       success: vpsData.success,
       messageId: vpsData.messageId || 'N/A',
       timestamp: vpsData.timestamp,
+      mediaType: processedMediaType,
+      hasAudio: !!audioBase64,
       agentId: agentId || 'N/A',
       vpsInstanceId,
       phone: phone.substring(0, 4) + '****'
@@ -261,11 +290,11 @@ serve(async (req) => {
         {
           p_vps_instance_id: vpsInstanceId,
           p_phone: phone.replace(/\D/g, ''),
-          p_message_text: message.trim(),
+          p_message_text: messageText.trim(),
           p_external_message_id: vpsData.messageId || null,
           p_contact_name: leadData.name || null,
-          p_media_type: mediaType || 'text',
-          p_media_url: mediaUrl || null
+          p_media_type: processedMediaType,
+          p_media_url: processedMediaUrl || null
         }
       );
 
@@ -275,6 +304,8 @@ serve(async (req) => {
         console.log('[AI Messaging Service] ✅ Mensagem do AI Agent salva no banco:', {
           messageId: saveResult.data?.message_id,
           leadId: saveResult.data?.lead_id,
+          mediaType: processedMediaType,
+          hasAudio: !!audioBase64,
           agentId: agentId || 'N/A',
           source: 'ai_agent'
         });
@@ -293,7 +324,8 @@ serve(async (req) => {
         vpsInstanceId,
         leadId: leadData.id,
         phone: phone.replace(/\D/g, ''),
-        mediaType: mediaType || 'text',
+        mediaType: processedMediaType,
+        hasAudio: !!audioBase64,
         timestamp: vpsData.timestamp || new Date().toISOString(),
         agentId: agentId || null,
         source: 'ai_agent',
@@ -318,3 +350,4 @@ serve(async (req) => {
     });
   }
 });
+
