@@ -1,5 +1,3 @@
-
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -43,8 +41,8 @@ serve(async (req) => {
       });
     }
 
-    // ✅ NOVO: Extrair audioBase64 do payload
-    const { apiKey, instanceId, leadId, createdByUserId, phone, message, mediaType, mediaUrl, agentId, audioBase64 } = requestBody;
+    // ✅ NOVO: Extrair audioBase64 e audioMetadata do payload N8N
+    const { apiKey, instanceId, leadId, createdByUserId, phone, message, mediaType, mediaUrl, agentId, audioBase64, audioMetadata } = requestBody;
 
     // ✅ AUTENTICAÇÃO VIA API KEY
     if (!apiKey || !aiAgentApiKey || apiKey !== aiAgentApiKey) {
@@ -76,25 +74,52 @@ serve(async (req) => {
       });
     }
 
-    // ✅ NOVO: Processar áudio se presente
+    // ✅ NOVO: Processar áudio com suporte a PTT nativo
     let processedMediaUrl = mediaUrl;
     let processedMediaType = mediaType || 'text';
     let messageText = message || '';
+    let isPTT = false;
+    let audioFilename = null;
+    let audioDuration = null;
 
     if (audioBase64 && audioBase64.trim().length > 0) {
-      console.log('[AI Messaging Service] 🎵 Processando áudio Base64:', {
+      console.log('[AI Messaging Service] 🎵 Processando áudio Base64 NATIVO:', {
         audioSize: audioBase64.length,
-        sizeKB: Math.round(audioBase64.length / 1024)
+        sizeKB: Math.round(audioBase64.length / 1024),
+        hasMetadata: !!audioMetadata,
+        pttFlag: audioMetadata?.ptt
       });
 
-      // Converter Base64 para DataURL no formato correto
-      processedMediaUrl = `data:audio/mp3;base64,${audioBase64}`;
-      processedMediaType = 'audio';
-      messageText = messageText || 'Mensagem de áudio do agente'; // Fallback para mensagem vazia
+      // ✅ VERIFICAR SE É ÁUDIO PTT (Push-to-Talk) NATIVO
+      if (audioMetadata && audioMetadata.ptt === true) {
+        console.log('[AI Messaging Service] 🎙️ Áudio PTT nativo detectado');
+        
+        // Usar formato OGG para áudio nativo
+        processedMediaUrl = `data:audio/ogg;base64,${audioBase64}`;
+        processedMediaType = 'audio';
+        isPTT = true;
+        audioFilename = audioMetadata.filename || `ptt_${Date.now()}.ogg`;
+        audioDuration = audioMetadata.seconds || Math.ceil(audioBase64.length / 4000);
+        messageText = messageText || 'Mensagem de voz';
+        
+        console.log('[AI Messaging Service] ✅ Áudio configurado como PTT nativo:', {
+          filename: audioFilename,
+          duration: audioDuration,
+          isPTT: true
+        });
+      } else {
+        console.log('[AI Messaging Service] ⚠️ Áudio como encaminhamento (sem PTT)');
+        
+        // Converter Base64 para DataURL no formato MP3
+        processedMediaUrl = `data:audio/mp3;base64,${audioBase64}`;
+        processedMediaType = 'audio';
+        messageText = messageText || 'Mensagem de áudio do agente';
+      }
 
       console.log('[AI Messaging Service] ✅ Áudio convertido para DataURL:', {
         mediaType: processedMediaType,
-        dataUrlLength: processedMediaUrl.length
+        dataUrlLength: processedMediaUrl.length,
+        isPTT: isPTT
       });
     }
 
@@ -107,6 +132,7 @@ serve(async (req) => {
       mediaType: processedMediaType,
       hasAudio: !!audioBase64,
       hasMediaUrl: !!processedMediaUrl,
+      isPTT: isPTT,
       agentId: agentId || 'N/A'
     });
 
@@ -193,16 +219,24 @@ serve(async (req) => {
       phoneMatch: phone.replace(/\D/g, '') === leadData.phone.replace(/\D/g, ''),
       mediaType: processedMediaType,
       hasAudio: !!audioBase64,
+      isPTT: isPTT,
       agentId: agentId || 'N/A'
     });
 
-    // ✅ PREPARAR PAYLOAD PARA VPS
+    // ✅ PREPARAR PAYLOAD PARA VPS COM SUPORTE A PTT
     const vpsPayload = {
       instanceId: vpsInstanceId,
       phone: phone.replace(/\D/g, ''), // Limpar caracteres não numéricos
       message: messageText.trim(),
       mediaType: processedMediaType,
-      mediaUrl: processedMediaUrl || null
+      mediaUrl: processedMediaUrl || null,
+      // ✅ NOVO: Adicionar metadados para áudio PTT nativo
+      ...(isPTT && {
+        ptt: true,
+        filename: audioFilename,
+        seconds: audioDuration,
+        waveform: null // Remove waveform artificial para parecer nativo
+      })
     };
 
     console.log('[AI Messaging Service] 📡 Enviando para VPS:', {
@@ -276,25 +310,27 @@ serve(async (req) => {
       timestamp: vpsData.timestamp,
       mediaType: processedMediaType,
       hasAudio: !!audioBase64,
+      isPTT: isPTT,
       agentId: agentId || 'N/A',
       vpsInstanceId,
       phone: phone.substring(0, 4) + '****'
     });
 
-    // ✅ SALVAR MENSAGEM NO BANCO USANDO RPC ISOLADA
+    // ✅ SALVAR MENSAGEM NO BANCO USANDO save_whatsapp_message_service_role para compatibilidade com frontend
     console.log('[AI Messaging Service] 💾 Salvando mensagem do AI Agent no banco...');
     
     try {
       const { data: saveResult, error: saveError } = await supabase.rpc(
-        'save_sent_message_only',
+        'save_whatsapp_message_service_role',
         {
           p_vps_instance_id: vpsInstanceId,
           p_phone: phone.replace(/\D/g, ''),
           p_message_text: messageText.trim(),
-          p_external_message_id: vpsData.messageId || null,
-          p_contact_name: leadData.name || null,
+          p_from_me: true, // ✅ CRITICAL: Marcar como mensagem enviada pelo usuário/agente
           p_media_type: processedMediaType,
-          p_media_url: processedMediaUrl || null
+          p_media_url: processedMediaUrl || null,
+          p_external_message_id: vpsData.messageId || null,
+          p_contact_name: leadData.name || null
         }
       );
 
@@ -306,6 +342,7 @@ serve(async (req) => {
           leadId: saveResult.data?.lead_id,
           mediaType: processedMediaType,
           hasAudio: !!audioBase64,
+          isPTT: isPTT,
           agentId: agentId || 'N/A',
           source: 'ai_agent'
         });
@@ -326,6 +363,7 @@ serve(async (req) => {
         phone: phone.replace(/\D/g, ''),
         mediaType: processedMediaType,
         hasAudio: !!audioBase64,
+        isPTT: isPTT,
         timestamp: vpsData.timestamp || new Date().toISOString(),
         agentId: agentId || null,
         source: 'ai_agent',
@@ -350,4 +388,3 @@ serve(async (req) => {
     });
   }
 });
-
