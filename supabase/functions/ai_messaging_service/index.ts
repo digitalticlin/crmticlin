@@ -1,5 +1,4 @@
 
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -80,6 +79,7 @@ serve(async (req) => {
     let processedMediaUrl = mediaUrl;
     let processedMediaType = mediaType || 'text';
     let messageText = message || '';
+    let vpsMessageText = message || ''; // ✅ SEPARAR TEXTO PARA VPS E BANCO
     let isPTT = false;
     let audioFilename = null;
     let audioDuration = null;
@@ -133,8 +133,9 @@ serve(async (req) => {
         audioFilename = audioMetadata.filename || `ptt_${Date.now()}.${detectedMimeType.includes('mp3') ? 'mp3' : 'ogg'}`;
         audioDuration = audioMetadata.seconds || Math.ceil(audioBase64.length / 4000);
         
-        // ✅ CORREÇÃO PRINCIPAL: MENSAGEM VAZIA PARA ÁUDIO NATIVO
-        messageText = '';  // ❗ NÃO USAR '[Áudio]' PARA PTT NATIVO
+        // ✅ CORREÇÃO PRINCIPAL: SEPARAR MENSAGEM VPS E BANCO
+        messageText = '';  // ❗ BANCO: vazio para áudio PTT
+        vpsMessageText = ' '; // ❗ VPS: espaço para passar validação mas não atrapalhar áudio
         
         finalMimeType = detectedMimeType;
         
@@ -144,6 +145,7 @@ serve(async (req) => {
           isPTT: true,
           mimeType: finalMimeType,
           messageIsEmpty: messageText === '',
+          vpsMessage: vpsMessageText,
           dataUrlPrefix: processedMediaUrl.substring(0, 50) + '...'
         });
       } else {
@@ -153,6 +155,7 @@ serve(async (req) => {
         processedMediaUrl = `data:${detectedMimeType};base64,${audioBase64}`;
         processedMediaType = 'audio';
         messageText = messageText || '';  // ✅ MANTER MENSAGEM ORIGINAL OU VAZIA
+        vpsMessageText = messageText || ' '; // ✅ VPS: espaço se vazio
         finalMimeType = detectedMimeType;
       }
 
@@ -161,7 +164,8 @@ serve(async (req) => {
         dataUrlLength: processedMediaUrl.length,
         isPTT: isPTT,
         mimeTypeUsed: finalMimeType,
-        finalMessageText: messageText === '' ? 'EMPTY' : messageText
+        finalMessageText: messageText === '' ? 'EMPTY' : messageText,
+        vpsMessageText: vpsMessageText
       });
     }
 
@@ -265,11 +269,11 @@ serve(async (req) => {
       agentId: agentId || 'N/A'
     });
 
-    // ✅ PREPARAR PAYLOAD PARA VPS COM TODOS OS METADADOS PTT
+    // ✅ PREPARAR PAYLOAD PARA VPS COM CORREÇÃO DE MESSAGE
     const vpsPayload = {
       instanceId: vpsInstanceId,
       phone: phone.replace(/\D/g, ''),
-      message: messageText,  // ✅ AGORA SERÁ VAZIO PARA PTT
+      message: vpsMessageText,  // ✅ USAR TEXTO ESPECÍFICO PARA VPS (espaço para PTT)
       mediaType: processedMediaType,
       mediaUrl: processedMediaUrl || null,
       // ✅ NOVOS CAMPOS PARA PTT NATIVO (compatível com VPS corrigida)
@@ -282,13 +286,15 @@ serve(async (req) => {
       })
     };
 
-    console.log('[AI Messaging Service] 📡 Enviando para VPS (ÁUDIO NATIVO OTIMIZADO):', {
+    console.log('[AI Messaging Service] 📡 Enviando para VPS (CORREÇÃO MESSAGE VALIDATION):', {
       url: `${VPS_CONFIG.baseUrl}/send`,
       payload: {
         ...vpsPayload,
         phone: vpsPayload.phone.substring(0, 4) + '****',
         mediaUrl: vpsPayload.mediaUrl ? vpsPayload.mediaUrl.substring(0, 50) + '...' : null,
-        messageIsEmpty: vpsPayload.message === ''
+        messageIsEmpty: vpsPayload.message === '',
+        messageIsSpace: vpsPayload.message === ' ',
+        isPTT: isPTT
       }
     });
 
@@ -311,7 +317,15 @@ serve(async (req) => {
         status: vpsResponse.status,
         statusText: vpsResponse.statusText,
         errorText: errorText.substring(0, 300),
-        vpsUrl: `${VPS_CONFIG.baseUrl}/send`
+        vpsUrl: `${VPS_CONFIG.baseUrl}/send`,
+        sentPayload: {
+          instanceId: vpsInstanceId,
+          phone: phone.substring(0, 4) + '****',
+          messageLength: vpsMessageText.length,
+          messageContent: vpsMessageText === ' ' ? 'SINGLE_SPACE' : vpsMessageText,
+          mediaType: processedMediaType,
+          isPTT: isPTT
+        }
       });
       
       return new Response(JSON.stringify({
@@ -359,10 +373,11 @@ serve(async (req) => {
       agentId: agentId || 'N/A',
       vpsInstanceId,
       phone: phone.substring(0, 4) + '****',
-      messageTextSaved: messageText === '' ? 'EMPTY_FOR_AUDIO' : messageText
+      messageTextSaved: messageText === '' ? 'EMPTY_FOR_AUDIO' : messageText,
+      vpsMessageSent: vpsMessageText === ' ' ? 'SINGLE_SPACE_FOR_VALIDATION' : vpsMessageText
     });
 
-    // ✅ SALVAR MENSAGEM NO BANCO
+    // ✅ SALVAR MENSAGEM NO BANCO COM TEXTO ESPECÍFICO
     console.log('[AI Messaging Service] 💾 Salvando mensagem do AI Agent no banco...');
     
     try {
@@ -371,7 +386,7 @@ serve(async (req) => {
         {
           p_vps_instance_id: vpsInstanceId,
           p_phone: phone.replace(/\D/g, ''),
-          p_message_text: messageText,  // ✅ SERÁ VAZIO PARA PTT
+          p_message_text: messageText,  // ✅ BANCO: vazio para PTT, original para outros
           p_from_me: true,
           p_media_type: processedMediaType,
           p_media_url: processedMediaUrl || null,
@@ -416,6 +431,7 @@ serve(async (req) => {
         agentId: agentId || null,
         source: 'ai_agent',
         textMessage: messageText === '' ? null : messageText,  // ✅ INDICAR SE MENSAGEM É VAZIA
+        vpsMessageSent: vpsMessageText,  // ✅ DEBUG: mostrar o que foi enviado para VPS
         user: {
           id: createdByUserId
         }
@@ -437,4 +453,3 @@ serve(async (req) => {
     });
   }
 });
-
