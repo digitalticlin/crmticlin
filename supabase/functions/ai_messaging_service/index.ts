@@ -1,4 +1,5 @@
 
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -131,7 +132,10 @@ serve(async (req) => {
         isPTT = true;
         audioFilename = audioMetadata.filename || `ptt_${Date.now()}.${detectedMimeType.includes('mp3') ? 'mp3' : 'ogg'}`;
         audioDuration = audioMetadata.seconds || Math.ceil(audioBase64.length / 4000);
-        messageText = messageText || '[Áudio]';
+        
+        // ✅ CORREÇÃO PRINCIPAL: MENSAGEM VAZIA PARA ÁUDIO NATIVO
+        messageText = '';  // ❗ NÃO USAR '[Áudio]' PARA PTT NATIVO
+        
         finalMimeType = detectedMimeType;
         
         console.log('[AI Messaging Service] ✅ Áudio configurado como PTT nativo:', {
@@ -139,6 +143,7 @@ serve(async (req) => {
           duration: audioDuration,
           isPTT: true,
           mimeType: finalMimeType,
+          messageIsEmpty: messageText === '',
           dataUrlPrefix: processedMediaUrl.substring(0, 50) + '...'
         });
       } else {
@@ -147,7 +152,7 @@ serve(async (req) => {
         // Converter Base64 para DataURL no formato correto
         processedMediaUrl = `data:${detectedMimeType};base64,${audioBase64}`;
         processedMediaType = 'audio';
-        messageText = messageText || 'Mensagem de áudio do agente';
+        messageText = messageText || '';  // ✅ MANTER MENSAGEM ORIGINAL OU VAZIA
         finalMimeType = detectedMimeType;
       }
 
@@ -155,7 +160,8 @@ serve(async (req) => {
         mediaType: processedMediaType,
         dataUrlLength: processedMediaUrl.length,
         isPTT: isPTT,
-        mimeTypeUsed: finalMimeType
+        mimeTypeUsed: finalMimeType,
+        finalMessageText: messageText === '' ? 'EMPTY' : messageText
       });
     }
 
@@ -263,7 +269,7 @@ serve(async (req) => {
     const vpsPayload = {
       instanceId: vpsInstanceId,
       phone: phone.replace(/\D/g, ''),
-      message: messageText.trim(),
+      message: messageText,  // ✅ AGORA SERÁ VAZIO PARA PTT
       mediaType: processedMediaType,
       mediaUrl: processedMediaUrl || null,
       // ✅ NOVOS CAMPOS PARA PTT NATIVO (compatível com VPS corrigida)
@@ -281,7 +287,8 @@ serve(async (req) => {
       payload: {
         ...vpsPayload,
         phone: vpsPayload.phone.substring(0, 4) + '****',
-        mediaUrl: vpsPayload.mediaUrl ? vpsPayload.mediaUrl.substring(0, 50) + '...' : null
+        mediaUrl: vpsPayload.mediaUrl ? vpsPayload.mediaUrl.substring(0, 50) + '...' : null,
+        messageIsEmpty: vpsPayload.message === ''
       }
     });
 
@@ -351,7 +358,8 @@ serve(async (req) => {
       finalMimeType: finalMimeType,
       agentId: agentId || 'N/A',
       vpsInstanceId,
-      phone: phone.substring(0, 4) + '****'
+      phone: phone.substring(0, 4) + '****',
+      messageTextSaved: messageText === '' ? 'EMPTY_FOR_AUDIO' : messageText
     });
 
     // ✅ SALVAR MENSAGEM NO BANCO
@@ -363,7 +371,7 @@ serve(async (req) => {
         {
           p_vps_instance_id: vpsInstanceId,
           p_phone: phone.replace(/\D/g, ''),
-          p_message_text: messageText.trim(),
+          p_message_text: messageText,  // ✅ SERÁ VAZIO PARA PTT
           p_from_me: true,
           p_media_type: processedMediaType,
           p_media_url: processedMediaUrl || null,
@@ -381,7 +389,7 @@ serve(async (req) => {
           mediaType: processedMediaType,
           hasAudio: !!audioBase64,
           isPTT: isPTT,
-          savedText: messageText.trim(),
+          savedText: messageText === '' ? 'EMPTY_STRING' : messageText,
           agentId: agentId || 'N/A',
           source: 'ai_agent'
         });
@@ -407,6 +415,7 @@ serve(async (req) => {
         timestamp: vpsData.timestamp || new Date().toISOString(),
         agentId: agentId || null,
         source: 'ai_agent',
+        textMessage: messageText === '' ? null : messageText,  // ✅ INDICAR SE MENSAGEM É VAZIA
         user: {
           id: createdByUserId
         }
@@ -428,3 +437,4 @@ serve(async (req) => {
     });
   }
 });
+
