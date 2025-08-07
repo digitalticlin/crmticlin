@@ -3,6 +3,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/chat';
 import { MessageMediaEnhanced } from '../MessageMediaEnhanced';
+import { MessageMediaDirect } from '../MessageMediaDirect';
 
 interface MessageItemEnhancedProps {
   message: Message;
@@ -33,15 +34,28 @@ export const MessageItemEnhanced: React.FC<MessageItemEnhancedProps> = React.mem
         {/* ✅ RENDERIZAR MÍDIA SE HOUVER */}
         {message.mediaType && message.mediaType !== 'text' && (
           <div className="mb-2">
-            <MessageMediaEnhanced
-              messageId={message.id}
-              mediaType={message.mediaType as any}
-              mediaUrl={message.mediaUrl}
-              fileName={message.fileName}
-              isIncoming={isIncoming}
-              mediaCache={message.media_cache}
-              className="max-w-full"
-            />
+            {/* 🚀 RENDERIZAÇÃO DIRETA quando media_url está presente */}
+            {message.mediaUrl ? (
+              <MessageMediaDirect
+                messageId={message.id}
+                mediaType={message.mediaType as any}
+                mediaUrl={message.mediaUrl}
+                fileName={message.fileName}
+                isIncoming={isIncoming}
+                className="max-w-full"
+              />
+            ) : (
+              /* 🔄 FALLBACK para hook complexo quando media_url não está presente */
+              <MessageMediaEnhanced
+                messageId={message.id}
+                mediaType={message.mediaType as any}
+                mediaUrl={message.mediaUrl}
+                fileName={message.fileName}
+                isIncoming={isIncoming}
+                mediaCache={message.media_cache}
+                className="max-w-full"
+              />
+            )}
           </div>
         )}
         

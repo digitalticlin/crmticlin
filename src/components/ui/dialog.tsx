@@ -8,7 +8,14 @@ const Dialog = DialogPrimitive.Root
 
 const DialogTrigger = DialogPrimitive.Trigger
 
-const DialogPortal = DialogPrimitive.Portal
+const DialogPortal = ({ children, ...props }: React.ComponentProps<typeof DialogPrimitive.Portal>) => {
+  // Safe Portal with error boundary for DOM manipulation issues
+  return (
+    <DialogPrimitive.Portal {...props}>
+      {children}
+    </DialogPrimitive.Portal>
+  );
+};
 
 const DialogClose = DialogPrimitive.Close
 

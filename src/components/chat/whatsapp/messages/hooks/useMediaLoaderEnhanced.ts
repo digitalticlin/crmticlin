@@ -40,6 +40,14 @@ export const useMediaLoaderEnhanced = ({
   const [retryCount, setRetryCount] = useState(0);
 
   const loadMedia = useCallback(async () => {
+    // ✅ PROTEÇÃO: Verificar se temos dados suficientes
+    if (!mediaType || mediaType === 'text') {
+      console.warn(`[MediaLoaderEnhanced] ⚠️ MediaType inválido: ${messageId.substring(0, 8)} (${mediaType})`);
+      setError('Tipo de mídia inválido');
+      setIsLoading(false);
+      return;
+    }
+
     console.log(`[MediaLoaderEnhanced] 🔄 Carregando mídia: ${messageId.substring(0, 8)} (${mediaType})`);
     
     setIsLoading(true);

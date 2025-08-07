@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AIAgent, CreateAIAgentData } from "@/types/aiAgent";
 import { useAIAgents } from "@/hooks/useAIAgents";
 import { supabase } from "@/integrations/supabase/client";
@@ -150,14 +150,14 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
               onClick={onCancel}
               className="px-6 h-11 bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-xl transition-all duration-200"
             >
-              Cancelar
+              Fechar
             </Button>
             <Button 
               type="submit" 
               disabled={isLoading} 
             className="px-8 h-11 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-xl shadow-glass hover:shadow-glass-lg transition-all duration-200"
             >
-              {isLoading ? "Salvando..." : agent ? "Atualizar Agente" : "Criar Agente"}
+              {isLoading ? "Salvando..." : "Salvar"}
             </Button>
           </div>
         </form>

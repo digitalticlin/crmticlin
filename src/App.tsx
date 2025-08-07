@@ -9,6 +9,7 @@ import { BigQueryOptimizer } from './utils/immediate-bigquery-fix';
 import { supabase } from './integrations/supabase/client'; // 🚀 IMPORTAR SUPABASE
 import './utils/debug-messages-test'; // 🔧 IMPORTAR SCRIPTS DE DEBUG
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import { PortalErrorBoundary } from './components/error/PortalErrorBoundary';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Index';
 import Register from './pages/Register';
@@ -119,11 +120,12 @@ function App() {
   
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-          <AuthProvider>
-            <SidebarProvider>
-              <QRCodeModalProvider>
+      <PortalErrorBoundary>
+        <Router>
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+            <AuthProvider>
+              <SidebarProvider>
+                <QRCodeModalProvider>
                 <Routes>
                   {/* Rotas públicas */}
                   <Route path="/login" element={<Login />} />
@@ -256,6 +258,7 @@ function App() {
           </AuthProvider>
         </div>
       </Router>
+      </PortalErrorBoundary>
     </QueryClientProvider>
   );
 }

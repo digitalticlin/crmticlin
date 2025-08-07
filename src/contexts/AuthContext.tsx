@@ -39,6 +39,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log('[Auth] 🔄 Configurando auth...');
 
+    // Primeiro, verificar se já existe uma sessão ativa
+    const getInitialSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('[Auth] ❌ Erro ao obter sessão:', error);
+        } else {
+          console.log('[Auth] 🔍 Sessão inicial:', session?.user?.email || 'Nenhuma');
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+      } catch (error) {
+        console.error('[Auth] ❌ Erro ao verificar sessão inicial:', error);
+      } finally {
+        setLoading(false);
+        setIsInitialized(true);
+      }
+    };
+
+    getInitialSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('[Auth] 📡', event, session?.user?.email);

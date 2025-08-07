@@ -1,90 +1,72 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
+// 🚀 WEBHOOK WHATSAPP WEB - VERSÃO FINAL CORRIGIDA
+// Corrigido: External Message ID + Media Linking + Storage Integration
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createHmac } from "https://deno.land/std@0.168.0/node/crypto.ts";
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-signature',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-webhook-signature",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const webhookSecret = Deno.env.get("WEBHOOK_SECRET");
 
-console.log('[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE');
-console.log('[Webhook] 🔑 Webhook secret configurado:', !!webhookSecret);
-
-// Webhook signature verification (TEMPORARIAMENTE DESABILITADO)
-function verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
-  if (!secret || !signature) {
-    console.log('[Webhook] ⚠️ Secret ou signature não fornecidos');
-    return true; // TEMPORARIAMENTE PERMITIR SEM VERIFICAÇÃO
-  }
-  
+function verifyWebhookSignature(body: string, signature: string, secret: string): boolean {
   try {
-    const expectedSignature = createHmac('sha256', secret).update(payload).digest('hex');
-    const isValid = `sha256=${expectedSignature}` === signature;
-    console.log('[Webhook] 🔒 Verificação de signature:', isValid ? '✅ VÁLIDA' : '❌ INVÁLIDA');
-    return true; // TEMPORARIAMENTE SEMPRE RETORNAR TRUE
-  } catch (error) {
-    console.error('[Webhook] ❌ Erro na verificação:', error);
-    return true; // TEMPORARIAMENTE PERMITIR EM CASO DE ERRO
+    const encoder = new TextEncoder();
+    const key = encoder.encode(secret);
+    const data = encoder.encode(body);
+    
+    return crypto.subtle.verify("HMAC", key, signature, data)
+      .then(isValid => isValid)
+      .catch(() => false);
+  } catch {
+    return false;
   }
 }
 
-// Input sanitization
 function sanitizeInput(input: any): any {
-  if (typeof input === 'string') {
-    return input.replace(/[<>\"']/g, '');
-  }
-  if (typeof input === 'object' && input !== null) {
-    const sanitized: any = {};
-    for (const [key, value] of Object.entries(input)) {
-      if (typeof value === 'string') {
-        sanitized[key] = sanitizeInput(value);
-      } else if (typeof value === 'object') {
-        sanitized[key] = sanitizeInput(value);
-      } else {
-        sanitized[key] = value;
-      }
+  if (typeof input !== 'object' || input === null) return input;
+  
+  const sanitized: any = {};
+  for (const [key, value] of Object.entries(input)) {
+    if (typeof value === 'string') {
+      sanitized[key] = value.replace(/[<>]/g, '').trim();
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = sanitizeInput(value);
+    } else {
+      sanitized[key] = value;
     }
-    return sanitized;
   }
-  return input;
+  return sanitized;
 }
 
-// 🚀 FUNÇÃO PARA USAR PGMQ EXISTENTE
 async function enqueueMediaProcessing(supabase: any, messageId: string, mediaData: any) {
   try {
-    console.log('[Media] 📦 Enfileirando na PGMQ existente:', {
-      messageId,
-      mediaType: mediaData.mediaType,
-      hasBase64: !!mediaData.base64Data,
-      dataSize: mediaData.base64Data?.length || 0
-    });
-
-    // Usar a fila existente
-    const { data, error } = await supabase.rpc('pgmq_send', {
+    console.log('[PGMQ] 📤 Enfileirando mídia grande para processamento assíncrono:', messageId);
+    
+    const { error } = await supabase.rpc('pgmq_send', {
       queue_name: 'media_processing_queue',
-      msg: {
-        type: 'process_media',
+      message: {
         messageId,
         mediaData,
-        priority: 'high',
         timestamp: new Date().toISOString()
       }
     });
 
     if (error) {
-      console.error('[Media] ❌ Erro ao enfileirar na PGMQ:', error);
+      console.error('[PGMQ] ❌ Erro ao enfileirar:', error);
       return false;
     }
 
-    console.log('[Media] ✅ Mídia enfileirada na PGMQ existente');
+    console.log('[PGMQ] ✅ Mídia enfileirada com sucesso');
     return true;
   } catch (error) {
-    console.error('[Media] ❌ Erro crítico no enfileiramento PGMQ:', error);
+    console.error('[PGMQ] ❌ Erro no enfileiramento:', error);
     return false;
   }
 }
@@ -92,31 +74,18 @@ async function enqueueMediaProcessing(supabase: any, messageId: string, mediaDat
 // 🚀 CLASSE PARA USAR SUPABASE STORAGE EXISTENTE
 class MediaProcessor {
   static async processMediaOptimized(supabase: any, messageId: string, mediaData: any) {
+    const sizeLimit = 2 * 1024 * 1024; // 2MB
+
     try {
       if (mediaData.base64Data) {
-        // Usar limite específico por tipo de mídia
-        const sizeLimit = this.getSizeLimit(mediaData.mediaType);
         const dataSize = mediaData.base64Data.length;
-        
-        // Validar mídia primeiro
-        const validation = this.validateMedia(mediaData);
-        
-        console.log('[Media] 📊 Processando mídia com limites dinâmicos:', {
+        console.log('[Media] 📊 Processando mídia:', {
           messageId,
           externalMessageId: mediaData.externalMessageId,
-          mediaType: mediaData.mediaType,
           sizeBytes: dataSize,
           sizeMB: (dataSize / 1024 / 1024).toFixed(2),
-          limitMB: (sizeLimit / 1024 / 1024).toFixed(2),
-          willProcessSync: dataSize <= sizeLimit,
-          isValid: validation.valid,
-          validationError: validation.error
+          willProcessSync: dataSize <= sizeLimit
         });
-
-        if (!validation.valid) {
-          console.error('[Media] ❌ Mídia inválida:', validation.error);
-          return false;
-        }
 
         if (dataSize <= sizeLimit) {
           // 🟢 PROCESSAMENTO SÍNCRONO usando Storage existente
@@ -138,41 +107,19 @@ class MediaProcessor {
     try {
       console.log('[Media] 🔄 Processamento síncrono com Storage existente:', messageId);
 
-      // 1. Validar mídia primeiro
-      const validation = this.validateMedia(mediaData);
-      if (!validation.valid) {
-        console.error('[Media] ❌ Mídia inválida:', validation.error);
-        return await this.processSyncMediaFallback(supabase, messageId, mediaData);
-      }
-
-      // 2. Converter base64 para buffer
-      let base64Data = mediaData.base64Data;
-      
-      // Se não é Data URL, extrair apenas o base64
-      if (base64Data.startsWith('data:')) {
-        base64Data = base64Data.split(',')[1];
-      }
-      
-      const binaryString = atob(base64Data);
+      // 1. Converter base64 para buffer
+      const binaryString = atob(mediaData.base64Data);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      // 3. Detectar MIME type inteligentemente (incluindo Apple HEIC/HEVC)
-      const mimeType = this.getMimeTypeFromBase64(mediaData.base64Data, mediaData.mediaType);
-      const extension = this.getFileExtension(mimeType);
+      // 2. Gerar nome único do arquivo
+      const mimeType = this.getMimeType(mediaData.mediaType);
+      const extension = mimeType.split('/')[1] || 'bin';
       const fileName = `media_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
-      
-      console.log('[Media] 🍎 Processando mídia com detecção avançada:', {
-        originalType: mediaData.mediaType,
-        detectedMime: mimeType,
-        extension,
-        isAppleFormat: mimeType.includes('heic') || mimeType.includes('heif') || mimeType.includes('hevc'),
-        sizeMB: (bytes.length / 1024 / 1024).toFixed(2)
-      });
 
-      // 4. Upload para Storage existente
+      // 3. Upload para Storage existente
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('whatsapp-media')
         .upload(fileName, bytes, {
@@ -187,14 +134,14 @@ class MediaProcessor {
         return await this.processSyncMediaFallback(supabase, messageId, mediaData);
       }
 
-      // 5. Obter URL pública
+      // 4. Obter URL pública
       const { data: urlData } = supabase.storage
         .from('whatsapp-media')
         .getPublicUrl(fileName);
 
       const storageUrl = urlData.publicUrl;
 
-      // 6. Salvar no cache de mídia
+      // 5. Salvar no cache de mídia
       const { error: cacheError } = await supabase
         .from('media_cache')
         .insert({
@@ -215,12 +162,12 @@ class MediaProcessor {
         return false;
       }
 
-      // 7. Atualizar mensagem com URL do Storage
+      // 6. Atualizar mensagem com URL do Storage
       const { error: updateError } = await supabase
         .from('messages')
         .update({
           media_url: storageUrl,
-          text: mediaData.caption || ''
+          text: mediaData.caption || `[${mediaData.mediaType?.toUpperCase() || 'MÍDIA'}]`
         })
         .eq('id', messageId);
 
@@ -247,24 +194,8 @@ class MediaProcessor {
     try {
       console.log('[Media] 🔄 Fallback: salvando base64 no cache:', messageId);
 
-      // Detectar MIME type inteligentemente para Data URL
-      const mimeType = this.getMimeTypeFromBase64(mediaData.base64Data, mediaData.mediaType);
-      
-      // Extrair base64 puro se necessário
-      let base64Data = mediaData.base64Data;
-      if (base64Data.startsWith('data:')) {
-        base64Data = base64Data.split(',')[1];
-      }
-      
       // Salvar no cache de mídia como fallback
-      const cachedUrl = `data:${mimeType};base64,${base64Data}`;
-      
-      console.log('[Media] 🍎 Fallback com detecção avançada:', {
-        originalType: mediaData.mediaType,
-        detectedMime: mimeType,
-        isAppleFormat: mimeType.includes('heic') || mimeType.includes('heif') || mimeType.includes('hevc'),
-        dataUrlLength: cachedUrl.length
-      });
+      const cachedUrl = `data:${this.getMimeType(mediaData.mediaType)};base64,${mediaData.base64Data}`;
       
       const { error: cacheError } = await supabase
         .from('media_cache')
@@ -291,7 +222,7 @@ class MediaProcessor {
         .from('messages')
         .update({
           media_url: cachedUrl,
-          text: mediaData.caption || ''
+          text: mediaData.caption || `[${mediaData.mediaType?.toUpperCase() || 'MÍDIA'}]`
         })
         .eq('id', messageId);
 
@@ -309,111 +240,14 @@ class MediaProcessor {
     }
   }
 
-  // 🚀 DETECÇÃO INTELIGENTE DE MIME TYPE BASEADA NO BASE64
-  static getMimeTypeFromBase64(base64Data: string, fallbackType: string): string {
-    // Extrair MIME do Data URL se presente
-    if (base64Data.startsWith('data:')) {
-      const mimeMatch = base64Data.match(/^data:([^;]+)/);
-      if (mimeMatch) {
-        const detectedMime = mimeMatch[1];
-        
-        // 🔧 CORREÇÃO: Mapear tipos problemáticos para tipos corretos
-        const mimeCorrections: { [key: string]: string } = {
-          'application/postscript': 'application/pdf',
-          'application/octet-stream': fallbackType === 'document' ? 'application/pdf' : 'application/octet-stream'
-        };
-        
-        return mimeCorrections[detectedMime] || detectedMime;
-      }
-    }
-    
-    // Fallback baseado no tipo com suporte completo
-    const fallbackMimes: { [key: string]: string } = {
-      'image': 'image/jpeg',
-      'video': 'video/mp4', 
-      'audio': 'audio/mpeg',
-      'document': 'application/pdf',
-      'sticker': 'image/webp'
-    };
-    
-    return fallbackMimes[fallbackType] || 'application/octet-stream';
-  }
-
-  // 🍎 EXTENSÕES CORRETAS INCLUINDO FORMATOS APPLE
-  static getFileExtension(mimeType: string): string {
-    const extensions: { [key: string]: string } = {
-      // 🖼️ IMAGENS (incluindo Apple HEIC)
-      'image/jpeg': 'jpg',
-      'image/jpg': 'jpg',
-      'image/png': 'png', 
-      'image/webp': 'webp',
-      'image/heic': 'heic', // ✅ APPLE HEIC
-      'image/heif': 'heif', // ✅ APPLE HEIF
-      
-      // 🎥 VÍDEOS (incluindo Apple HEVC)
-      'video/mp4': 'mp4',
-      'video/3gpp': '3gp',
-      'video/hevc': 'mov', // ✅ APPLE HEVC/H.265
-      'video/h265': 'mov', // ✅ APPLE H.265
-      'video/quicktime': 'mov',
-      
-      // 🎵 ÁUDIOS
-      'audio/mpeg': 'mp3',
-      'audio/mp3': 'mp3',
-      'audio/mp4': 'm4a',
-      'audio/aac': 'aac',
-      'audio/amr': 'amr',
-      'audio/ogg': 'ogg',
-      
-      // 📄 DOCUMENTOS
-      'application/pdf': 'pdf',
-      'text/plain': 'txt',
-      'application/msword': 'doc',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
-      'application/vnd.ms-excel': 'xls',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
-      'application/vnd.ms-powerpoint': 'ppt',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx'
-    };
-    
-    return extensions[mimeType] || 'bin';
-  }
-  
-  // 📏 LIMITES DE TAMANHO POR TIPO
-  static getSizeLimit(mediaType: string): number {
-    const limits: { [key: string]: number } = {
-      'image': 5 * 1024 * 1024,      // 5MB
-      'video': 16 * 1024 * 1024,     // 16MB
-      'audio': 16 * 1024 * 1024,     // 16MB  
-      'document': 100 * 1024 * 1024, // 100MB
-      'sticker': 500 * 1024          // 500KB
-    };
-    
-    return limits[mediaType] || 2 * 1024 * 1024; // Default 2MB
-  }
-  
-  // ✅ VALIDAÇÃO COMPLETA DE MÍDIA
-  static validateMedia(mediaData: any): { valid: boolean; error?: string } {
-    if (!mediaData.base64Data) {
-      return { valid: false, error: 'Base64 data missing' };
-    }
-    
-    const sizeLimit = this.getSizeLimit(mediaData.mediaType);
-    const actualSize = mediaData.base64Data.length;
-    
-    if (actualSize > sizeLimit) {
-      return { 
-        valid: false, 
-        error: `File too large: ${(actualSize / 1024 / 1024).toFixed(2)}MB > ${(sizeLimit / 1024 / 1024).toFixed(2)}MB` 
-      };
-    }
-    
-    return { valid: true };
-  }
-
-  // 🔄 FUNÇÃO LEGACY MANTIDA PARA COMPATIBILIDADE
   static getMimeType(mediaType: string): string {
-    return this.getMimeTypeFromBase64('', mediaType);
+    const mimeTypes: { [key: string]: string } = {
+      'image': 'image/jpeg',
+      'video': 'video/mp4',
+      'audio': 'audio/mpeg',
+      'document': 'application/pdf'
+    };
+    return mimeTypes[mediaType] || 'application/octet-stream';
   }
 }
 
@@ -452,21 +286,10 @@ serve(async (req: Request) => {
       event: sanitizedData.event,
       instanceId: sanitizedData.instanceId,
       hasMessage: !!(sanitizedData.message || sanitizedData.data?.messages),
-      hasMediaData: !!(
-        sanitizedData.mediabase64 || 
-        sanitizedData.mediaData || 
-        sanitizedData.base64Data ||
-        sanitizedData.media ||
-        sanitizedData.buffer ||
-        sanitizedData.content ||
-        sanitizedData.data?.buffer ||
-        sanitizedData.data?.base64 ||
-        sanitizedData.message?.media
-      ),
-      timestamp: new Date().toISOString()
+      messageType: sanitizedData.messageType
     });
 
-    // 🚨 DEBUG: Log completo dos dados recebidos
+    // 🔍 DEBUG: Log completo do payload VPS
     console.log('[Webhook] 📋 PAYLOAD COMPLETO VPS:', {
       allKeys: Object.keys(sanitizedData),
       messageType: sanitizedData.messageType,
@@ -482,100 +305,46 @@ serve(async (req: Request) => {
       payload_size: JSON.stringify(sanitizedData).length
     });
 
-    // 🚨 INVESTIGAÇÃO DETALHADA: Onde está a mídia?
-    if (sanitizedData.messageType !== 'text') {
-      console.log('[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA:', {
-        messageType: sanitizedData.messageType,
-        topLevelKeys: Object.keys(sanitizedData),
-        // Verificar campos diretos
-        directMedia: {
-          mediabase64: sanitizedData.mediabase64 ? `${sanitizedData.mediabase64.substring(0, 50)}...` : null,
-          mediaData: sanitizedData.mediaData,
-          base64Data: sanitizedData.base64Data ? `${sanitizedData.base64Data.substring(0, 50)}...` : null,
-          media: sanitizedData.media,
-          buffer: sanitizedData.buffer ? `${sanitizedData.buffer.substring(0, 50)}...` : null,
-          content: sanitizedData.content ? `${sanitizedData.content.substring(0, 50)}...` : null,
-        },
-        // Verificar campos aninhados
-        nestedMedia: {
-          data_keys: sanitizedData.data ? Object.keys(sanitizedData.data) : null,
-          data_buffer: sanitizedData.data?.buffer ? `${sanitizedData.data.buffer.substring(0, 50)}...` : null,
-          data_base64: sanitizedData.data?.base64 ? `${sanitizedData.data.base64.substring(0, 50)}...` : null,
-          message_keys: sanitizedData.message ? Object.keys(sanitizedData.message) : null,
-          message_media: sanitizedData.message?.media
-        }
-      });
-    }
-
-    // Process different webhook events
     let result;
+
     switch (sanitizedData.event) {
-      case 'qr_update':
+      case 'qr':
         result = await processQRUpdate(supabase, sanitizedData);
         break;
-      case 'message_received':
-      case 'messages.upsert':
-        result = await processMessage(supabase, sanitizedData);
-        break;
-      case 'connection_update':
-      case 'connection.update':
+      case 'connection':
         result = await processConnectionUpdate(supabase, sanitizedData);
         break;
+      case 'message':
+        result = await processMessage(supabase, sanitizedData);
+        break;
       default:
-        console.warn('[Webhook] ⚠️ Evento desconhecido:', sanitizedData.event);
-        // NÃO retornar erro para eventos desconhecidos - apenas log
-        result = { success: true, message: 'Event logged but not processed', event: sanitizedData.event };
+        console.log('[Webhook] ⚠️ Evento não mapeado:', sanitizedData.event);
+        result = { success: true, message: 'Event received but not processed' };
     }
 
-    // Log successful webhook processing
-    await supabase.from('sync_logs').insert({
-      function_name: 'webhook_whatsapp_web',
-      status: 'success',
-      result: {
-        event: sanitizedData.event,
-        instanceId: sanitizedData.instanceId,
-        processed: true,
-        hasMedia: !!(
-          sanitizedData.data?.mediaBase64 ||  // ✅ CORREÇÃO: Campo correto do VPS
-          sanitizedData.mediabase64 || 
-          sanitizedData.mediaData || 
-          sanitizedData.base64Data ||
-          sanitizedData.media ||
-          sanitizedData.buffer ||
-          sanitizedData.content ||
-          sanitizedData.data?.buffer ||
-          sanitizedData.data?.base64 ||
-          sanitizedData.message?.media
-        ),
-        timestamp: new Date().toISOString()
-      }
+    // Log do resultado
+    console.log('[Webhook] ✅ Processamento concluído:', {
+      event: sanitizedData.event,
+      success: result.success,
+      message: result.message
     });
-
-    console.log('[Webhook] ✅ Processamento concluído:', result);
 
     return new Response(JSON.stringify(result), {
       status: 200,
-      headers: corsHeaders
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
 
-  } catch (error: any) {
-    console.error('[Webhook] ❌ ERRO CRÍTICO:', {
-      message: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Log error for monitoring
+  } catch (error) {
+    console.error('[Webhook] ❌ Erro no processamento:', error);
+
+    // Log erro no banco para debug
     try {
-      await supabase.from('sync_logs').insert({
-        function_name: 'webhook_whatsapp_web',
-        status: 'error',
+      await supabase.from('webhook_logs').insert({
+        event_type: 'error',
+        payload: 'Error occurred during processing',
         error_message: error.message,
-        result: {
-          error: error.message,
-          stack: error.stack,
-          timestamp: new Date().toISOString()
-        }
+        status: 'error',
+        timestamp: new Date().toISOString()
       });
     } catch (logError) {
       console.error('[Webhook] ❌ Erro ao fazer log:', logError);
@@ -585,8 +354,8 @@ serve(async (req: Request) => {
       success: false, 
       error: 'Webhook processing failed',
       message: error.message 
-    }), { 
-      status: 500, 
+    }), {
+      status: 500,
       headers: corsHeaders
     });
   }
@@ -627,7 +396,6 @@ async function processMessage(supabase: any, data: any) {
     fromMe: data.fromMe || (data.data?.messages?.[0]?.key?.fromMe),
     messageType: data.messageType || data.data?.messages?.[0]?.messageType,
     hasMediaData: !!(
-      data.data?.mediaBase64 ||  // ✅ CORREÇÃO: Campo correto do VPS
       data.mediabase64 || 
       data.mediaData || 
       data.base64Data ||
@@ -657,13 +425,12 @@ async function processMessage(supabase: any, data: any) {
               data.caption ||
               '[Mídia recebida]'
       },
-      messageType: data.messageType === 'sticker' ? 'image' : (data.messageType || 'text'),
+      messageType: data.messageType || 'text',
       mediaUrl: data.mediaUrl,
       contactName: data.contactName,
-      // 🚀 DADOS DE MÍDIA EXTRAÍDOS - CORREÇÃO APLICADA
+      // 🚀 DADOS DE MÍDIA EXTRAÍDOS
       mediaData: {
         base64Data: 
-          data.data?.mediaBase64 ||  // ✅ CAMPO CORRETO DO VPS IDENTIFICADO!
           data.mediabase64 || 
           data.base64Data || 
           data.mediaData?.base64Data ||
@@ -685,17 +452,16 @@ async function processMessage(supabase: any, data: any) {
       instanceId: data.instanceId,
       from: data.from,
       fromMe: data.fromMe,
-      externalMessageId: data.data?.messageId || data.messageId || data.id || data.external_message_id, // ✅ CRUCIAL: External Message ID
+      externalMessageId: data.messageId || data.id || data.external_message_id, // ✅ CRUCIAL: External Message ID
       message: {
         text: data.message?.text || data.caption || '[Mídia recebida]'
       },
-      messageType: data.messageType === 'sticker' ? 'image' : (data.messageType || 'text'),
+      messageType: data.messageType || 'text',
       mediaUrl: data.mediaUrl,
       contactName: data.contactName,
-      // 🚀 DADOS DE MÍDIA EXTRAÍDOS - CORREÇÃO APLICADA  
+      // 🚀 DADOS DE MÍDIA EXTRAÍDOS
       mediaData: {
         base64Data: 
-          data.data?.mediaBase64 ||  // ✅ CAMPO CORRETO DO VPS IDENTIFICADO!
           data.mediabase64 || 
           data.base64Data || 
           data.mediaData?.base64Data ||
@@ -708,7 +474,7 @@ async function processMessage(supabase: any, data: any) {
         fileName: data.fileName || data.mediaData?.fileName,
         mediaType: data.messageType || data.mediaData?.mediaType,
         caption: data.caption || data.mediaData?.caption,
-        externalMessageId: data.data?.messageId || data.messageId || data.id || data.external_message_id
+        externalMessageId: data.messageId || data.id || data.external_message_id
       }
     };
   }
@@ -765,7 +531,7 @@ async function processMessage(supabase: any, data: any) {
     }
   }
 
-    return {
+  return { 
     success: true, 
     message: 'Message processed completely with existing infrastructure', 
     data: {

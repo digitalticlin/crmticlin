@@ -3,11 +3,15 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { AIAgent, AIAgentPrompt } from "@/types/aiAgent";
 import { AIAgentForm } from "./AIAgentForm";
-import { PromptConfiguration } from "./PromptConfiguration";
+import { EnhancedPromptConfiguration } from "./EnhancedPromptConfiguration";
 import { useAIAgentPrompts } from "@/hooks/useAIAgentPrompts";
+import { PortalErrorBoundary } from "@/components/error/PortalErrorBoundary";
+import { FlowStepEnhanced, PQExample } from "@/types/aiAgent";
 import { Bot, MessageSquare, ListChecks, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 interface AIAgentModalProps {
   isOpen: boolean;
@@ -19,47 +23,81 @@ interface AIAgentModalProps {
 export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalProps) => {
   const [activeTab, setActiveTab] = useState("basic");
   const [workingAgent, setWorkingAgent] = useState<AIAgent | null>(null);
-  const { getPromptByAgentId } = useAIAgentPrompts();
+  const [isMounted, setIsMounted] = useState(true);
+  const [allowTabNavigation, setAllowTabNavigation] = useState(false); // Permitir navegação livre
+  const { getPromptByAgentId, createPrompt, updatePrompt } = useAIAgentPrompts();
   
-  // Centralized form data state with better initialization
+  // Centralized form data state with database structure
   const [promptData, setPromptData] = useState({
     agent_function: "",
+    agent_objective: "",
     communication_style: "",
+    communication_style_examples: [] as PQExample[],
     company_info: "",
-    product_service_info: "",
+    products_services: "",
+    products_services_examples: [] as PQExample[],
+    rules_guidelines: "",
+    rules_guidelines_examples: [] as PQExample[],
     prohibitions: "",
-    objectives: [] as string[]
+    prohibitions_examples: [] as PQExample[],
+    client_objections: "",
+    client_objections_examples: [] as PQExample[],
+    phrase_tips: "",
+    phrase_tips_examples: [] as PQExample[],
+    flow: [] as FlowStepEnhanced[]
   });
 
   // Auto-save functionality
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // Track component mount state
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+
   // Initialize or reset state when modal opens/closes or agent changes
   useEffect(() => {
     if (isOpen && agent) {
       setWorkingAgent(agent);
-      loadPromptData(agent.id);
+      setAllowTabNavigation(true); // Permitir navegação para agente existente
+      // Só carregar dados se não houver mudanças não salvas
+      if (!hasUnsavedChanges) {
+        loadPromptData(agent.id);
+      }
     } else if (isOpen && !agent) {
       // Reset state for new agent
       setWorkingAgent(null);
+      setAllowTabNavigation(true); // Permitir navegação livre para novo agente
       resetPromptData();
     } else if (!isOpen) {
       // Reset everything when modal closes
       setActiveTab("basic");
       setWorkingAgent(null);
+      setAllowTabNavigation(false);
       resetPromptData();
       setHasUnsavedChanges(false);
     }
-  }, [isOpen, agent]);
+  }, [isOpen, agent]); // Removido hasUnsavedChanges da dependência para evitar loops
 
   const resetPromptData = () => {
     setPromptData({
       agent_function: "",
+      agent_objective: "",
       communication_style: "",
+      communication_style_examples: [],
       company_info: "",
-      product_service_info: "",
+      products_services: "",
+      products_services_examples: [],
+      rules_guidelines: "",
+      rules_guidelines_examples: [],
       prohibitions: "",
-      objectives: []
+      prohibitions_examples: [],
+      client_objections: "",
+      client_objections_examples: [],
+      phrase_tips: "",
+      phrase_tips_examples: [],
+      flow: []
     });
   };
 
@@ -67,13 +105,24 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     try {
       const existingPrompt = await getPromptByAgentId(agentId);
       if (existingPrompt) {
+        // Mapear dados diretamente da nova estrutura do banco
         setPromptData({
           agent_function: existingPrompt.agent_function || "",
+          agent_objective: existingPrompt.agent_objective || "",
           communication_style: existingPrompt.communication_style || "",
+          communication_style_examples: existingPrompt.communication_style_examples || [],
           company_info: existingPrompt.company_info || "",
-          product_service_info: existingPrompt.product_service_info || "",
+          products_services: existingPrompt.products_services || "",
+          products_services_examples: existingPrompt.products_services_examples || [],
+          rules_guidelines: existingPrompt.rules_guidelines || "",
+          rules_guidelines_examples: existingPrompt.rules_guidelines_examples || [],
           prohibitions: existingPrompt.prohibitions || "",
-          objectives: Array.isArray(existingPrompt.objectives) ? existingPrompt.objectives : []
+          prohibitions_examples: existingPrompt.prohibitions_examples || [],
+          client_objections: existingPrompt.client_objections || "",
+          client_objections_examples: existingPrompt.client_objections_examples || [],
+          phrase_tips: existingPrompt.phrase_tips || "",
+          phrase_tips_examples: existingPrompt.phrase_tips_examples || [],
+          flow: existingPrompt.flow || []
         });
       } else {
         resetPromptData();
@@ -86,10 +135,9 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
 
   const handleAgentSaved = (savedAgent: AIAgent) => {
     setWorkingAgent(savedAgent);
-    // Auto-navigate to prompt configuration after agent creation
-    setActiveTab("prompt");
-    // Load existing prompt data if any
-    loadPromptData(savedAgent.id);
+    setAllowTabNavigation(true); // Permitir navegação após salvar agente
+    // Removido: setActiveTab("prompt"); - o usuário deve navegar manualmente
+    // Removido: loadPromptData(savedAgent.id); - não recarregar dados para preservar mudanças
   };
 
   const handlePromptDataChange = (field: keyof typeof promptData, value: any) => {
@@ -98,21 +146,105 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   };
 
   const handleClose = () => {
-    onClose();
+    if (!isMounted) return; // Safety check
+    
+    // Verificar se há dados não salvos
+    if (hasUnsavedChanges) {
+      const confirmClose = confirm(
+        'Tem certeza que deseja fechar sem salvar?\n\nTodas as alterações não salvas serão perdidas.'
+      );
+      if (!confirmClose) {
+        return; // Usuário cancelou, não fechar
+      }
+    }
+    
+    console.log('🚪 Fechando modal - dados salvos ou usuário confirmou');
+    // Add a small delay to ensure proper cleanup
+    setTimeout(() => {
+      onClose();
+    }, 0);
   };
 
-  const handleSave = () => {
-    setHasUnsavedChanges(false);
-    onSave();
-    handleClose();
+  const handleSave = async () => {
+    console.log('🚀 INICIANDO SALVAMENTO - handleSave do modal principal');
+    
+    try {
+      // Verificar se temos um agente (criado ou existente)
+      const targetAgent = workingAgent || agent;
+      console.log('🔍 Target Agent:', targetAgent);
+      
+      if (!targetAgent) {
+        console.log('❌ Nenhum agente encontrado');
+        toast.error('É necessário salvar as informações básicas primeiro');
+        setActiveTab('basic');
+        return;
+      }
+
+      // Preparar dados do prompt para salvamento
+      const promptDataToSave = {
+        agent_id: targetAgent.id,
+        ...promptData
+      };
+      
+      console.log('📝 Dados do prompt para salvar:', promptDataToSave);
+
+      // Verificar se já existe um prompt para este agente
+      console.log('🔎 Verificando se prompt existe para agente:', targetAgent.id);
+      const existingPrompt = await getPromptByAgentId(targetAgent.id);
+      console.log('📊 Prompt existente encontrado:', existingPrompt);
+      
+      if (existingPrompt) {
+        // Atualizar prompt existente
+        console.log('🔄 Atualizando prompt existente:', existingPrompt.id);
+        const success = await updatePrompt(existingPrompt.id, promptDataToSave);
+        console.log('💾 Resultado da atualização:', success);
+        
+        if (success) {
+          toast.success('Configuração do agente salva com sucesso');
+          setHasUnsavedChanges(false);
+          onSave(); // Notificar parent component
+          console.log('✅ SALVAMENTO CONCLUÍDO COM SUCESSO (UPDATE)');
+        } else {
+          toast.error('Erro ao salvar configuração');
+          console.log('❌ FALHA NO SALVAMENTO (UPDATE)');
+        }
+      } else {
+        // Criar novo prompt
+        console.log('➕ Criando novo prompt');
+        const newPrompt = await createPrompt(promptDataToSave);
+        console.log('💾 Resultado da criação:', newPrompt);
+        
+        if (newPrompt) {
+          toast.success('Configuração do agente salva com sucesso');
+          setHasUnsavedChanges(false);
+          onSave(); // Notificar parent component
+          console.log('✅ SALVAMENTO CONCLUÍDO COM SUCESSO (CREATE)');
+        } else {
+          toast.error('Erro ao criar configuração');
+          console.log('❌ FALHA NO SALVAMENTO (CREATE)');
+        }
+      }
+    } catch (error) {
+      console.error('💥 ERRO CRÍTICO no salvamento:', error);
+      toast.error('Erro ao salvar configuração do agente');
+    }
   };
 
   // Get current agent (either existing or newly created)
   const currentAgent = workingAgent || agent;
-  const stepsCount = promptData.objectives.length;
+  const stepsCount = promptData.flow.length;
+  
+  // Permitir acesso às abas mesmo sem agent (para novos agentes)
+  const canAccessTabs = allowTabNavigation;
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <PortalErrorBoundary>
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        // Permitir fechamento apenas com ESC ou programaticamente
+        if (!open) {
+          handleClose();
+        }
+      }}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-xl">
         <DialogHeader className="border-b border-white/30 pb-3 bg-white/20 backdrop-blur-sm rounded-t-xl -mx-6 -mt-6 px-6 pt-6">
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
@@ -143,7 +275,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
               <TabsTrigger 
                 value="prompt" 
                 className="flex items-center gap-2 text-xs font-medium data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-glass data-[state=active]:border data-[state=active]:border-white/50 rounded-lg py-2 px-3 transition-all duration-300 hover:bg-white/30"
-                disabled={!currentAgent}
               >
                 <MessageSquare className="h-3 w-3" />
                 <span className="hidden sm:inline">Configuração do Prompt</span>
@@ -152,7 +283,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
               <TabsTrigger 
                 value="objectives" 
                 className="flex items-center gap-2 text-xs font-medium data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-glass data-[state=active]:border data-[state=active]:border-white/50 rounded-lg py-2 px-3 transition-all duration-300 hover:bg-white/30"
-                disabled={!currentAgent}
               >
                 <ListChecks className="h-3 w-3" />
                 <span className="hidden sm:inline">Fluxo do Agente</span>
@@ -202,7 +332,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-4 bg-white/20 backdrop-blur-sm rounded-b-xl">
-                  <PromptConfiguration 
+                  <EnhancedPromptConfiguration 
                     agent={currentAgent} 
                     promptData={promptData}
                     onPromptDataChange={handlePromptDataChange}
@@ -232,7 +362,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-4 bg-white/20 backdrop-blur-sm rounded-b-xl">
-                  <PromptConfiguration 
+                  <EnhancedPromptConfiguration 
                     agent={currentAgent} 
                     promptData={promptData}
                     onPromptDataChange={handlePromptDataChange}
@@ -244,8 +374,16 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
               </Card>
             </TabsContent>
           </Tabs>
+          
+          {/* Info de como salvar */}
+          <div className="mt-4 p-3 bg-blue-50/80 backdrop-blur-sm border border-blue-200/60 rounded-lg">
+            <p className="text-sm text-blue-800 text-center">
+              💡 <strong>Dica:</strong> Use os botões "Configurar" em cada campo para editar e salvar suas configurações
+            </p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
+    </PortalErrorBoundary>
   );
 };

@@ -24,7 +24,13 @@ export const useAIAgentPrompts = (agentId?: string) => {
       // Convert database records to typed AIAgentPrompt objects
       const typedPrompts: AIAgentPrompt[] = (data || []).map(prompt => ({
         ...prompt,
-        objectives: Array.isArray(prompt.objectives) ? prompt.objectives as string[] : []
+        communication_style_examples: Array.isArray(prompt.communication_style_examples) ? prompt.communication_style_examples : [],
+        products_services_examples: Array.isArray(prompt.products_services_examples) ? prompt.products_services_examples : [],
+        rules_guidelines_examples: Array.isArray(prompt.rules_guidelines_examples) ? prompt.rules_guidelines_examples : [],
+        prohibitions_examples: Array.isArray(prompt.prohibitions_examples) ? prompt.prohibitions_examples : [],
+        client_objections_examples: Array.isArray(prompt.client_objections_examples) ? prompt.client_objections_examples : [],
+        phrase_tips_examples: Array.isArray(prompt.phrase_tips_examples) ? prompt.phrase_tips_examples : [],
+        flow: Array.isArray(prompt.flow) ? prompt.flow : []
       }));
       
       setPrompts(typedPrompts);
@@ -38,14 +44,26 @@ export const useAIAgentPrompts = (agentId?: string) => {
 
   const createPrompt = async (data: CreateAIAgentPromptData): Promise<AIAgentPrompt | null> => {
     try {
+      console.log('➕ createPrompt called with:', data);
+      
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Usuário não autenticado');
 
-      // Ensure objectives is properly formatted
+      console.log('👤 User authenticated:', user.user.id);
+
+      // Ensure all array fields are properly formatted
       const formattedData = {
         ...data,
-        objectives: Array.isArray(data.objectives) ? data.objectives : []
+        communication_style_examples: Array.isArray(data.communication_style_examples) ? data.communication_style_examples : [],
+        products_services_examples: Array.isArray(data.products_services_examples) ? data.products_services_examples : [],
+        rules_guidelines_examples: Array.isArray(data.rules_guidelines_examples) ? data.rules_guidelines_examples : [],
+        prohibitions_examples: Array.isArray(data.prohibitions_examples) ? data.prohibitions_examples : [],
+        client_objections_examples: Array.isArray(data.client_objections_examples) ? data.client_objections_examples : [],
+        phrase_tips_examples: Array.isArray(data.phrase_tips_examples) ? data.phrase_tips_examples : [],
+        flow: Array.isArray(data.flow) ? data.flow : []
       };
+
+      console.log('📝 formattedData:', formattedData);
 
       const { data: prompt, error } = await supabase
         .from('ai_agent_prompts')
@@ -56,12 +74,20 @@ export const useAIAgentPrompts = (agentId?: string) => {
         .select()
         .single();
 
+      console.log('📊 Supabase response:', { prompt, error });
+
       if (error) throw error;
       
       // Convert database record to typed AIAgentPrompt object
       const typedPrompt: AIAgentPrompt = {
         ...prompt,
-        objectives: Array.isArray(prompt.objectives) ? prompt.objectives as string[] : []
+        communication_style_examples: Array.isArray(prompt.communication_style_examples) ? prompt.communication_style_examples : [],
+        products_services_examples: Array.isArray(prompt.products_services_examples) ? prompt.products_services_examples : [],
+        rules_guidelines_examples: Array.isArray(prompt.rules_guidelines_examples) ? prompt.rules_guidelines_examples : [],
+        prohibitions_examples: Array.isArray(prompt.prohibitions_examples) ? prompt.prohibitions_examples : [],
+        client_objections_examples: Array.isArray(prompt.client_objections_examples) ? prompt.client_objections_examples : [],
+        phrase_tips_examples: Array.isArray(prompt.phrase_tips_examples) ? prompt.phrase_tips_examples : [],
+        flow: Array.isArray(prompt.flow) ? prompt.flow : []
       };
       
       // Update local state
@@ -75,22 +101,29 @@ export const useAIAgentPrompts = (agentId?: string) => {
 
   const updatePrompt = async (id: string, updates: Partial<AIAgentPrompt>): Promise<boolean> => {
     try {
-      // Ensure objectives is properly formatted
-      const formattedUpdates = {
-        ...updates,
-        objectives: Array.isArray(updates.objectives) ? updates.objectives : []
-      };
+      console.log('🔄 updatePrompt called with:', { id, updates });
+      
+      // Ensure all array fields are properly formatted - remove undefined values
+      const formattedUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([_, value]) => value !== undefined)
+      );
 
-      const { error } = await supabase
+      console.log('📝 formattedUpdates:', formattedUpdates);
+
+      const { data, error } = await supabase
         .from('ai_agent_prompts')
         .update(formattedUpdates)
-        .eq('id', id);
+        .eq('id', id)
+        .select();
+
+      console.log('📊 Supabase response:', { data, error });
 
       if (error) throw error;
       
+      console.log('✅ updatePrompt success');
       return true;
     } catch (error) {
-      console.error('Error updating AI agent prompt:', error);
+      console.error('❌ Error updating AI agent prompt:', error);
       throw error;
     }
   };

@@ -3,7 +3,8 @@ import React from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { MessageMediaRenderer } from './MessageMediaRenderer';
+import { MessageMediaEnhanced } from '../MessageMediaEnhanced';
+import { MessageMediaDirect } from '../MessageMediaDirect';
 import { MessageStatus } from './MessageStatus';
 import { MessageActions } from './MessageActions';
 import { CheckCircle, Info, AlertCircle } from 'lucide-react';
@@ -81,11 +82,31 @@ export function MessageItem({
           {/* Conteúdo da mensagem */}
           <div className="space-y-2">
             {/* Mídia */}
-            {message.media_type !== 'text' && (
-              <MessageMediaRenderer 
-                message={message}
-                className="rounded-lg overflow-hidden"
-              />
+            {message.mediaType !== 'text' && (
+              <>
+                {/* 🚀 RENDERIZAÇÃO DIRETA quando media_url está presente */}
+                {message.mediaUrl ? (
+                  <MessageMediaDirect
+                    messageId={message.id}
+                    mediaType={message.mediaType}
+                    mediaUrl={message.mediaUrl}
+                    fileName={message.fileName}
+                    isIncoming={!isFromMe}
+                    className="rounded-lg overflow-hidden"
+                  />
+                ) : (
+                  /* 🔄 FALLBACK para hook complexo quando media_url não está presente */
+                  <MessageMediaEnhanced 
+                    messageId={message.id}
+                    mediaType={message.mediaType}
+                    mediaUrl={message.mediaUrl}
+                    fileName={message.fileName}
+                    isIncoming={!isFromMe}
+                    mediaCache={message.media_cache}
+                    className="rounded-lg overflow-hidden"
+                  />
+                )}
+              </>
             )}
             
             {/* Texto da mensagem */}

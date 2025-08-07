@@ -106,8 +106,9 @@ export default function AIAgents() {
   };
 
   const handleModalSave = () => {
+    console.log('📱 Modal save triggered - refreshing data without closing modal');
     refetch();
-    handleModalClose();
+    // Modal NÃO fecha automaticamente - usuário controla quando fechar
   };
 
   const createAgentAction = (
