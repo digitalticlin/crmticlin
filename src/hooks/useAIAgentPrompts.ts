@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AIAgentPrompt, CreateAIAgentPromptData } from '@/types/aiAgent';
@@ -23,14 +24,27 @@ export const useAIAgentPrompts = (agentId?: string) => {
       
       // Convert database records to typed AIAgentPrompt objects
       const typedPrompts: AIAgentPrompt[] = (data || []).map(prompt => ({
-        ...prompt,
+        id: prompt.id,
+        agent_id: prompt.agent_id,
+        agent_function: prompt.agent_function,
+        agent_objective: prompt.agent_objective || '',
+        communication_style: prompt.communication_style || '',
         communication_style_examples: Array.isArray(prompt.communication_style_examples) ? prompt.communication_style_examples : [],
+        company_info: prompt.company_info || '',
+        products_services: prompt.products_services || '',
         products_services_examples: Array.isArray(prompt.products_services_examples) ? prompt.products_services_examples : [],
+        rules_guidelines: prompt.rules_guidelines || '',
         rules_guidelines_examples: Array.isArray(prompt.rules_guidelines_examples) ? prompt.rules_guidelines_examples : [],
+        prohibitions: prompt.prohibitions || '',
         prohibitions_examples: Array.isArray(prompt.prohibitions_examples) ? prompt.prohibitions_examples : [],
+        client_objections: prompt.client_objections || '',
         client_objections_examples: Array.isArray(prompt.client_objections_examples) ? prompt.client_objections_examples : [],
+        phrase_tips: prompt.phrase_tips || '',
         phrase_tips_examples: Array.isArray(prompt.phrase_tips_examples) ? prompt.phrase_tips_examples : [],
-        flow: Array.isArray(prompt.flow) ? prompt.flow : []
+        flow: Array.isArray(prompt.flow) ? prompt.flow : [],
+        created_by_user_id: prompt.created_by_user_id,
+        created_at: prompt.created_at,
+        updated_at: prompt.updated_at
       }));
       
       setPrompts(typedPrompts);
@@ -80,14 +94,27 @@ export const useAIAgentPrompts = (agentId?: string) => {
       
       // Convert database record to typed AIAgentPrompt object
       const typedPrompt: AIAgentPrompt = {
-        ...prompt,
+        id: prompt.id,
+        agent_id: prompt.agent_id,
+        agent_function: prompt.agent_function,
+        agent_objective: prompt.agent_objective || '',
+        communication_style: prompt.communication_style || '',
         communication_style_examples: Array.isArray(prompt.communication_style_examples) ? prompt.communication_style_examples : [],
+        company_info: prompt.company_info || '',
+        products_services: prompt.products_services || '',
         products_services_examples: Array.isArray(prompt.products_services_examples) ? prompt.products_services_examples : [],
+        rules_guidelines: prompt.rules_guidelines || '',
         rules_guidelines_examples: Array.isArray(prompt.rules_guidelines_examples) ? prompt.rules_guidelines_examples : [],
+        prohibitions: prompt.prohibitions || '',
         prohibitions_examples: Array.isArray(prompt.prohibitions_examples) ? prompt.prohibitions_examples : [],
+        client_objections: prompt.client_objections || '',
         client_objections_examples: Array.isArray(prompt.client_objections_examples) ? prompt.client_objections_examples : [],
+        phrase_tips: prompt.phrase_tips || '',
         phrase_tips_examples: Array.isArray(prompt.phrase_tips_examples) ? prompt.phrase_tips_examples : [],
-        flow: Array.isArray(prompt.flow) ? prompt.flow : []
+        flow: Array.isArray(prompt.flow) ? prompt.flow : [],
+        created_by_user_id: prompt.created_by_user_id,
+        created_at: prompt.created_at,
+        updated_at: prompt.updated_at
       };
       
       // Update local state
@@ -140,10 +167,29 @@ export const useAIAgentPrompts = (agentId?: string) => {
       
       if (!data) return null;
       
-      // Convert database record to typed AIAgentPrompt object with proper array handling
+      // Convert database record to typed AIAgentPrompt object with proper mapping
       const typedPrompt: AIAgentPrompt = {
-        ...data,
-        objectives: Array.isArray(data.objectives) ? data.objectives as string[] : []
+        id: data.id,
+        agent_id: data.agent_id,
+        agent_function: data.agent_function,
+        agent_objective: data.agent_objective || '',
+        communication_style: data.communication_style || '',
+        communication_style_examples: Array.isArray(data.communication_style_examples) ? data.communication_style_examples : [],
+        company_info: data.company_info || '',
+        products_services: data.products_services || '',
+        products_services_examples: Array.isArray(data.products_services_examples) ? data.products_services_examples : [],
+        rules_guidelines: data.rules_guidelines || '',
+        rules_guidelines_examples: Array.isArray(data.rules_guidelines_examples) ? data.rules_guidelines_examples : [],
+        prohibitions: data.prohibitions || '',
+        prohibitions_examples: Array.isArray(data.prohibitions_examples) ? data.prohibitions_examples : [],
+        client_objections: data.client_objections || '',
+        client_objections_examples: Array.isArray(data.client_objections_examples) ? data.client_objections_examples : [],
+        phrase_tips: data.phrase_tips || '',
+        phrase_tips_examples: Array.isArray(data.phrase_tips_examples) ? data.phrase_tips_examples : [],
+        flow: Array.isArray(data.flow) ? data.flow : [],
+        created_by_user_id: data.created_by_user_id,
+        created_at: data.created_at,
+        updated_at: data.updated_at
       };
       
       return typedPrompt;
@@ -173,3 +219,4 @@ export const useAIAgentPrompts = (agentId?: string) => {
     refetch
   };
 };
+

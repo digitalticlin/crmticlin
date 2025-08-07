@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -41,7 +42,7 @@ export const useMediaLoaderEnhanced = ({
 
   const loadMedia = useCallback(async () => {
     // ✅ PROTEÇÃO: Verificar se temos dados suficientes
-    if (!mediaType || mediaType === 'text') {
+    if (!mediaType || mediaType === 'text' as any) {
       console.warn(`[MediaLoaderEnhanced] ⚠️ MediaType inválido: ${messageId.substring(0, 8)} (${mediaType})`);
       setError('Tipo de mídia inválido');
       setIsLoading(false);
@@ -211,3 +212,4 @@ const getMimeType = (mediaType: string, mediaCache?: any): string => {
     default: return 'application/octet-stream';
   }
 };
+
