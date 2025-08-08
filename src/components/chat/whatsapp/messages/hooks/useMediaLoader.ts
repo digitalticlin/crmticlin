@@ -85,7 +85,7 @@ export const useMediaLoader = ({
   mediaCache 
 }: UseMediaLoaderProps): UseMediaLoaderReturn => {
   const [finalUrl, setFinalUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 🆕 NOVOS ESTADOS
   const [shouldShowDownloadButton, setShouldShowDownloadButton] = useState(false);

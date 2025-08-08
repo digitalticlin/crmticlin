@@ -53,15 +53,24 @@ export const useScrollDetection = ({
       const currentScrollTop = scrollTop;
 
       onLoadMore().then(() => {
-        // Restaurar posição após carregar (sem scroll automático)
+        // Preservar posição após carregar mensagens antigas
         setTimeout(() => {
           if (container) {
             const newScrollHeight = container.scrollHeight;
             const addedHeight = newScrollHeight - currentScrollHeight;
-            container.scrollTop = currentScrollTop + addedHeight;
+            // Manter usuário na mesma posição relativa
+            const newPosition = currentScrollTop + addedHeight;
+            container.scrollTop = Math.max(0, newPosition);
+            
+            console.log('[useScrollDetection] 📍 Posição restaurada:', {
+              oldHeight: currentScrollHeight,
+              newHeight: newScrollHeight,
+              addedHeight,
+              newPosition
+            });
           }
           isLoadingRef.current = false;
-        }, 100);
+        }, 100); // Tempo otimizado
       }).catch(() => {
         isLoadingRef.current = false;
       });

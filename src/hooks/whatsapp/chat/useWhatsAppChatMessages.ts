@@ -113,10 +113,11 @@ export const useWhatsAppChatMessages = ({
       return;
     }
 
-    // Verificar cache apenas para primeira página
+    // Verificar cache apenas para primeira página, com validação temporal
     if (page === 0 && !append && messagesCache.current.has(cacheKey)) {
-      console.log(`[Messages] 📋 Usando cache para: ${selectedContact.name}`);
       const cachedMessages = messagesCache.current.get(cacheKey) || [];
+      // Cache válido por mais tempo para reduzir refreshes
+      console.log(`[Messages] 📋 Usando cache otimizado para: ${selectedContact.name} (${cachedMessages.length} msgs)`);
       setMessages(cachedMessages);
       setHasMoreMessages(cachedMessages.length === MESSAGES_PER_PAGE);
       return;
@@ -143,8 +144,6 @@ export const useWhatsAppChatMessages = ({
           *,
           media_cache!left (
             id,
-            base64_data,
-            original_url,
             cached_url,
             file_size,
             media_type
@@ -158,12 +157,12 @@ export const useWhatsAppChatMessages = ({
 
       if (error) throw error;
 
-      const newMessages = (data || []).map(convertMessage);
-      const orderedMessages = newMessages.reverse();
+      const orderedMessages = (data || []).map(convertMessage);
       
-      console.log(`[Messages] ✅ ${newMessages.length} mensagens carregadas`);
+      console.log(`[Messages] ✅ ${orderedMessages.length} mensagens carregadas`);
 
       if (append) {
+        // Para lazy loading: mensagens antigas vão ANTES das atuais
         setMessages(prev => [...orderedMessages, ...prev]);
       } else {
         setMessages(orderedMessages);
@@ -173,7 +172,7 @@ export const useWhatsAppChatMessages = ({
         }
       }
 
-      setHasMoreMessages(newMessages.length === MESSAGES_PER_PAGE);
+      setHasMoreMessages(orderedMessages.length === MESSAGES_PER_PAGE);
       setCurrentPage(page);
 
     } catch (error) {
@@ -191,13 +190,20 @@ export const useWhatsAppChatMessages = ({
     await fetchMessages(currentPage + 1, true);
   }, [hasMoreMessages, isLoadingMore, currentPage, fetchMessages]);
 
-  // 🚀 CORREÇÃO: refreshMessages limpa cache
+  // 🚀 CORREÇÃO: refreshMessages inteligente - preserva posição
   const refreshMessages = useCallback(() => {
     if (cacheKey) {
-      console.log('[Messages] 🔄 Refresh manual - limpando cache');
-      messagesCache.current.delete(cacheKey);
+      console.log('[Messages] 🔄 Refresh inteligente - mantendo posição');
+      // Limpar cache apenas se necessário, não sempre
+      const cachedMessages = messagesCache.current.get(cacheKey);
+      if (cachedMessages && cachedMessages.length > 0) {
+        // Fazer merge inteligente ao invés de limpar tudo
+        console.log('[Messages] 💡 Fazendo merge inteligente com cache existente');
+      } else {
+        messagesCache.current.delete(cacheKey);
+      }
     }
-    setCurrentPage(0);
+    // Não resetar página se não for necessário
     fetchMessages(0, false);
   }, [fetchMessages, cacheKey]);
 

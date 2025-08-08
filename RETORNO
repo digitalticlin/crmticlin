@@ -1,75 +1,351 @@
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { phone: "55639944****", lead_id: "d0ecc9e3-e777-4e2e-a99c-d8eaa4c56c90", user_id: "152f2390-ede4-4f46-89bc-da3d7f5da747", has_media: false, media_type: "text", message_id: "58b23db4-13a1-4064-9ef5-29b37acc9de9", instance_id: "d1d34909-3546-4dee-93fc-083f95323bc6", formatted_name: "+55 (63) 99449-959", media_cache_id: null, mediaProcessed: false, usedExistingInfrastructure: true } }
-[Webhook] ✅ Mensagem salva: { messageId: "58b23db4-13a1-4064-9ef5-29b37acc9de9", leadId: "d0ecc9e3-e777-4e2e-a99c-d8eaa4c56c90", fromMe: false }
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "text", mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 534 }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "imperioesportegyn", hasMessage: true, fromMe: undefined, messageType: "text", hasMediaData: false, hasCaption: false }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "imperioesportegyn", hasMessage: true, hasMediaData: false, timestamp: "2025-08-07T15:53:14.844Z" }
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 534, timestamp: "2025-08-07T15:53:14.842Z" }
-[Webhook] 🔑 Signature recebida: false
-Listening on http://localhost:9999/
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
-[Webhook] 🔑 Webhook secret configurado: false
-booted (time: 30ms)
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { phone: "55669723****", lead_id: "bc081653-63a2-41c3-a8a4-ac64212e6d01", user_id: "8cf224c2-2bed-4687-89a9-8639e76acd47", has_media: false, media_type: "text", message_id: "097b8782-c005-4275-988f-f64f9dbf77c4", instance_id: "589b304a-6d90-46b8-8f15-e4c0496e5213", formatted_name: "+55 (66) 97239-377", media_cache_id: null, mediaProcessed: false, usedExistingInfrastructure: true } }
-[Webhook] ✅ Mensagem salva: { messageId: "097b8782-c005-4275-988f-f64f9dbf77c4", leadId: "bc081653-63a2-41c3-a8a4-ac64212e6d01", fromMe: false }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "marketing", hasMessage: true, fromMe: undefined, messageType: "text", hasMediaData: false, hasCaption: false }
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "text", mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 550 }
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 🔑 Signature recebida: false
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 550, timestamp: "2025-08-07T15:53:10.708Z" }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "marketing", hasMessage: true, hasMediaData: false, timestamp: "2025-08-07T15:53:10.710Z" }
-Listening on http://localhost:9999/
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
-[Webhook] 🔑 Webhook secret configurado: false
-booted (time: 31ms)
-[Webhook] ✅ Processamento concluído: { success: false, error: "Failed to save message" }
-[Webhook] ❌ Erro ao salvar mensagem: { error: 'invalid input value for enum media_type: "sticker"', method: "service_role_error", success: false, sqlstate: "22P02" }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "imperioesportegyn", hasMessage: true, fromMe: true, messageType: "sticker", hasMediaData: false, hasCaption: false }
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "sticker", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "mediaUrl", "mediaBase64", "mediaSize", "instancePhone" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "imperioesportegyn", hasMessage: true, hasMediaData: false, timestamp: "2025-08-07T15:53:03.413Z" }
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "sticker", mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 510 }
-[Webhook] 🔑 Signature recebida: false
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 510, timestamp: "2025-08-07T15:53:03.412Z" }
-[Webhook] 🔑 Webhook secret configurado: false
-Listening on http://localhost:9999/
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
-booted (time: 24ms)
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { phone: "55639944****", lead_id: "d0ecc9e3-e777-4e2e-a99c-d8eaa4c56c90", user_id: "152f2390-ede4-4f46-89bc-da3d7f5da747", has_media: false, media_type: "text", message_id: "c096c295-165a-4ea7-bbfd-dd41a4c422d7", instance_id: "d1d34909-3546-4dee-93fc-083f95323bc6", formatted_name: "+55 (63) 99449-959", media_cache_id: null, mediaProcessed: false, usedExistingInfrastructure: true } }
-[Webhook] ✅ Mensagem salva: { messageId: "c096c295-165a-4ea7-bbfd-dd41a4c422d7", leadId: "d0ecc9e3-e777-4e2e-a99c-d8eaa4c56c90", fromMe: false }
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "imperioesportegyn", hasMessage: true, fromMe: undefined, messageType: "text", hasMediaData: false, hasCaption: false }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "text", mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 534 }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "imperioesportegyn", hasMessage: true, hasMediaData: false, timestamp: "2025-08-07T15:53:02.760Z" }
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 534, timestamp: "2025-08-07T15:53:02.758Z" }
-[Webhook] 🔑 Signature recebida: false
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-Listening on http://localhost:9999/
-[Webhook] 🔑 Webhook secret configurado: false
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
-booted (time: 31ms)
-shutdown
-shutdown
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { phone: "55669211****", lead_id: "c7d86711-7b75-4bf3-8177-ac0dc5bae150", user_id: "152f2390-ede4-4f46-89bc-da3d7f5da747", has_media: false, media_type: "image", message_id: "ecb25ebe-12a5-44a7-a752-9d79821b5ae5", instance_id: "d1d34909-3546-4dee-93fc-083f95323bc6", formatted_name: "+55 (66) 92119-303", media_cache_id: null, mediaProcessed: true, usedExistingInfrastructure: true } }
-[Webhook] ✅ Mídia processada com infraestrutura existente
-[Media] ✅ Processamento síncrono com Storage concluído: { messageId: "ecb25ebe-12a5-44a7-a752-9d79821b5ae5", fileName: "media_1754581856966_wlawrd.jpg", storageUrl: "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media...", fileSize: 91310 }
-[Media] 🍎 Processando mídia com detecção avançada: { originalType: "image", detectedMime: "image/jpeg", extension: "jpg", isAppleFormat: false, sizeMB: "0.09" }
-[Media] 🔄 Processamento síncrono com Storage existente: ecb25ebe-12a5-44a7-a752-9d79821b5ae5
-[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "ecb25ebe-12a5-44a7-a752-9d79821b5ae5", externalMessageId: undefined, mediaType: "image", sizeBytes: 121771, sizeMB: "0.12", limitMB: "5.00", willProcessSync: true, isValid: true, validationError: undefined }
-[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
-[Webhook] ✅ Mensagem salva: { messageId: "ecb25ebe-12a5-44a7-a752-9d79821b5ae5", leadId: "c7d86711-7b75-4bf3-8177-ac0dc5bae150", fromMe: false }
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "imperioesportegyn", hasMessage: true, fromMe: undefined, messageType: "image", hasMediaData: true, hasCaption: false }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "image", mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 122500 }
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "image", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "mediaUrl", "mediaBase64", "mediaSize", "instancePhone" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "imperioesportegyn", hasMessage: true, hasMediaData: false, timestamp: "2025-08-07T15:50:56.828Z" }
-[Webhook] 🔑 Signature recebida: false
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 122500, timestamp: "2025-08-07T15:50:56.826Z" }
-Listening on http://localhost:9999/
-[Webhook] 🔑 Webhook secret configurado: false
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
-booted (time: 30ms)
+DADOS DA TABELA MESSAGES:
+
+[
+  {
+    "id": "0437ae2f-cb01-4f70-a138-8b96827d2ae3",
+    "text": "",
+    "from_me": false,
+    "timestamp": "2025-08-07 16:32:55.775141+00",
+    "status": "received",
+    "media_type": "video",
+    "media_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584375809_kd42.mp4",
+    "lead_id": "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7",
+    "whatsapp_number_id": "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785",
+    "created_by_user_id": "712e7708-2299-4a00-9128-577c8f113ca4",
+    "created_at": "2025-08-07 16:32:55.775141+00",
+    "external_message_id": "3F13C0AA5BFF39A553D6",
+    "import_source": "realtime",
+    "content_hash": null,
+    "deleted_whatsapp_instance_name": null,
+    "audio_transcription": null
+  },
+  {
+    "id": "e450b4f2-efd0-4380-bb2b-53ffd8b259f9",
+    "text": "",
+    "from_me": false,
+    "timestamp": "2025-08-07 16:32:55.437232+00",
+    "status": "received",
+    "media_type": "document",
+    "media_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584375474_nead0r.mp4",
+    "lead_id": "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7",
+    "whatsapp_number_id": "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785",
+    "created_by_user_id": "712e7708-2299-4a00-9128-577c8f113ca4",
+    "created_at": "2025-08-07 16:32:55.437232+00",
+    "external_message_id": "3FE0DEF1E69D1BD6A487",
+    "import_source": "realtime",
+    "content_hash": null,
+    "deleted_whatsapp_instance_name": null,
+    "audio_transcription": null
+  },
+  {
+    "id": "71749b40-cbd5-4004-8301-e9f6a98e3bd5",
+    "text": "",
+    "from_me": false,
+    "timestamp": "2025-08-07 16:32:55.332187+00",
+    "status": "received",
+    "media_type": "image",
+    "media_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584375366_plcqn.jpg",
+    "lead_id": "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7",
+    "whatsapp_number_id": "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785",
+    "created_by_user_id": "712e7708-2299-4a00-9128-577c8f113ca4",
+    "created_at": "2025-08-07 16:32:55.332187+00",
+    "external_message_id": "3F6EE0F9BE085E1C1C1D",
+    "import_source": "realtime",
+    "content_hash": null,
+    "deleted_whatsapp_instance_name": null,
+    "audio_transcription": null
+  },
+  {
+    "id": "e32ac19a-f585-425f-bfd1-843c3284d63d",
+    "text": "",
+    "from_me": false,
+    "timestamp": "2025-08-07 16:32:54.773201+00",
+    "status": "received",
+    "media_type": "image",
+    "media_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374812_dva5pd.jpg",
+    "lead_id": "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7",
+    "whatsapp_number_id": "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785",
+    "created_by_user_id": "712e7708-2299-4a00-9128-577c8f113ca4",
+    "created_at": "2025-08-07 16:32:54.773201+00",
+    "external_message_id": "3FE04737BABB39C2C809",
+    "import_source": "realtime",
+    "content_hash": null,
+    "deleted_whatsapp_instance_name": null,
+    "audio_transcription": null
+  },
+  {
+    "id": "8e08238d-c13c-4d38-928f-5e6e7ea6291e",
+    "text": "",
+    "from_me": false,
+    "timestamp": "2025-08-07 16:32:54.750168+00",
+    "status": "received",
+    "media_type": "document",
+    "media_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374788_h3eyqq.pdf",
+    "lead_id": "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7",
+    "whatsapp_number_id": "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785",
+    "created_by_user_id": "712e7708-2299-4a00-9128-577c8f113ca4",
+    "created_at": "2025-08-07 16:32:54.750168+00",
+    "external_message_id": "3FD45BA1A3F55CA29FEC",
+    "import_source": "realtime",
+    "content_hash": null,
+    "deleted_whatsapp_instance_name": null,
+    "audio_transcription": null
+  },
+  {
+    "id": "701296c3-9239-4b7e-be42-861098323463",
+    "text": "",
+    "from_me": false,
+    "timestamp": "2025-08-07 16:32:54.648991+00",
+    "status": "received",
+    "media_type": "document",
+    "media_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374692_9h3fn.png",
+    "lead_id": "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7",
+    "whatsapp_number_id": "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785",
+    "created_by_user_id": "712e7708-2299-4a00-9128-577c8f113ca4",
+    "created_at": "2025-08-07 16:32:54.648991+00",
+    "external_message_id": "3F92B597DF571525E844",
+    "import_source": "realtime",
+    "content_hash": null,
+    "deleted_whatsapp_instance_name": null,
+    "audio_transcription": null
+  },
+  {
+    "id": "2ad634dc-15cd-4ccc-acf5-d1f68ed43cd8",
+    "text": "",
+    "from_me": false,
+    "timestamp": "2025-08-07 16:32:54.645833+00",
+    "status": "received",
+    "media_type": "document",
+    "media_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374682_nju7i.pdf",
+    "lead_id": "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7",
+    "whatsapp_number_id": "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785",
+    "created_by_user_id": "712e7708-2299-4a00-9128-577c8f113ca4",
+    "created_at": "2025-08-07 16:32:54.645833+00",
+    "external_message_id": "3FDFDB381CB49FEFADD3",
+    "import_source": "realtime",
+    "content_hash": null,
+    "deleted_whatsapp_instance_name": null,
+    "audio_transcription": null
+  },
+  {
+    "id": "fa06e201-7cbd-4885-bc69-d8f3f037387f",
+    "text": "",
+    "from_me": false,
+    "timestamp": "2025-08-07 16:32:54.567156+00",
+    "status": "received",
+    "media_type": "video",
+    "media_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374627_sklyyn.mp4",
+    "lead_id": "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7",
+    "whatsapp_number_id": "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785",
+    "created_by_user_id": "712e7708-2299-4a00-9128-577c8f113ca4",
+    "created_at": "2025-08-07 16:32:54.567156+00",
+    "external_message_id": "3F87CF8F27C033159143",
+    "import_source": "realtime",
+    "content_hash": null,
+    "deleted_whatsapp_instance_name": null,
+    "audio_transcription": null
+  },
+  {
+    "id": "94bb1a43-f209-4dd0-a7f0-b84ae7f9bfa5",
+    "text": "Olá... Vou te passar nosso catálogo com valores e fotos, qualquer dúvida estou a disposição!",
+    "from_me": true,
+    "timestamp": "2025-08-07 16:32:50.352085+00",
+    "status": "sent",
+    "media_type": "text",
+    "media_url": null,
+    "lead_id": "6b5d701a-418e-4c21-9304-77a576348b54",
+    "whatsapp_number_id": "d1d34909-3546-4dee-93fc-083f95323bc6",
+    "created_by_user_id": "152f2390-ede4-4f46-89bc-da3d7f5da747",
+    "created_at": "2025-08-07 16:32:50.352085+00",
+    "external_message_id": "3EB019B6FB68D7A30A3EFA",
+    "import_source": "realtime",
+    "content_hash": null,
+    "deleted_whatsapp_instance_name": null,
+    "audio_transcription": null
+  },
+  {
+    "id": "fe9354f9-c26d-450f-98ed-924aac9fd221",
+    "text": "🏆 *Império do esporte* ⚽\n\n🙋🏽‍♂️ Vendedor: *Vinnicyus*\n🏬 Loja: *Centro Oeste Outlet 505*\n📲 Instagram: @imperio.esporte.gyn\n🛍️ Trabalhamos com material esportivo\n\n👇 *Acesse nosso catálogo enquanto aguarda o atendimento* 👇\n\nhttps://imperiodoesporte.my.canva.site/",
+    "from_me": true,
+    "timestamp": "2025-08-07 16:32:47.92222+00",
+    "status": "sent",
+    "media_type": "text",
+    "media_url": null,
+    "lead_id": "6b5d701a-418e-4c21-9304-77a576348b54",
+    "whatsapp_number_id": "d1d34909-3546-4dee-93fc-083f95323bc6",
+    "created_by_user_id": "152f2390-ede4-4f46-89bc-da3d7f5da747",
+    "created_at": "2025-08-07 16:32:47.92222+00",
+    "external_message_id": "DC343D457DDF01E96B9DF6630DABAB2C",
+    "import_source": "realtime",
+    "content_hash": null,
+    "deleted_whatsapp_instance_name": null,
+    "audio_transcription": null
+  }
+]
+
+
+
+DADOS DA TABELA MEDIA_CACHE ABAIXO:
+
+[
+  {
+    "id": "c4a35604-f6f0-481d-a99b-d30fdce300ea",
+    "message_id": "0437ae2f-cb01-4f70-a138-8b96827d2ae3",
+    "original_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584375809_kd42.mp4",
+    "cached_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584375809_kd42.mp4",
+    "base64_data": null,
+    "file_name": "media_1754584375809_kd42.mp4",
+    "file_size": 1330610,
+    "media_type": "video",
+    "hash": null,
+    "created_at": "2025-08-07 16:32:56.27+00",
+    "updated_at": "2025-08-07 16:32:56.293601+00",
+    "expires_at": null,
+    "external_message_id": "3F13C0AA5BFF39A553D6",
+    "processing_status": "completed"
+  },
+  {
+    "id": "36d9e3a7-c97c-4478-b5a0-f6b30537744a",
+    "message_id": "e450b4f2-efd0-4380-bb2b-53ffd8b259f9",
+    "original_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584375474_nead0r.mp4",
+    "cached_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584375474_nead0r.mp4",
+    "base64_data": null,
+    "file_name": "media_1754584375474_nead0r.mp4",
+    "file_size": 1330610,
+    "media_type": "document",
+    "hash": null,
+    "created_at": "2025-08-07 16:32:55.861+00",
+    "updated_at": "2025-08-07 16:32:55.89557+00",
+    "expires_at": null,
+    "external_message_id": "3FE0DEF1E69D1BD6A487",
+    "processing_status": "completed"
+  },
+  {
+    "id": "8f164431-d0f6-4038-9ab9-0ea6b27ef913",
+    "message_id": "71749b40-cbd5-4004-8301-e9f6a98e3bd5",
+    "original_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584375366_plcqn.jpg",
+    "cached_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584375366_plcqn.jpg",
+    "base64_data": null,
+    "file_name": "media_1754584375366_plcqn.jpg",
+    "file_size": 187130,
+    "media_type": "image",
+    "hash": null,
+    "created_at": "2025-08-07 16:32:55.757+00",
+    "updated_at": "2025-08-07 16:32:55.77186+00",
+    "expires_at": null,
+    "external_message_id": "3F6EE0F9BE085E1C1C1D",
+    "processing_status": "completed"
+  },
+  {
+    "id": "141a5840-97ab-4290-b61f-ddf611355de3",
+    "message_id": "e32ac19a-f585-425f-bfd1-843c3284d63d",
+    "original_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374812_dva5pd.jpg",
+    "cached_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374812_dva5pd.jpg",
+    "base64_data": null,
+    "file_name": "media_1754584374812_dva5pd.jpg",
+    "file_size": 273514,
+    "media_type": "image",
+    "hash": null,
+    "created_at": "2025-08-07 16:32:55.171+00",
+    "updated_at": "2025-08-07 16:32:55.214457+00",
+    "expires_at": null,
+    "external_message_id": "3FE04737BABB39C2C809",
+    "processing_status": "completed"
+  },
+  {
+    "id": "6c05e386-6263-44d7-b4a5-9a49c4ad67bf",
+    "message_id": "701296c3-9239-4b7e-be42-861098323463",
+    "original_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374692_9h3fn.png",
+    "cached_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374692_9h3fn.png",
+    "base64_data": null,
+    "file_name": "media_1754584374692_9h3fn.png",
+    "file_size": 1062397,
+    "media_type": "document",
+    "hash": null,
+    "created_at": "2025-08-07 16:32:55.167+00",
+    "updated_at": "2025-08-07 16:32:55.187536+00",
+    "expires_at": null,
+    "external_message_id": "3F92B597DF571525E844",
+    "processing_status": "completed"
+  },
+  {
+    "id": "8b6ae4f5-0fde-4979-9b72-29c4b5692d06",
+    "message_id": "8e08238d-c13c-4d38-928f-5e6e7ea6291e",
+    "original_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374788_h3eyqq.pdf",
+    "cached_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374788_h3eyqq.pdf",
+    "base64_data": null,
+    "file_name": "media_1754584374788_h3eyqq.pdf",
+    "file_size": 1079986,
+    "media_type": "document",
+    "hash": null,
+    "created_at": "2025-08-07 16:32:55.101+00",
+    "updated_at": "2025-08-07 16:32:55.130063+00",
+    "expires_at": null,
+    "external_message_id": "3FD45BA1A3F55CA29FEC",
+    "processing_status": "completed"
+  },
+  {
+    "id": "e0581884-bc90-467f-b16d-a0bc24891472",
+    "message_id": "fa06e201-7cbd-4885-bc69-d8f3f037387f",
+    "original_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374627_sklyyn.mp4",
+    "cached_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374627_sklyyn.mp4",
+    "base64_data": null,
+    "file_name": "media_1754584374627_sklyyn.mp4",
+    "file_size": 1330610,
+    "media_type": "video",
+    "hash": null,
+    "created_at": "2025-08-07 16:32:55.089+00",
+    "updated_at": "2025-08-07 16:32:55.103183+00",
+    "expires_at": null,
+    "external_message_id": "3F87CF8F27C033159143",
+    "processing_status": "completed"
+  },
+  {
+    "id": "3fd335ac-d0b7-4c0a-ab29-578f8747d11d",
+    "message_id": "2ad634dc-15cd-4ccc-acf5-d1f68ed43cd8",
+    "original_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374682_nju7i.pdf",
+    "cached_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754584374682_nju7i.pdf",
+    "base64_data": null,
+    "file_name": "media_1754584374682_nju7i.pdf",
+    "file_size": 121771,
+    "media_type": "document",
+    "hash": null,
+    "created_at": "2025-08-07 16:32:55.073+00",
+    "updated_at": "2025-08-07 16:32:55.093608+00",
+    "expires_at": null,
+    "external_message_id": "3FDFDB381CB49FEFADD3",
+    "processing_status": "completed"
+  },
+  {
+    "id": "7011c478-f2d1-4ff9-971b-0ed962052d4d",
+    "message_id": "feca0e16-a754-469d-9a82-247cf9ef54b2",
+    "original_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754583874116_5znwr8.mp4",
+    "cached_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754583874116_5znwr8.mp4",
+    "base64_data": null,
+    "file_name": "media_1754583874116_5znwr8.mp4",
+    "file_size": 1330610,
+    "media_type": "video",
+    "hash": null,
+    "created_at": "2025-08-07 16:24:34.588+00",
+    "updated_at": "2025-08-07 16:24:34.631552+00",
+    "expires_at": null,
+    "external_message_id": "3FC1930615A86C88C00A",
+    "processing_status": "completed"
+  },
+  {
+    "id": "20ffdf77-e383-4115-8606-222290ecc3cf",
+    "message_id": "fa6d2daa-edca-4c75-accd-f0ac3b21775b",
+    "original_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754583874090_kwy37.jpg",
+    "cached_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1754583874090_kwy37.jpg",
+    "base64_data": null,
+    "file_name": "media_1754583874090_kwy37.jpg",
+    "file_size": 187130,
+    "media_type": "image",
+    "hash": null,
+    "created_at": "2025-08-07 16:24:34.35+00",
+    "updated_at": "2025-08-07 16:24:34.38798+00",
+    "expires_at": null,
+    "external_message_id": "3FACEF29B4096A4028F7",
+    "processing_status": "completed"
+  }
+]

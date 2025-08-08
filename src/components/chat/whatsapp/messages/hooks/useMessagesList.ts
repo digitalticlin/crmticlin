@@ -116,10 +116,10 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
           behavior: isOwnMessage ? 'instant' : 'smooth'
         });
         
-        // Pequeno delay para permitir renderização da mensagem
+        // Delay coordenado com useScrollDetection
         setTimeout(() => {
           scrollToBottom(isOwnMessage ? 'instant' : 'smooth');
-        }, 50);
+        }, 200); // Sincronizado com useScrollDetection
       } else {
         console.log('[useMessagesList] 📨 Nova mensagem - usuário rolou para cima, sem scroll');
       }
