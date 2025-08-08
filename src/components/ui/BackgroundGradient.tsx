@@ -20,6 +20,14 @@ export function BackgroundGradient({ className, children }: BackgroundGradientPr
         }}
       />
       
+      {/* Novo círculo gradiente pequeno no canto superior direito */}
+      <div 
+        className="absolute top-4 right-4 w-16 h-16 opacity-70"
+        style={{
+          background: `radial-gradient(circle, #D3D800 0%, transparent 70%)`,
+        }}
+      />
+      
       {/* Elementos flutuantes para profundidade */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-20 w-72 h-72 bg-white/5 rounded-full blur-2xl animate-pulse"></div>
