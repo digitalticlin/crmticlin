@@ -20,9 +20,9 @@ export function BackgroundGradient({ className, children }: BackgroundGradientPr
         }}
       />
       
-      {/* Círculo gradiente maior no canto superior direito */}
+      {/* Círculo gradiente do mesmo tamanho no canto superior direito */}
       <div 
-        className="absolute top-4 right-4 w-36 h-36 opacity-70"
+        className="absolute top-4 right-4 w-72 h-72 opacity-70"
         style={{
           background: `radial-gradient(circle, #D3D800 0%, transparent 70%)`,
         }}
