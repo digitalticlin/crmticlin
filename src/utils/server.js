@@ -1,4 +1,3 @@
-
 // SERVIDOR WHATSAPP COMPLETO - IMPLEMENTAÇÃO ROBUSTA CORRIGIDA
 const express = require('express');
 const crypto = require('crypto');
@@ -9,10 +8,10 @@ const fs = require('fs');
 const path = require('path');
 
 // Módulos isolados para importação
-const DiagnosticsManager = require('./diagnostics-manager');
-const ImportManagerRobust = require('./import-manager-robust');
-const WebhookManager = require('./webhook-manager');
-const ConnectionManager = require('./connection-manager');
+const DiagnosticsManager = require('./src/utils/diagnostics-manager');
+const ImportManagerRobust = require('./src/utils/import-manager-robust');
+const WebhookManager = require('./src/utils/webhook-manager');
+const ConnectionManager = require('./src/utils/connection-manager');
 
 global.crypto = crypto;
 
@@ -21,16 +20,17 @@ const PORT = 3001; // NOVA VPS PORTA
 
 // CONFIGURAÇÃO CORRIGIDA - Supabase Service Key para autenticação
 const SUPABASE_PROJECT = 'rhjgagzstjzynvrakdyj';
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoamdhZ3pzdGp6eW52cmFrZHlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDUxMzEwMCwiZXhwIjoyMDY2MDg5MTAwfQ.48XYhDq4XdVTqNhIHdskd6iMcJem38aHzk6U1psfRRM';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
 
 // TOKEN DE AUTENTICAÇÃO VPS
-const VPS_AUTH_TOKEN = process.env.VPS_API_TOKEN || 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
+const VPS_AUTH_TOKEN = process.env.VPS_API_TOKEN;
 
 const SUPABASE_WEBHOOKS = {
+  AUTO_SYNC_INSTANCES: process.env.AUTO_SYNC_INSTANCES || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/auto_whatsapp_sync',
   QR_RECEIVER: process.env.QR_RECEIVER_WEBHOOK || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver',
   CONNECTION_SYNC: process.env.CONNECTION_SYNC_WEBHOOK || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/auto_whatsapp_sync',
   BACKEND_MESSAGES: process.env.BACKEND_MESSAGES_WEBHOOK || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_whatsapp_web',
-  N8N_MESSAGES: process.env.N8N_MESSAGES_WEBHOOK || 'https://novo-ticlin-n8n.eirfpl.easypanel.host/webhook/ticlingeral'
+  N8N_MESSAGES: process.env.N8N_MESSAGES_WEBHOOK || ''
 };
 
 // Armazenamento global de instâncias
@@ -49,11 +49,11 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
+
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
-  
+
   next();
 });
 
@@ -61,14 +61,14 @@ app.use((req, res, next) => {
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const apiTokenHeader = req.headers['x-api-token'];
-  
+
   const token = authHeader?.split(' ')[1] || apiTokenHeader;
-  
+
   // Permitir acesso livre ao health check
   if (req.path === '/health' || req.path === '/status') {
     return next();
   }
-  
+
   if (!token || token !== VPS_AUTH_TOKEN) {
     return res.status(401).json({
       success: false,
@@ -76,7 +76,7 @@ function authenticateToken(req, res, next) {
       timestamp: new Date().toISOString()
     });
   }
-  
+
   next();
 }
 
@@ -92,7 +92,7 @@ const importManagerRobust = new ImportManagerRobust(instances);
 app.get('/health', (req, res) => {
   const memoryUsage = process.memoryUsage();
   const activeInstances = Object.values(instances).filter(i => i.connected).length;
-  
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -212,9 +212,9 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
 
   try {
     console.log(`🚀 Criando instância: ${instanceId} (User: ${createdByUserId})`);
-    
+
     await connectionManager.createInstance(instanceId, createdByUserId);
-    
+
     res.json({
       success: true,
       instanceId,
@@ -314,13 +314,13 @@ app.get('/instance/:instanceId/status', (req, res) => {
 // NOVO ENDPOINT: Diagnóstico detalhado da estrutura de dados
 app.get('/instance/:instanceId/debug-data', async (req, res) => {
   const { instanceId } = req.params;
-  
+
   console.log(`[Debug Data] 🔍 Solicitação de diagnóstico para: ${instanceId}`);
 
   try {
     const diagnostics = await diagnosticsManager.getInstanceDataStructure(instanceId);
     const compatibility = diagnosticsManager.getCompatibilityReport(diagnostics);
-    
+
     res.json({
       success: true,
       instanceId,
@@ -330,7 +330,7 @@ app.get('/instance/:instanceId/debug-data', async (req, res) => {
     });
   } catch (error) {
     console.error(`[Debug Data] ❌ Erro no diagnóstico:`, error);
-    
+
     res.status(500).json({
       success: false,
       error: 'Erro no diagnóstico de dados',
@@ -345,11 +345,11 @@ app.get('/instance/:instanceId/debug-data', async (req, res) => {
 app.post('/instance/:instanceId/import-history-robust', async (req, res) => {
   const { instanceId } = req.params;
   const { importType = 'both', batchSize = 50, lastSyncTimestamp } = req.body;
-  
-  console.log(`[Import Robust] 📥 Solicitação para ${instanceId}:`, { 
-    importType, 
-    batchSize, 
-    lastSyncTimestamp 
+
+  console.log(`[Import Robust] 📥 Solicitação para ${instanceId}:`, {
+    importType,
+    batchSize,
+    lastSyncTimestamp
   });
 
   try {
@@ -371,7 +371,7 @@ app.post('/instance/:instanceId/import-history-robust', async (req, res) => {
 
   } catch (error) {
     console.error(`[Import Robust] ❌ Erro na importação:`, error);
-    
+
     res.status(500).json({
       success: false,
       error: 'Erro na importação robusta de histórico',
@@ -417,7 +417,7 @@ app.delete('/instance/:instanceId', async (req, res) => {
 
   try {
     await connectionManager.deleteInstance(instanceId);
-    
+
     res.json({
       success: true,
       message: 'Instância removida com sucesso',
@@ -437,7 +437,7 @@ app.delete('/instance/:instanceId', async (req, res) => {
 
 // Enviar Mensagem
 app.post('/send', authenticateToken, async (req, res) => {
-  const { instanceId, phone, message } = req.body;
+  const { instanceId, phone, message, mediaType, mediaUrl, ptt, filename, seconds, waveform } = req.body;
 
   if (!instanceId || !phone || !message) {
     return res.status(400).json({
@@ -469,18 +469,154 @@ app.post('/send', authenticateToken, async (req, res) => {
 
   try {
     console.log(`📤 Enviando mensagem via ${instanceId} para ${phone}: ${message.substring(0, 50)}...`);
-    
+
     // Formatar número de telefone
     const formattedPhone = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
-    
+
     // Enviar mensagem via Baileys
-    const messageResult = await instance.socket.sendMessage(formattedPhone, { text: message });
-    
+    let messageResult;
+
+    // ✅ SUPORTE COMPLETO A MÍDIA E DATAURL
+    if (mediaType && mediaType !== 'text' && mediaUrl) {
+      console.log(`🎬 Enviando mídia tipo: ${mediaType}`);
+
+      // Detectar tipos especiais
+      const isDataUrl = mediaType.includes('_dataurl');
+      const baseType = mediaType.replace('_dataurl', '');
+
+      if (isDataUrl) {
+        console.log('📱 Detectada DataURL, processando...');
+      }
+
+      switch (baseType.toLowerCase()) {
+        case 'image':
+           if (mediaUrl.startsWith('data:')) {
+             // ✅ DataURL → Buffer (para Baileys)
+             console.log('📱 Convertendo DataURL para Buffer...');
+             const base64Data = mediaUrl.split(',')[1];
+             const buffer = Buffer.from(base64Data, 'base64');
+             messageResult = await instance.socket.sendMessage(formattedPhone, {
+               image: buffer,
+               // caption removida
+             });
+           } else {
+             // URL HTTP normal
+             messageResult = await instance.socket.sendMessage(formattedPhone, {
+               image: { url: mediaUrl },
+               // caption removida
+             });
+           }
+           break;
+
+        case 'video':
+          if (mediaUrl.startsWith('data:')) {
+            // ✅ DataURL → Buffer para vídeos
+            console.log('📹 Convertendo vídeo DataURL para Buffer...');
+            const base64Data = mediaUrl.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              video: buffer,
+              fileName: 'video.mp4' // nome fixo
+            });
+          } else {
+            // URL HTTP normal
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              video: { url: mediaUrl },
+              // caption removida
+            });
+          }
+          break;
+
+        case 'audio':
+          if (mediaUrl.startsWith('data:')) {
+            // ✅ DataURL → Buffer para áudios
+            console.log('🎵 Convertendo áudio DataURL para Buffer...');
+            const base64Data = mediaUrl.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            // ✅ CORREÇÃO PRINCIPAL: PROCESSAR METADADOS PTT
+            // Detectar mimetype do DataURL
+            const mimeMatch = mediaUrl.match(/data:([^;]+)/);
+            const detectedMimeType = mimeMatch ? mimeMatch[1] : 'audio/mpeg';
+
+            console.log(`🎙️ Metadados PTT recebidos: ptt=${ptt}, filename=${filename}, seconds=${seconds}`);
+            console.log(`🎵 MIME type detectado: ${detectedMimeType}`);
+
+            // Construir opções de áudio baseado nos metadados
+            const audioOptions = {
+              audio: buffer,
+              fileName: filename || 'audio.mp3',
+              mimetype: detectedMimeType
+            };
+
+            // ✅ ADICIONAR SUPORTE A PTT NATIVO
+            if (ptt === true) {
+              console.log('🎙️ ENVIANDO COMO ÁUDIO NATIVO PTT (Push-to-Talk)');
+              audioOptions.ptt = true;
+
+              // Adicionar duração se disponível
+              if (seconds) {
+                audioOptions.seconds = parseInt(seconds);
+              }
+
+              // Adicionar waveform se disponível (opcional)
+              if (waveform) {
+                audioOptions.waveform = waveform;
+              }
+            } else {
+              console.log('🎵 Enviando como áudio normal (não-PTT)');
+            }
+
+            messageResult = await instance.socket.sendMessage(formattedPhone, audioOptions);
+          } else {
+            // URL HTTP normal - comportamento original
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              audio: { url: mediaUrl },
+              ptt: true
+            });
+          }
+          break;
+
+        case 'document':
+          if (mediaUrl.startsWith('data:')) {
+            // ✅ DataURL → Buffer para documentos
+            console.log('📄 Convertendo documento DataURL para Buffer...');
+            const base64Data = mediaUrl.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            // Detectar MIME type do DataURL
+            const mimeMatch = mediaUrl.match(/data:([^;]+)/);
+            const mimeType = mimeMatch ? mimeMatch[1] : 'application/pdf';
+
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              document: buffer,
+              fileName: 'documento.pdf', // nome fixo
+              mimetype: mimeType
+            });
+          } else {
+            // URL HTTP normal
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              document: { url: mediaUrl },
+              fileName: 'documento.pdf', // nome fixo
+              mimetype: 'application/pdf'
+            });
+          }
+          break;
+
+        default:
+          console.log('⚠️  Tipo de mídia não reconhecido, enviando como texto');
+          messageResult = await instance.socket.sendMessage(formattedPhone, { text: message });
+      }
+    } else {
+      // Mensagem de texto padrão
+      messageResult = await instance.socket.sendMessage(formattedPhone, { text: message });
+    }
+
     // Adicionar ao cache para evitar reenvio de webhook
     connectionManager.addSentMessageToCache(instanceId, messageResult.key.id, formattedPhone);
-    
+
     console.log(`✅ Mensagem enviada com sucesso via ${instanceId}`);
-    
+
     res.json({
       success: true,
       messageId: messageResult.key.id,
@@ -505,10 +641,10 @@ app.post('/send', authenticateToken, async (req, res) => {
 // Recuperação Automática de Instâncias na Inicialização
 async function recoverExistingInstances() {
   console.log('🔄 Verificando instâncias persistentes...');
-  
+
   try {
     if (!fs.existsSync(AUTH_DIR)) return;
-    
+
     const authDirs = fs.readdirSync(AUTH_DIR).filter(dir => {
       const fullPath = path.join(AUTH_DIR, dir);
       return fs.statSync(fullPath).isDirectory();
@@ -543,7 +679,7 @@ function startPeriodicSync() {
   // Sincronização a cada 15 minutos
   syncInterval = setInterval(async () => {
     console.log('[Periodic Sync] 🔄 Iniciando sincronização...');
-    
+
     const instancesData = Object.values(instances)
       .filter(inst => inst && inst.instanceId)
       .map(inst => ({
@@ -571,7 +707,7 @@ function startPeriodicSync() {
           version: '7.0.0-ROBUST-COMPLETE'
         }
       };
-      
+
       await webhookManager.sendWebhook('AUTO_SYNC_INSTANCES', data, 'Sync');
     }
   }, 15 * 60 * 1000);
@@ -580,11 +716,11 @@ function startPeriodicSync() {
 // Graceful Shutdown
 process.on('SIGINT', async () => {
   console.log('🛑 Encerrando servidor...');
-  
+
   if (syncInterval) {
     clearInterval(syncInterval);
   }
-  
+
   const shutdownPromises = Object.values(instances).map(instance => {
     if (instance.socket) {
       return new Promise(resolve => {
@@ -618,9 +754,9 @@ process.on('unhandledRejection', (reason, promise) => {
 async function startServer() {
   try {
     console.log('🔧 Iniciando servidor com implementação robusta...');
-    
+
     await recoverExistingInstances();
-    
+
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log('✅ SERVIDOR WHATSAPP ROBUSTO IMPLEMENTADO!');
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
@@ -671,7 +807,7 @@ async function startServer() {
           version: '7.0.0-ROBUST-COMPLETE'
         }
         };
-        
+
         await webhookManager.sendWebhook('AUTO_SYNC_INSTANCES', data, 'Startup');
       }
     }, 30000);
@@ -685,3 +821,28 @@ async function startServer() {
 startServer();
 
 module.exports = { app, instances, webhookManager, connectionManager, diagnosticsManager, importManagerRobust };
+
+// CORREÇÃO: Função de limpeza periódica para evitar acúmulo
+function cleanupFailedInstances() {
+  const now = Date.now();
+  const CLEANUP_INTERVAL = 300000; // 5 minutos
+
+  for (const [instanceId, instance] of Object.entries(instances)) {
+    const timeSinceLastUpdate = now - new Date(instance.lastUpdate).getTime();
+
+    // Remover instâncias que falharam há mais de 5 minutos
+    if (instance.status === 'failed' && timeSinceLastUpdate > CLEANUP_INTERVAL) {
+      console.log(`[Cleanup] 🧹 Removendo instância expirada: ${instanceId}`);
+      delete instances[instanceId];
+    }
+
+    // Remover instâncias órfãs sem socket
+    if (!instance.socket && timeSinceLastUpdate > CLEANUP_INTERVAL) {
+      console.log(`[Cleanup] 🧹 Removendo instância órfã: ${instanceId}`);
+      delete instances[instanceId];
+    }
+  }
+}
+
+// Executar limpeza a cada 5 minutos
+setInterval(cleanupFailedInstances, 300000);

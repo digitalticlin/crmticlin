@@ -1,18 +1,16 @@
 /**
- * 🎯 SISTEMA ISOLADO E MODULAR DE REALTIME
+ * 🎯 SISTEMA ISOLADO E MODULAR DE REALTIME - REFATORADO
  * 
- * APENAS 2 HOOKS ISOLADOS - SEM CONFLITOS OU DUPLICIDADES
+ * AGORA USANDO HOOK ISOLADO UNIFICADO
  * 
- * ✅ useChatsRealtime    → Cards de contatos (lista lateral)
- * ✅ useMessagesRealtime → Área de mensagens (conversa ativa)
+ * ✅ useWhatsAppRealtime → Sistema realtime isolado e modular
  * 
- * ISOLAMENTO TOTAL: Cada hook tem responsabilidade específica
- * e NÃO interfere com o outro.
+ * ISOLAMENTO TOTAL: Hook unificado com responsabilidades específicas
+ * para contatos e mensagens separadamente.
  */
 
-// 🎯 HOOKS ISOLADOS
-export { useChatsRealtime } from './useChatsRealtime';      // Cards de contatos
-export { useMessagesRealtime } from './useMessagesRealtime'; // Área de mensagens
+// 🎯 HOOK ISOLADO UNIFICADO
+export { useWhatsAppRealtime } from './useWhatsAppRealtime';
 
 // 📝 TIPOS
 export type {

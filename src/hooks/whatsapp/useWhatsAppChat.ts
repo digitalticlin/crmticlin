@@ -1,26 +1,25 @@
-
 /**
- * 🎯 HOOK PRINCIPAL OTIMIZADO - SEM RERENDERS EXCESSIVOS
+ * 🎯 HOOK WHATSAPP CHAT - REFATORADO PARA USAR ORQUESTRADOR MODULAR
  * 
- * CORREÇÕES APLICADAS:
- * ✅ useCallback com dependências corretas
- * ✅ useMemo para valores estáveis
- * ✅ Eliminação de recriações desnecessárias
- * ✅ Logs otimizados
+ * NOVA ARQUITETURA:
+ * ✅ Usa orquestrador leve isolado
+ * ✅ Features completamente isoladas
+ * ✅ Cache por feature
+ * ✅ Scroll e ordem de mensagens corrigidos
  */
 
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Contact, Message } from '@/types/chat';
-import { WhatsAppWebInstance } from '@/types/whatsapp';
-import { useWhatsAppDatabase } from './useWhatsAppDatabase';
-import { useWhatsAppContacts } from './useWhatsAppContacts';
-import { useWhatsAppChatMessages } from './chat/useWhatsAppChatMessages';
-import { useChatsRealtime } from './realtime/useChatsRealtime';
-import { useMessagesRealtime } from './realtime/useMessagesRealtime';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+
+// Hooks isolados da estrutura correta
+import { useWhatsAppInstances } from './useWhatsAppInstances';
+import { useWhatsAppContacts } from './useWhatsAppContacts';
+import { useWhatsAppMessages } from './chat/useWhatsAppMessages';
+import { useWhatsAppRealtime } from './realtime/useWhatsAppRealtime';
+import { Contact, Message } from '@/types/chat';
 
 interface UseWhatsAppChatReturn {
   selectedContact: Contact | null;
@@ -67,135 +66,131 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   
-  // Estado global mínimo
+  console.log('[WhatsApp Chat] 🎯 Hook principal inicializado:', {
+    userId: user?.id,
+    leadId,
+    timestamp: new Date().toISOString()
+  });
+  
+  // Estado compartilhado mínimo - SEM CENTRALIZADOR
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
   
-  // Refs para estabilidade
-  const callbacksInitialized = useRef(false);
-  
-  // Hooks isolados
-  const database = useWhatsAppDatabase();
-  
-  // 🚀 CORREÇÃO: Memoizar instância ativa
-  const activeInstance = useMemo(() => database.getActiveInstance(), [database.instances]);
-  
-  // Conversão estável para compatibilidade
-  const webActiveInstance = useMemo((): WhatsAppWebInstance | null => {
-    if (!activeInstance) return null;
-    
-    return {
-      id: activeInstance.id,
-      instance_name: activeInstance.instance_name,
-      connection_type: activeInstance.connection_type || 'web',
-      server_url: activeInstance.server_url || '',
-      vps_instance_id: activeInstance.vps_instance_id || '',
-      web_status: activeInstance.web_status || '',
-      connection_status: activeInstance.connection_status as any,
-      qr_code: activeInstance.qr_code,
-      phone: activeInstance.phone,
-      profile_name: activeInstance.profile_name,
-      profile_pic_url: activeInstance.profile_pic_url,
-      date_connected: activeInstance.date_connected,
-      date_disconnected: activeInstance.date_disconnected,
-      created_by_user_id: activeInstance.created_by_user_id || '',
-      created_at: activeInstance.created_at || new Date().toISOString(),
-      updated_at: activeInstance.updated_at || new Date().toISOString()
-    };
-  }, [activeInstance]);
-
-  // Hook de contatos
-  const contacts = useWhatsAppContacts(webActiveInstance?.id);
-  
-  // Hook de mensagens
-  const messages = useWhatsAppChatMessages({
-    selectedContact,
-    activeInstance: webActiveInstance
+  console.log('[WhatsApp Chat] 🔍 Estado atual:', {
+    hasSelectedContact: !!selectedContact,
+    hasInitialized,
+    selectedContactId: selectedContact?.id,
+    selectedContactName: selectedContact?.name
   });
   
-  // 🚀 CORREÇÃO: Callbacks estáveis com useCallback
+  // Hooks isolados - SEM ORQUESTRADOR
+  console.log('[WhatsApp Chat] 🏗️ Inicializando hooks isolados...');
+  const instances = useWhatsAppInstances();
+  const contacts = useWhatsAppContacts({ 
+    activeInstanceId: instances.activeInstance?.id 
+  });
+  
+  console.log('[WhatsApp Chat] 📊 Status dos hooks isolados:', {
+    instancesLoading: instances.isLoading,
+    totalInstances: instances.totalInstances,
+    activeInstanceId: instances.activeInstance?.id,
+    contactsLoading: contacts.isLoading,
+    totalContacts: contacts.contacts.length,
+    contactsError: !contacts.contacts
+  });
+  
+  // Adapter para compatibilidade de tipos
+  const adaptedActiveInstance = useMemo(() => {
+    if (!instances.activeInstance) return null;
+    const adapted = {
+      id: instances.activeInstance.id,
+      instance_name: instances.activeInstance.instance_name,
+      connection_status: instances.activeInstance.connection_status
+    };
+    console.log('[WhatsApp Chat] 🔧 Instância adaptada:', adapted);
+    return adapted;
+  }, [instances.activeInstance]);
+  
+  const messages = useWhatsAppMessages({
+    selectedContact,
+    activeInstance: adaptedActiveInstance
+  });
+  
+  console.log('[WhatsApp Chat] 📨 Status das mensagens:', {
+    messagesLoading: messages.isLoading,
+    totalMessages: messages.messages.length,
+    hasSelectedContact: !!selectedContact,
+    selectedContactId: selectedContact?.id
+  });
+  
+  // Callbacks de comunicação entre features (ISOLADOS)
   const handleContactRefresh = useCallback(() => {
-    console.log('[useWhatsAppChat] 🔄 Refresh manual de contatos');
+    console.log('[WhatsApp Chat] 🔄 Refresh de contatos isolado');
     contacts.refreshContacts();
   }, [contacts.refreshContacts]);
 
   const handleMoveContactToTop = useCallback((contactId: string, newMessage?: any) => {
-    console.log('[useWhatsAppChat] 📈 Movendo contato para o topo:', contactId);
+    console.log('[WhatsApp Chat] 📈 Movendo contato para o topo (isolado):', contactId);
     contacts.moveContactToTop(contactId, newMessage);
   }, [contacts.moveContactToTop]);
 
   const handleUpdateUnreadCount = useCallback((contactId: string, increment = true) => {
-    console.log('[useWhatsAppChat] 🔢 Atualizando contador:', { contactId, increment });
+    console.log('[WhatsApp Chat] 🔢 Atualizando contador (isolado):', { contactId, increment });
     contacts.updateUnreadCount(contactId, increment);
   }, [contacts.updateUnreadCount]);
 
   const handleAddNewContact = useCallback((newContactData: any) => {
-    console.log('[useWhatsAppChat] ➕ Novo contato:', newContactData.name);
+    console.log('[WhatsApp Chat] ➕ Novo contato (isolado):', newContactData.name);
     contacts.addNewContact(newContactData);
   }, [contacts.addNewContact]);
 
-  // ✅ Callbacks de mensagens otimizados
   const handleNewMessage = useCallback((message: Message) => {
-    console.log('[useWhatsAppChat] 📨 NOVA MENSAGEM:', {
+    console.log('[WhatsApp Chat] 📨 Nova mensagem (isolada):', {
       messageId: message.id,
       fromMe: message.fromMe,
-      isIncoming: message.isIncoming,
-      text: message.text.substring(0, 30) + '...',
-      selectedContactId: selectedContact?.id
+      text: message.text.substring(0, 30) + '...'
     });
 
-    // Processar mensagens externas
+    // Processar mensagens - ISOLADO
+    messages.addMessage(message);
+    
+    // Se não é do usuário atual, atualizar contatos
     if (!message.fromMe) {
-      console.log('[useWhatsAppChat] ✅ Processando mensagem EXTERNA');
-      messages.addOptimisticMessage(message);
-      
-      // Atualizar contador apenas se não for o contato ativo
       if (selectedContact?.id !== message.sender) {
         handleUpdateUnreadCount(selectedContact?.id || '', true);
       }
       
-      // Mover contato para o topo
       handleMoveContactToTop(selectedContact?.id || '', message);
       
-      // Notificação se janela não estiver em foco
       if (!document.hasFocus()) {
         toast.info(`Nova mensagem de ${selectedContact?.name || 'Contato'}`, {
           description: message.text.substring(0, 60) + '...'
         });
       }
-    } else {
-      console.log('[useWhatsAppChat] ✅ Processando mensagem PRÓPRIA');
-      messages.addOptimisticMessage(message);
     }
-  }, [messages.addOptimisticMessage, selectedContact, handleUpdateUnreadCount, handleMoveContactToTop]);
+  }, [messages.addMessage, selectedContact, handleUpdateUnreadCount, handleMoveContactToTop]);
 
   const handleMessageUpdate = useCallback((message: Message) => {
-    console.log('[useWhatsAppChat] 🔄 Atualizando mensagem:', {
-      messageId: message.id,
-      status: message.status
-    });
+    console.log('[WhatsApp Chat] 🔄 Atualizando mensagem (isolada):', message.id);
     messages.updateMessage(message);
   }, [messages.updateMessage]);
 
-  // Realtime hooks com callbacks estáveis
-  const chatsRealtime = useChatsRealtime({
-    activeInstanceId: webActiveInstance?.id || null,
+  // Realtime isolado - SEM CENTRALIZADOR
+  const realtime = useWhatsAppRealtime({
+    // Para contatos
+    activeInstanceId: instances.activeInstance?.id,
     onContactUpdate: handleContactRefresh,
-    onNewContact: handleContactRefresh,
-    onContactsRefresh: handleContactRefresh,
     onMoveContactToTop: handleMoveContactToTop,
     onUpdateUnreadCount: handleUpdateUnreadCount,
-    onAddNewContact: handleAddNewContact
-  });
-
-  const messagesRealtime = useMessagesRealtime({
+    
+    // Para mensagens
     selectedContact,
-    activeInstance: webActiveInstance,
+    activeInstance: adaptedActiveInstance,
     onNewMessage: handleNewMessage,
     onMessageUpdate: handleMessageUpdate
   });
 
-  // ✅ markAsRead otimizado
+  // Marcar como lida (isolado)
   const markAsRead = useCallback(async (contactId: string) => {
     if (!user?.id) return;
 
@@ -209,107 +204,104 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
       if (error) throw error;
       
     } catch (error) {
-      console.error('[useWhatsAppChat] ❌ Erro ao marcar como lida:', error);
+      console.error('[WhatsApp Chat] ❌ Erro ao marcar como lida:', error);
     }
   }, [user?.id]);
 
+  // Seleção de contato isolada
   const handleSelectContact = useCallback(async (contact: Contact | null) => {
-    console.log('[useWhatsAppChat] 👆 Selecionando contato:', contact?.name);
+    console.log('[WhatsApp Chat] 👆 Selecionando contato (isolado):', {
+      contactName: contact?.name,
+      contactId: contact?.id,
+      hasUnreadCount: !!(contact?.unreadCount && contact.unreadCount > 0),
+      unreadCount: contact?.unreadCount
+    });
     
     if (contact && contact.unreadCount && contact.unreadCount > 0) {
       try {
         await markAsRead(contact.id);
+        handleUpdateUnreadCount(contact.id, false);
       } catch (error) {
-        console.error('[useWhatsAppChat] ❌ Erro ao marcar como lida:', error);
+        console.error('[WhatsApp Chat] ❌ Erro ao marcar como lida:', error);
       }
     }
     
     setSelectedContact(contact);
-  }, [markAsRead]);
+    console.log('[WhatsApp Chat] ✅ Contato selecionado:', contact?.name);
+  }, [markAsRead, handleUpdateUnreadCount]);
 
-  // ✅ sendMessage otimizado
-  const sendMessage = useCallback(async (text: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
-    if (!user?.id) {
-      console.error('[useWhatsAppChat] ❌ Usuário não logado');
-      return false;
-    }
-
-    console.log('[useWhatsAppChat] 📤 Enviando mensagem:', {
-      text: text.substring(0, 30) + '...',
-      contact: selectedContact?.name,
-      mediaType
-    });
-    
-    return await messages.sendMessage(text, mediaType, mediaUrl);
-  }, [messages.sendMessage, user?.id, selectedContact?.name]);
-
-  // 🚀 CORREÇÃO: Memoizar valores estáveis
-  const instanceHealth = useMemo(() => ({
-    score: database.healthScore,
-    isHealthy: database.isHealthy,
-    connectedInstances: database.connectedInstances,
-    totalInstances: database.totalInstances
-  }), [database.healthScore, database.isHealthy, database.connectedInstances, database.totalInstances]);
-
-  const realtimeStats = useMemo(() => ({
-    chatsConnected: chatsRealtime.isConnected,
-    messagesConnected: messagesRealtime.isConnected,
-    totalChatsEvents: chatsRealtime.totalEvents,
-    totalMessagesEvents: 0,
-    lastChatsUpdate: chatsRealtime.lastUpdate,
-    lastMessagesUpdate: null,
-    chatsReconnectAttempts: chatsRealtime.reconnectAttempts,
-    messagesReconnectAttempts: messagesRealtime.reconnectAttempts,
-    queuedMessages: messagesRealtime.queuedMessages,
-    cacheStats: database.cacheStats
-  }), [chatsRealtime, messagesRealtime, database.cacheStats]);
-
-  // Auto-seleção de contato da URL
+  // Auto-seleção de contato da URL (isolada)
   useEffect(() => {
     if (leadId && contacts.contacts.length > 0 && !selectedContact && !hasInitialized) {
       const targetContact = contacts.contacts.find(contact => contact.id === leadId);
       if (targetContact) {
-        console.log('[useWhatsAppChat] 🎯 Auto-selecionando contato da URL:', targetContact.name);
+        console.log('[WhatsApp Chat] 🎯 Auto-selecionando contato da URL:', targetContact.name);
         handleSelectContact(targetContact);
       }
       setHasInitialized(true);
     }
   }, [leadId, contacts.contacts, selectedContact, hasInitialized, handleSelectContact]);
 
-  // Notificações de saúde apenas quando necessário
+  // Notificações de saúde (isoladas)
   useEffect(() => {
     if (!user?.id) return;
     
-    if (database.totalInstances > 0 && database.connectedInstances === 0) {
+    if (instances.totalInstances > 0 && instances.connectedInstances === 0) {
       const timeoutId = setTimeout(() => {
         toast.error('🚨 Nenhuma instância WhatsApp conectada');
       }, 10000);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [database.totalInstances, database.connectedInstances, user?.id]);
+  }, [instances.totalInstances, instances.connectedInstances, user?.id]);
 
+  // Interface de compatibilidade - SEM CENTRALIZADOR
   return {
+    // Estado compartilhado mínimo
     selectedContact,
     setSelectedContact: handleSelectContact,
     companyLoading: false,
+    
+    // Contatos isolados
     contacts: contacts.contacts,
     isLoadingContacts: contacts.isLoading,
     isLoadingMoreContacts: contacts.isLoadingMore,
     hasMoreContacts: contacts.hasMoreContacts,
     totalContactsAvailable: contacts.totalContactsAvailable,
     loadMoreContacts: contacts.loadMoreContacts,
-    refreshContacts: handleContactRefresh,
+    refreshContacts: contacts.refreshContacts,
+    
+    // Mensagens isoladas - COM SCROLL CORRIGIDO
     messages: messages.messages,
-    isLoadingMessages: messages.isLoadingMessages,
+    isLoadingMessages: messages.isLoading,
     isLoadingMoreMessages: messages.isLoadingMore,
     hasMoreMessages: messages.hasMoreMessages,
     isSendingMessage: messages.isSendingMessage,
-    sendMessage,
+    sendMessage: messages.sendMessage,
     loadMoreMessages: messages.loadMoreMessages,
     refreshMessages: messages.refreshMessages,
+    
+    // Helpers isolados
     markAsRead,
-    instanceHealth,
-    realtimeStats
+    
+    // Estatísticas isoladas
+    instanceHealth: {
+      score: instances.healthScore,
+      isHealthy: instances.isHealthy,
+      connectedInstances: instances.connectedInstances,
+      totalInstances: instances.totalInstances
+    },
+    realtimeStats: {
+      chatsConnected: realtime.isContactsConnected,
+      messagesConnected: realtime.isMessagesConnected,
+      totalChatsEvents: realtime.totalContactEvents,
+      totalMessagesEvents: realtime.totalMessageEvents,
+      lastChatsUpdate: realtime.lastContactUpdate,
+      lastMessagesUpdate: realtime.lastMessageUpdate,
+      chatsReconnectAttempts: realtime.contactsReconnectAttempts,
+      messagesReconnectAttempts: realtime.messagesReconnectAttempts,
+      queuedMessages: 0, // Não mais necessário com hooks isolados
+      cacheStats: {} // Cache agora é isolado por feature
+    }
   };
 };

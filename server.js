@@ -26,10 +26,11 @@ const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 const VPS_AUTH_TOKEN = process.env.VPS_API_TOKEN || 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
 
 const SUPABASE_WEBHOOKS = {
+  AUTO_SYNC_INSTANCES: process.env.AUTO_SYNC_INSTANCES || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/auto_whatsapp_sync',
   QR_RECEIVER: process.env.QR_RECEIVER_WEBHOOK || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver',
   CONNECTION_SYNC: process.env.CONNECTION_SYNC_WEBHOOK || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/auto_whatsapp_sync',
   BACKEND_MESSAGES: process.env.BACKEND_MESSAGES_WEBHOOK || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_whatsapp_web',
-  N8N_MESSAGES: process.env.N8N_MESSAGES_WEBHOOK || 'https://novo-ticlin-n8n.eirfpl.easypanel.host/webhook/ticlingeral'
+  N8N_MESSAGES: process.env.N8N_MESSAGES_WEBHOOK || ''
 };
 
 // Armazenamento global de instâncias
@@ -436,7 +437,7 @@ app.delete('/instance/:instanceId', async (req, res) => {
 
 // Enviar Mensagem
 app.post('/send', authenticateToken, async (req, res) => {
-  const { instanceId, phone, message, mediaType, mediaUrl } = req.body;
+  const { instanceId, phone, message, mediaType, mediaUrl, ptt, filename, seconds, waveform } = req.body;
 
   if (!instanceId || !phone || !message) {
     return res.status(400).json({
@@ -532,13 +533,43 @@ app.post('/send', authenticateToken, async (req, res) => {
             console.log('🎵 Convertendo áudio DataURL para Buffer...');
             const base64Data = mediaUrl.split(',')[1];
             const buffer = Buffer.from(base64Data, 'base64');
-            messageResult = await instance.socket.sendMessage(formattedPhone, {
+
+            // ✅ CORREÇÃO PRINCIPAL: PROCESSAR METADADOS PTT
+            // Detectar mimetype do DataURL
+            const mimeMatch = mediaUrl.match(/data:([^;]+)/);
+            const detectedMimeType = mimeMatch ? mimeMatch[1] : 'audio/mpeg';
+
+            console.log(`🎙️ Metadados PTT recebidos: ptt=${ptt}, filename=${filename}, seconds=${seconds}`);
+            console.log(`🎵 MIME type detectado: ${detectedMimeType}`);
+
+            // Construir opções de áudio baseado nos metadados
+            const audioOptions = {
               audio: buffer,
-              fileName: 'audio.mp3', // nome fixo
-              mimetype: 'audio/mpeg'
-            });
+              fileName: filename || 'audio.mp3',
+              mimetype: detectedMimeType
+            };
+
+            // ✅ ADICIONAR SUPORTE A PTT NATIVO
+            if (ptt === true) {
+              console.log('🎙️ ENVIANDO COMO ÁUDIO NATIVO PTT (Push-to-Talk)');
+              audioOptions.ptt = true;
+
+              // Adicionar duração se disponível
+              if (seconds) {
+                audioOptions.seconds = parseInt(seconds);
+              }
+
+              // Adicionar waveform se disponível (opcional)
+              if (waveform) {
+                audioOptions.waveform = waveform;
+              }
+            } else {
+              console.log('🎵 Enviando como áudio normal (não-PTT)');
+            }
+
+            messageResult = await instance.socket.sendMessage(formattedPhone, audioOptions);
           } else {
-            // URL HTTP normal
+            // URL HTTP normal - comportamento original
             messageResult = await instance.socket.sendMessage(formattedPhone, {
               audio: { url: mediaUrl },
               ptt: true
@@ -790,31 +821,6 @@ async function startServer() {
 startServer();
 
 module.exports = { app, instances, webhookManager, connectionManager, diagnosticsManager, importManagerRobust };
-
-// CORREÇÃO: Função de limpeza periódica para evitar acúmulo
-function cleanupFailedInstances() {
-  const now = Date.now();
-  const CLEANUP_INTERVAL = 300000; // 5 minutos
-
-  for (const [instanceId, instance] of Object.entries(instances)) {
-    const timeSinceLastUpdate = now - new Date(instance.lastUpdate).getTime();
-
-    // Remover instâncias que falharam há mais de 5 minutos
-    if (instance.status === 'failed' && timeSinceLastUpdate > CLEANUP_INTERVAL) {
-      console.log(`[Cleanup] 🧹 Removendo instância expirada: ${instanceId}`);
-      delete instances[instanceId];
-    }
-
-    // Remover instâncias órfãs sem socket
-    if (!instance.socket && timeSinceLastUpdate > CLEANUP_INTERVAL) {
-      console.log(`[Cleanup] 🧹 Removendo instância órfã: ${instanceId}`);
-      delete instances[instanceId];
-    }
-  }
-}
-
-// Executar limpeza a cada 5 minutos
-setInterval(cleanupFailedInstances, 300000);
 
 // CORREÇÃO: Função de limpeza periódica para evitar acúmulo
 function cleanupFailedInstances() {

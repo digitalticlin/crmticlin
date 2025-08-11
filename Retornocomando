@@ -1,37 +1,97 @@
-useMessagesRealtime.ts:48 Uncaught TypeError: Cannot destructure property 'selectedContact' of 'object null' as it is null.
-    at useMessagesRealtime (useMessagesRealtime.ts:48:3)
-    at useWhatsAppChatMessages (useWhatsAppChatMessages.ts:488:3)
-    at WhatsAppChatProvider.tsx:138:24
-
-ProtectedRoute.tsx:13 [ProtectedRoute] 🛡️ Verificando acesso: 
-{pathname: '/whatsapp-chat', hasUser: true, loading: false, userEmail: 'digitalticlin@gmail.com', sessionExists: true, …}
-ProtectedRoute.tsx:58 [ProtectedRoute] ✅ Usuário autenticado, renderizando conteúdo
-WhatsAppChatProvider.tsx:78 🚨 [PROVIDER] WhatsAppChatProvider renderizado: 2025-07-28T02:46:55.082Z
-WhatsAppChatProvider.tsx:78 🚨 [PROVIDER] WhatsAppChatProvider renderizado: 2025-07-28T02:46:55.083Z
-useMessagesRealtime.ts:48 Uncaught TypeError: Cannot destructure property 'selectedContact' of 'object null' as it is null.
-    at useMessagesRealtime (useMessagesRealtime.ts:48:3)
-    at useWhatsAppChatMessages (useWhatsAppChatMessages.ts:488:3)
-    at WhatsAppChatProvider.tsx:138:24
-chunk-UPELNCPK.js?v=621cdfca:14032 The above error occurred in the <WhatsAppChatProvider> component:
-
-    at http://localhost:8080/src/components/chat/whatsapp/WhatsAppChatProvider.tsx?t=1753670791576:38:80
-    at WhatsAppChatPage
-    at WhatsAppChat
-    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx?t=1753669114302:25:63
-    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=621cdfca:4088:5)
-    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=621cdfca:4558:5)
-    at QRCodeModalProvider (http://localhost:8080/src/modules/whatsapp/instanceCreation/hooks/useQRCodeModal.tsx?t=1753669114302:29:39)
-    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
-    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx?t=1753669114302:38:32)
-    at div
-    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=621cdfca:4501:15)
-    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=621cdfca:5247:5)
-    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=621cdfca:2933:3)
-    at App (http://localhost:8080/src/App.tsx?t=1753670791576:49:5)
-
-Consider adding an error boundary to your tree to customize error handling behavior.
-Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
-chunk-UPELNCPK.js?v=621cdfca:19413 Uncaught TypeError: Cannot destructure property 'selectedContact' of 'object null' as it is null.
-    at useMessagesRealtime (useMessagesRealtime.ts:48:3)
-    at useWhatsAppChatMessages (useWhatsAppChatMessages.ts:488:3)
-    at WhatsAppChatProvider.tsx:138:24
+[Webhook] ✅ Processamento concluído: { success: false, error: "Failed to save message" }
+[Webhook] ❌ Erro ao salvar mensagem: { error: "function gen_random_bytes(integer) does not exist", method: "service_role_error", success: false, sqlstate: "42883" }
+[Webhook] ✅ Processamento concluído: { success: false, error: "Failed to save message" }
+[Webhook] ❌ Erro ao salvar mensagem: { error: "function gen_random_bytes(integer) does not exist", method: "service_role_error", success: false, sqlstate: "42883" }
+[Webhook] ✅ Processamento concluído: { success: false, error: "Failed to save message" }
+[Webhook] ❌ Erro ao salvar mensagem: { error: "function gen_random_bytes(integer) does not exist", method: "service_role_error", success: false, sqlstate: "42883" }
+[Webhook] ✅ Processamento concluído: { success: false, error: "Failed to save message" }
+[Webhook] ❌ Erro ao salvar mensagem: { error: "function gen_random_bytes(integer) does not exist", method: "service_role_error", success: false, sqlstate: "42883" }
+[Webhook] 💾 Salvando mensagem no banco...
+[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "video", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "mediaBase64", "mediaData" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
+[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "video", hasMediaData: true, hasCaption: false }
+[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "video", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 3548901 }
+[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: false, timestamp: "2025-08-11T04:05:37.023Z" }
+[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 3548901, timestamp: "2025-08-11T04:05:37.015Z" }
+[Webhook] 🔑 Signature recebida: false
+[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
+Listening on http://localhost:9999/
+[Webhook] 🔑 Webhook secret configurado: false
+[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
+[Webhook] ✅ Processamento concluído: { success: false, error: "Failed to save message" }
+booted (time: 32ms)
+[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "image", hasMediaData: true, hasCaption: false }
+[Webhook] 💾 Salvando mensagem no banco...
+[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "image", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "mediaBase64", "mediaData" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
+[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "image", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 499623 }
+[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: false, timestamp: "2025-08-11T04:05:36.628Z" }
+[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
+[Webhook] 🔑 Signature recebida: false
+[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 499623, timestamp: "2025-08-11T04:05:36.626Z" }
+[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "image", hasMediaData: true, hasCaption: false }
+[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "image", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "mediaBase64", "mediaData" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
+[Webhook] 💾 Salvando mensagem no banco...
+[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "image", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 729983 }
+Listening on http://localhost:9999/
+[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: false, timestamp: "2025-08-11T04:05:36.616Z" }
+[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
+[Webhook] 🔑 Webhook secret configurado: false
+[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
+[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 729983, timestamp: "2025-08-11T04:05:36.613Z" }
+[Webhook] 🔑 Signature recebida: false
+[Webhook] ✅ Processamento concluído: { success: false, error: "Failed to save message" }
+[Webhook] 🔑 Webhook secret configurado: false
+Listening on http://localhost:9999/
+[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
+[Webhook] ❌ Erro ao salvar mensagem: { error: "function gen_random_bytes(integer) does not exist", method: "service_role_error", success: false, sqlstate: "42883" }
+[Webhook] ❌ Erro ao salvar mensagem: { error: "function gen_random_bytes(integer) does not exist", method: "service_role_error", success: false, sqlstate: "42883" }
+booted (time: 31ms)
+booted (time: 24ms)
+[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "document", hasMediaData: true, hasCaption: false }
+[Webhook] 💾 Salvando mensagem no banco...
+[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "document", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 2880634 }
+[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "document", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "mediaBase64", "mediaData" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
+[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: false, timestamp: "2025-08-11T04:05:36.472Z" }
+[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 2880634, timestamp: "2025-08-11T04:05:36.465Z" }
+[Webhook] 🔑 Signature recebida: false
+[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
+[Webhook] 🔑 Webhook secret configurado: false
+Listening on http://localhost:9999/
+[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
+[Webhook] 💾 Salvando mensagem no banco...
+[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "audio", hasMediaData: true, hasCaption: false }
+[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "audio", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "mediaBase64", "mediaData" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
+[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "audio", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 47509 }
+[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: false, timestamp: "2025-08-11T04:05:36.412Z" }
+[Webhook] 🔑 Signature recebida: false
+[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
+[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 47509, timestamp: "2025-08-11T04:05:36.410Z" }
+Listening on http://localhost:9999/
+[Webhook] 🔑 Webhook secret configurado: false
+[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
+booted (time: 30ms)
+[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "document", hasMediaData: true, hasCaption: false }
+[Webhook] 💾 Salvando mensagem no banco...
+[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "document", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "mediaBase64", "mediaData" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
+[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "document", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 325429 }
+[Webhook] 🔑 Signature recebida: false
+[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: false, timestamp: "2025-08-11T04:05:36.347Z" }
+[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
+[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 325429, timestamp: "2025-08-11T04:05:36.293Z" }
+booted (time: 31ms)
+Listening on http://localhost:9999/
+[Webhook] 🔑 Webhook secret configurado: false
+[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
+booted (time: 26ms)
+[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { phone: "55629921****", lead_id: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", user_id: "712e7708-2299-4a00-9128-577c8f113ca4", has_media: false, media_type: "text", message_id: "783918e3-1a74-4b51-be83-dbb8805c98e9", instance_id: "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785", formatted_name: "+55 (62) 99212-484", media_cache_id: null, mediaProcessed: false, usedExistingInfrastructure: true } }
+[Webhook] ✅ Mensagem salva: { messageId: "783918e3-1a74-4b51-be83-dbb8805c98e9", leadId: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", fromMe: false }
+[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "text", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 458 }
+[Webhook] 💾 Salvando mensagem no banco...
+[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "text", hasMediaData: false, hasCaption: false }
+[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 458, timestamp: "2025-08-11T04:05:35.695Z" }
+[Webhook] 🔑 Signature recebida: false
+[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
+[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: false, timestamp: "2025-08-11T04:05:35.697Z" }
+Listening on http://localhost:9999/
+[Webhook] 🔑 Webhook secret configurado: false
+[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
+booted (time: 26ms)

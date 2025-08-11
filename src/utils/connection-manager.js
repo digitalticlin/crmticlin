@@ -1,6 +1,5 @@
-
 // CONNECTION MANAGER - GERENCIAMENTO ISOLADO DE CONEXÕES
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, downloadContentFromMessage } = require('baileys');
 const QRCode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
@@ -12,14 +11,14 @@ class ConnectionManager {
     this.webhookManager = webhookManager;
     this.connectionAttempts = new Map();
     this.sentMessagesCache = new Map(); // Cache para rastrear mensagens enviadas via API
-    
+
     console.log('🔌 ConnectionManager inicializado');
   }
 
   // Criar instância com gerenciamento robusto
   async createInstance(instanceId, createdByUserId = null, isRecovery = false) {
     const logPrefix = `[ConnectionManager ${instanceId}]`;
-    
+
     if (this.instances[instanceId] && !isRecovery) {
       throw new Error('Instância já existe');
     }
@@ -79,7 +78,7 @@ class ConnectionManager {
 
     } catch (error) {
       console.error(`${logPrefix} ❌ Erro:`, error);
-      
+
       // Marcar instância como erro
       this.instances[instanceId] = {
         instanceId,
@@ -125,13 +124,13 @@ class ConnectionManager {
               light: '#FFFFFF'
             }
           });
-          
+
           instance.qrCode = qrCodeDataURL;
           instance.status = 'waiting_qr';
 
           // Notificar via webhook
           await this.webhookManager.notifyQRCode(instanceId, qrCodeDataURL);
-          
+
         } catch (qrError) {
           console.error(`${logPrefix} ❌ Erro no QR Code:`, qrError);
           instance.status = 'qr_error';
@@ -143,7 +142,7 @@ class ConnectionManager {
       if (connection === 'close') {
         const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
         const currentAttempts = this.connectionAttempts.get(instanceId) || 0;
-        
+
         console.log(`${logPrefix} ❌ Conexão fechada. Reconectar: ${shouldReconnect}, Tentativas: ${currentAttempts}/3`);
 
         instance.status = 'disconnected';
@@ -157,9 +156,9 @@ class ConnectionManager {
           this.connectionAttempts.set(instanceId, currentAttempts + 1);
           instance.attempts = currentAttempts + 1;
           instance.status = 'reconnecting';
-          
+
           console.log(`${logPrefix} 🔄 Reagendando reconexão em 15 segundos... (${currentAttempts + 1}/3)`);
-          
+
           setTimeout(async () => {
             try {
               await this.createInstance(instanceId, instance.createdByUserId, true);
@@ -190,14 +189,34 @@ class ConnectionManager {
         instance.profileName = profileName;
         instance.qrCode = null;
         instance.error = null;
-        
+
         // Resetar contador de tentativas
         this.connectionAttempts.delete(instanceId);
         instance.attempts = 0;
 
-        // Notificar conexão via webhook
-        console.log(`${logPrefix} 📡 Enviando webhook de conexão para auto_whatsapp_sync`);
-        await this.webhookManager.notifyConnection(instanceId, phone, profileName, 'connected');
+      // Notificar conexão via webhook (nome sempre; foto da instância apenas neste evento)
+      console.log(`${logPrefix} 📡 Enviando webhook de conexão para auto_whatsapp_sync`);
+      let instanceProfilePicBase64 = null;
+      try {
+        if (typeof socket.profilePictureUrl === 'function' && userInfo?.id) {
+          const picUrl = await socket.profilePictureUrl(userInfo.id, 'image');
+          if (picUrl) {
+            const resp = await fetch(picUrl);
+            const buf = await resp.arrayBuffer();
+            const mime = resp.headers.get('content-type') || 'image/jpeg';
+            const b64 = Buffer.from(buf).toString('base64');
+            instanceProfilePicBase64 = `data:${mime};base64,${b64}`;
+          }
+        }
+      } catch (_) {}
+
+      await this.webhookManager.notifyConnection(
+        instanceId,
+        phone,
+        profileName,
+        'connected',
+        instanceProfilePicBase64 ? { instanceProfilePicBase64 } : {}
+      );
       }
     });
 
@@ -236,11 +255,73 @@ class ConnectionManager {
         messageType: this.getMessageType(message.message)
       };
 
+      // Incluir nome do remetente em toda mensagem (leve e útil para o CRM)
+      try {
+        const senderProfileName = message.pushName || null;
+        if (senderProfileName) {
+          messageData.senderProfileName = senderProfileName;
+        }
+      } catch (_) {}
+
+      // Se for mídia, extrair como Data URL e anexar
+      if (messageData.messageType !== 'text') {
+        try {
+          const mediaInfo = await this.extractMediaAsDataUrl(message.message, messageData.messageType);
+          if (mediaInfo && mediaInfo.base64Data) {
+            messageData.mediaBase64 = mediaInfo.base64Data; // campo raiz (edge aceita)
+            messageData.mediaData = {
+              base64Data: mediaInfo.base64Data,
+              fileName: mediaInfo.fileName || undefined,
+              mediaType: mediaInfo.mediaType || messageData.messageType,
+              caption: mediaInfo.caption || undefined
+            };
+          }
+        } catch (mediaErr) {
+          console.error(`${logPrefix} ⚠️ Falha ao extrair mídia:`, mediaErr?.message || mediaErr);
+        }
+      }
+
       // Notificar mensagem via webhook (com throttling)
       setTimeout(async () => {
         await this.webhookManager.notifyMessage(instanceId, messageData, instance.createdByUserId);
       }, 1000); // Delay de 1 segundo para evitar spam
     });
+
+    // Detectar atualização de contatos (nome/foto) e enviar lead_profile_updated
+    if (socket.ev && typeof socket.ev.on === 'function') {
+      socket.ev.on('contacts.update', async (updates) => {
+        try {
+          if (!Array.isArray(updates)) return;
+          for (const upd of updates) {
+            const jid = upd?.id || upd?.jid;
+            if (!jid || jid.endsWith('@g.us') || jid.includes('@broadcast')) continue;
+            const phone = jid.split('@')[0];
+            const profileName = upd?.notify || upd?.name || null;
+
+            let senderProfilePicBase64 = null;
+            try {
+              if (upd?.imgUrl || typeof socket.profilePictureUrl === 'function') {
+                const picUrl = upd?.imgUrl || (await socket.profilePictureUrl(jid, 'image'));
+                if (picUrl) {
+                  const resp = await fetch(picUrl);
+                  const buf = await resp.arrayBuffer();
+                  const mime = resp.headers.get('content-type') || 'image/jpeg';
+                  const b64 = Buffer.from(buf).toString('base64');
+                  senderProfilePicBase64 = `data:${mime};base64,${b64}`;
+                }
+              }
+            } catch (_) {}
+
+            await this.webhookManager.notifyLeadProfileUpdated(
+              instanceId,
+              phone,
+              profileName,
+              senderProfilePicBase64
+            );
+          }
+        } catch (_) {}
+      });
+    }
 
     // Tratar erros de socket
     socket.ev.on('error', (error) => {
@@ -248,6 +329,63 @@ class ConnectionManager {
       instance.error = error.message;
       instance.lastUpdate = new Date();
     });
+  }
+
+  // Extrai mídia de uma mensagem do Baileys como Data URL (base64)
+  async extractMediaAsDataUrl(messageObj, inferredType) {
+    // Detectar o subcampo de mídia
+    let content; let streamType; let mimeType; let fileName; let caption;
+    if (messageObj.imageMessage) {
+      content = messageObj.imageMessage; streamType = 'image'; mimeType = content.mimetype; caption = content.caption;
+    } else if (messageObj.videoMessage) {
+      content = messageObj.videoMessage; streamType = 'video'; mimeType = content.mimetype; caption = content.caption;
+    } else if (messageObj.audioMessage) {
+      content = messageObj.audioMessage; streamType = 'audio'; mimeType = content.mimetype;
+    } else if (messageObj.documentMessage) {
+      content = messageObj.documentMessage; streamType = 'document'; mimeType = content.mimetype; fileName = content.fileName;
+    } else if (messageObj.stickerMessage) {
+      content = messageObj.stickerMessage; streamType = 'sticker'; mimeType = content.mimetype || 'image/webp';
+    } else {
+      return null;
+    }
+
+    // Baixar conteúdo como stream e montar Buffer
+    const stream = await downloadContentFromMessage(content, streamType);
+    const chunks = [];
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+
+    // Normalização e fallback de MIME type
+    // Preferir o mimetype real do WhatsApp; ajustar cenários comuns
+    if (streamType === 'audio') {
+      const isPtt = content?.ptt === true;
+      const looksLikeOggOpus = (mimeType || '').toLowerCase().includes('ogg') || (mimeType || '').toLowerCase().includes('opus');
+      if (isPtt || looksLikeOggOpus) {
+        // Notas de voz/ptt geralmente são ogg/opus
+        mimeType = 'audio/ogg; codecs=opus';
+      } else {
+        // Se não informado, usar um padrão seguro
+        mimeType = mimeType || 'audio/mpeg';
+      }
+    } else if (streamType === 'image') {
+      mimeType = mimeType || 'image/jpeg';
+    } else if (streamType === 'video') {
+      mimeType = mimeType || 'video/mp4';
+    } else if (streamType === 'document') {
+      // Documentos podem variar muito; manter o mimetype real se existir
+      mimeType = mimeType || 'application/octet-stream';
+    } else if (streamType === 'sticker') {
+      // Stickers normalmente são webp
+      mimeType = mimeType || 'image/webp';
+    } else {
+      mimeType = mimeType || 'application/octet-stream';
+    }
+
+    const base64 = buffer.toString('base64');
+    const dataUrl = `data:${mimeType};base64,${base64}`;
+    return { base64Data: dataUrl, fileName, mediaType: inferredType || streamType, caption };
   }
 
   // Adicionar mensagem ao cache (enviada via API)
@@ -260,7 +398,7 @@ class ConnectionManager {
       timestamp: Date.now(),
       sentViaAPI: true
     });
-    
+
     // Limpar cache após 5 minutos
     setTimeout(() => {
       this.sentMessagesCache.delete(cacheKey);
@@ -278,39 +416,39 @@ class ConnectionManager {
     if (messageObj.conversation) {
       return messageObj.conversation;
     }
-    
+
     if (messageObj.extendedTextMessage?.text) {
       return messageObj.extendedTextMessage.text;
     }
-    
+
     if (messageObj.imageMessage?.caption) {
       return messageObj.imageMessage.caption || '[Imagem]';
     }
-    
+
     if (messageObj.videoMessage?.caption) {
       return messageObj.videoMessage.caption || '[Vídeo]';
     }
-    
+
     if (messageObj.audioMessage) {
       return '[Áudio]';
     }
-    
+
     if (messageObj.documentMessage) {
       return `[Documento: ${messageObj.documentMessage.fileName || 'arquivo'}]`;
     }
-    
+
     if (messageObj.stickerMessage) {
       return '[Sticker]';
     }
-    
+
     if (messageObj.locationMessage) {
       return '[Localização]';
     }
-    
+
     if (messageObj.contactMessage) {
       return '[Contato]';
     }
-    
+
     return '[Mensagem não suportada]';
   }
 
@@ -319,35 +457,35 @@ class ConnectionManager {
     if (messageObj.conversation || messageObj.extendedTextMessage) {
       return 'text';
     }
-    
+
     if (messageObj.imageMessage) {
       return 'image';
     }
-    
+
     if (messageObj.videoMessage) {
       return 'video';
     }
-    
+
     if (messageObj.audioMessage) {
       return 'audio';
     }
-    
+
     if (messageObj.documentMessage) {
       return 'document';
     }
-    
+
     if (messageObj.stickerMessage) {
       return 'sticker';
     }
-    
+
     if (messageObj.locationMessage) {
       return 'location';
     }
-    
+
     if (messageObj.contactMessage) {
       return 'contact';
     }
-    
+
     return 'unknown';
   }
 
@@ -397,7 +535,7 @@ class ConnectionManager {
   // Obter estatísticas das conexões
   getConnectionStats() {
     const instances = Object.values(this.instances);
-    
+
     return {
       total: instances.length,
       connected: instances.filter(i => i.connected).length,

@@ -1,8 +1,7 @@
 
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useRef, useCallback } from 'react';
 import { Message } from '@/types/chat';
 import { useScrollDetection } from './messages/hooks/useScrollDetection';
-import { useMessagesList } from './messages/hooks/useMessagesList';
 import { MessageItem } from './messages/components/MessageItem';
 import { MessagesLoadingIndicator } from './messages/components/MessagesLoadingIndicator';
 import { LoadMoreIndicator } from './messages/components/LoadMoreIndicator';
@@ -44,10 +43,14 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
   hasMoreMessages = false,
   onLoadMore
 }) => {
-  // Hook para gerenciar lista de mensagens com animações
-  const { messagesList, messagesEndRef, containerRef, scrollToBottom } = useMessagesList({
-    messages,
-    isLoadingMore
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  console.log('[WhatsApp MessagesList] 📋 Renderizando lista:', {
+    total: messages.length,
+    isLoading,
+    isLoadingMore,
+    hasMoreMessages
   });
 
   // Hook para detectar scroll e carregar mais mensagens
@@ -58,8 +61,19 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
     isLoadingMore
   });
 
-  // 🚀 CORREÇÃO: Agrupar mensagens por data
-  const messageGroups = useMemo(() => groupMessagesByDate(messagesList), [messagesList]);
+  // Função para scroll manual
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    if (messagesEndRef.current && containerRef.current) {
+      const container = containerRef.current;
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior
+      });
+    }
+  }, []);
+
+  // 🚀 CORREÇÃO: Agrupar mensagens por data - direto das props
+  const messageGroups = useMemo(() => groupMessagesByDate(messages), [messages]);
 
   if (isLoading) {
     return <MessagesLoadingIndicator />;
