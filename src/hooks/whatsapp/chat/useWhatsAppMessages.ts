@@ -88,10 +88,10 @@ export const useWhatsAppMessages = ({
   // Ref para scroll automático
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Chave de cache isolada
+  // Chave de cache isolada - CORRIGIDA para funcionar sem instância
   const cacheKey = useMemo(() => {
-    return selectedContact && activeInstance 
-      ? `${selectedContact.id}-${activeInstance.id}` 
+    return selectedContact 
+      ? `${selectedContact.id}-${activeInstance?.id || 'no-instance'}` 
       : null;
   }, [selectedContact?.id, activeInstance?.id]);
 
@@ -122,21 +122,33 @@ export const useWhatsAppMessages = ({
     return message;
   }, []);
 
-  // Buscar mensagens (isolado) - CORRIGIDO PARA ORDEM CORRETA
+  // Buscar mensagens (isolado) - CORRIGIDO PARA FUNCIONAR SEM INSTÂNCIA
   const fetchMessages = useCallback(async (page = 0, append = false) => {
-    if (!selectedContact || !activeInstance || !user?.id || !cacheKey) {
-      console.log('[WhatsApp Messages] ❌ Parâmetros inválidos:', {
+    console.log('[WhatsApp Messages] 🚀 HOOK EXECUTADO - fetchMessages:', {
+      hasSelectedContact: !!selectedContact,
+      hasActiveInstance: !!activeInstance,
+      hasUserId: !!user?.id,
+      selectedContactId: selectedContact?.id,
+      selectedContactName: selectedContact?.name,
+      activeInstanceId: activeInstance?.id,
+      userId: user?.id,
+      page,
+      append
+    });
+
+    if (!selectedContact || !user?.id) {
+      console.log('[WhatsApp Messages] ❌ Parâmetros obrigatórios ausentes:', {
         hasSelectedContact: !!selectedContact,
-        hasActiveInstance: !!activeInstance,
-        hasUserId: !!user?.id,
-        hasCacheKey: !!cacheKey,
-        selectedContactId: selectedContact?.id,
-        activeInstanceId: activeInstance?.id,
-        userId: user?.id
+        hasUserId: !!user?.id
       });
       setMessages([]);
       setHasMoreMessages(false);
       return;
+    }
+
+    // CORREÇÃO: Permitir busca sem activeInstance se não houver instâncias configuradas
+    if (!activeInstance) {
+      console.log('[WhatsApp Messages] ⚠️ Sem instância ativa - buscando mensagens direto por lead_id');
     }
 
     // Verificar cache apenas para primeira página
@@ -164,14 +176,14 @@ export const useWhatsAppMessages = ({
 
       console.log('[WhatsApp Messages] 🔍 Buscando mensagens página:', page, 'para:', selectedContact.name, {
         leadId: selectedContact.id,
-        instanceId: activeInstance.id,
+        instanceId: activeInstance?.id || 'sem-instancia',
         userId: user.id,
         contactName: selectedContact.name,
-        instanceName: activeInstance.instance_name
+        instanceName: activeInstance?.instance_name || 'N/A'
       });
 
-      // 🚀 CORREÇÃO: Buscar mensagens em ordem CRESCENTE (mais antigas primeiro)
-      const { data, error, count } = await supabase
+      // 🚀 CORREÇÃO: Query modificada para funcionar com/sem instância
+      let query = supabase
         .from('messages')
         .select(`
           *,
@@ -183,50 +195,62 @@ export const useWhatsAppMessages = ({
           )
         `, { count: 'exact' })
         .eq('lead_id', selectedContact.id)
-        .eq('whatsapp_number_id', activeInstance.id)
-        .eq('created_by_user_id', user.id)
-        .order('created_at', { ascending: true }) // 🚀 CORREÇÃO: ascending: true
+        .eq('created_by_user_id', user.id);
+      
+      // Adicionar filtro de instância apenas se disponível
+      if (activeInstance?.id) {
+        query = query.eq('whatsapp_number_id', activeInstance.id);
+        console.log('[WhatsApp Messages] 🔍 Aplicando filtro de instância:', activeInstance.id);
+      } else {
+        console.log('[WhatsApp Messages] ⚠️ Buscando mensagens SEM filtro de instância');
+      }
+      
+      const { data, error, count } = await query
+        .order('created_at', { ascending: false }) // 🚀 CORREÇÃO: mais recentes primeiro
         .range(page * MESSAGES_PER_PAGE, (page + 1) * MESSAGES_PER_PAGE - 1);
 
       if (error) throw error;
 
       const fetchedMessages = (data || []).map(convertMessage);
       
+      // 🚀 CORREÇÃO: Inverter ordem para mostrar antigas no topo, recentes embaixo
+      const orderedMessages = fetchedMessages.reverse();
+      
       console.log('[WhatsApp Messages] ✅ Mensagens carregadas:', {
-        count: fetchedMessages.length,
+        count: orderedMessages.length,
         totalCount: count,
         page,
         contact: selectedContact.name,
         leadId: selectedContact.id,
-        instanceId: activeInstance.id,
+        instanceId: activeInstance?.id || 'sem-instancia',
         userId: user.id,
-        firstMessage: fetchedMessages[0] ? {
-          id: fetchedMessages[0].id,
-          text: fetchedMessages[0].text.substring(0, 50),
-          fromMe: fetchedMessages[0].fromMe,
+        firstMessage: orderedMessages[0] ? {
+          id: orderedMessages[0].id,
+          text: orderedMessages[0].text.substring(0, 50),
+          fromMe: orderedMessages[0].fromMe,
           timestamp: fetchedMessages[0].timestamp
         } : null
       });
 
       if (append) {
         // 🚀 CORREÇÃO: Para lazy loading, mensagens antigas vão ANTES das atuais
-        setMessages(prev => [...fetchedMessages, ...prev]);
+        setMessages(prev => [...orderedMessages, ...prev]);
       } else {
-        // 🚀 CORREÇÃO: Para primeira carga, mensagens já estão em ordem crescente
-        setMessages(fetchedMessages);
+        // 🚀 CORREÇÃO: Para primeira carga, usar mensagens ordenadas (antigas→recentes)
+        setMessages(orderedMessages);
         
         // Salvar no cache isolado
-        if (page === 0) {
+        if (page === 0 && cacheKey) {
           cache.current.set(cacheKey, {
-            messages: fetchedMessages,
+            messages: orderedMessages,
             timestamp: Date.now(),
-            hasMore: fetchedMessages.length === MESSAGES_PER_PAGE,
+            hasMore: orderedMessages.length === MESSAGES_PER_PAGE,
             page: page
           });
         }
       }
 
-      setHasMoreMessages(fetchedMessages.length === MESSAGES_PER_PAGE);
+      setHasMoreMessages(orderedMessages.length === MESSAGES_PER_PAGE);
       setCurrentPage(page);
 
     } catch (error: any) {
@@ -468,9 +492,16 @@ export const useWhatsAppMessages = ({
     }
   }, [selectedContact, activeInstance, user, addMessage, replaceOptimisticMessage, removeOptimisticMessage]);
 
-  // 🚀 CORREÇÃO: Carregar mensagens apenas quando contato MUDA
+  // 🚀 CORREÇÃO: Carregar mensagens quando contato MUDA (com/sem instância)
   useEffect(() => {
-    if (selectedContact?.id && activeInstance?.id && user?.id) {
+    console.log('[WhatsApp Messages] 📋 Effect executado:', {
+      hasSelectedContact: !!selectedContact?.id,
+      hasActiveInstance: !!activeInstance?.id,
+      hasUserId: !!user?.id,
+      selectedContactId: selectedContact?.id
+    });
+
+    if (selectedContact?.id && user?.id) {
       // Verificar se realmente mudou o contato
       if (lastFetchedContact.current !== selectedContact.id) {
         console.log('[WhatsApp Messages] 🎯 Mudança de contato:', 
@@ -483,18 +514,24 @@ export const useWhatsAppMessages = ({
         console.log('[WhatsApp Messages] ⏭️ Mesmo contato, sem recarregamento:', selectedContact.name);
       }
     } else {
-      console.log('[WhatsApp Messages] 🧹 Limpando mensagens - sem contato/instância');
+      console.log('[WhatsApp Messages] 🧹 Limpando mensagens - sem contato ou usuário');
       setMessages([]);
       setHasMoreMessages(false);
       lastFetchedContact.current = null;
     }
-  }, [selectedContact?.id, activeInstance?.id, user?.id, fetchMessages]);
+  }, [selectedContact?.id, user?.id, fetchMessages]);
 
-  // 🚀 SCROLL AUTOMÁTICO quando abre uma conversa
+  // 🚀 SCROLL AUTOMÁTICO quando abre uma conversa - SEMPRE PARA ÚLTIMA MENSAGEM
   useEffect(() => {
     if (messages.length > 0 && selectedContact?.id === lastFetchedContact.current) {
-      // Scroll instantâneo ao abrir conversa
-      scrollToBottom('auto');
+      // Usar setTimeout para garantir que DOM foi atualizado
+      setTimeout(() => {
+        console.log('[WhatsApp Messages] 📜 Auto-scroll para última mensagem:', {
+          messagesCount: messages.length,
+          contactId: selectedContact?.id
+        });
+        scrollToBottom('instant'); // Instantâneo para primeira carga
+      }, 50);
     }
   }, [messages.length, selectedContact?.id, scrollToBottom]);
 

@@ -4,6 +4,10 @@ const QRCode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
 
+// Configurações opcionais de cache e tamanho máximo da foto de perfil
+const PROFILE_CACHE_TTL_MS = parseInt(process.env.PROFILE_CACHE_TTL_MS || '86400000', 10); // 24h
+const PROFILE_MAX_IMAGE_KB = parseInt(process.env.PROFILE_MAX_IMAGE_KB || '300', 10); // 300KB
+
 class ConnectionManager {
   constructor(instances, authDir, webhookManager) {
     this.instances = instances;
@@ -11,6 +15,7 @@ class ConnectionManager {
     this.webhookManager = webhookManager;
     this.connectionAttempts = new Map();
     this.sentMessagesCache = new Map(); // Cache para rastrear mensagens enviadas via API
+    this.profilePicCache = new Map(); // Cache simples por telefone (TTL)
 
     console.log('🔌 ConnectionManager inicializado');
   }
@@ -281,6 +286,25 @@ class ConnectionManager {
         }
       }
 
+      // Enviar atualização de perfil (nome/foto) na primeira mensagem do contato (fora do cache)
+      try {
+        if (!fromMe && remoteJid && remoteJid.indexOf('@') > 0) {
+          const phoneOnly = remoteJid.split('@')[0];
+          const nowTs = Date.now();
+          const lastTs = this.profilePicCache.get(phoneOnly) || 0;
+          if (nowTs - lastTs > PROFILE_CACHE_TTL_MS) {
+            const base64Pic = await this.fetchProfilePicBase64(socket, remoteJid);
+            const senderName = message.pushName || null;
+            if (base64Pic || senderName) {
+              await this.webhookManager.notifyLeadProfileUpdated(instanceId, phoneOnly, senderName, base64Pic || null);
+            }
+            this.profilePicCache.set(phoneOnly, nowTs);
+          }
+        }
+      } catch (e) {
+        console.error(`${logPrefix} ⚠️ Erro ao enviar lead_profile_updated:`, e && e.message ? e.message : e);
+      }
+
       // Notificar mensagem via webhook (com throttling)
       setTimeout(async () => {
         await this.webhookManager.notifyMessage(instanceId, messageData, instance.createdByUserId);
@@ -386,6 +410,29 @@ class ConnectionManager {
     const base64 = buffer.toString('base64');
     const dataUrl = `data:${mimeType};base64,${base64}`;
     return { base64Data: dataUrl, fileName, mediaType: inferredType || streamType, caption };
+  }
+
+  // Buscar foto de perfil do contato como Data URL (limitando tamanho)
+  async fetchProfilePicBase64(socket, jid) {
+    try {
+      if (!socket || typeof socket.profilePictureUrl !== 'function') return null;
+      const picUrl = await socket.profilePictureUrl(jid, 'image');
+      if (!picUrl) return null;
+      const resp = await fetch(picUrl);
+      if (!resp || !resp.ok) return null;
+      const mime = resp.headers.get('content-type') || 'image/jpeg';
+      const cl = resp.headers.get('content-length');
+      if (cl && parseInt(cl, 10) > PROFILE_MAX_IMAGE_KB * 1024) {
+        return null;
+      }
+      const arr = await resp.arrayBuffer();
+      const buf = Buffer.from(arr);
+      if (buf.length > PROFILE_MAX_IMAGE_KB * 1024) return null;
+      const b64 = buf.toString('base64');
+      return `data:${mime};base64,${b64}`;
+    } catch (_) {
+      return null;
+    }
   }
 
   // Adicionar mensagem ao cache (enviada via API)
