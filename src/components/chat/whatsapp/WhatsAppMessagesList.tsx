@@ -1,5 +1,5 @@
 
-import React, { memo, useMemo, useRef, useCallback } from 'react';
+import React, { memo, useMemo, useRef, useCallback, useLayoutEffect } from 'react';
 import { Message } from '@/types/chat';
 import { useScrollDetection } from './messages/hooks/useScrollDetection';
 import { MessageItem } from './messages/components/MessageItem';
@@ -18,11 +18,15 @@ interface WhatsAppMessagesListProps {
   onLoadMore?: () => Promise<void>;
 }
 
-// 🚀 CORREÇÃO: Função para agrupar mensagens por data
+// 🚀 PRE-POSITIONED: Agrupar mensagens mantendo ordem recentes→antigas, mas renderizar antigas→recentes
 const groupMessagesByDate = (messages: Message[]) => {
+  // Receber mensagens em ordem recentes→antigas
+  // Reverter apenas para agrupamento cronológico correto (antigas→recentes na tela)
+  const chronologicalMessages = [...messages].reverse();
+  
   const groups: { date: Date; messages: Message[] }[] = [];
   
-  messages.forEach((message) => {
+  chronologicalMessages.forEach((message) => {
     const messageDate = new Date(message.timestamp);
     const lastGroup = groups[groups.length - 1];
     
@@ -61,19 +65,25 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
     isLoadingMore
   });
 
-  // Função para scroll manual
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    if (messagesEndRef.current && containerRef.current) {
+  // 🚀 PRE-POSITIONED: Posicionamento direto sem scroll visível
+  const positionAtBottom = useCallback(() => {
+    if (containerRef.current) {
       const container = containerRef.current;
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior
-      });
+      // Posicionamento DIRETO sem qualquer animação
+      container.scrollTop = container.scrollHeight;
     }
   }, []);
 
   // 🚀 CORREÇÃO: Agrupar mensagens por data - direto das props
   const messageGroups = useMemo(() => groupMessagesByDate(messages), [messages]);
+
+  // 🚀 PRE-POSITIONED: useLayoutEffect executa ANTES do paint do browser
+  useLayoutEffect(() => {
+    if (messages.length > 0) {
+      console.log('[WhatsApp MessagesList] ⚡ PRE-POSITIONED: Posicionando antes do paint');
+      positionAtBottom();
+    }
+  }, [messages.length, positionAtBottom]);
 
   if (isLoading) {
     return <MessagesLoadingIndicator />;
@@ -90,8 +100,8 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
       style={{ 
         height: 'calc(100vh - 280px)',
         overflowY: 'auto',
-        scrollBehavior: 'smooth',
-        overflowAnchor: 'none',
+        scrollBehavior: 'auto', // PRE-POSITIONED: sem animação
+        overflowAnchor: 'auto', // PRE-POSITIONED: permitir ancoragem para estabilidade
         scrollPaddingBottom: '16px'
       }}
     >

@@ -20,7 +20,7 @@ serve(async (req)=>{
     // Parse request body para dados da instância específica
     const requestBody = await req.json();
     console.log('[Auto WhatsApp Sync] 📥 Dados recebidos:', requestBody);
-    const { instanceId, status, event, timestamp, phone, profile_name, profile_pic_url } = requestBody;
+    const { instanceId, status, event, timestamp, phone, profile_name, profile_pic_url, senderProfileName, senderProfilePicBase64, instanceProfilePicBase64 } = requestBody;
     if (!instanceId) {
       throw new Error('instanceId é obrigatório');
     }
@@ -30,6 +30,31 @@ serve(async (req)=>{
     if (fetchError && fetchError.code !== 'PGRST116') {
       throw new Error(`Erro ao buscar instância: ${fetchError.message}`);
     }
+    // Caso especial: atualização de perfil de lead (evento dedicado e leve)
+    if (event === 'lead_profile_updated') {
+      if (!phone) {
+        return new Response(JSON.stringify({ success: false, error: 'phone é obrigatório' }), { headers: corsHeaders, status: 400 });
+      }
+
+      const updateLead: any = {};
+      if (senderProfileName) updateLead.name = senderProfileName;
+      if (senderProfilePicBase64 || profile_pic_url) {
+        updateLead.profile_pic_url = senderProfilePicBase64 || profile_pic_url;
+      }
+
+      if (Object.keys(updateLead).length > 0) {
+        const { error: leadErr } = await supabase
+          .from('leads')
+          .update(updateLead)
+          .eq('phone', phone);
+        if (leadErr) {
+          throw new Error(`Erro ao atualizar lead: ${leadErr.message}`);
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, updated: true, event: 'lead_profile_updated' }), { headers: corsHeaders });
+    }
+
     if (existingInstance) {
       // Atualizar instância existente
       const updateData = {
@@ -40,7 +65,7 @@ serve(async (req)=>{
       // Adicionar dados do WhatsApp se disponíveis
       if (phone) updateData.phone = phone;
       if (profile_name) updateData.profile_name = profile_name;
-      if (profile_pic_url) updateData.profile_pic_url = profile_pic_url;
+      if (profile_pic_url || instanceProfilePicBase64) updateData.profile_pic_url = profile_pic_url || instanceProfilePicBase64;
       // Se conectou, marcar data de conexão
       if (status === 'connected' || status === 'open') {
         updateData.date_connected = new Date().toISOString();

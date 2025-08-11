@@ -162,19 +162,22 @@ class MediaProcessor {
       // 5. Obter URL pública
       const { data: urlData } = supabase.storage.from('whatsapp-media').getPublicUrl(fileName);
       const storageUrl = urlData.publicUrl;
-      // 6. Salvar no cache de mídia
-      const { error: cacheError } = await supabase.from('media_cache').insert({
-        message_id: messageId,
-        original_url: storageUrl,
-        cached_url: storageUrl,
-        base64_data: mediaData.base64Data ? `data:${mimeType};base64,${base64Data}` : null,
-        file_name: mediaData.fileName || fileName,
-        file_size: bytes.length,
-        media_type: mediaData.mediaType,
-        external_message_id: mediaData.externalMessageId || null,
-        processing_status: 'completed',
-        created_at: new Date().toISOString()
-      });
+      // 6. Salvar (idempotente) no cache de mídia
+      const { error: cacheError } = await supabase
+        .from('media_cache')
+        .upsert({
+          message_id: messageId,
+          original_url: storageUrl,
+          cached_url: storageUrl,
+          base64_data: mediaData.base64Data ? `data:${mimeType};base64,${base64Data}` : null,
+          file_name: mediaData.fileName || fileName,
+          file_size: bytes.length,
+          media_type: mediaData.mediaType,
+          external_message_id: mediaData.externalMessageId || null,
+          processing_status: 'completed',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'message_id' });
       if (cacheError) {
         console.error('[Media] ❌ Erro ao salvar cache:', cacheError);
         return false;
@@ -210,7 +213,7 @@ class MediaProcessor {
       if (base64Data.startsWith('data:')) {
         base64Data = base64Data.split(',')[1];
       }
-      // Salvar no cache de mídia como fallback
+      // Salvar no cache de mídia como fallback (idempotente)
       const cachedUrl = `data:${mimeType};base64,${base64Data}`;
       console.log('[Media] 🍎 Fallback com detecção avançada:', {
         originalType: mediaData.mediaType,
@@ -218,18 +221,21 @@ class MediaProcessor {
         isAppleFormat: mimeType.includes('heic') || mimeType.includes('heif') || mimeType.includes('hevc'),
         dataUrlLength: cachedUrl.length
       });
-      const { error: cacheError } = await supabase.from('media_cache').insert({
-        message_id: messageId,
-        base64_data: cachedUrl,
-        cached_url: cachedUrl,
-        original_url: `base64://${mediaData.externalMessageId || Date.now()}`,
-        file_name: mediaData.fileName || `media_${Date.now()}`,
-        file_size: mediaData.base64Data.length,
-        media_type: mediaData.mediaType,
-        external_message_id: mediaData.externalMessageId || null,
-        processing_status: 'completed',
-        created_at: new Date().toISOString()
-      });
+      const { error: cacheError } = await supabase
+        .from('media_cache')
+        .upsert({
+          message_id: messageId,
+          base64_data: cachedUrl,
+          cached_url: cachedUrl,
+          original_url: `base64://${mediaData.externalMessageId || Date.now()}`,
+          file_name: mediaData.fileName || `media_${Date.now()}`,
+          file_size: mediaData.base64Data.length,
+          media_type: mediaData.mediaType,
+          external_message_id: mediaData.externalMessageId || null,
+          processing_status: 'completed',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'message_id' });
       if (cacheError) {
         console.error('[Media] ❌ Erro ao salvar cache fallback:', cacheError);
         return false;
@@ -532,7 +538,7 @@ async function processMessage(supabase, data) {
     data.data?.mediaBase64 || data.mediabase64 || data.mediaData || data.base64Data || data.media || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media),
     hasCaption: !!data.caption
   });
-  // 🔍 EXTRAÇÃO COMPLETA DE DADOS DA MENSAGEM
+  // 🔍 EXTRAÇÃO COMPLETA DE DADOS DA MENSAGEM (garantir base64 em nested data.mediaData.base64Data)
   let messageData;
   if (data.data?.messages?.[0]) {
     // Formato Baileys (evolution API)
@@ -550,7 +556,7 @@ async function processMessage(supabase, data) {
       contactName: data.contactName,
       // 🚀 DADOS DE MÍDIA EXTRAÍDOS - CORREÇÃO APLICADA
       mediaData: {
-        base64Data: data.mediaBase64 || // ✅ inclusão: raiz
+        base64Data: data.mediaBase64 || // raiz
         data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.media?.base64 || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media?.buffer,
         fileName: data.fileName || data.mediaData?.fileName,
         mediaType: data.messageType || data.mediaData?.mediaType,
@@ -573,7 +579,7 @@ async function processMessage(supabase, data) {
       contactName: data.contactName,
       // 🚀 DADOS DE MÍDIA EXTRAÍDOS - CORREÇÃO APLICADA
       mediaData: {
-        base64Data: data.mediaBase64 || // ✅ inclusão: raiz
+        base64Data: data.mediaBase64 || // raiz
         data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.media?.base64 || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media?.buffer,
         fileName: data.fileName || data.mediaData?.fileName,
         mediaType: data.messageType || data.mediaData?.mediaType,

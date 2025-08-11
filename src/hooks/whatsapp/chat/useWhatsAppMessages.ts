@@ -38,7 +38,6 @@ interface UseWhatsAppMessagesReturn {
   refreshMessages: () => void;
   addMessage: (message: Message) => void;
   updateMessage: (message: Message) => void;
-  scrollToBottom: () => void;
   messagesEndRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -154,11 +153,23 @@ export const useWhatsAppMessages = ({
     // Verificar cache apenas para primeira página
     if (page === 0 && !append && cache.current.has(cacheKey)) {
       const cached = cache.current.get(cacheKey)!;
-      console.log('[WhatsApp Messages] 💾 Usando cache isolado para:', selectedContact.name);
-      setMessages(cached.messages);
-      setHasMoreMessages(cached.hasMore);
-      setCurrentPage(cached.page);
-      return;
+      console.log('[WhatsApp Messages] 💾 Usando cache isolado:', {
+        contact: selectedContact.name,
+        cachedMessages: cached.messages.length,
+        cacheAge: Date.now() - cached.timestamp,
+        hasMore: cached.hasMore
+      });
+      
+      // ⚠️ DEBUG: Verificar se cache está corrompido
+      if (cached.messages.length > MESSAGES_PER_PAGE) {
+        console.warn('[WhatsApp Messages] 🚨 CACHE CORROMPIDO - mais que 20 mensagens:', cached.messages.length);
+        cache.current.delete(cacheKey); // Limpar cache corrompido
+      } else {
+        setMessages(cached.messages);
+        setHasMoreMessages(cached.hasMore);
+        setCurrentPage(cached.page);
+        return;
+      }
     }
 
     try {
@@ -206,15 +217,15 @@ export const useWhatsAppMessages = ({
       }
       
       const { data, error, count } = await query
-        .order('created_at', { ascending: false }) // 🚀 CORREÇÃO: mais recentes primeiro
+        .order('created_at', { ascending: false }) // Mais recentes primeiro
         .range(page * MESSAGES_PER_PAGE, (page + 1) * MESSAGES_PER_PAGE - 1);
 
       if (error) throw error;
 
       const fetchedMessages = (data || []).map(convertMessage);
       
-      // 🚀 CORREÇÃO: Inverter ordem para mostrar antigas no topo, recentes embaixo
-      const orderedMessages = fetchedMessages.reverse();
+      // 🚀 PRE-POSITIONED: Manter ordem recentes→antigas para renderização otimizada
+      const orderedMessages = fetchedMessages; // SEM reverse - já vem na ordem correta
       
       console.log('[WhatsApp Messages] ✅ Mensagens carregadas:', {
         count: orderedMessages.length,
@@ -253,6 +264,9 @@ export const useWhatsAppMessages = ({
       setHasMoreMessages(orderedMessages.length === MESSAGES_PER_PAGE);
       setCurrentPage(page);
 
+      // 🚀 PRE-POSITIONED: Sem posicionamento aqui - será feito pelo useLayoutEffect do componente
+      // O posicionamento agora acontece ANTES do paint, eliminando scroll visível
+
     } catch (error: any) {
       console.error('[WhatsApp Messages] ❌ Erro ao buscar mensagens:', error);
       toast.error('Erro ao carregar mensagens');
@@ -278,12 +292,7 @@ export const useWhatsAppMessages = ({
     fetchMessages(0, false);
   }, [fetchMessages, cacheKey]);
 
-  // Scroll para o final - CORRIGIDO
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior });
-    }, 100);
-  }, []);
+  // 🚀 PRE-POSITIONED: scrollToBottom removido - posicionamento agora é no useLayoutEffect do componente
 
   // Adicionar mensagem (isolado)
   const addMessage = useCallback((message: Message) => {
@@ -322,9 +331,8 @@ export const useWhatsAppMessages = ({
       return newMessages;
     });
 
-    // 🚀 SCROLL AUTOMÁTICO PARA MENSAGENS NOVAS
-    scrollToBottom('smooth');
-  }, [cacheKey, scrollToBottom]);
+    // 🚀 PRE-POSITIONED: Mensagens novas também serão posicionadas pelo useLayoutEffect
+  }, [cacheKey]);
 
   // Atualizar mensagem (isolado)
   const updateMessage = useCallback((updatedMessage: Message) => {
@@ -507,8 +515,16 @@ export const useWhatsAppMessages = ({
         console.log('[WhatsApp Messages] 🎯 Mudança de contato:', 
           lastFetchedContact.current, '→', selectedContact.id
         );
+        
+        // 🚀 LIMPEZA TOTAL ao trocar contato
         lastFetchedContact.current = selectedContact.id;
         setCurrentPage(0);
+        setMessages([]); // Limpar imediatamente
+        cache.current.clear(); // Limpar todo cache
+        sentMessageIds.current.clear();
+        pendingOptimisticIds.current.clear();
+        
+        console.log('[WhatsApp Messages] 🧹 Cache limpo ao trocar contato');
         fetchMessages(0, false);
       } else {
         console.log('[WhatsApp Messages] ⏭️ Mesmo contato, sem recarregamento:', selectedContact.name);
@@ -521,19 +537,8 @@ export const useWhatsAppMessages = ({
     }
   }, [selectedContact?.id, user?.id, fetchMessages]);
 
-  // 🚀 SCROLL AUTOMÁTICO quando abre uma conversa - SEMPRE PARA ÚLTIMA MENSAGEM
-  useEffect(() => {
-    if (messages.length > 0 && selectedContact?.id === lastFetchedContact.current) {
-      // Usar setTimeout para garantir que DOM foi atualizado
-      setTimeout(() => {
-        console.log('[WhatsApp Messages] 📜 Auto-scroll para última mensagem:', {
-          messagesCount: messages.length,
-          contactId: selectedContact?.id
-        });
-        scrollToBottom('instant'); // Instantâneo para primeira carga
-      }, 50);
-    }
-  }, [messages.length, selectedContact?.id, scrollToBottom]);
+  // 🚀 PRE-POSITIONED: Posicionamento transferido para WhatsAppMessagesList com useLayoutEffect
+  // Sem useEffect aqui - eliminando qualquer timing de scroll
 
   return {
     messages,
@@ -546,7 +551,6 @@ export const useWhatsAppMessages = ({
     refreshMessages,
     addMessage,
     updateMessage,
-    scrollToBottom,
     messagesEndRef
   };
 };

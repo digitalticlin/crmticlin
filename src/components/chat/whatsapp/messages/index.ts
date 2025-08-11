@@ -12,7 +12,7 @@ export { DocumentMessage } from './renderers/DocumentMessage';
 export { useMediaDownload } from './hooks/useMediaDownload';
 export { useMediaLoader } from './hooks/useMediaLoader';
 export { useScrollDetection } from './hooks/useScrollDetection';
-export { useMessagesList } from './hooks/useMessagesList';
+// export { useMessagesList } from './hooks/useMessagesList'; // REMOVIDO - obsoleto
 
 // Componentes auxiliares
 export { MediaLoadingState } from './components/MediaLoadingState';
