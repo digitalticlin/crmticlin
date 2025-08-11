@@ -3,6 +3,7 @@ import { WhatsAppChatLayout } from "./WhatsAppChatLayout";
 import { useWhatsAppChat } from "@/hooks/whatsapp/useWhatsAppChat";
 
 export function WhatsAppChatContainer() {
+  console.log('[WhatsAppChatContainer] 🏗️ Componente renderizado - iniciando useWhatsAppChat');
   const {
     selectedContact,
     setSelectedContact,
@@ -22,6 +23,15 @@ export function WhatsAppChatContainer() {
     hasMoreMessages,
     loadMoreMessages
   } = useWhatsAppChat();
+
+  console.log('[WhatsAppChatContainer] 📊 Dados do hook recebidos:', {
+    contactsCount: contacts.length,
+    messagesCount: messages.length,
+    selectedContactId: selectedContact?.id,
+    selectedContactName: selectedContact?.name,
+    isLoadingContacts,
+    isLoadingMessages
+  });
 
   return (
     <WhatsAppChatLayout

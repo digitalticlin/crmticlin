@@ -62,9 +62,26 @@ interface UseWhatsAppChatReturn {
 }
 
 export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
-  const { user } = useAuth();
-  const [searchParams] = useSearchParams();
-  const leadId = searchParams.get('leadId');
+  console.log('[WhatsApp Chat] 🚀 HOOK EXECUTADO - INÍCIO');
+  
+  let user, leadId;
+  try {
+    const authResult = useAuth();
+    user = authResult.user;
+    console.log('[WhatsApp Chat] ✅ useAuth funcionou:', !!user);
+  } catch (error) {
+    console.error('[WhatsApp Chat] ❌ Erro em useAuth:', error);
+    throw error;
+  }
+  
+  try {
+    const [searchParams] = useSearchParams();
+    leadId = searchParams.get('leadId');
+    console.log('[WhatsApp Chat] ✅ useSearchParams funcionou:', { leadId });
+  } catch (error) {
+    console.error('[WhatsApp Chat] ❌ Erro em useSearchParams:', error);
+    throw error;
+  }
   
   console.log('[WhatsApp Chat] 🎯 Hook principal inicializado:', {
     userId: user?.id,
@@ -85,7 +102,15 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
   
   // Hooks isolados - SEM ORQUESTRADOR
   console.log('[WhatsApp Chat] 🏗️ Inicializando hooks isolados...');
-  const instances = useWhatsAppInstances();
+  
+  let instances;
+  try {
+    instances = useWhatsAppInstances();
+    console.log('[WhatsApp Chat] ✅ useWhatsAppInstances funcionou');
+  } catch (error) {
+    console.error('[WhatsApp Chat] ❌ Erro em useWhatsAppInstances:', error);
+    throw error;
+  }
   const contacts = useWhatsAppContacts({ 
     activeInstanceId: instances.activeInstance?.id 
   });
