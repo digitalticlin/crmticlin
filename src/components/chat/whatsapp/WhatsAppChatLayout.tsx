@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,35 @@ export const WhatsAppChatLayout = ({
 }: WhatsAppChatLayoutProps) => {
   const [isDetailsSidebarOpen, setIsDetailsSidebarOpen] = useState(false);
 
+  // Listener para atualizar lista de contatos quando um lead for modificado
+  useEffect(() => {
+    const handleLeadUpdate = (event: CustomEvent) => {
+      const { forceRefresh } = event.detail || {};
+      console.log('[WhatsAppChatLayout] 🔄 Lead atualizado, atualizando lista de contatos', {
+        forceRefresh,
+        hasRefreshFunction: !!onRefreshContacts
+      });
+      
+      if (onRefreshContacts) {
+        // Forçar refresh para invalidar cache e recarregar do banco
+        onRefreshContacts();
+        
+        // Se for um forceRefresh, aguardar um pouco e fazer um segundo refresh para garantir
+        if (forceRefresh) {
+          setTimeout(() => {
+            console.log('[WhatsAppChatLayout] 🔄 Force refresh secundário');
+            onRefreshContacts();
+          }, 500);
+        }
+      }
+    };
+
+    window.addEventListener('leadUpdated', handleLeadUpdate);
+    return () => {
+      window.removeEventListener('leadUpdated', handleLeadUpdate);
+    };
+  }, [onRefreshContacts]);
+
   const handleUpdateContact = (updatedContact: Contact) => {
     console.log('[WhatsAppChatLayout] 🔄 Atualizando contato selecionado:', {
       contactId: updatedContact.id,
@@ -100,6 +129,7 @@ export const WhatsAppChatLayout = ({
                 onLoadMoreContacts={onLoadMoreContacts}
                 onRefreshContacts={onRefreshContacts}
                 totalContactsAvailable={totalContactsAvailable}
+                onEditLead={handleEditLead}
               />
             </div>
           ) : (
@@ -148,6 +178,7 @@ export const WhatsAppChatLayout = ({
                   onLoadMoreContacts={onLoadMoreContacts}
                   onRefreshContacts={onRefreshContacts}
                   totalContactsAvailable={totalContactsAvailable}
+                  onEditLead={handleEditLead}
                 />
               </div>
             </ResizablePanel>

@@ -40,6 +40,15 @@ export const LeadDetailsSidebar = ({
 
   useEffect(() => {
     if (selectedContact) {
+      console.log('[LeadDetailsSidebar] 🔄 Carregando dados do contato selecionado:', {
+        contactId: selectedContact.id,
+        name: selectedContact.name,
+        email: selectedContact.email,
+        company: selectedContact.company,
+        purchaseValue: selectedContact.purchaseValue,
+        notes: selectedContact.notes
+      });
+      
       setFormData({
         name: selectedContact.name || "",
         email: selectedContact.email || "",
@@ -50,6 +59,44 @@ export const LeadDetailsSidebar = ({
     }
   }, [selectedContact]);
 
+  // Listener para recarregar dados quando o contato for atualizado externamente
+  useEffect(() => {
+    const handleContactUpdate = async (event: CustomEvent) => {
+      const { leadId, updatedContact } = event.detail || {};
+      
+      if (leadId === selectedContact?.id && !isEditing) {
+        console.log('[LeadDetailsSidebar] 🔄 Contato atualizado externamente, recarregando dados');
+        
+        // Buscar dados mais recentes do banco
+        try {
+          const { data: freshData, error } = await supabase
+            .from('leads')
+            .select('id, name, email, company, purchase_value, notes')
+            .eq('id', leadId)
+            .single();
+          
+          if (!error && freshData) {
+            console.log('[LeadDetailsSidebar] 🔄 Dados frescos carregados:', freshData);
+            setFormData({
+              name: freshData.name || "",
+              email: freshData.email || "",
+              company: freshData.company || "",
+              purchaseValue: freshData.purchase_value ? freshData.purchase_value.toString() : "",
+              notes: freshData.notes || ""
+            });
+          }
+        } catch (error) {
+          console.error('[LeadDetailsSidebar] ❌ Erro ao recarregar dados frescos:', error);
+        }
+      }
+    };
+
+    window.addEventListener('leadUpdated', handleContactUpdate);
+    return () => {
+      window.removeEventListener('leadUpdated', handleContactUpdate);
+    };
+  }, [selectedContact?.id, isEditing]);
+
   const handleSave = useCallback(async () => {
     if (!selectedContact) return;
 
@@ -57,23 +104,67 @@ export const LeadDetailsSidebar = ({
     try {
       const { name, email, company, purchaseValue, notes } = formData;
 
+      console.log('[LeadDetailsSidebar] 💾 Salvando informações do lead:', {
+        leadId: selectedContact.id,
+        originalData: {
+          name: selectedContact.name,
+          email: selectedContact.email,
+          company: selectedContact.company,
+          purchaseValue: selectedContact.purchaseValue,
+          notes: selectedContact.notes
+        },
+        newData: { name, email, company, purchaseValue, notes }
+      });
+
+      // Verificar se o lead existe primeiro
+      const { data: existingLead, error: fetchError } = await supabase
+        .from('leads')
+        .select('id, name, email, company, purchase_value, notes')
+        .eq('id', selectedContact.id)
+        .single();
+
+      if (fetchError) {
+        console.error('[LeadDetailsSidebar] ❌ Lead não encontrado:', fetchError);
+        toast.error("Lead não encontrado no banco de dados.");
+        return;
+      }
+
+      console.log('[LeadDetailsSidebar] 🔍 Lead existente encontrado:', existingLead);
+
+      // Atualizar o lead
       const { data, error } = await supabase
         .from('leads')
         .update({
-          name,
-          email,
-          company,
+          name: name || null,
+          email: email || null,
+          company: company || null,
           purchase_value: purchaseValue ? parseFloat(purchaseValue) : null,
-          notes
+          notes: notes || null,
+          updated_at: new Date().toISOString()
         })
         .eq('id', selectedContact.id)
-        .select()
+        .select('*')
         .single();
 
       if (error) {
-        console.error("Erro ao atualizar lead:", error);
-        toast.error("Erro ao salvar as informações do lead.");
+        console.error("[LeadDetailsSidebar] ❌ Erro ao atualizar lead:", error);
+        toast.error("Erro ao salvar as informações do lead: " + error.message);
         return;
+      }
+
+      console.log('[LeadDetailsSidebar] ✅ Lead atualizado com sucesso:', data);
+
+      // Verificar se os dados foram realmente persistidos
+      const { data: verificationData, error: verificationError } = await supabase
+        .from('leads')
+        .select('id, name, email, company, purchase_value, notes, updated_at')
+        .eq('id', selectedContact.id)
+        .single();
+
+      if (verificationError) {
+        console.error('[LeadDetailsSidebar] ❌ Erro na verificação:', verificationError);
+      } else {
+        console.log('[LeadDetailsSidebar] ✅ Verificação de persistência:', verificationData);
       }
 
       const updatedContact: Contact = {
@@ -85,12 +176,36 @@ export const LeadDetailsSidebar = ({
         notes: data.notes
       };
 
+      // Atualizar o contato no contexto
       onUpdateContact(updatedContact);
+      
+      // Disparar evento para forçar refresh completo dos contatos
+      window.dispatchEvent(new CustomEvent('leadUpdated', {
+        detail: {
+          leadId: selectedContact.id,
+          updatedContact,
+          forceRefresh: true
+        }
+      }));
+
+      // Disparar evento específico para atualização de nome
+      if (data.name !== selectedContact.name) {
+        window.dispatchEvent(new CustomEvent('contactNameUpdated', {
+          detail: {
+            leadId: selectedContact.id,
+            contactId: selectedContact.id,
+            newName: data.name
+          }
+        }));
+      }
+      
       setIsEditing(false);
-      toast.success("Informações do lead salvas com sucesso!");
+      toast.success("Informações do lead salvas e persistidas com sucesso!");
+      
+      console.log('[LeadDetailsSidebar] 📡 Eventos de atualização disparados');
     } catch (error) {
       console.error("Erro ao salvar lead:", error);
-      toast.error("Erro ao salvar as informações do lead.");
+      toast.error("Erro ao salvar as informações do lead: " + (error as Error).message);
     } finally {
       setIsSaving(false);
     }

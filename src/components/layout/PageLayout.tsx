@@ -16,7 +16,10 @@ export function PageLayout({ children, className }: PageLayoutProps) {
   const isMobile = useIsMobile();
 
   return (
-    <div className="h-screen w-full overflow-hidden relative">
+    <div className={cn(
+      "h-screen w-full relative",
+      className?.includes("kanban") ? "" : "overflow-hidden"
+    )}>
       {/* Fundo gradiente usando o componente reutilizável */}
       <BackgroundGradient className="fixed inset-0 z-0" />
       
@@ -25,7 +28,7 @@ export function PageLayout({ children, className }: PageLayoutProps) {
       {/* Main container SEM scroll geral */}
       <main className={cn(
         "fixed top-0 right-0 bottom-0 z-30 transition-all duration-300",
-        "overflow-hidden h-full",
+        className?.includes("kanban") ? "h-full" : "overflow-hidden h-full",
         isMobile 
           ? "left-0 pt-14" 
           : isCollapsed 
@@ -33,8 +36,11 @@ export function PageLayout({ children, className }: PageLayoutProps) {
             : "left-[200px]",
         className
       )}>
-        {/* Container universal com max-width de 1200px */}
-        <div className="w-full max-w-[1200px] mx-auto h-full">
+        {/* Container com tratamento especial para páginas Kanban (full-bleed) */}
+        <div className={cn(
+          "w-full h-full",
+          className?.includes("kanban") ? "max-w-none" : "max-w-[1200px] mx-auto"
+        )}>
           {className?.includes("kanban") ? (
             // SPECIAL layout for Kanban - optimized for drag and drop
             <div className="main-content-scale h-full p-4 md:p-6 flex flex-col" style={{ position: 'relative', zIndex: 1 }}>

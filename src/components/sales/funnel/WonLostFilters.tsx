@@ -47,7 +47,7 @@ export const WonLostFilters = ({
       <div className="relative min-w-[200px] flex-1 max-w-[300px]">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
         <Input
-          placeholder="Pesquisar..."
+          placeholder="Pesquisar"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10 bg-white/20 backdrop-blur-lg border-white/30 rounded-2xl text-gray-700 placeholder-gray-500 focus:bg-white/30 focus:border-ticlin/50 h-9"
@@ -146,10 +146,7 @@ export const WonLostFilters = ({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Contador de Resultados */}
-      <div className="text-sm text-gray-600 bg-white/20 backdrop-blur-lg rounded-2xl px-3 py-1.5">
-        {resultsCount} resultado{resultsCount !== 1 ? 's' : ''}
-      </div>
+      {/* Contador removido conforme solicitado */}
 
       {/* Botão Limpar Filtros */}
       {hasActiveFilters && (

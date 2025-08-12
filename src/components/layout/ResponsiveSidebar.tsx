@@ -15,9 +15,7 @@ import {
   Menu,
   X,
   CreditCard,
-  Hammer,
-  Wrench,
-  HardHat
+  Wrench
 } from "lucide-react";
 import SidebarLogo from "./SidebarLogo";
 import SidebarNavGroup from "./SidebarNavGroup";
@@ -98,7 +96,7 @@ export default function ResponsiveSidebar() {
       label: "Planos",
       href: "/plans",
       comingSoon: true,
-      badgeIcon: Hammer,
+      badgeIcon: Wrench,
       disabledReason: 'Revisando planos e faturamento. Em breve disponível.',
       requiredPermission: null // Todos podem acessar
     },
@@ -107,7 +105,7 @@ export default function ResponsiveSidebar() {
       label: "Configurações",
       href: "/settings",
       comingSoon: true,
-      badgeIcon: HardHat,
+      badgeIcon: Wrench,
       disabledReason: 'Ajustes internos em andamento. Por favor, tente mais tarde.',
       requiredPermission: 'canAccessSettings' // Apenas gestores e admins
     }

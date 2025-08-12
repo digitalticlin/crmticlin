@@ -5,7 +5,6 @@ import { useSalesFunnelContext } from "./SalesFunnelProvider";
 import { KanbanBoard } from "../KanbanBoard";
 import { FunnelLoadingState } from "./FunnelLoadingState";
 import { FunnelEmptyState } from "./FunnelEmptyState";
-import { ModernFunnelHeader } from "./ModernFunnelHeader";
 import { ModernFunnelControlBar } from "./ModernFunnelControlBar";
 import { SalesFunnelModals } from "./SalesFunnelModals";
 import { TagManagementModal } from "./modals/TagManagementModal";
@@ -75,6 +74,13 @@ export function SalesFunnelContent() {
 
   // Estado global para tags
   const [availableTags, setAvailableTags] = useState([]);
+
+  // Usuários disponíveis derivados dos leads atuais (para filtro "Responsável")
+  const availableUsers = useMemo(() => {
+    const unique = new Set<string>();
+    leads.forEach((l) => unique.add(l.assignedUser || ""));
+    return Array.from(unique);
+  }, [leads]);
 
   // Função para carregar todas as tags disponíveis
   const fetchAvailableTags = useCallback(async () => {
@@ -246,17 +252,9 @@ export function SalesFunnelContent() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <ModernFunnelHeader 
-        selectedFunnel={selectedFunnel}
-        totalLeads={stats.totalLeads}
-        wonLeads={stats.wonLeads}
-        lostLeads={stats.lostLeads}
-        activeTab={activeTab}
-      />
-      
-      {/* Card de Controle com Abas e Botões - com espaçamento adequado */}
-      <div className="px-6 pb-4 pt-6">
+    <div className="flex flex-col h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)]">
+      {/* Barra de Controles compacta e sticky */}
+      <div className="sticky top-0 z-10 px-3 py-2 -mt-4 md:-mt-6 bg-transparent border-none backdrop-blur-0">
         <ModernFunnelControlBar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -271,21 +269,12 @@ export function SalesFunnelContent() {
           isAdmin={isAdmin}
         />
       </div>
-      
-      <div className="flex-1 overflow-x-auto px-6">
+
+      {/* Área do board em full-bleed e altura restante do viewport */}
+      <div className="flex-1 min-h-0 px-0 md:px-0">
         {activeTab === "funnel" ? (
-          <KanbanBoard
-            columns={columns}
-            onColumnsChange={setColumns}
-            onOpenLeadDetail={openLeadDetail}
-            onOpenChat={handleOpenChatWithLead}
-            onMoveToWonLost={handleMoveToWonLost}
-            wonStageId={wonStageId}
-            lostStageId={lostStageId}
-          />
-        ) : (
-          <div className="space-y-4">
-            {/* Filtros para Ganhos e Perdidos */}
+          <div className="mt-2 md:mt-4 h-full flex flex-col">
+            {/* Barra de pesquisa/filtro para Funil principal (fixa acima, fora do scroll horizontal) */}
             <WonLostFilters
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
@@ -294,28 +283,61 @@ export function SalesFunnelContent() {
               selectedUser={selectedUser}
               setSelectedUser={setSelectedUser}
               availableTags={availableTags}
-              availableUsers={[]} // TODO: Implementar usuários
+              availableUsers={availableUsers}
               onClearFilters={() => {
                 setSearchTerm("");
                 setSelectedTags([]);
                 setSelectedUser("");
               }}
-              resultsCount={leads.filter(l => l.columnId === wonStageId || l.columnId === lostStageId).length}
+              resultsCount={0}
             />
-            
-            {/* Board otimizado para Ganhos e Perdidos */}
-            <WonLostBoard
-              stages={stages}
-              leads={leads}
-              onOpenLeadDetail={openLeadDetail}
-              onReturnToFunnel={handleReturnToFunnel}
-              onOpenChat={handleOpenChatWithLead}
-              wonStageId={wonStageId}
-              lostStageId={lostStageId}
+            {/* Wrapper somente do board: permite scroll horizontal natural */}
+            <div className="flex-1 min-h-0">
+              <KanbanBoard
+                columns={columns}
+                onColumnsChange={setColumns}
+                onOpenLeadDetail={openLeadDetail}
+                onOpenChat={handleOpenChatWithLead}
+                onMoveToWonLost={handleMoveToWonLost}
+                wonStageId={wonStageId}
+                lostStageId={lostStageId}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="mt-2 md:mt-4 h-full flex flex-col">
+            {/* Filtros para Ganhos e Perdidos com margem superior igual ao Funil principal */}
+            <WonLostFilters
               searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
               selectedTags={selectedTags}
+              setSelectedTags={setSelectedTags}
               selectedUser={selectedUser}
+              setSelectedUser={setSelectedUser}
+              availableTags={availableTags}
+              availableUsers={availableUsers}
+              onClearFilters={() => {
+                setSearchTerm("");
+                setSelectedTags([]);
+                setSelectedUser("");
+              }}
+              resultsCount={0}
             />
+            {/* Board Won/Lost (pode rolar verticalmente dentro das etapas) */}
+            <div className="flex-1 min-h-0">
+              <WonLostBoard
+                stages={stages}
+                leads={leads}
+                onOpenLeadDetail={openLeadDetail}
+                onReturnToFunnel={handleReturnToFunnel}
+                onOpenChat={handleOpenChatWithLead}
+                wonStageId={wonStageId}
+                lostStageId={lostStageId}
+                searchTerm={searchTerm}
+                selectedTags={selectedTags}
+                selectedUser={selectedUser}
+              />
+            </div>
           </div>
         )}
       </div>

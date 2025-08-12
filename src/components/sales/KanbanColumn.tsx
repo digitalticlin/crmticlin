@@ -357,7 +357,7 @@ export function KanbanColumn({
   });
 
   return (
-    <div className="bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 py-3 min-w-[300px] max-w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg">
+    <div className="bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 py-3 min-w-[300px] w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg">
       {/* Header com controle de IA aprimorado */}
       <ColumnHeader
         column={column}
@@ -384,12 +384,13 @@ export function KanbanColumn({
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "flex-1 rounded-xl px-0.5 py-2 kanban-column-scrollbar overflow-y-auto",
+              "flex-1 rounded-xl px-0.5 py-2 kanban-column-scrollbar overflow-y-auto overflow-x-hidden",
               snapshot.isDraggingOver && "bg-blue-50/50 border-2 border-dashed border-blue-400/70 transition-all duration-150"
             )}
             style={{
               minHeight: "400px",
-              maxHeight: "calc(100vh - 200px)"
+              maxHeight: "calc(100svh - 190px)",
+              scrollbarColor: "#ffffff66 transparent"
             }}
             onScroll={handleScroll}
           >

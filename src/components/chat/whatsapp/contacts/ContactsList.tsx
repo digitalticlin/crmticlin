@@ -22,6 +22,7 @@ interface ContactsListProps {
   onLoadMoreContacts?: () => Promise<void>;
   onRefreshContacts?: () => void;
   totalContactsAvailable?: number;
+  onEditLead?: () => void;
 }
 
 const getDisplayName = (contact: Contact): string => {
@@ -41,7 +42,8 @@ export const ContactsList = ({
   hasMoreContacts = false,
   onLoadMoreContacts,
   onRefreshContacts,
-  totalContactsAvailable
+  totalContactsAvailable,
+  onEditLead
 }: ContactsListProps) => {
   const { user } = useAuth();
   const [highlightedContacts, setHighlightedContacts] = useState<Set<string>>(new Set());
@@ -111,8 +113,10 @@ export const ContactsList = ({
 
   const handleEditContact = useCallback((contact: Contact) => {
     onSelectContact(contact);
-    toast.info('Função de edição será implementada em breve');
-  }, [onSelectContact]);
+    if (onEditLead) {
+      onEditLead();
+    }
+  }, [onSelectContact, onEditLead]);
 
   const handleLoadMore = useCallback(async () => {
     const now = Date.now();

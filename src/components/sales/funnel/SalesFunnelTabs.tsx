@@ -1,6 +1,5 @@
 
 import { useState, useMemo } from "react";
-import { ModernFunnelHeader } from "./ModernFunnelHeader";
 import { ModernFunnelControlBar } from "./ModernFunnelControlBar";
 import { KanbanBoard } from "../KanbanBoard";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
@@ -126,22 +125,9 @@ export const SalesFunnelTabs = ({
 
   return (
     <div className="space-y-6">
-      {/* Header Moderno */}
-      <ModernFunnelHeader 
-        selectedFunnel={selectedFunnel}
-        totalLeads={validatedColumns.reduce((acc, col) => acc + (col.leads?.length || 0), 0)}
-        wonLeads={wonLostLeads.filter(lead => {
-          const leadStage = validatedStages.find(stage => stage.id === lead.columnId);
-          return leadStage?.is_won;
-        }).length}
-        lostLeads={wonLostLeads.filter(lead => {
-          const leadStage = validatedStages.find(stage => stage.id === lead.columnId);
-          return leadStage?.is_lost;
-        }).length}
-        activeTab={activeTab}
-      />
+      {/* Header removido para aumentar a área útil dos cards */}
 
-      {/* Barra de Controles Moderna */}
+      {/* Barra de Controles compacta (pode ser tornada sticky no container pai) */}
       <ModernFunnelControlBar
         activeTab={activeTab}
         setActiveTab={setActiveTab}

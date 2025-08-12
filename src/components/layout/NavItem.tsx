@@ -57,10 +57,10 @@ const NavItem = ({ icon: Icon, label, href, isCollapsed, className, comingSoon =
           : !comingSoon && "group-hover:opacity-50 bg-gradient-to-r from-white/10 to-transparent"
       )} />
       
-      {/* Blocked indicator line */}
+      {/* Blocked indicator line - horizontal ao centro */}
       {comingSoon && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-full h-0.5 bg-gray-400 transform rotate-12 opacity-60" />
+          <div className="w-full h-0.5 bg-gray-400 opacity-60" />
         </div>
       )}
       
@@ -96,7 +96,7 @@ const NavItem = ({ icon: Icon, label, href, isCollapsed, className, comingSoon =
           {/* Indicador de status (ícone ou badge) */}
           {comingSoon && (
             StatusIcon ? (
-              <StatusIcon className="h-3.5 w-3.5 text-amber-700" aria-label={disabledReason || 'Em manutenção'} />
+              <StatusIcon className="h-[1.05rem] w-[1.05rem] text-amber-700" aria-label={disabledReason || 'Em manutenção'} />
             ) : (
               <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">
                 {badgeText || 'EM BREVE'}

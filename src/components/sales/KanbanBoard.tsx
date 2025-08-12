@@ -64,57 +64,56 @@ export const KanbanBoard = ({
     isWonLostView
   });
 
-  // Estado vazio otimizado
-  if (!validatedColumns || validatedColumns.length === 0) {
-    console.log('[KanbanBoard] 📭 Estado vazio');
-    
-    return (
-      <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-        <div className="text-center">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {isWonLostView ? "Nenhum lead ganho/perdido" : "Nenhuma etapa encontrada"}
-          </h3>
-          <p className="text-gray-600 mb-4">
-            {isWonLostView 
-              ? "Nenhum lead foi ganho ou perdido ainda" 
-              : "Configure as etapas do seu funil para começar"
-            }
-          </p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Recarregar Página
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const isEmpty = !validatedColumns || validatedColumns.length === 0;
 
   console.log('[KanbanBoard] 🎯 FASES 2+3 + Clone - Renderizando board com clone visual');
+
 
   return (
     <div className="relative w-full h-full flex flex-col">
       <DataErrorBoundary context="Kanban Board - Fases 2+3 + Clone Visual">
-        <StableDragDropWrapper 
-          onDragStart={onDragStart} 
-          onDragEnd={onDragEnd}
-          cloneState={cloneState}
-        >
-          <BoardContentOptimized
-            columns={validatedColumns}
-            onOpenLeadDetail={onOpenLeadDetail}
-            onColumnUpdate={onColumnUpdate}
-            onColumnDelete={onColumnDelete}
-            onOpenChat={onOpenChat}
-            onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
-            onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
-            isWonLostView={isWonLostView}
-            wonStageId={wonStageId}
-            lostStageId={lostStageId}
-          />
-        </StableDragDropWrapper>
+        {isEmpty ? (
+          <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {isWonLostView ? "Nenhum lead ganho/perdido" : "Nenhuma etapa encontrada"}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {isWonLostView 
+                  ? "Nenhum lead foi ganho ou perdido ainda" 
+                  : "Configure as etapas do seu funil para começar"
+                }
+              </p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Recarregar Página
+              </button>
+            </div>
+          </div>
+        ) : (
+          <StableDragDropWrapper 
+            onDragStart={onDragStart} 
+            onDragEnd={onDragEnd}
+            cloneState={cloneState}
+          >
+            <BoardContentOptimized
+              columns={validatedColumns}
+              onOpenLeadDetail={onOpenLeadDetail}
+              onColumnUpdate={onColumnUpdate}
+              onColumnDelete={onColumnDelete}
+              onOpenChat={onOpenChat}
+              onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
+              onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
+              isWonLostView={isWonLostView}
+              wonStageId={wonStageId}
+              lostStageId={lostStageId}
+            />
+          </StableDragDropWrapper>
+        )}
       </DataErrorBoundary>
+
     </div>
   );
 };

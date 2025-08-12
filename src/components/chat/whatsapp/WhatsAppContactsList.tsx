@@ -16,6 +16,7 @@ interface WhatsAppContactsListProps {
   onLoadMoreContacts?: () => Promise<void>;
   onRefreshContacts?: () => void;
   totalContactsAvailable?: number;
+  onEditLead?: () => void;
 }
 
 export const WhatsAppContactsList = React.memo(({
@@ -27,7 +28,8 @@ export const WhatsAppContactsList = React.memo(({
   hasMoreContacts = false,
   onLoadMoreContacts,
   onRefreshContacts,
-  totalContactsAvailable = 0
+  totalContactsAvailable = 0,
+  onEditLead
 }: WhatsAppContactsListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -148,6 +150,7 @@ export const WhatsAppContactsList = React.memo(({
           onLoadMoreContacts={onLoadMoreContacts}
           onRefreshContacts={onRefreshContacts}
           totalContactsAvailable={totalContactsAvailable}
+          onEditLead={onEditLead}
         />
       </div>
 
