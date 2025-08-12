@@ -12,16 +12,20 @@ type NavItemProps = {
   isCollapsed: boolean;
   className?: string;
   comingSoon?: boolean;
+  badgeIcon?: React.ElementType;
+  badgeText?: string;
+  disabledReason?: string;
 };
 
-const NavItem = ({ icon: Icon, label, href, isCollapsed, className, comingSoon = false }: NavItemProps) => {
+const NavItem = ({ icon: Icon, label, href, isCollapsed, className, comingSoon = false, badgeIcon, badgeText, disabledReason }: NavItemProps) => {
   const location = useLocation();
   const isActive = location.pathname === href;
+  const StatusIcon = badgeIcon;
 
   const handleComingSoonClick = (e: React.MouseEvent) => {
     if (comingSoon) {
       e.preventDefault();
-      toast.info(`${label} estará disponível em breve!`);
+      toast.info(disabledReason || `${label} estará disponível em breve!`);
     }
   };
 
@@ -89,11 +93,15 @@ const NavItem = ({ icon: Icon, label, href, isCollapsed, className, comingSoon =
             {label}
           </span>
           
-          {/* Coming Soon Badge */}
+          {/* Indicador de status (ícone ou badge) */}
           {comingSoon && (
-            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">
-              EM BREVE
-            </span>
+            StatusIcon ? (
+              <StatusIcon className="h-3.5 w-3.5 text-amber-700" aria-label={disabledReason || 'Em manutenção'} />
+            ) : (
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">
+                {badgeText || 'EM BREVE'}
+              </span>
+            )
           )}
         </div>
       )}
@@ -122,13 +130,22 @@ const NavItem = ({ icon: Icon, label, href, isCollapsed, className, comingSoon =
         {isCollapsed && (
           <TooltipContent side="right">
             <div className="flex items-center gap-2">
-              {label}
+              <span>{label}</span>
               {comingSoon && (
-                <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">
-                  EM BREVE
-                </span>
+                StatusIcon ? (
+                  <StatusIcon className="h-3.5 w-3.5 text-amber-700" aria-label={disabledReason || 'Em manutenção'} />
+                ) : (
+                  <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">
+                    {badgeText || 'EM BREVE'}
+                  </span>
+                )
               )}
             </div>
+            {comingSoon && disabledReason && (
+              <div className="mt-1 text-xs text-gray-600 max-w-[220px]">
+                {disabledReason}
+              </div>
+            )}
           </TooltipContent>
         )}
       </Tooltip>

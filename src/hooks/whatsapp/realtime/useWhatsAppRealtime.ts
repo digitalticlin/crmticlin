@@ -60,6 +60,13 @@ export const useWhatsAppRealtime = ({
   onNewMessage,
   onMessageUpdate
 }: UseWhatsAppRealtimeParams): UseWhatsAppRealtimeReturn => {
+  console.log('[WhatsApp Realtime] 🚀 HOOK EXECUTADO - INÍCIO:', {
+    hasSelectedContact: !!selectedContact,
+    hasActiveInstance: !!activeInstance,
+    hasOnNewMessage: !!onNewMessage,
+    selectedContactId: selectedContact?.id
+  });
+
   const { user } = useAuth();
   
   // Estados isolados para cada feature
@@ -152,21 +159,38 @@ export const useWhatsAppRealtime = ({
     return message;
   }, []);
 
-  // Filtro para mensagens isolado
+  // Filtro para mensagens isolado - MULTI-TENANT CORRIGIDO
   const shouldProcessMessage = useCallback((messageData: any, isUpdate = false): boolean => {
+    console.log('[WhatsApp Realtime] 🔍 Avaliando mensagem:', {
+      messageId: messageData.id,
+      leadId: messageData.lead_id,
+      selectedContactId: selectedContact?.id,
+      createdByUserId: messageData.created_by_user_id,
+      currentUserId: user?.id,
+      fromMe: messageData.from_me,
+      isUpdate
+    });
+
     if (!user?.id || messageData.created_by_user_id !== user.id) {
+      console.log('[WhatsApp Realtime] ❌ Usuário não autorizado');
       return false;
     }
 
-    if (messageData.whatsapp_number_id !== activeInstance?.id) {
-      return false;
-    }
-
+    // ✅ CORREÇÃO MULTI-TENANT: Remover filtro restritivo de instância específica
+    // Admin pode ver mensagens de QUALQUER instância que ele criou
+    // Operacional pode ver mensagens apenas da instância vinculada ao lead atual
+    // O filtro RLS no banco já garante que só verá mensagens permitidas
+    
     if (messageData.lead_id !== selectedContact?.id) {
+      console.log('[WhatsApp Realtime] ❌ Lead ID não corresponde:', {
+        messageLead: messageData.lead_id,
+        selectedContact: selectedContact?.id
+      });
       return false;
     }
 
     if (isUpdate) {
+      console.log('[WhatsApp Realtime] ✅ Mensagem UPDATE aceita:', messageData.id);
       return true;
     }
 
@@ -182,8 +206,9 @@ export const useWhatsAppRealtime = ({
       return false;
     }
 
+    console.log('[WhatsApp Realtime] ✅ Mensagem própria aceita:', messageData.id);
     return true;
-  }, [selectedContact, activeInstance, user?.id]);
+  }, [selectedContact, user?.id]);
 
   // Setup realtime para contatos (isolado)
   const setupContactsRealtime = useCallback(() => {
@@ -243,15 +268,27 @@ export const useWhatsAppRealtime = ({
 
   // Setup realtime para mensagens (isolado)
   const setupMessagesRealtime = useCallback(() => {
-    if (!selectedContact || !activeInstance || !user?.id) {
+    console.log('[WhatsApp Realtime] 🔍 Setup mensagens - validação:', {
+      hasSelectedContact: !!selectedContact,
+      hasActiveInstance: !!activeInstance,
+      hasUserId: !!user?.id,
+      selectedContactId: selectedContact?.id,
+      activeInstanceId: activeInstance?.id
+    });
+
+    if (!selectedContact || !user?.id) {
+      console.log('[WhatsApp Realtime] ❌ Setup mensagens cancelado - faltam dados básicos');
       setIsMessagesConnected(false);
       return;
     }
 
+    // ✅ CORREÇÃO: Não exigir activeInstance - real-time funciona independente de instâncias
+    // O filtro RLS no banco garante que só verá mensagens permitidas
+
     console.log('[WhatsApp Realtime] 🚀 Configurando realtime para mensagens:', {
       contactId: selectedContact.id,
       contactName: selectedContact.name,
-      instanceId: activeInstance.id,
+      instanceId: activeInstance?.id || 'sem-instancia',
       userId: user.id
     });
 
@@ -261,7 +298,7 @@ export const useWhatsAppRealtime = ({
       messagesChannelRef.current = null;
     }
 
-    const channelId = `messages_realtime_${selectedContact.id}_${activeInstance.id}_${Date.now()}`;
+    const channelId = `messages_realtime_${selectedContact.id}_${activeInstance?.id || 'no-instance'}_${Date.now()}`;
 
     const channel = supabase
       .channel(channelId)
@@ -294,7 +331,15 @@ export const useWhatsAppRealtime = ({
         
         messagesDebouncedCallback(message.id, () => {
           if (onNewMessage) {
+            console.log('[WhatsApp Realtime] 🚀 Chamando onNewMessage:', {
+              messageId: message.id,
+              text: message.text.substring(0, 30),
+              fromMe: message.fromMe,
+              timestamp: message.timestamp
+            });
             onNewMessage(message);
+          } else {
+            console.warn('[WhatsApp Realtime] ⚠️ onNewMessage não definido!');
           }
         }, 100);
       })
@@ -388,8 +433,21 @@ export const useWhatsAppRealtime = ({
 
   // Effect para mensagens
   useEffect(() => {
-    if (user?.id && selectedContact && activeInstance && (onNewMessage || onMessageUpdate)) {
+    console.log('[WhatsApp Realtime] 🔍 Effect mensagens executado:', {
+      hasUserId: !!user?.id,
+      hasSelectedContact: !!selectedContact,
+      hasActiveInstance: !!activeInstance,
+      hasOnNewMessage: !!onNewMessage,
+      hasOnMessageUpdate: !!onMessageUpdate,
+      selectedContactId: selectedContact?.id
+    });
+
+    // ✅ CORREÇÃO: Remover exigência de activeInstance
+    if (user?.id && selectedContact && (onNewMessage || onMessageUpdate)) {
+      console.log('[WhatsApp Realtime] 🚀 Chamando setupMessagesRealtime...');
       setupMessagesRealtime();
+    } else {
+      console.log('[WhatsApp Realtime] ❌ Não chamou setupMessagesRealtime - condições não atendidas');
     }
 
     return () => {
@@ -398,7 +456,7 @@ export const useWhatsAppRealtime = ({
         messagesChannelRef.current = null;
       }
     };
-  }, [user?.id, selectedContact?.id, activeInstance?.id, setupMessagesRealtime, onNewMessage, onMessageUpdate]);
+  }, [user?.id, selectedContact?.id, setupMessagesRealtime, onNewMessage, onMessageUpdate]);
 
   // Cleanup geral
   useEffect(() => {

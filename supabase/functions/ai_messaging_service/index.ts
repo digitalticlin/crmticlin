@@ -7,11 +7,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ✅ CONFIGURAÇÃO DA VPS (mesma da whatsapp_messaging_service)
+// ✅ CONFIGURAÇÃO DA VPS (carregada por variáveis de ambiente do Edge Function)
 const VPS_CONFIG = {
-  baseUrl: 'http://31.97.163.57:3001',
-  authToken: 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1',
-  timeout: 30000
+  baseUrl: Deno.env.get('VPS_BASE_URL') ?? 'http://31.97.163.57:3001',
+  authToken: Deno.env.get('VPS_API_TOKEN') ?? '',
+  timeout: Number(Deno.env.get('VPS_TIMEOUT_MS') ?? '60000')
 };
 
 serve(async (req) => {
@@ -45,16 +45,38 @@ serve(async (req) => {
     // ✅ EXTRAIR DADOS DO PAYLOAD N8N
     const { apiKey, instanceId, leadId, createdByUserId, phone, message, mediaType, mediaUrl, agentId, audioBase64, audioMetadata } = requestBody;
 
-    // ✅ AUTENTICAÇÃO VIA API KEY
-    if (!apiKey || !aiAgentApiKey || apiKey !== aiAgentApiKey) {
-      console.error('[AI Messaging Service] ❌ API Key inválida ou ausente');
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'API Key inválida ou ausente'
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    // ✅ AUTENTICAÇÃO VIA .env COM FALLBACK FLEXÍVEL
+    // - Aceita Authorization: Bearer <AI_AGENT_API_KEY>
+    // - Aceita x-api-key / apikey no header
+    // - Aceita apiKey no body (legado)
+    // - Permite desabilitar exigência via AI_AGENT_REQUIRE_KEY=false
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    const bearer = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '').trim() : null;
+    const headerApiKey = req.headers.get('x-api-key') || req.headers.get('X-Api-Key') || req.headers.get('apikey') || req.headers.get('APIKEY') || null;
+    const providedApiKey = bearer || headerApiKey || apiKey || null;
+    const requireKey = (Deno.env.get('AI_AGENT_REQUIRE_KEY') ?? 'true').toLowerCase() === 'true';
+
+    if (requireKey) {
+      if (!aiAgentApiKey || !providedApiKey || providedApiKey !== aiAgentApiKey) {
+        console.error('[AI Messaging Service] ❌ Autenticação falhou (requireKey=true):', {
+          hasEnvKey: !!aiAgentApiKey,
+          hasProvided: !!providedApiKey,
+          mode: bearer ? 'bearer' : headerApiKey ? 'header' : apiKey ? 'body' : 'none'
+        });
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Não autorizado'
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else {
+      if (!aiAgentApiKey) {
+        console.warn('[AI Messaging Service] ⚠️ AI_AGENT_REQUIRE_KEY=false, mas AI_AGENT_API_KEY não está definido');
+      } else {
+        console.log('[AI Messaging Service] 🔓 AI_AGENT_REQUIRE_KEY=false — prosseguindo sem validar chave no request');
+      }
     }
 
     // ✅ VALIDAÇÃO DOS PARÂMETROS OBRIGATÓRIOS
@@ -258,9 +280,34 @@ serve(async (req) => {
       });
     }
 
+    // 🚨 CORREÇÃO CRÍTICA: Se vps_instance_id é UUID, usar instance_name
+    let realVpsInstanceId = vpsInstanceId;
+    
+    // Detectar se é UUID (formato: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(vpsInstanceId);
+    
+    if (isUUID) {
+      console.log(`[AI Messaging Service] 🔧 vps_instance_id é UUID (${vpsInstanceId}), usando instance_name como fallback`);
+      realVpsInstanceId = instanceData.instance_name;
+      
+      if (!realVpsInstanceId) {
+        console.error('[AI Messaging Service] ❌ instance_name também não encontrado');
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Configuração da instância incompleta - instance_name ausente'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    console.log(`[AI Messaging Service] 🎯 Using real VPS instance ID: ${realVpsInstanceId} (original: ${vpsInstanceId})`);
+
     console.log('[AI Messaging Service] 🤖 Enviando mensagem do AI Agent:', {
       instanceName: instanceData.instance_name,
-      vpsInstanceId,
+      vpsInstanceId: realVpsInstanceId,
+      originalVpsInstanceId: vpsInstanceId,
       leadName: leadData.name,
       phoneMatch: phone.replace(/\D/g, '') === leadData.phone.replace(/\D/g, ''),
       mediaType: processedMediaType,
@@ -269,25 +316,27 @@ serve(async (req) => {
       agentId: agentId || 'N/A'
     });
 
-    // ✅ PREPARAR PAYLOAD PARA VPS COM CORREÇÃO DE MESSAGE
+    // ✅ PREPARAR PAYLOAD PARA VPS COM CORREÇÃO CRÍTICA DE INSTANCE ID
+    const pttFields = isPTT ? {
+      ptt: true as const,
+      filename: audioFilename,
+      seconds: audioDuration,
+      waveform: audioMetadata?.waveform || null,
+      audioMimeType: finalMimeType
+    } : {};
+
     const vpsPayload = {
-      instanceId: vpsInstanceId,
+      instanceId: realVpsInstanceId,  // 🚨 CORREÇÃO: usar nome real da instância, não UUID
       phone: phone.replace(/\D/g, ''),
       message: vpsMessageText,  // ✅ USAR TEXTO ESPECÍFICO PARA VPS (espaço para PTT)
       mediaType: processedMediaType,
       mediaUrl: processedMediaUrl || null,
-      // ✅ NOVOS CAMPOS PARA PTT NATIVO (compatível com VPS corrigida)
-      ...(isPTT && {
-        ptt: true,
-        filename: audioFilename,
-        seconds: audioDuration,
-        waveform: audioMetadata?.waveform || null,
-        audioMimeType: finalMimeType
-      })
+      ...pttFields
     };
 
-    console.log('[AI Messaging Service] 📡 Enviando para VPS (CORREÇÃO MESSAGE VALIDATION):', {
+    console.log('[AI Messaging Service] 📡 Enviando para VPS (CORREÇÃO CRITICAL: instanceId deve ser nome real):', {
       url: `${VPS_CONFIG.baseUrl}/send`,
+      vpsInstanceIdFromDB: vpsInstanceId,
       payload: {
         ...vpsPayload,
         phone: vpsPayload.phone.substring(0, 4) + '****',
@@ -304,6 +353,8 @@ serve(async (req) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+        // redundância opcional compatível com middleware do servidor
+        'x-api-token': VPS_CONFIG.authToken,
         'User-Agent': 'Supabase-AI-Agent/1.0'
       },
       body: JSON.stringify(vpsPayload),
@@ -371,7 +422,8 @@ serve(async (req) => {
       isPTT: isPTT,
       finalMimeType: finalMimeType,
       agentId: agentId || 'N/A',
-      vpsInstanceId,
+      vpsInstanceId: realVpsInstanceId,
+      originalVpsInstanceId: vpsInstanceId,
       phone: phone.substring(0, 4) + '****',
       messageTextSaved: messageText === '' ? 'EMPTY_FOR_AUDIO' : messageText,
       vpsMessageSent: vpsMessageText === ' ' ? 'SINGLE_SPACE_FOR_VALIDATION' : vpsMessageText
@@ -384,7 +436,7 @@ serve(async (req) => {
       const { data: saveResult, error: saveError } = await supabase.rpc(
         'save_whatsapp_message_service_role',
         {
-          p_vps_instance_id: vpsInstanceId,
+          p_vps_instance_id: realVpsInstanceId,  // 🚨 CORREÇÃO: usar nome real da instância
           p_phone: phone.replace(/\D/g, ''),
           p_message_text: messageText,  // ✅ BANCO: vazio para PTT, original para outros
           p_from_me: true,
@@ -420,7 +472,7 @@ serve(async (req) => {
       data: {
         messageId: vpsData.messageId,
         instanceId: instanceData.id,
-        vpsInstanceId,
+        vpsInstanceId: realVpsInstanceId,
         leadId: leadData.id,
         phone: phone.replace(/\D/g, ''),
         mediaType: processedMediaType,

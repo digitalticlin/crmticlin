@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { MessagingApi } from '../api/messagingApi';
+import { MessagingService } from '../services/messagingService';
 import { SendMessageParams, SendMessageResult } from '../types/messaging';
 import { Contact } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
@@ -26,12 +26,12 @@ export const useMessaging = () => {
     }
 
     // Validações
-    if (!MessagingApi.validateContact(contact)) {
+    if (!contact?.phone) {
       toast.error('Contato inválido ou sem telefone');
       return false;
     }
 
-    if (!MessagingApi.validateInstance(instance)) {
+    if (!instance?.id || instance?.connection_status !== 'connected') {
       toast.error('Instância WhatsApp não conectada');
       return false;
     }
@@ -39,7 +39,11 @@ export const useMessaging = () => {
     setIsSending(true);
     
     try {
-      const result = await MessagingApi.sendToContact(contact, instance, message);
+      const result = await MessagingService.sendMessage({
+        instanceId: instance.id,
+        phone: contact.phone,
+        message
+      });
 
       if (result.success) {
         toast.success('Mensagem enviada com sucesso!');
@@ -70,7 +74,7 @@ export const useMessaging = () => {
     setIsSending(true);
     
     try {
-      const result = await MessagingApi.sendMessage(params);
+      const result = await MessagingService.sendMessage(params);
 
       if (result.success) {
         toast.success('Mensagem enviada com sucesso!');

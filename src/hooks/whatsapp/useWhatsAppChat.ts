@@ -24,6 +24,7 @@ import { Contact, Message } from '@/types/chat';
 interface UseWhatsAppChatReturn {
   selectedContact: Contact | null;
   setSelectedContact: (contact: Contact | null) => void;
+  activeInstance: any; // ✅ ADICIONADO para useSendMessage
   companyLoading: boolean;
   contacts: Contact[];
   isLoadingContacts: boolean;
@@ -36,8 +37,8 @@ interface UseWhatsAppChatReturn {
   isLoadingMessages: boolean;
   isLoadingMoreMessages: boolean;
   hasMoreMessages: boolean;
-  isSendingMessage: boolean;
-  sendMessage: (text: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
+  // isSendingMessage: REMOVIDO - usar useSendMessage isolado
+  // sendMessage: REMOVIDO - usar useSendMessage isolado
   loadMoreMessages: () => Promise<void>;
   refreshMessages: () => void;
   markAsRead: (contactId: string) => Promise<void>;
@@ -126,15 +127,23 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
   
   // Adapter para compatibilidade de tipos
   const adaptedActiveInstance = useMemo(() => {
-    if (!instances.activeInstance) return null;
+    // Preferir activeInstance; caso não exista, usar fallback por status 'open'
+    const source = instances.activeInstance ||
+      instances.instances?.find(i => {
+        const status = i.connection_status?.toLowerCase?.() || '';
+        return status === 'open' || status === 'connected' || status === 'ready';
+      });
+
+    if (!source) return null;
+
     const adapted = {
-      id: instances.activeInstance.id,
-      instance_name: instances.activeInstance.instance_name,
-      connection_status: instances.activeInstance.connection_status
+      id: source.id,
+      instance_name: source.instance_name,
+      connection_status: source.connection_status
     };
-    console.log('[WhatsApp Chat] 🔧 Instância adaptada:', adapted);
+    console.log('[WhatsApp Chat] 🔧 Instância adaptada (com fallback):', adapted);
     return adapted;
-  }, [instances.activeInstance]);
+  }, [instances.activeInstance, instances.instances]);
   
   const messages = useWhatsAppMessages({
     selectedContact,
@@ -285,6 +294,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     // Estado compartilhado mínimo
     selectedContact,
     setSelectedContact: handleSelectContact,
+    activeInstance: instances.activeInstance, // ✅ ADICIONADO para useSendMessage
     companyLoading: false,
     
     // Contatos isolados
@@ -301,8 +311,8 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     isLoadingMessages: messages.isLoading,
     isLoadingMoreMessages: messages.isLoadingMore,
     hasMoreMessages: messages.hasMoreMessages,
-    isSendingMessage: messages.isSendingMessage,
-    sendMessage: messages.sendMessage,
+    // isSendingMessage: REMOVIDO - usar useSendMessage isolado
+    // sendMessage: REMOVIDO - usar useSendMessage isolado
     loadMoreMessages: messages.loadMoreMessages,
     refreshMessages: messages.refreshMessages,
     

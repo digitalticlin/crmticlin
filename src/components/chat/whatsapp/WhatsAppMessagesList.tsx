@@ -18,11 +18,10 @@ interface WhatsAppMessagesListProps {
   onLoadMore?: () => Promise<void>;
 }
 
-// 🚀 PRE-POSITIONED: Agrupar mensagens mantendo ordem recentes→antigas, mas renderizar antigas→recentes
+// 🚀 CORRIGIDO: Mensagens já chegam em ordem cronológica correta (antigas→recentes)
 const groupMessagesByDate = (messages: Message[]) => {
-  // Receber mensagens em ordem recentes→antigas
-  // Reverter apenas para agrupamento cronológico correto (antigas→recentes na tela)
-  const chronologicalMessages = [...messages].reverse();
+  // Mensagens já chegam ordenadas cronologicamente (antigas→recentes)
+  const chronologicalMessages = messages;
   
   const groups: { date: Date; messages: Message[] }[] = [];
   

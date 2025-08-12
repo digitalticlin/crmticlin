@@ -239,21 +239,20 @@ export const DocumentMessage = React.memo(({
         {fileIcon}
       </div>
 
-      {/* ✅ APENAS LEGENDA DO USUÁRIO - Sem nome de arquivo */}
+      {/* 🚀 NOME DO DOCUMENTO REAL - Priorizar caption ou nome do arquivo */}
       <div className="flex-1 min-w-0">
-        {caption ? (
+        <p className={cn(
+          "text-sm font-medium",
+          isIncoming ? "text-gray-700" : "text-white"
+        )}>
+          {caption || cleanFilename || 'Documento'}
+        </p>
+        {caption && cleanFilename && caption !== cleanFilename && (
           <p className={cn(
-            "text-sm font-medium",
-            isIncoming ? "text-gray-700" : "text-white"
+            "text-xs mt-1 opacity-60",
+            isIncoming ? "text-gray-500" : "text-white/60"
           )}>
-            {caption}
-          </p>
-        ) : (
-          <p className={cn(
-            "text-sm font-medium opacity-70",
-            isIncoming ? "text-gray-500" : "text-white/70"
-          )}>
-            Documento
+            {cleanFilename}
           </p>
         )}
       </div>

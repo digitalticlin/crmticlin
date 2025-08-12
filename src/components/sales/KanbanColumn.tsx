@@ -293,6 +293,11 @@ export function KanbanColumn({
   );
 
   const aiEnabled = useMemo(() => column.ai_enabled === true, [column.ai_enabled]);
+  // Estado local para atualização otimista do toggle de IA
+  const [aiEnabledUI, setAiEnabledUI] = useState<boolean>(aiEnabled);
+  useEffect(() => {
+    setAiEnabledUI(aiEnabled);
+  }, [aiEnabled]);
   
   const visibleLeads = useMemo(() => 
     column.leads.slice(0, visibleCount),
@@ -334,6 +339,8 @@ export function KanbanColumn({
     // Permitir controle de IA em todas as etapas, exceto GANHO e PERDIDO
     const isWonLostStage = column.title === "GANHO" || column.title === "PERDIDO";
     if (!isWonLostStage) {
+      // Atualização otimista imediata na UI
+      setAiEnabledUI(enabled);
       toggleAI(column.id, aiEnabled);
     }
   }, [column.id, column.title, aiEnabled, isFixedStage, isWonLostView, toggleAI]);
@@ -355,7 +362,7 @@ export function KanbanColumn({
       <ColumnHeader
         column={column}
         isFixedStage={isFixedStage}
-        aiEnabled={aiEnabled}
+        aiEnabled={aiEnabledUI}
         isWonLostView={isWonLostView}
         isTogglingAI={isTogglingAI}
         onToggleAI={handleAIToggle}

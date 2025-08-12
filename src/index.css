@@ -96,6 +96,43 @@ body {
   }
 }
 
+/* Kanban scrollbars (importado do arquivo dedicado, replicado para garantir aplicação) */
+.kanban-column-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.8) transparent;
+}
+.kanban-column-scrollbar::-webkit-scrollbar { width: 4px; }
+.kanban-column-scrollbar::-webkit-scrollbar-track { background: transparent; border-radius: 2px; }
+.kanban-column-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.8); border-radius: 2px; }
+.kanban-column-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 1); }
+
+.kanban-scrollbar { 
+  scrollbar-width: thin; 
+  scrollbar-color: rgba(59,130,246,0.8) rgba(255,255,255,0.2); 
+}
+.kanban-scrollbar::-webkit-scrollbar { 
+  height: 12px; 
+  width: 12px;
+}
+.kanban-scrollbar::-webkit-scrollbar-track { 
+  background: rgba(255,255,255,0.3); 
+  border-radius: 6px; 
+  border: 1px solid rgba(0,0,0,0.1);
+}
+.kanban-scrollbar::-webkit-scrollbar-thumb { 
+  background: rgba(59,130,246,0.8); 
+  border-radius: 6px; 
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.kanban-scrollbar::-webkit-scrollbar-thumb:hover { 
+  background: rgba(59,130,246,1); 
+}
+.kanban-scrollbar::-webkit-scrollbar-corner {
+  background: rgba(255,255,255,0.3);
+}
+
+/* Barra de scroll horizontal estilo glassmorphism - aplicado por CSS inline */
+
 /* Smooth scrolling for chat messages */
 .scroll-smooth {
   scroll-behavior: smooth;

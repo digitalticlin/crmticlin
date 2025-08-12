@@ -98,7 +98,7 @@ export const useWhatsAppContacts = ({
         userId: user.id
       });
 
-      // Query isolada para contatos
+      // Query isolada para contatos - incluindo foto de perfil
       let query = supabase
         .from('leads')
         .select(`
@@ -119,7 +119,8 @@ export const useWhatsAppContacts = ({
           updated_at,
           whatsapp_number_id,
           kanban_stage_id,
-          created_by_user_id
+          created_by_user_id,
+          profile_pic_url
         `)
         .eq('created_by_user_id', user.id)
         .order('last_message_time', { ascending: false, nullsFirst: false })
@@ -165,7 +166,7 @@ export const useWhatsAppContacts = ({
         });
       }
 
-      // Converter para formato Contact
+      // Converter para formato Contact - incluindo foto de perfil
       const fetchedContacts: Contact[] = (leadsData || []).map(lead => ({
         id: lead.id,
         name: lead.name || null,
@@ -181,10 +182,13 @@ export const useWhatsAppContacts = ({
         lastMessageTime: lead.last_message_time,
         unreadCount: lead.unread_count && lead.unread_count > 0 ? lead.unread_count : undefined,
         leadId: lead.id,
+        whatsapp_number_id: lead.whatsapp_number_id || undefined,
         stageId: lead.kanban_stage_id || null,
         createdAt: lead.created_at,
         tags: tagsMap[lead.id] || [],
-        instanceInfo: undefined
+        instanceInfo: undefined,
+        avatar: lead.profile_pic_url || undefined, // 🚀 Foto de perfil do lead
+        profilePicUrl: lead.profile_pic_url || undefined
       }));
 
       if (offset === 0) {

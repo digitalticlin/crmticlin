@@ -18,40 +18,70 @@ export type Database = {
         Row: {
           agent_function: string
           agent_id: string
+          agent_objective: string | null
           communication_style: string
+          communication_style_examples: Json | null
           company_info: string | null
+          products_services: string | null
+          products_services_examples: Json | null
+          rules_guidelines: string | null
+          rules_guidelines_examples: Json | null
+          prohibitions: string | null
+          prohibitions_examples: Json | null
+          client_objections: string | null
+          client_objections_examples: Json | null
+          phrase_tips: string | null
+          phrase_tips_examples: Json | null
+          flow: Json | null
           created_at: string
           created_by_user_id: string
           id: string
-          objectives: Json
-          product_service_info: string | null
-          prohibitions: string | null
           updated_at: string
         }
         Insert: {
           agent_function: string
           agent_id: string
+          agent_objective?: string | null
           communication_style: string
+          communication_style_examples?: Json | null
           company_info?: string | null
+          products_services?: string | null
+          products_services_examples?: Json | null
+          rules_guidelines?: string | null
+          rules_guidelines_examples?: Json | null
+          prohibitions?: string | null
+          prohibitions_examples?: Json | null
+          client_objections?: string | null
+          client_objections_examples?: Json | null
+          phrase_tips?: string | null
+          phrase_tips_examples?: Json | null
+          flow?: Json | null
           created_at?: string
           created_by_user_id: string
           id?: string
-          objectives?: Json
-          product_service_info?: string | null
-          prohibitions?: string | null
           updated_at?: string
         }
         Update: {
           agent_function?: string
           agent_id?: string
+          agent_objective?: string | null
           communication_style?: string
+          communication_style_examples?: Json | null
           company_info?: string | null
+          products_services?: string | null
+          products_services_examples?: Json | null
+          rules_guidelines?: string | null
+          rules_guidelines_examples?: Json | null
+          prohibitions?: string | null
+          prohibitions_examples?: Json | null
+          client_objections?: string | null
+          client_objections_examples?: Json | null
+          phrase_tips?: string | null
+          phrase_tips_examples?: Json | null
+          flow?: Json | null
           created_at?: string
           created_by_user_id?: string
           id?: string
-          objectives?: Json
-          product_service_info?: string | null
-          prohibitions?: string | null
           updated_at?: string
         }
         Relationships: [

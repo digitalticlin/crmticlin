@@ -22,6 +22,29 @@ export const StableDragDropWrapper = ({
 }: StableDragDropWrapperProps) => {
   console.log('[StableDragDropWrapper] 🔄 RADICAL - Wrapper otimizado com clone visual');
 
+  // AUTO-SCROLL APENAS DURANTE DRAG AND DROP
+  const handleGlobalMouseMove = (ev: MouseEvent) => {
+    // Verificar se há um elemento sendo arrastado
+    const isDragging = document.body.classList.contains('rbd-dragging');
+    if (!isDragging) return;
+
+    const scrollContainer = document.querySelector('[data-kanban-board]') as HTMLElement;
+    if (!scrollContainer) return;
+
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const threshold = 100; // Pixels da borda para ativar auto-scroll
+    const scrollSpeed = 15;
+
+    // Auto-scroll horizontal
+    if (ev.clientX < containerRect.left + threshold) {
+      // Scroll para esquerda
+      scrollContainer.scrollLeft -= scrollSpeed;
+    } else if (ev.clientX > containerRect.right - threshold) {
+      // Scroll para direita
+      scrollContainer.scrollLeft += scrollSpeed;
+    }
+  };
+
   const handleErrorCaptured = (error: Error, errorInfo: any) => {
     console.group('🚨 [StableDragDropWrapper] ERRO CRÍTICO CAPTURADO');
     console.error('❌ Erro no Drag and Drop Context:', error);
@@ -69,14 +92,16 @@ export const StableDragDropWrapper = ({
             // RADICAL: Centralizar TODA a manipulação DOM aqui
             const body = document.body;
             
-            // Prevenir scroll e seleção durante drag
-            body.style.overflow = 'hidden';
+            // Prevenir seleção durante drag (removido overflow-hidden para manter scroll horizontal)
+            // body.style.overflow = 'hidden'; // REMOVIDO para permitir scroll horizontal
             body.style.userSelect = 'none';
             body.style.webkitUserSelect = 'none';
             body.style.cursor = 'grabbing';
             
             // Classe para CSS global
             body.classList.add('rbd-dragging');
+            // Auto-scroll APENAS durante drag
+            window.addEventListener('mousemove', handleGlobalMouseMove, { passive: false });
             
             onDragStart(initial);
           }}
@@ -86,23 +111,21 @@ export const StableDragDropWrapper = ({
             // RADICAL: Restaurar comportamento da página IMEDIATAMENTE
             const body = document.body;
             
-            body.style.overflow = '';
+            // body.style.overflow = ''; // REMOVIDO pois não foi setado
             body.style.userSelect = '';
             body.style.webkitUserSelect = '';
             body.style.cursor = '';
             
             // Remover classes
             body.classList.remove('rbd-dragging');
+            // Remover listener de auto-scroll
+            window.removeEventListener('mousemove', handleGlobalMouseMove);
             
             // Chamar handler
             onDragEnd(result);
           }}
-          onDragUpdate={(update) => {
-            // Log para debug
-            if (update.destination) {
-              console.log('[StableDragDropWrapper] 🔄 RADICAL - Drag update com clone:', 
-                update.draggableId, 'sobre', update.destination.droppableId);
-            }
+          onDragUpdate={() => { 
+            // Mantido simples - auto-scroll via mousemove apenas
           }}
         >
           {children}

@@ -217,6 +217,7 @@ export const EnhancedPromptConfiguration = ({
       console.log('✅ EnhancedPrompt - Dados persistidos no banco com sucesso');
     } catch (error) {
       console.error('❌ Erro ao persistir no banco:', error);
+      throw error; // Re-throw para que o modal saiba que houve erro
     }
   };
 
@@ -247,6 +248,7 @@ export const EnhancedPromptConfiguration = ({
       console.log('✅ EnhancedPrompt - Fluxo persistido no banco com sucesso');
     } catch (error) {
       console.error('❌ Erro ao persistir fluxo no banco:', error);
+      throw error; // Re-throw para que o componente saiba que houve erro
     }
   };
 
@@ -264,11 +266,12 @@ export const EnhancedPromptConfiguration = ({
         console.log('✅ Passo removido e salvo no banco com sucesso');
       } catch (error) {
         console.error('❌ Erro ao salvar remoção no banco:', error);
+        // Não bloquear operação se houver erro - apenas reportar
       }
     }
   };
 
-  const handleAddStep = async () => {
+  const handleAddStep = () => {
     if (!newStepText.trim()) return;
     
     console.log('🚀 INICIANDO ADIÇÃO DE PASSO INLINE');
@@ -293,17 +296,7 @@ export const EnhancedPromptConfiguration = ({
     // Limpar campo
     setNewStepText("");
     console.log('🧹 Campo limpo');
-    
-    // Salvar no banco
-    try {
-      console.log('💾 Aguardando delay e salvando no banco...');
-      await new Promise(resolve => setTimeout(resolve, 200));
-      await onSave();
-      console.log('✅ Passo adicionado e salvo no banco com sucesso');
-      console.log('🎯 ADIÇÃO DE PASSO CONCLUÍDA SEM FECHAR MODAL');
-    } catch (error) {
-      console.error('❌ Erro ao salvar passo no banco:', error);
-    }
+    console.log('🎯 ADIÇÃO DE PASSO CONCLUÍDA - MODAL DEVE PERMANECER ABERTO');
   };
 
   const getFieldStatus = (config: any) => {
@@ -381,14 +374,27 @@ export const EnhancedPromptConfiguration = ({
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-800">{step.description}</p>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleStepDelete(index)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50/50 rounded-lg p-1 h-6 w-6"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          console.log('✏️ Editando passo:', { step, index });
+                          setEditingStep({ step, index });
+                        }}
+                        className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50/50 rounded-lg p-1 h-6 w-6"
+                      >
+                        <Settings className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleStepDelete(index)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50/50 rounded-lg p-1 h-6 w-6"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -407,7 +413,26 @@ export const EnhancedPromptConfiguration = ({
             Fechar
           </Button>
           <Button 
-            onClick={onSave}
+            onClick={async (event) => {
+              try {
+                await onSave();
+                
+                // Feedback visual de sucesso
+                const button = event.currentTarget as HTMLButtonElement;
+                if (button) {
+                  const originalText = button.textContent;
+                  button.textContent = '✅ Fluxo Salvo!';
+                  button.style.backgroundColor = '#10b981';
+                  setTimeout(() => {
+                    button.textContent = originalText;
+                    button.style.backgroundColor = '';
+                  }, 2000);
+                }
+              } catch (error) {
+                console.error('❌ Erro no botão salvar fluxo:', error);
+                // Erro já é tratado pelo toast no componente pai
+              }
+            }}
             className="px-6 h-9 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg shadow-glass hover:shadow-glass-lg transition-all duration-200 text-sm"
           >
             Salvar Fluxo
@@ -504,6 +529,22 @@ export const EnhancedPromptConfiguration = ({
         />
       ))}
 
+      {/* Modal de configuração de passos do fluxo */}
+      <FlowStepConfigModal
+        isOpen={editingStep !== null}
+        onClose={() => {
+          console.log('🚪 FlowStepConfigModal - Fechando modal');
+          setEditingStep(null);
+        }}
+        onSave={async (step: FlowStepEnhanced) => {
+          console.log('💾 FlowStepConfigModal - Salvando passo:', step);
+          await handleStepSave(step);
+          setEditingStep(null);
+        }}
+        step={editingStep?.step || null}
+        stepNumber={editingStep ? editingStep.index + 1 : 1}
+      />
+
       {/* Botões de ação */}
       <div className="flex justify-end gap-2 pt-4 border-t border-white/30">
         <Button 
@@ -515,7 +556,26 @@ export const EnhancedPromptConfiguration = ({
           Fechar
         </Button>
         <Button 
-          onClick={onSave}
+          onClick={async (event) => {
+            try {
+              await onSave();
+              
+              // Feedback visual de sucesso
+              const button = event?.currentTarget as HTMLButtonElement;
+              if (button) {
+                const originalText = button.textContent;
+                button.textContent = '✅ Salvo!';
+                button.style.backgroundColor = '#10b981';
+                setTimeout(() => {
+                  button.textContent = originalText;
+                  button.style.backgroundColor = '';
+                }, 2000);
+              }
+            } catch (error) {
+              console.error('❌ Erro no botão salvar:', error);
+              // Erro já é tratado pelo toast no componente pai
+            }
+          }}
           className="px-6 h-9 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg shadow-glass hover:shadow-glass-lg transition-all duration-200 text-sm"
         >
           Salvar Configuração

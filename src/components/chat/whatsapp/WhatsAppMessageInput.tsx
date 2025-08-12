@@ -32,13 +32,18 @@ export const WhatsAppMessageInput = ({
     const trimmedMessage = message.trim();
     if (trimmedMessage) {
       try {
+        console.log('[WhatsAppMessageInput] ▶️ Enviando mensagem de texto...', {
+          length: trimmedMessage.length,
+          preview: trimmedMessage.substring(0, 50)
+        });
         setMessage("");
         
         if (textareaRef.current) {
           textareaRef.current.style.height = 'auto';
         }
 
-        await onSendMessage(trimmedMessage);
+        const ok = await onSendMessage(trimmedMessage);
+        console.log('[WhatsAppMessageInput] ✅ Resultado do envio (texto):', ok);
       } catch (error) {
         console.error('[WhatsAppMessageInput] Erro ao enviar mensagem:', error);
         setMessage(trimmedMessage);
@@ -73,6 +78,12 @@ export const WhatsAppMessageInput = ({
 
   const handleMediaSend = async (message: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
     try {
+      console.log('[WhatsAppMessageInput] ▶️ Enviando mídia...', {
+        hasText: !!message?.trim(),
+        mediaType,
+        hasMediaUrl: !!mediaUrl,
+        mediaUrlPreview: mediaUrl ? mediaUrl.substring(0, 50) + '...' : null
+      });
       return await onSendMessage(message, mediaType, mediaUrl);
     } catch (error) {
       console.error('[WhatsAppMessageInput] Erro ao enviar mídia:', error);

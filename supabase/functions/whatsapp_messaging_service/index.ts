@@ -7,11 +7,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ✅ CONFIGURAÇÃO LIMPA DA VPS
+// ✅ CONFIGURAÇÃO LIMPA DA VPS (via env)
 const VPS_CONFIG = {
-  baseUrl: 'http://31.97.163.57:3001',
-  authToken: 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1',
-  timeout: 30000
+  baseUrl: Deno.env.get('VPS_BASE_URL') ?? 'http://31.97.163.57:3001',
+  authToken: Deno.env.get('VPS_API_TOKEN') ?? '',
+  timeout: Number(Deno.env.get('VPS_TIMEOUT_MS') ?? '60000')
 };
 
 // ✅ FUNÇÃO AUXILIAR PARA PGMQ - FILA DE ENVIO
@@ -174,16 +174,27 @@ serve(async (req) => {
     }
 
     const vpsInstanceId = instanceData.vps_instance_id;
+    
+    console.log('[Messaging Service] 🔍 DEBUG VPS Instance:', {
+      supabaseInstanceId: instanceData.id,
+      vpsInstanceId,
+      instanceName: instanceData.instance_name,
+      connectionStatus: instanceData.connection_status
+    });
+    
+    // ✅ CORREÇÃO PROFISSIONAL: VPS espera EXATAMENTE o vps_instance_id
     if (!vpsInstanceId) {
-      console.error('[Messaging Service] ❌ VPS Instance ID não encontrado');
+      console.error('[Messaging Service] ❌ vps_instance_id está vazio na tabela whatsapp_instances');
       return new Response(JSON.stringify({
         success: false,
-        error: 'Configuração da instância incompleta'
+        error: 'Configuração da instância incompleta - vps_instance_id não configurado'
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+    
+    console.log('[Messaging Service] 🎯 Usando vps_instance_id para VPS:', vpsInstanceId);
     
     console.log('[Messaging Service] 🔒 Acesso autorizado - Processando com PGMQ:', {
       supabaseInstanceId: instanceData.id,
@@ -220,7 +231,7 @@ serve(async (req) => {
         const messageQueueData = {
           action: 'send_message',
           instanceId,
-          vpsInstanceId,
+          vpsInstanceId, // ✅ CORREÇÃO: usar vps_instance_id direto
           phone: phone.replace(/\D/g, ''),
           message: message.trim(),
           mediaType,
@@ -241,7 +252,7 @@ serve(async (req) => {
             data: {
               queueStatus: 'queued',
               instanceId: instanceData.id,
-              vpsInstanceId,
+              vpsInstanceId, // ✅ CORREÇÃO: usar vps_instance_id direto
               phone: phone.replace(/\D/g, ''),
               mediaType: mediaType || 'text',
               timestamp: new Date().toISOString(),
@@ -406,9 +417,9 @@ serve(async (req) => {
       }
     }
 
-    // ✅ CHAMADA PARA VPS (INALTERADA - FUNCIONA PERFEITAMENTE)
+    // ✅ PAYLOAD CORRETO PARA VPS: usar vps_instance_id diretamente
     const vpsPayload = {
-      instanceId: vpsInstanceId,
+      instanceId: vpsInstanceId, // String como "digitalticlin"
       phone: phone.replace(/\D/g, ''), // Limpar caracteres não numéricos
       message: message.trim(),
         mediaType: processedMediaType || 'text',
@@ -417,6 +428,8 @@ serve(async (req) => {
 
       console.log('[Messaging Service] 📡 Enviando para VPS (síncrono):', {
       url: `${VPS_CONFIG.baseUrl}/send`,
+      supabaseInstanceId: instanceData.id,
+      vpsInstanceId: vpsInstanceId,
       payload: {
         ...vpsPayload,
         phone: vpsPayload.phone.substring(0, 4) + '****',
@@ -429,6 +442,8 @@ serve(async (req) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+        // redundância opcional compatível com middleware do servidor
+        'x-api-token': VPS_CONFIG.authToken,
         'User-Agent': 'Supabase-Edge-Function/1.0'
       },
       body: JSON.stringify(vpsPayload),
@@ -541,7 +556,7 @@ serve(async (req) => {
       data: {
         messageId: vpsData.messageId,
         instanceId: instanceData.id,
-        vpsInstanceId,
+        vpsInstanceId, // ✅ CORREÇÃO: usar vps_instance_id direto
         phone: phone.replace(/\D/g, ''),
         mediaType: mediaType || 'text',
         timestamp: vpsData.timestamp || new Date().toISOString(),

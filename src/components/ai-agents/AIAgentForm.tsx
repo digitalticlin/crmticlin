@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { unstable_batchedUpdates } from "react-dom";
 import { AIAgent, CreateAIAgentData } from "@/types/aiAgent";
 import { useAIAgents } from "@/hooks/useAIAgents";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +48,13 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
     fetchData();
   }, []);
 
+  const handleFieldChange = (field: keyof CreateAIAgentData, value: any) => {
+    // Usar batch updates para prevenir problemas de Portal
+    unstable_batchedUpdates(() => {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -81,7 +89,7 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
                 <Input
                   id="name"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => handleFieldChange('name', e.target.value)}
                   placeholder="Ex: Assistente de Vendas Premium"
             className="h-12 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-xl"
                   required
@@ -99,7 +107,7 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
               </Label>
                 <Select
                   value={formData.funnel_id}
-                  onValueChange={(value) => setFormData({ ...formData, funnel_id: value })}
+                  onValueChange={(value) => handleFieldChange('funnel_id', value)}
                 >
             <SelectTrigger className="h-12 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-xl">
                     <SelectValue placeholder="Selecione um funil" />
@@ -125,7 +133,7 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
               </Label>
                 <Select
                   value={formData.whatsapp_number_id}
-                  onValueChange={(value) => setFormData({ ...formData, whatsapp_number_id: value })}
+                  onValueChange={(value) => handleFieldChange('whatsapp_number_id', value)}
                 >
             <SelectTrigger className="h-12 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-xl">
                     <SelectValue placeholder="Selecione uma instância" />

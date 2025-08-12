@@ -30,10 +30,13 @@ export class PortalErrorBoundary extends Component<Props, State> {
     ) {
       console.warn('[PortalErrorBoundary] Portal DOM error handled:', error.message);
       
-      // Auto-recover from Portal errors after a short delay
-      setTimeout(() => {
-        this.setState({ hasError: false, error: undefined });
-      }, 100);
+      // CRÍTICO: NÃO fazer auto-recover que corrompe estados
+      // setTimeout(() => {
+      //   this.setState({ hasError: false, error: undefined });
+      // }, 100);
+      
+      // Apenas log o erro, mas não quebrar o estado do componente
+      console.warn('[PortalErrorBoundary] Portal error handled gracefully, continuing...');
       
       return;
     }
@@ -44,12 +47,24 @@ export class PortalErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
-      // Return fallback UI or nothing for Portal errors
+      // Para erros de Portal, NÃO quebrar o render - continuar normalmente
+      if (
+        this.state.error?.message?.includes('removeChild') ||
+        this.state.error?.message?.includes('Portal') ||
+        this.state.error?.message?.includes('The node to be removed is not a child')
+      ) {
+        console.warn('[PortalErrorBoundary] Portal error ignored, rendering children normally');
+        // Resetar erro e continuar
+        this.state.hasError = false;
+        this.state.error = undefined;
+        return this.props.children;
+      }
+      
+      // Para outros erros, mostrar fallback
       if (this.props.fallback) {
         return this.props.fallback;
       }
       
-      // For Portal errors, just return null to avoid render issues
       return null;
     }
 

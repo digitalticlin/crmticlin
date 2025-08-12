@@ -37,6 +37,7 @@ export class MessagingService {
       // ✅ PREPARAR DADOS PARA EDGE FUNCTION
       const cleanPhone = params.phone.replace(/\D/g, ''); // Remover caracteres não numéricos
       const cleanMessage = params.message.trim();
+      const isMediaOnly = cleanMessage.length === 0 && !!params.mediaUrl;
 
       if (cleanPhone.length < 10) {
         return {
@@ -45,35 +46,59 @@ export class MessagingService {
         };
       }
 
-      if (cleanMessage.length === 0) {
+      // Permitir mídia sem texto: bloquear apenas quando não há mídia e não há texto
+      if (cleanMessage.length === 0 && !params.mediaUrl) {
         return {
           success: false,
           error: 'Mensagem não pode estar vazia'
         };
       }
 
+      // ✅ RECUPERAR TOKEN DE SESSÃO PARA AUTORIZAÇÃO EXPLÍCITA (mover para antes do log)
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
       console.log('[Messaging Service] 🚀 Chamando Edge Function:', {
         edgeFunction: this.config.edgeFunctionName,
         instanceId: params.instanceId,
         phone: cleanPhone.substring(0, 4) + '****',
         messageLength: cleanMessage.length,
-        mediaType: params.mediaType || 'text'
+        mediaType: params.mediaType || 'text',
+        hasAccessToken: !!accessToken
       });
 
-      // ✅ CHAMAR EDGE FUNCTION COM TIMEOUT E MÍDIA
+      // Para compatibilidade com a edge (que exige message), enviar um espaço quando for mídia-only
+      const messageForEdge = cleanMessage.length > 0 ? cleanMessage : (params.mediaUrl ? ' ' : '');
+
+      // ✅ CHAMAR EDGE FUNCTION COM TIMEOUT E MÍDIA (com Authorization explícito)
+      const requestPayload = {
+        action: 'send_message',
+        instanceId: params.instanceId,
+        phone: cleanPhone,
+        message: messageForEdge,
+        mediaType: params.mediaType || 'text',  // ✅ NOVO: TIPO DE MÍDIA
+        mediaUrl: params.mediaUrl || null       // ✅ NOVO: URL DE MÍDIA
+      };
+      
+      console.log('[Messaging Service] 📋 Payload da requisição:', {
+        ...requestPayload,
+        phone: cleanPhone.substring(0, 4) + '****'
+      });
+
       const { data, error } = await supabase.functions.invoke(
         this.config.edgeFunctionName, 
         {
-          body: {
-            action: 'send_message',
-            instanceId: params.instanceId,
-            phone: cleanPhone,
-            message: cleanMessage,
-            mediaType: params.mediaType || 'text',  // ✅ NOVO: TIPO DE MÍDIA
-            mediaUrl: params.mediaUrl || null       // ✅ NOVO: URL DE MÍDIA
-          }
+          body: requestPayload,
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined
         }
       );
+
+      console.log('[Messaging Service] 📨 Resposta raw da Edge Function:', {
+        hasData: !!data,
+        hasError: !!error,
+        data: data ? JSON.stringify(data) : null,
+        error: error ? JSON.stringify(error) : null
+      });
 
       // ✅ TRATAMENTO DE ERRO DA EDGE FUNCTION
       if (error) {

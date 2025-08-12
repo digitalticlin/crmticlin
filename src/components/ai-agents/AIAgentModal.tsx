@@ -12,6 +12,7 @@ import { PortalErrorBoundary } from "@/components/error/PortalErrorBoundary";
 import { FlowStepEnhanced, PQExample } from "@/types/aiAgent";
 import { Bot, MessageSquare, ListChecks, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { unstable_batchedUpdates } from "react-dom";
 
 interface AIAgentModalProps {
   isOpen: boolean;
@@ -102,9 +103,15 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   };
 
   const loadPromptData = async (agentId: string) => {
+    console.log('\n=== CARREGAMENTO DE DADOS DO PROMPT ===');
+    console.log('📎 Carregando dados para agente ID:', agentId);
+    
     try {
       const existingPrompt = await getPromptByAgentId(agentId);
+      console.log('📊 Prompt encontrado:', existingPrompt ? 'SIM' : 'NÃO');
+      
       if (existingPrompt) {
+        console.log('📝 Mapeando dados do prompt encontrado...');
         // Mapear dados diretamente da nova estrutura do banco
         setPromptData({
           agent_function: existingPrompt.agent_function || "",
@@ -124,25 +131,32 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           phrase_tips_examples: existingPrompt.phrase_tips_examples || [],
           flow: existingPrompt.flow || []
         });
+        console.log('✅ Dados do prompt carregados e mapeados com sucesso');
       } else {
+        console.log('⚠️ Nenhum prompt encontrado - usando dados vazios');
         resetPromptData();
       }
+      console.log('=== FIM CARREGAMENTO PROMPT ===\n');
     } catch (error) {
-      console.error('Error loading prompt data:', error);
+      console.error('❌ ERRO AO CARREGAR DADOS DO PROMPT:', error);
       resetPromptData();
+      console.log('=== FIM CARREGAMENTO (COM ERRO) ===\n');
     }
   };
 
   const handleAgentSaved = (savedAgent: AIAgent) => {
-    setWorkingAgent(savedAgent);
-    setAllowTabNavigation(true); // Permitir navegação após salvar agente
-    // Removido: setActiveTab("prompt"); - o usuário deve navegar manualmente
-    // Removido: loadPromptData(savedAgent.id); - não recarregar dados para preservar mudanças
+    unstable_batchedUpdates(() => {
+      setWorkingAgent(savedAgent);
+      setAllowTabNavigation(true);
+    });
   };
 
   const handlePromptDataChange = (field: keyof typeof promptData, value: any) => {
-    setPromptData(prev => ({ ...prev, [field]: value }));
-    setHasUnsavedChanges(true);
+    // Usar batch updates para estabilidade
+    unstable_batchedUpdates(() => {
+      setPromptData(prev => ({ ...prev, [field]: value }));
+      setHasUnsavedChanges(true);
+    });
   };
 
   const handleClose = () => {
@@ -166,19 +180,45 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   };
 
   const handleSave = async () => {
-    console.log('🚀 INICIANDO SALVAMENTO - handleSave do modal principal');
+    console.log('\n=== SALVAMENTO INICIADO ===');
+    console.log('🚀 handleSave do modal principal - DIAGNÓSTICO COMPLETO');
+    console.log('\n📊 ESTADO ATUAL:');
+    console.log('  - agent (prop recebida):', agent ? { id: agent.id, name: agent.name } : null);
+    console.log('  - workingAgent (estado local):', workingAgent ? { id: workingAgent.id, name: workingAgent.name } : null);
+    console.log('  - currentAgent (computed):', (workingAgent || agent) ? { id: (workingAgent || agent)?.id, name: (workingAgent || agent)?.name } : null);
+    console.log('\n📝 PROMPT DATA:');
+    console.log('  - agent_function:', promptData.agent_function ? 'PREENCHIDO' : 'VAZIO');
+    console.log('  - agent_objective:', promptData.agent_objective ? 'PREENCHIDO' : 'VAZIO');
+    console.log('  - communication_style:', promptData.communication_style ? 'PREENCHIDO' : 'VAZIO');
+    console.log('  - flow steps:', promptData.flow.length);
+    console.log('\n🔍 MODO DE OPERAÇÃO:', agent ? 'EDIÇÃO' : 'CRIAÇÃO');
     
     try {
       // Verificar se temos um agente (criado ou existente)
       const targetAgent = workingAgent || agent;
-      console.log('🔍 Target Agent:', targetAgent);
+      console.log('\n🎯 TARGET AGENT SELECIONADO:', targetAgent ? {
+        id: targetAgent.id,
+        name: targetAgent.name,
+        type: targetAgent.type,
+        fonte: workingAgent ? 'workingAgent' : 'agent prop'
+      } : 'NENHUM AGENTE ENCONTRADO');
       
       if (!targetAgent) {
         console.log('❌ Nenhum agente encontrado');
-        toast.error('É necessário salvar as informações básicas primeiro');
+        console.log('  - Sugestão: Primeiro salve as informações básicas na aba 1');
+        toast.error('🚀 Primeiro salve as informações básicas para criar o agente', {
+          description: 'Vá para a aba "Informações Básicas" e clique em "Salvar"',
+          duration: 5000
+        });
         setActiveTab('basic');
-        return;
+        throw new Error('Agente não encontrado - é necessário criar o agente primeiro');
       }
+      
+      console.log('✅ Target Agent encontrado:', {
+        id: targetAgent.id,
+        name: targetAgent.name,
+        type: targetAgent.type
+      });
 
       // Preparar dados do prompt para salvamento
       const promptDataToSave = {
@@ -189,9 +229,21 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       console.log('📝 Dados do prompt para salvar:', promptDataToSave);
 
       // Verificar se já existe um prompt para este agente
-      console.log('🔎 Verificando se prompt existe para agente:', targetAgent.id);
+      console.log('\n🔎 VERIFICANDO PROMPT EXISTENTE');
+      console.log('  - Agente ID:', targetAgent.id);
+      console.log('  - Agente pertence ao usuário:', targetAgent.created_by_user_id);
+      
       const existingPrompt = await getPromptByAgentId(targetAgent.id);
-      console.log('📊 Prompt existente encontrado:', existingPrompt);
+      console.log('\n📊 RESULTADO DA BUSCA:');
+      if (existingPrompt) {
+        console.log('  - Prompt encontrado ID:', existingPrompt.id);
+        console.log('  - Prompt criado por:', existingPrompt.created_by_user_id);
+        console.log('  - Prompt criado em:', existingPrompt.created_at);
+        console.log('  - Modo de operação: ATUALIZAR');
+      } else {
+        console.log('  - Nenhum prompt encontrado');
+        console.log('  - Modo de operação: CRIAR NOVO');
+      }
       
       if (existingPrompt) {
         // Atualizar prompt existente
@@ -205,8 +257,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           onSave(); // Notificar parent component
           console.log('✅ SALVAMENTO CONCLUÍDO COM SUCESSO (UPDATE)');
         } else {
-          toast.error('Erro ao salvar configuração');
-          console.log('❌ FALHA NO SALVAMENTO (UPDATE)');
+          throw new Error('Falha na atualização do prompt');
         }
       } else {
         // Criar novo prompt
@@ -220,13 +271,13 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           onSave(); // Notificar parent component
           console.log('✅ SALVAMENTO CONCLUÍDO COM SUCESSO (CREATE)');
         } else {
-          toast.error('Erro ao criar configuração');
-          console.log('❌ FALHA NO SALVAMENTO (CREATE)');
+          throw new Error('Falha na criação do prompt');
         }
       }
     } catch (error) {
       console.error('💥 ERRO CRÍTICO no salvamento:', error);
       toast.error('Erro ao salvar configuração do agente');
+      throw error; // Re-throw para que componentes filhos saibam que houve erro
     }
   };
 

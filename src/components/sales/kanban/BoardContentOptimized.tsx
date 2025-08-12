@@ -1,7 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
 import { KanbanColumnMemo } from "../KanbanColumnMemo";
-import { useDragHandlersOptimized } from "@/hooks/kanban/useDragHandlersOptimized";
 
 interface BoardContentOptimizedProps {
   columns: KanbanColumn[];
@@ -33,13 +32,8 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
     isWonLostView
   });
 
-  // Handlers otimizados para evitar recriações (Fase 1 + melhorias Fase 3)
-  const { getOptimizedHandlers } = useDragHandlersOptimized({
-    onOpenLeadDetail,
-    onOpenChat,
-    onMoveToWonLost,
-    onReturnToFunnel
-  });
+  // Ref para container principal
+  const mainScrollRef = useRef<HTMLDivElement>(null);
 
   // Memoizar colunas validadas para evitar recálculos
   const validatedColumns = useMemo(() => {
@@ -50,8 +44,11 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
   // Memoizar estilos para evitar recriações
   const containerStyles = useMemo(() => ({
     height: '100%',
-    minWidth: 'max-content'
+    minWidth: 'max-content',
+    overscrollBehaviorX: 'contain'
   }), []);
+
+  // Removido useEffect problemático - scroll funciona naturalmente
 
   if (!validatedColumns.length) {
     return (
@@ -62,26 +59,121 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
   }
 
   return (
-    <div 
-      className="flex h-full min-w-max gap-6 p-6 overflow-x-auto kanban-scrollbar" 
-      style={containerStyles}
-    >
-      {validatedColumns.map((column, index) => (
-        <KanbanColumnMemo
-          key={column.id}
-          column={column}
-          index={index}
-          onOpenLeadDetail={onOpenLeadDetail}
-          onUpdateColumn={onColumnUpdate}
-          onDeleteColumn={onColumnDelete}
-          onOpenChat={onOpenChat}
-          onMoveToWonLost={onMoveToWonLost}
-          onReturnToFunnel={onReturnToFunnel}
-          isWonLostView={isWonLostView}
-          wonStageId={wonStageId}
-          lostStageId={lostStageId}
-        />
-      ))}
+    // VERSÃO FUNCIONAL - Copiando EXATAMENTE o teste que funcionou
+    <div style={{ height: '100%', width: '100%', position: 'relative' }}>
+      <div
+        ref={mainScrollRef}
+        data-kanban-board
+        style={{
+          display: 'flex',
+          height: '100%',
+          width: '100%',
+          overflowX: 'auto',
+          overflowY: 'hidden',
+          gap: '24px',
+          padding: '24px',
+          cursor: 'grab',
+          // Estilização da barra de scroll inline - padrão branco glassmorphism
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgba(255,255,255,0.8) transparent'
+        }}
+        // className="kanban-scrollbar" // TEMPORARIAMENTE REMOVIDO
+        onWheel={(e) => {
+          // Shift+scroll
+          if (!e.shiftKey) return;
+          e.currentTarget.scrollLeft += e.deltaY;
+          e.preventDefault();
+        }}
+        onPointerDown={(e) => {
+          const el = e.currentTarget as HTMLDivElement;
+          const target = e.target as HTMLElement;
+          
+          // Bloquear em elementos interativos
+          if (target.closest('button, input, select, textarea, [role="button"], [data-rbd-draggable-id]')) return;
+          
+          e.preventDefault(); // Prevenir seleção de texto
+          
+          let startX = e.clientX;
+          let startScroll = el.scrollLeft;
+          let isScrolling = false;
+          let moved = false;
+          
+          const threshold = 5; // Pixels mínimos para considerar movimento
+          
+          const onMove = (ev: PointerEvent) => {
+            const dx = ev.clientX - startX;
+            
+            // Só inicia o scroll após threshold para evitar cliques acidentais
+            if (!moved && Math.abs(dx) < threshold) return;
+            
+            if (!moved) {
+              moved = true;
+              isScrolling = true;
+              el.style.cursor = 'grabbing';
+              el.style.userSelect = 'none';
+            }
+            
+            // Scroll apenas se estivermos em modo scrolling
+            if (isScrolling) {
+              el.scrollLeft = startScroll - dx;
+            }
+          };
+          
+          const onUp = (ev: PointerEvent) => {
+            // IMPORTANTE: Limpar TUDO ao soltar
+            isScrolling = false;
+            moved = false;
+            
+            // Restaurar cursor e comportamento
+            el.style.cursor = 'grab';
+            el.style.userSelect = '';
+            
+            // Limpar capture e listeners
+            el.releasePointerCapture(e.pointerId);
+            document.removeEventListener('pointermove', onMove);
+            document.removeEventListener('pointerup', onUp);
+            document.removeEventListener('pointercancel', onCancel);
+            
+          };
+          
+          const onCancel = () => {
+            // Mesmo cleanup para cancel
+            onUp(e);
+          };
+          
+          // Usar document em vez de element para captura global
+          el.setPointerCapture(e.pointerId);
+          document.addEventListener('pointermove', onMove);
+          document.addEventListener('pointerup', onUp);
+          document.addEventListener('pointercancel', onCancel);
+          
+        }}
+        onPointerLeave={() => {
+          // Garantir limpeza se cursor sair da área durante drag
+          const el = mainScrollRef.current;
+          if (el) {
+            el.style.cursor = 'grab';
+            el.style.userSelect = '';
+          }
+        }}
+      >
+        {validatedColumns.map((column, index) => (
+          <KanbanColumnMemo
+            key={column.id}
+            column={column}
+            index={index}
+            onOpenLeadDetail={onOpenLeadDetail}
+            onUpdateColumn={onColumnUpdate}
+            onDeleteColumn={onColumnDelete}
+            onOpenChat={onOpenChat}
+            onMoveToWonLost={onMoveToWonLost}
+            onReturnToFunnel={onReturnToFunnel}
+            isWonLostView={isWonLostView}
+            wonStageId={wonStageId}
+            lostStageId={lostStageId}
+          />
+        ))}
+      </div>
     </div>
   );
 }, (prevProps, nextProps) => {

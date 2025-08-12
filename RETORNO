@@ -1,15 +1,64 @@
-[WhatsApp Chat] 🏗️ Inicializando hooks isolados...
-useWhatsAppChat.ts:109 [WhatsApp Chat] ✅ useWhatsAppInstances funcionou
-useWhatsAppChat.ts:118 [WhatsApp Chat] 📊 Status dos hooks isolados: {instancesLoading: false, totalInstances: 0, activeInstanceId: undefined, contactsLoading: false, totalContacts: 50, …}
-useWhatsAppChat.ts:144 [WhatsApp Chat] 📨 Status das mensagens: {messagesLoading: false, totalMessages: 0, hasSelectedContact: true, selectedContactId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7'}
-WhatsAppChatContainer.tsx:27 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 50, messagesCount: 0, selectedContactId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', selectedContactName: '+55 (62) 99212-484', isLoadingContacts: false, …}
-WhatsAppMessagesList.tsx:49 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 0, isLoading: false, isLoadingMore: false, hasMoreMessages: false}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', currentStageId: 'dcac808a-2595-4d33-9b38-2f04055a4df3', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-WhatsAppMessagesList.tsx:49 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 0, isLoading: false, isLoadingMore: false, hasMoreMessages: false}hasMoreMessages: falseisLoading: falseisLoadingMore: falsetotal: 0[[Prototype]]: Object
-useLeadTags.ts:16 [useLeadTags] 🔄 Buscando tags para lead: df8d7bcf-418e-4c9d-adcd-7caaea70e3d7
-useLeadTags.ts:16 [useLeadTags] 🔄 Buscando tags para lead: df8d7bcf-418e-4c9d-adcd-7caaea70e3d7
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', currentStageId: 'dcac808a-2595-4d33-9b38-2f04055a4df3', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}currentStageColor: "#3b82f6"currentStageId: "dcac808a-2595-4d33-9b38-2f04055a4df3"currentStageTitle: "Entrada de Leads"hasCurrentStage: trueisChanging: falseisLoading: falseleadId: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7"stagesCount: 1totalStages: 7[[Prototype]]: Object
-useLeadTags.ts:63 [useLeadTags] ✅ Tags carregadas: {leadTags: 1, availableTags: 4, leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', userId: '712e7708-2299-4a00-9128-577c8f113ca4'}availableTags: 4leadId: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7"leadTags: 1userId: "712e7708-2299-4a00-9128-577c8f113ca4"[[Prototype]]: Object
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', currentStageId: 'dcac808a-2595-4d33-9b38-2f04055a4df3', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}currentStageColor: "#3b82f6"currentStageId: "dcac808a-2595-4d33-9b38-2f04055a4df3"currentStageTitle: "Entrada de Leads"hasCurrentStage: trueisChanging: falseisLoading: falseleadId: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7"stagesCount: 1totalStages: 7[[Prototype]]: Object
-useLeadTags.ts:63 [useLeadTags] ✅ Tags carregadas: {leadTags: 1, availableTags: 4, leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', userId: '712e7708-2299-4a00-9128-577c8f113ca4'}availableTags: 4leadId: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7"leadTags: 1userId: "712e7708-2299-4a00-9128-577c8f113ca4"[[Prototype]]: Object
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', currentStageId: 'dcac808a-2595-4d33-9b38-2f04055a4df3', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}currentStageColor: "#3b82f6"currentStageId: "dcac808a-2595-4d33-9b38-2f04055a4df3"currentStageTitle: "Entrada de Leads"hasCurrentStage: trueisChanging: falseisLoading: falseleadId: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7"stagesCount: 1totalStages: 7[[Prototype]]: Object
+
+🔎 VERIFICANDO PROMPT EXISTENTE
+AIAgentModal.tsx:233   - Agente ID: 481766d9-2b00-4812-aeb1-9ea350a7ed71
+AIAgentModal.tsx:234   - Agente pertence ao usuário: 9936ae64-b78c-48fe-97e8-bf67623349c6
+useAIAgentPrompts.ts:255 
+=== GET PROMPT BY AGENT ID ===
+useAIAgentPrompts.ts:256 🔍 Buscando prompt para agente ID: 481766d9-2b00-4812-aeb1-9ea350a7ed71
+useAIAgentPrompts.ts:264 📊 Resposta da busca:
+useAIAgentPrompts.ts:265   - Data encontrado: SIM
+useAIAgentPrompts.ts:266   - Error: NENHUM
+useAIAgentPrompts.ts:304 ✅ Prompt encontrado e convertido com sucesso
+useAIAgentPrompts.ts:305 === FIM GET PROMPT (COM SUCESSO) ===
+
+AIAgentModal.tsx:237 
+📊 RESULTADO DA BUSCA:
+AIAgentModal.tsx:239   - Prompt encontrado ID: e55bd430-23c5-427f-b37a-e6428eaf8f27
+AIAgentModal.tsx:240   - Prompt criado por: 9936ae64-b78c-48fe-97e8-bf67623349c6
+AIAgentModal.tsx:241   - Prompt criado em: 2025-08-11T17:33:43.435178+00:00
+AIAgentModal.tsx:242   - Modo de operação: ATUALIZAR
+AIAgentModal.tsx:250 🔄 Atualizando prompt existente: e55bd430-23c5-427f-b37a-e6428eaf8f27
+useAIAgentPrompts.ts:147 
+=== UPDATE PROMPT INICIADO ===
+useAIAgentPrompts.ts:148 🔄 updatePrompt chamado para ID: e55bd430-23c5-427f-b37a-e6428eaf8f27
+useAIAgentPrompts.ts:149 📝 Updates recebidos: (17) ['agent_id', 'agent_function', 'agent_objective', 'communication_style', 'communication_style_examples', 'company_info', 'products_services', 'products_services_examples', 'rules_guidelines', 'rules_guidelines_examples', 'prohibitions', 'prohibitions_examples', 'client_objections', 'client_objections_examples', 'phrase_tips', 'phrase_tips_examples', 'flow']
+useAIAgentPrompts.ts:150 📊 Conteúdo dos updates:
+useAIAgentPrompts.ts:153   - agent_id: PREENCHIDO (36 chars)
+useAIAgentPrompts.ts:153   - agent_function: PREENCHIDO (157 chars)
+useAIAgentPrompts.ts:153   - agent_objective: PREENCHIDO (169 chars)
+useAIAgentPrompts.ts:153   - communication_style: PREENCHIDO (651 chars)
+useAIAgentPrompts.ts:155   - communication_style_examples: ARRAY com 1 itens
+useAIAgentPrompts.ts:153   - company_info: PREENCHIDO (109 chars)
+useAIAgentPrompts.ts:153   - products_services: PREENCHIDO (224 chars)
+useAIAgentPrompts.ts:155   - products_services_examples: ARRAY com 0 itens
+useAIAgentPrompts.ts:153   - rules_guidelines: PREENCHIDO (47 chars)
+useAIAgentPrompts.ts:155   - rules_guidelines_examples: ARRAY com 1 itens
+useAIAgentPrompts.ts:153   - prohibitions: PREENCHIDO (410 chars)
+useAIAgentPrompts.ts:155   - prohibitions_examples: ARRAY com 1 itens
+useAIAgentPrompts.ts:153   - client_objections: PREENCHIDO (129 chars)
+useAIAgentPrompts.ts:155   - client_objections_examples: ARRAY com 1 itens
+useAIAgentPrompts.ts:153   - phrase_tips: VAZIO
+useAIAgentPrompts.ts:155   - phrase_tips_examples: ARRAY com 2 itens
+useAIAgentPrompts.ts:155   - flow: ARRAY com 1 itens
+useAIAgentPrompts.ts:184 🔑 Verificando se há dados para atualizar...
+useAIAgentPrompts.ts:191 
+💾 DADOS FORMATADOS PARA SUPABASE:
+useAIAgentPrompts.ts:192 📝 formattedUpdates: {agent_function: 'Uma SDR especialista que entende de processos jurí…s e diretas até conseguir o extrato para análise.', agent_objective: 'Explicar como funciona o processo de intermediação…ara o jurídico realizar o cálculo de recuperação.', communication_style: 'Acolhedora, empática e objetiva. Especialista em i…ndimento humano continuar após sua parte final."\n', communication_style_examples: Array(1), company_info: 'A SolucionaCon é especialista em intermediação jur… recuperação de valores de consórcios cancelados.', …}
+useAIAgentPrompts.ts:193 🔑 Tentando atualizar registro ID: e55bd430-23c5-427f-b37a-e6428eaf8f27
+useAIAgentPrompts.ts:196 
+🔍 PRE-VERIFICAÇÃO: Confirmando existência do registro...
+useAIAgentPrompts.ts:213 ✅ Registro encontrado: {id: 'e55bd430-23c5-427f-b37a-e6428eaf8f27', agent_id: '481766d9-2b00-4812-aeb1-9ea350a7ed71', owner: '9936ae64-b78c-48fe-97e8-bf67623349c6'}
+useAIAgentPrompts.ts:219 
+📤 EXECUTANDO ATUALIZAÇÃO...
+useAIAgentPrompts.ts:226 
+📊 RESPOSTA DO SUPABASE:
+useAIAgentPrompts.ts:227   - Data: 1 registro(s) afetado(s)
+useAIAgentPrompts.ts:228   - Error: NENHUM ERRO
+useAIAgentPrompts.ts:244 ✅ UPDATE CONCLUÍDO COM SUCESSO!
+useAIAgentPrompts.ts:245 === FIM UPDATE PROMPT ===
+
+AIAgentModal.tsx:252 💾 Resultado da atualização: true
+AIAgents.tsx:109 📱 Modal save triggered - refreshing data without closing modal
+AIAgentModal.tsx:258 ✅ SALVAMENTO CONCLUÍDO COM SUCESSO (UPDATE)
+EnhancedPromptConfiguration.tsx:305 ✅ Passo adicionado e salvo no banco com sucesso
+EnhancedPromptConfiguration.tsx:306 🎯 ADIÇÃO DE PASSO CONCLUÍDA SEM FECHAR MODAL

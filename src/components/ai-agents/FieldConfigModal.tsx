@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PortalErrorBoundary } from "@/components/error/PortalErrorBoundary";
 import { ExamplesManager } from "./ExamplesManager";
 import { PhraseTipsManager } from "./PhraseTipsManager";
 import { PQExample, FieldWithExamples } from "@/types/aiAgent";
@@ -110,11 +109,28 @@ export const FieldConfigModal = ({
     
     console.log('📝 Salvando valor:', valueToSave);
     
-    // Chama onSave passado pelo componente pai
-    await onSave(valueToSave);
-    
-    console.log('✅ FieldConfigModal - Dados salvos com sucesso');
-    // Modal não fecha automaticamente - usuário decide quando fechar
+    try {
+      // Chama onSave passado pelo componente pai
+      await onSave(valueToSave);
+      console.log('✅ FieldConfigModal - Dados salvos com sucesso');
+      
+      // Feedback visual de sucesso
+      const button = document.querySelector('[data-save-button]') as HTMLButtonElement;
+      if (button) {
+        const originalText = button.textContent;
+        button.textContent = '✅ Salvo!';
+        button.style.backgroundColor = '#10b981';
+        setTimeout(() => {
+          button.textContent = originalText;
+          button.style.backgroundColor = '';
+        }, 2000);
+      }
+      
+      // Modal não fecha automaticamente - usuário decide quando fechar
+    } catch (error) {
+      console.error('❌ Erro ao salvar no FieldConfigModal:', error);
+      alert('Erro ao salvar configuração. Verifique os dados e tente novamente.');
+    }
   };
 
   const handleCloseAttempt = () => {
@@ -145,8 +161,12 @@ export const FieldConfigModal = ({
 
 
   return (
-    <PortalErrorBoundary>
-      <Dialog open={isOpen} onOpenChange={() => {}}>
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        if (!open) {
+          handleCloseAttempt();
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-xl flex flex-col">
           <DialogHeader className="border-b border-white/30 pb-3 bg-white/20 backdrop-blur-sm rounded-t-xl -mx-6 -mt-6 px-6 pt-6">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
@@ -236,6 +256,7 @@ export const FieldConfigModal = ({
             </Button>
             <Button 
               onClick={handleSave}
+              data-save-button
               className="px-8 h-11 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-xl shadow-glass hover:shadow-glass-lg transition-all duration-200"
             >
               <Save className="h-4 w-4 mr-2" />
@@ -281,6 +302,6 @@ export const FieldConfigModal = ({
           </div>
         </DialogContent>
       </Dialog>
-    </PortalErrorBoundary>
+    </>
   );
 };

@@ -668,50 +668,7 @@ async function recoverExistingInstances() {
   }
 }
 
-// Sincronização Periódica com Melhor Controle
-let syncInterval;
-function startPeriodicSync() {
-  // Cancelar sincronização anterior se existir
-  if (syncInterval) {
-    clearInterval(syncInterval);
-  }
-
-  // Sincronização a cada 15 minutos
-  syncInterval = setInterval(async () => {
-    console.log('[Periodic Sync] 🔄 Iniciando sincronização...');
-
-    const instancesData = Object.values(instances)
-      .filter(inst => inst && inst.instanceId)
-      .map(inst => ({
-        instanceId: inst.instanceId,
-        instanceName: inst.instanceName,
-        status: inst.status,
-        phone: inst.phone,
-        profileName: inst.profileName,
-        connected: inst.connected,
-        lastUpdate: inst.lastUpdate,
-        connectionAttempts: inst.attempts || 0,
-        createdByUserId: inst.createdByUserId
-      }));
-
-    if (instancesData.length > 0) {
-      const data = {
-        event: 'periodic_sync',
-        timestamp: new Date().toISOString(),
-        instances: instancesData,
-        total: instancesData.length,
-        vps_info: {
-          ip: '31.97.163.57',
-          port: PORT,
-          uptime: process.uptime(),
-          version: '7.0.0-ROBUST-COMPLETE'
-        }
-      };
-
-      await webhookManager.sendWebhook('AUTO_SYNC_INSTANCES', data, 'Sync');
-    }
-  }, 15 * 60 * 1000);
-}
+// Sincronização periódica e de startup desativadas: manter apenas webhooks por evento
 
 // Graceful Shutdown
 process.on('SIGINT', async () => {
@@ -778,39 +735,6 @@ async function startServer() {
     });
 
     server.timeout = 60000;
-    startPeriodicSync();
-
-    setTimeout(async () => {
-      console.log('🔄 Executando primeira sincronização...');
-      const instancesData = Object.values(instances).map(inst => ({
-        instanceId: inst.instanceId,
-        instanceName: inst.instanceName,
-        status: inst.status,
-        phone: inst.phone,
-        profileName: inst.profileName,
-        connected: inst.connected,
-        lastUpdate: inst.lastUpdate,
-        connectionAttempts: inst.attempts || 0,
-        createdByUserId: inst.createdByUserId
-      }));
-
-      if (instancesData.length > 0) {
-        const data = {
-          event: 'startup_sync',
-          timestamp: new Date().toISOString(),
-          instances: instancesData,
-          total: instancesData.length,
-                  vps_info: {
-          ip: '31.97.163.57',
-          port: PORT,
-          uptime: process.uptime(),
-          version: '7.0.0-ROBUST-COMPLETE'
-        }
-        };
-
-        await webhookManager.sendWebhook('AUTO_SYNC_INSTANCES', data, 'Startup');
-      }
-    }, 30000);
 
   } catch (error) {
     console.error('❌ Erro fatal na inicialização:', error);

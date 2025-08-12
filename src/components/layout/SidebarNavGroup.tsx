@@ -9,6 +9,9 @@ type NavItemData = {
   href: string;
   className?: string;
   comingSoon?: boolean;
+  badgeIcon?: React.ElementType;
+  badgeText?: string;
+  disabledReason?: string;
 };
 
 type SidebarNavGroupProps = {
@@ -29,6 +32,9 @@ const SidebarNavGroup = ({ items, isCollapsed, className = "" }: SidebarNavGroup
           isCollapsed={isCollapsed}
           className={item.className}
           comingSoon={item.comingSoon}
+          badgeIcon={item.badgeIcon}
+          badgeText={item.badgeText}
+          disabledReason={item.disabledReason}
         />
       ))}
       

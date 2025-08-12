@@ -30,6 +30,8 @@ export interface Contact {
     status: string;
     phone: string;
   };
+  // Instância WhatsApp vinculada ao lead (FK para whatsapp_instances.id)
+  whatsapp_number_id?: string;
 }
 
 export interface Deal {

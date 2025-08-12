@@ -14,7 +14,10 @@ import {
   ListPlus,
   Menu,
   X,
-  CreditCard
+  CreditCard,
+  Hammer,
+  Wrench,
+  HardHat
 } from "lucide-react";
 import SidebarLogo from "./SidebarLogo";
 import SidebarNavGroup from "./SidebarNavGroup";
@@ -75,7 +78,9 @@ export default function ResponsiveSidebar() {
       icon: ListPlus,
       label: "Automação",
       href: "/automation",
-      comingSoon: false,
+      comingSoon: true,
+      badgeIcon: Wrench,
+      disabledReason: 'Estamos melhorando esta área. Volte em breve.',
       requiredPermission: 'canManageFunnels' // Apenas gestores e admins
     },
     {
@@ -92,14 +97,18 @@ export default function ResponsiveSidebar() {
       icon: CreditCard,
       label: "Planos",
       href: "/plans",
-      comingSoon: false,
+      comingSoon: true,
+      badgeIcon: Hammer,
+      disabledReason: 'Revisando planos e faturamento. Em breve disponível.',
       requiredPermission: null // Todos podem acessar
     },
     {
       icon: Settings,
       label: "Configurações",
       href: "/settings",
-      comingSoon: false,
+      comingSoon: true,
+      badgeIcon: HardHat,
+      disabledReason: 'Ajustes internos em andamento. Por favor, tente mais tarde.',
       requiredPermission: 'canAccessSettings' // Apenas gestores e admins
     }
   ];
