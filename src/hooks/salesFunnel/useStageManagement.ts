@@ -38,10 +38,23 @@ export function useStageManagement() {
 
       if (dealError) throw dealError;
 
-      // Update lead to remove from kanban
+      // Mover lead para estágio GANHO/PERDIDO (não deixar null)
+      // Buscar estágio correspondente
+      const { data: stageData, error: stageErr } = await supabase
+        .from('kanban_stages')
+        .select('id')
+        .eq(status === 'won' ? 'is_won' : 'is_lost', true)
+        .eq('created_by_user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (stageErr) throw stageErr;
+
+      const targetStageId = stageData?.id || null;
+
       const { error: leadError } = await supabase
         .from("leads")
-        .update({ kanban_stage_id: null })
+        .update({ kanban_stage_id: targetStageId })
         .eq("id", leadId);
 
       if (leadError) throw leadError;

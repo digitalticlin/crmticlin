@@ -51,11 +51,12 @@ function useDashboardConfigImpl(): UseDashboardConfigReturn {
     };
   }, [saveTimeoutRef]);
 
-  // Create save scheduler
+  // Create save scheduler + informar lastSaveAtRef para o anti-loop do realtime
+  const lastSaveAtRef = useRef<number>(0);
   const scheduleSave = useCallback((configToSave: any) => {
     if (!isMountedRef.current || !user?.id) return;
     
-    const saveScheduler = configOperations.createSaveScheduler(user.id, companyId, setSaving);
+    const saveScheduler = configOperations.createSaveScheduler(user.id, companyId, setSaving, lastSaveAtRef);
     saveScheduler(configToSave, saveTimeoutRef);
   }, [user?.id, companyId, setSaving, saveTimeoutRef, isMountedRef]);
 
@@ -71,7 +72,6 @@ function useDashboardConfigImpl(): UseDashboardConfigReturn {
   );
 
   // Realtime sync entre sessões (evita interferir no otimista/UX local)
-  const lastSaveAtRef = useRef<number>(0);
   useEffect(() => {
     if (!user?.id) return;
     let channel: any | null = null;
@@ -90,8 +90,18 @@ function useDashboardConfigImpl(): UseDashboardConfigReturn {
 
           const next = payload.new?.layout_config;
           if (!next) return;
+          // Evitar re-render se a config não mudou de fato (checada rasa)
+          try {
+            const current = (config ?? {});
+            const nextStr = JSON.stringify(next);
+            const currStr = JSON.stringify(current);
+            if (nextStr === currStr) return;
+          } catch {}
           setConfig(next);
-          triggerForceUpdate();
+          // Reduzir uso de forceUpdate, apenas se já inicializado
+          if (isInitializedRef.current) {
+            triggerForceUpdate();
+          }
         })
         .subscribe();
     } catch (err) {
@@ -103,7 +113,7 @@ function useDashboardConfigImpl(): UseDashboardConfigReturn {
         channel?.unsubscribe();
       } catch {}
     };
-  }, [user?.id, setConfig, triggerForceUpdate]);
+  }, [user?.id, setConfig, triggerForceUpdate, config, isInitializedRef]);
 
   // Create handlers
   const handlers = createConfigHandlers(

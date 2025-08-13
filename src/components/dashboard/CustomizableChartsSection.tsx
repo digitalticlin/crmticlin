@@ -90,8 +90,8 @@ export default function CustomizableChartsSection() {
           );
         }
         
-        // ETAPA 3: Key simplificada baseada apenas no forceUpdate
-        const reactiveKey = `chart-${chartKey}-${forceUpdate}`;
+        // Evitar remontagem completa do card: key estável por chart
+        const reactiveKey = `chart-${chartKey}`;
         
         return (
           <div

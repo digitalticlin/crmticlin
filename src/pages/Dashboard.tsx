@@ -8,27 +8,14 @@ import PeriodFilter from "@/components/dashboard/PeriodFilter";
 import { BackgroundGradient } from "@/components/ui/BackgroundGradient";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/contexts/SidebarContext";
-import { useDashboardConfig, DashboardConfigProvider } from "@/hooks/dashboard/useDashboardConfig";
+import { DashboardConfigProvider } from "@/hooks/dashboard/useDashboardConfig";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
   const { isCollapsed } = useSidebar();
-  const { config, forceUpdate, loading } = useDashboardConfig();
-
-  // ETAPA 5: Validação - monitoring da página
-  useEffect(() => {
-    const timestamp = Date.now();
-    console.log(`🏠 DASHBOARD RENDER [${timestamp}]:`, {
-      forceUpdate,
-      loading,
-      configKPIs: config.kpis,
-      configCharts: config.charts,
-      enabledKpis: Object.values(config.kpis).filter(Boolean).length,
-      enabledCharts: Object.values(config.charts).filter(Boolean).length
-    });
-  }, [forceUpdate, config, loading]);
+  // Logs de render podem ser adicionados dentro de componentes filhos que já consomem o provider
 
   return (
     <div className="h-screen w-full overflow-hidden relative">
@@ -73,12 +60,11 @@ export default function Dashboard() {
               </div>
             </div>
             
-            {/* ETAPA 3: Keys simplificadas baseadas apenas no forceUpdate */}
-            <div key={`dashboard-kpi-${forceUpdate}`}>
+            <div>
               <CustomizableKPIGrid />
             </div>
             
-            <div key={`dashboard-charts-${forceUpdate}`}>
+            <div>
               <CustomizableChartsSection />
             </div>
             </DashboardConfigProvider>

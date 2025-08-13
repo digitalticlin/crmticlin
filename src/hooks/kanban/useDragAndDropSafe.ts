@@ -164,6 +164,16 @@ export const useDragAndDropSafe = ({
 
         console.log('[DragDropSafe] ✅ RADICAL - Sincronização Supabase concluída');
 
+        // ✅ Invalidar caches para evitar rollback visual por refetch antigo
+        try {
+          const { useQueryClient } = await import('@tanstack/react-query');
+          const qc = useQueryClient();
+          qc.invalidateQueries({ queryKey: ['kanban-leads'] });
+          qc.invalidateQueries({ queryKey: ['leads'] });
+        } catch (e) {
+          // sem react-query neste escopo, ignore
+        }
+
       } catch (backendError) {
         console.error('[DragDropSafe] ❌ Erro crítico no backend:', backendError);
         toast.error("Erro de conexão. Tente novamente.");

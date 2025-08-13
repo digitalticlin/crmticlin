@@ -133,8 +133,8 @@ export function CustomizableKPIGrid() {
           return null;
         }
         
-        // ETAPA 3: Key simplificada baseada apenas no forceUpdate
-        const reactiveKey = `kpi-${kpiKey}-${forceUpdate}`;
+        // Evitar remontagem completa do card: key estável por kpi
+        const reactiveKey = `kpi-${kpiKey}`;
         
         return (
           <div

@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { PlayIcon, VideoIcon, Loader2, RefreshCw } from 'lucide-react';
 
@@ -23,6 +23,9 @@ export const VideoMessage = React.memo(({
   const [isPlaying, setIsPlaying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const handleVideoError = useCallback(() => {
     console.error(`[VideoMessage] ❌ Erro ao carregar vídeo: ${messageId}`);
@@ -52,6 +55,23 @@ export const VideoMessage = React.memo(({
       }
     }
   }, [isPlaying]);
+
+  const handleOpenFullscreen = useCallback(() => {
+    if (!videoError) {
+      setIsFullscreen(true);
+      setZoom(1);
+    }
+  }, [videoError]);
+
+  const handleZoomIn = useCallback(() => setZoom((z) => Math.min(3, parseFloat((z + 0.25).toFixed(2)))), []);
+  const handleZoomOut = useCallback(() => setZoom((z) => Math.max(0.75, parseFloat((z - 0.25).toFixed(2)))), []);
+  const handleZoomReset = useCallback(() => setZoom(1), []);
+
+  useEffect(() => {
+    if (isFullscreen) {
+      setTimeout(() => overlayRef.current?.focus(), 0);
+    }
+  }, [isFullscreen]);
 
   // Loading state
   if (isLoading) {
@@ -137,18 +157,69 @@ export const VideoMessage = React.memo(({
           {/* Play button overlay */}
           {!isPlaying && !videoLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
-              <button
-                onClick={handlePlayPause}
-                className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all shadow-lg"
-              >
-                <PlayIcon className="w-8 h-8 text-gray-800 ml-1" />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handlePlayPause}
+                  className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all shadow-lg"
+                  aria-label="Reproduzir"
+                >
+                  <PlayIcon className="w-8 h-8 text-gray-800 ml-1" />
+                </button>
+                <button
+                  onClick={handleOpenFullscreen}
+                  className="px-3 py-2 rounded-xl bg-white/80 hover:bg-white text-gray-800 shadow"
+                  aria-label="Ampliar vídeo"
+                >Ampliar</button>
+              </div>
             </div>
           )}
         </div>
       </div>
       
       {/* Caption removido - apenas vídeo sem descrição */}
+
+      {/* Modal fullscreen semelhante ao de imagem, com scroll/zoom */}
+      {isFullscreen && (
+        <div
+          className="fixed inset-0 z-[9999] p-4 flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setIsFullscreen(false)}
+          onKeyDown={(e) => { if ((e as React.KeyboardEvent).key === 'Escape') setIsFullscreen(false); }}
+          tabIndex={-1}
+          ref={overlayRef}
+        >
+          {/* Fundo glasmorphism */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(circle at 30% 70%, rgba(211,216,0,0.15) 0%, transparent 50%), " +
+                "radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 60%), " +
+                "linear-gradient(135deg, rgba(23,25,28,0.65) 0%, rgba(23,25,28,0.85) 100%)",
+              backdropFilter: 'blur(16px)'
+            }}
+          />
+
+          <div className="relative max-w-[90vw] max-h-[90vh] w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <div className="relative max-w-full max-h-full w-full h-full overflow-auto rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl">
+              <div style={{ transform: `scale(${zoom})`, transformOrigin: 'center center', transition: 'transform 120ms ease' }}>
+                <video controls className="block mx-auto max-w-full" style={{ maxHeight: '80vh' }}>
+                  <source src={url} type="video/mp4" />
+                  <source src={url} type="video/webm" />
+                  <source src={url} type="video/ogg" />
+                </video>
+              </div>
+            </div>
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              <button onClick={handleZoomOut} className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30" aria-label="Reduzir zoom">−</button>
+              <button onClick={handleZoomIn} className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30" aria-label="Aumentar zoom">+</button>
+              <button onClick={handleZoomReset} className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30" aria-label="Redefinir zoom">1×</button>
+              <button onClick={() => setIsFullscreen(false)} className="px-3 py-2 rounded-xl bg-black/40 hover:bg-black/60 text-white border border-white/30" aria-label="Fechar">×</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

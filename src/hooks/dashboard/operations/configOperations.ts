@@ -25,7 +25,12 @@ export const configOperations = {
     return defaultConfig;
   },
 
-  createSaveScheduler(userId: string, companyId: string, setSaving: (saving: boolean) => void) {
+  createSaveScheduler(
+    userId: string,
+    companyId: string,
+    setSaving: (saving: boolean) => void,
+    lastSaveAtRef?: React.MutableRefObject<number>
+  ) {
     return (configToSave: DashboardConfig, saveTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>) => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -37,6 +42,9 @@ export const configOperations = {
           console.log("💾 Saving config");
           await dashboardConfigService.saveConfig(userId, configToSave);
           console.log("✅ Config saved");
+          if (lastSaveAtRef) {
+            lastSaveAtRef.current = Date.now();
+          }
         } catch (error) {
           console.error("❌ Save error:", error);
         } finally {

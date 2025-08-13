@@ -80,19 +80,26 @@ export function usePerformanceByOwner(periodFilter: string) {
 
       let nameByOwner: Record<string, string> = {};
       if (ownerIds.length > 0) {
-        // Tentar tabela profiles (id, full_name / name)
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name, name')
-          .in('id', ownerIds);
-        if (profilesError) {
-          // fallback silencioso
-          console.warn('[usePerformanceByOwner] profiles lookup error:', profilesError.message);
+        // Evitar enviar sentinela não-UUID para a consulta
+        const ownerIdsToFetch = ownerIds.filter(id => id && id !== 'sem-responsavel');
+        if (ownerIdsToFetch.length > 0) {
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, username')
+            .in('id', ownerIdsToFetch);
+          if (profilesError) {
+            // fallback silencioso
+            console.warn('[usePerformanceByOwner] profiles lookup error:', profilesError.message);
+          }
+          (profiles || []).forEach(p => {
+            const displayName = (p.full_name || p.username || '').trim();
+            nameByOwner[p.id] = displayName || p.id;
+          });
         }
-        (profiles || []).forEach(p => {
-          const displayName = (p.full_name || p.name || '').trim();
-          nameByOwner[p.id] = displayName || p.id;
-        });
+        // Nome amigável para leads sem responsável
+        if (ownerIds.includes('sem-responsavel')) {
+          nameByOwner['sem-responsavel'] = 'Sem responsável';
+        }
       }
 
       const rows: OwnerPerformanceRow[] = ownerIds.map(ownerId => ({

@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { ImageIcon, RefreshCw, ZoomIn, X } from 'lucide-react';
 
@@ -22,6 +22,8 @@ export const ImageMessage = React.memo(({
   const [imageError, setImageError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const handleImageLoad = useCallback(() => {
     // ✅ OTIMIZAÇÃO: Log condicionado para desenvolvimento
@@ -101,8 +103,31 @@ export const ImageMessage = React.memo(({
   const handleImageClick = useCallback(() => {
     if (imageLoaded && !imageError) {
       setIsFullscreen(true);
+      setZoom(1);
     }
   }, [imageLoaded, imageError]);
+
+  const handleZoomIn = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setZoom((z) => Math.min(4, parseFloat((z + 0.25).toFixed(2))));
+  }, []);
+
+  const handleZoomOut = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setZoom((z) => Math.max(0.5, parseFloat((z - 0.25).toFixed(2))));
+  }, []);
+
+  const handleZoomReset = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setZoom(1);
+  }, []);
+
+  // Foco no overlay para receber ESC
+  useEffect(() => {
+    if (isFullscreen) {
+      setTimeout(() => overlayRef.current?.focus(), 0);
+    }
+  }, [isFullscreen]);
 
   // Loading state
   if (isLoading) {
@@ -170,7 +195,10 @@ export const ImageMessage = React.memo(({
   return (
     <>
       <div className="space-y-2 max-w-xs">
-        <div className="relative overflow-hidden rounded-lg bg-gray-100 group cursor-pointer hover:opacity-95 transition-all duration-200">
+        <div
+          className="relative overflow-hidden rounded-lg bg-gray-100 group cursor-pointer hover:opacity-95 transition-all duration-200"
+          onClick={handleImageClick}
+        >
           {/* Loading placeholder overlay */}
           {!imageLoaded && (
             <div className="absolute inset-0 w-64 h-40 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center z-10">
@@ -184,9 +212,16 @@ export const ImageMessage = React.memo(({
           
           {/* Zoom overlay */}
           {imageLoaded && (
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20">
+            <button
+              type="button"
+              aria-label="Ampliar imagem"
+              title="Ampliar"
+              onClick={handleImageClick}
+              className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20"
+              style={{ outline: 'none', border: 'none' }}
+            >
               <ZoomIn className="w-8 h-8 text-white" />
-            </div>
+            </button>
           )}
           
           {/* Imagem principal */}
@@ -197,7 +232,7 @@ export const ImageMessage = React.memo(({
               "max-w-full h-auto rounded-lg object-cover transition-opacity duration-300",
               !imageLoaded && "opacity-0"
             )}
-            onClick={handleImageClick}
+            // clique também disponível no wrapper/overlay
             onLoad={handleImageLoad}
             onError={handleImageError}
             loading="lazy"
@@ -220,21 +255,61 @@ export const ImageMessage = React.memo(({
       {/* Modal fullscreen */}
       {isFullscreen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 z-[9999] p-4 flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
           onClick={() => setIsFullscreen(false)}
+          onKeyDown={(e) => { if ((e as React.KeyboardEvent).key === 'Escape') setIsFullscreen(false); }}
+          tabIndex={-1}
+          ref={overlayRef}
         >
-          <div className="relative max-w-full max-h-full">
-            <img 
-              src={url} 
-              alt="Imagem em tela cheia"
-              className="max-w-full max-h-full object-contain"
-            />
-            <button
-              onClick={() => setIsFullscreen(false)}
-              className="absolute top-4 right-4 text-white text-3xl hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full w-12 h-12 flex items-center justify-center"
-            >
-              ×
-            </button>
+          {/* Fundo glasmorphism */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(circle at 30% 70%, rgba(211,216,0,0.15) 0%, transparent 50%), " +
+                "radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 60%), " +
+                "linear-gradient(135deg, rgba(23,25,28,0.65) 0%, rgba(23,25,28,0.85) 100%)",
+              backdropFilter: 'blur(16px)'
+            }}
+          />
+
+          <div className="relative max-w-[90vw] max-h-[90vh] w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            {/* Área rolável para pan/zoom */}
+            <div className="relative max-w-full max-h-full w-full h-full overflow-auto rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl">
+              <img 
+                src={url} 
+                alt="Imagem em tela cheia"
+                className="block mx-auto"
+                style={{ transform: `scale(${zoom})`, transformOrigin: 'center center', transition: 'transform 120ms ease' }}
+                onDoubleClick={(e) => { e.stopPropagation(); setZoom((z) => (z === 1 ? 2 : 1)); }}
+              />
+            </div>
+
+            {/* Controles */}
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+              <button
+                onClick={handleZoomOut}
+                className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30"
+                aria-label="Reduzir zoom"
+              >−</button>
+              <button
+                onClick={handleZoomIn}
+                className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30"
+                aria-label="Aumentar zoom"
+              >+</button>
+              <button
+                onClick={handleZoomReset}
+                className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30"
+                aria-label="Redefinir zoom"
+              >1×</button>
+              <button
+                onClick={() => setIsFullscreen(false)}
+                className="px-3 py-2 rounded-xl bg-black/40 hover:bg-black/60 text-white border border-white/30"
+                aria-label="Fechar"
+              >×</button>
+            </div>
           </div>
         </div>
       )}
