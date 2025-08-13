@@ -9,13 +9,14 @@ import { toast } from "sonner";
 export function useRealClientManagement() {
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isCreateMode, setIsCreateMode] = useState(false);
   const { user } = useAuth();
   const userId = user?.id;
 
   // Queries
   const defaultWhatsAppQuery = useDefaultWhatsAppInstance(userId || null);
-  const clientsQuery = useClientsQuery(userId || null);
+  const clientsQuery = useClientsQuery(userId || null, searchQuery);
 
   // Mutations
   const createClientMutation = useCreateClientMutation(userId || '');
@@ -167,6 +168,7 @@ export function useRealClientManagement() {
 
   return {
     clients,
+    setSearchQuery,
     selectedClient,
     isDetailsOpen,
     isCreateMode,
@@ -174,7 +176,7 @@ export function useRealClientManagement() {
     isLoadingMore: clientsQuery.isFetchingNextPage,
     hasMoreClients,
     loadMoreClients,
-    totalClientsCount: clients.length,
+    totalClientsCount: clientsQuery.data?.pages?.[0]?.totalCount || clients.length,
     setIsDetailsOpen: (open: boolean) => {
       setIsDetailsOpen(open);
       if (!open) {

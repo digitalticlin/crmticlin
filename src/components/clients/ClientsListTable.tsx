@@ -14,6 +14,7 @@ interface ClientsListTableProps {
   hasMoreClients?: boolean;
   onLoadMoreClients?: () => Promise<void>;
   totalClientsCount?: number;
+  onServerSearch?: (query: string) => void;
 }
 
 export const ClientsListTable = ({ 
@@ -25,7 +26,8 @@ export const ClientsListTable = ({
   isLoadingMore = false,
   hasMoreClients = false,
   onLoadMoreClients,
-  totalClientsCount = 0
+  totalClientsCount = 0,
+  onServerSearch
 }: ClientsListTableProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -120,7 +122,10 @@ export const ClientsListTable = ({
     <div className="space-y-6">
       <ClientsSearchBar
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={(q) => {
+          setSearchQuery(q);
+          if (onServerSearch) onServerSearch(q);
+        }}
         clients={clients}
         filteredClients={filteredClients}
         totalClientsCount={totalClientsCount}

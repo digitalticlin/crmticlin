@@ -9,6 +9,7 @@ import { Plus, RefreshCw } from "lucide-react";
 export default function Clients() {
   const {
     clients,
+    setSearchQuery,
     selectedClient,
     isDetailsOpen,
     isCreateMode,

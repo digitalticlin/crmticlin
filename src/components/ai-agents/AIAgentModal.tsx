@@ -82,23 +82,27 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   }, [isOpen, agent]); // Removido hasUnsavedChanges da dependência para evitar loops
 
   const resetPromptData = () => {
-    setPromptData({
-      agent_function: "",
-      agent_objective: "",
-      communication_style: "",
-      communication_style_examples: [],
-      company_info: "",
-      products_services: "",
-      products_services_examples: [],
-      rules_guidelines: "",
-      rules_guidelines_examples: [],
-      prohibitions: "",
-      prohibitions_examples: [],
-      client_objections: "",
-      client_objections_examples: [],
-      phrase_tips: "",
-      phrase_tips_examples: [],
-      flow: []
+    unstable_batchedUpdates(() => {
+      setPromptData({
+        agent_function: "",
+        agent_objective: "",
+        communication_style: "",
+        communication_style_examples: [],
+        company_info: "",
+        products_services: "",
+        products_services_examples: [],
+        rules_guidelines: "",
+        rules_guidelines_examples: [],
+        prohibitions: "",
+        prohibitions_examples: [],
+        client_objections: "",
+        client_objections_examples: [],
+        phrase_tips: "",
+        phrase_tips_examples: [],
+        flow: []
+      });
+      // Reset também não deve marcar como alteração não salva
+      setHasUnsavedChanges(false);
     });
   };
 
@@ -112,26 +116,30 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       
       if (existingPrompt) {
         console.log('📝 Mapeando dados do prompt encontrado...');
-        // Mapear dados diretamente da nova estrutura do banco
-        setPromptData({
-          agent_function: existingPrompt.agent_function || "",
-          agent_objective: existingPrompt.agent_objective || "",
-          communication_style: existingPrompt.communication_style || "",
-          communication_style_examples: existingPrompt.communication_style_examples || [],
-          company_info: existingPrompt.company_info || "",
-          products_services: existingPrompt.products_services || "",
-          products_services_examples: existingPrompt.products_services_examples || [],
-          rules_guidelines: existingPrompt.rules_guidelines || "",
-          rules_guidelines_examples: existingPrompt.rules_guidelines_examples || [],
-          prohibitions: existingPrompt.prohibitions || "",
-          prohibitions_examples: existingPrompt.prohibitions_examples || [],
-          client_objections: existingPrompt.client_objections || "",
-          client_objections_examples: existingPrompt.client_objections_examples || [],
-          phrase_tips: existingPrompt.phrase_tips || "",
-          phrase_tips_examples: existingPrompt.phrase_tips_examples || [],
-          flow: existingPrompt.flow || []
+        // Mapear dados diretamente da nova estrutura do banco usando batch update
+        unstable_batchedUpdates(() => {
+          setPromptData({
+            agent_function: existingPrompt.agent_function || "",
+            agent_objective: existingPrompt.agent_objective || "",
+            communication_style: existingPrompt.communication_style || "",
+            communication_style_examples: existingPrompt.communication_style_examples || [],
+            company_info: existingPrompt.company_info || "",
+            products_services: existingPrompt.products_services || "",
+            products_services_examples: existingPrompt.products_services_examples || [],
+            rules_guidelines: existingPrompt.rules_guidelines || "",
+            rules_guidelines_examples: existingPrompt.rules_guidelines_examples || [],
+            prohibitions: existingPrompt.prohibitions || "",
+            prohibitions_examples: existingPrompt.prohibitions_examples || [],
+            client_objections: existingPrompt.client_objections || "",
+            client_objections_examples: existingPrompt.client_objections_examples || [],
+            phrase_tips: existingPrompt.phrase_tips || "",
+            phrase_tips_examples: existingPrompt.phrase_tips_examples || [],
+            flow: existingPrompt.flow || []
+          });
+          // NÃO marcar como hasUnsavedChanges pois é carregamento inicial
+          setHasUnsavedChanges(false);
         });
-        console.log('✅ Dados do prompt carregados e mapeados com sucesso');
+        console.log('✅ Dados do prompt carregados e mapeados com sucesso - sem marcar como alteração');
       } else {
         console.log('⚠️ Nenhum prompt encontrado - usando dados vazios');
         resetPromptData();
@@ -151,11 +159,36 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     });
   };
 
-  const handlePromptDataChange = (field: keyof typeof promptData, value: any) => {
-    // Usar batch updates para estabilidade
+  const handlePromptDataChange = (
+    field: keyof typeof promptData, 
+    value: any, 
+    exampleField?: string, 
+    exampleValue?: any,
+    isInternalLoad: boolean = false
+  ) => {
+    // Usar batch updates para estabilidade, suportando atualização atômica de campos com exemplos
     unstable_batchedUpdates(() => {
-      setPromptData(prev => ({ ...prev, [field]: value }));
-      setHasUnsavedChanges(true);
+      if (exampleField && exampleValue !== undefined) {
+        // Atualizar ambos os campos atomicamente para evitar race conditions
+        console.log('🔄 Atualizando campo duplo:', { field, value, exampleField, exampleValue, isInternalLoad });
+        setPromptData(prev => ({ 
+          ...prev, 
+          [field]: value,
+          [exampleField]: exampleValue
+        }));
+      } else {
+        // Atualização de campo único
+        console.log('🔄 Atualizando campo único:', { field, value, isInternalLoad });
+        setPromptData(prev => ({ ...prev, [field]: value }));
+      }
+      
+      // Só marcar como não salvo se for uma mudança real do usuário, não carregamento interno
+      if (!isInternalLoad) {
+        console.log('💾 Marcando como alteração não salva (mudança do usuário)');
+        setHasUnsavedChanges(true);
+      } else {
+        console.log('📂 Carregamento interno - não marcar como alteração não salva');
+      }
     });
   };
 

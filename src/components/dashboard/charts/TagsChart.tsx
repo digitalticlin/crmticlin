@@ -1,5 +1,9 @@
 
 import ChartCard from "@/components/dashboard/ChartCard";
+import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import React, { useEffect, useState } from "react";
 import {
   PieChart,
   Pie,
@@ -9,16 +13,49 @@ import {
   Legend
 } from "recharts";
 
-// Mock data - será substituído por dados reais
-const tagsData = [
-  { name: "Interesse Alto", value: 35, color: "#d3d800" },
-  { name: "Orçamento Aprovado", value: 28, color: "#0088FE" },
-  { name: "Urgente", value: 22, color: "#00C49F" },
-  { name: "Aguardando Decisão", value: 18, color: "#FFBB28" },
-  { name: "Remarcar Contato", value: 15, color: "#FF8042" }
-];
-
 export default function TagsChart() {
+  const { config } = useDashboardConfig();
+  const { user } = useAuth();
+  const [data, setData] = useState<{ name: string; value: number; color: string }[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user?.id) { setData([]); return; }
+      // Buscar estágios ativos (não ganho/perdido)
+      const { data: stages } = await supabase
+        .from('kanban_stages')
+        .select('id, color')
+        .eq('is_won', false)
+        .eq('is_lost', false);
+      const activeStageIds = (stages || []).map(s => s.id);
+
+      if (activeStageIds.length === 0) { setData([]); return; }
+
+      // Buscar tags apenas para leads do usuário, em funis e estágios ativos
+      const { data: tagRows } = await supabase
+        .from('lead_tags')
+        .select(`
+          lead_id,
+          tags:tags(id, name, color, created_by_user_id),
+          leads:lead_id(kanban_stage_id, funnel_id, created_by_user_id)
+        `)
+        .eq('leads.created_by_user_id', user.id)
+        .not('leads.funnel_id', 'is', null)
+        .in('leads.kanban_stage_id', activeStageIds);
+
+      const count: Record<string, { name: string; value: number; color: string }> = {};
+      (tagRows || []).forEach((r: any) => {
+        const t = r.tags;
+        if (!t) return;
+        if (!count[t.id]) count[t.id] = { name: t.name, value: 0, color: t.color || '#d3d800' };
+        count[t.id].value += 1;
+      });
+
+      setData(Object.values(count));
+    };
+    load();
+  }, [config.period_filter, user?.id]);
+
   const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
@@ -45,11 +82,11 @@ export default function TagsChart() {
       title="Leads por Etiquetas" 
       description="Distribuição de leads por etiquetas no funil"
     >
-      <div className="h-64">
+      <div className="h-64 min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={tagsData}
+              data={data}
               cx="50%"
               cy="50%"
               labelLine={false}
@@ -58,8 +95,8 @@ export default function TagsChart() {
               fill="#8884d8"
               dataKey="value"
             >
-              {tagsData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color || '#d3d800'} />
               ))}
             </Pie>
             <Tooltip 

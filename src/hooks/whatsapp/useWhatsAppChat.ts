@@ -33,6 +33,7 @@ interface UseWhatsAppChatReturn {
   totalContactsAvailable: number;
   loadMoreContacts: () => Promise<void>;
   refreshContacts: () => void;
+  searchContacts: (query: string) => Promise<void>;
   messages: Message[];
   isLoadingMessages: boolean;
   isLoadingMoreMessages: boolean;
@@ -264,17 +265,95 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     console.log('[WhatsApp Chat] ✅ Contato selecionado:', contact?.name);
   }, [markAsRead, handleUpdateUnreadCount]);
 
-  // Auto-seleção de contato da URL (isolada)
+  // Auto-seleção de contato da URL (isolada) - com busca no banco se necessário
   useEffect(() => {
-    if (leadId && contacts.contacts.length > 0 && !selectedContact && !hasInitialized) {
-      const targetContact = contacts.contacts.find(contact => contact.id === leadId);
-      if (targetContact) {
-        console.log('[WhatsApp Chat] 🎯 Auto-selecionando contato da URL:', targetContact.name);
-        handleSelectContact(targetContact);
-      }
-      setHasInitialized(true);
+    if (leadId && !selectedContact && !hasInitialized && user?.id) {
+      const findAndSelectContact = async () => {
+        console.log('[WhatsApp Chat] 🎯 Procurando contato da URL:', leadId);
+        console.log('[WhatsApp Chat] 📊 Estado atual:', {
+          contactsLoaded: contacts.contacts.length,
+          isLoadingContacts: contacts.isLoading,
+          userId: user?.id
+        });
+        
+        // Primeiro, tentar encontrar nos contatos já carregados (se houver)
+        if (contacts.contacts.length > 0) {
+          const targetContact = contacts.contacts.find(contact => contact.id === leadId);
+          if (targetContact) {
+            console.log('[WhatsApp Chat] ✅ Contato encontrado nos carregados:', targetContact.name);
+            handleSelectContact(targetContact);
+            setHasInitialized(true);
+            return;
+          }
+        }
+        
+        // Se não encontrou nos carregados OU ainda não carregou contatos, buscar no banco
+        console.log('[WhatsApp Chat] 🔍 Contato não encontrado nos carregados, buscando diretamente no banco...');
+        try {
+          const { data: leadData, error } = await supabase
+            .from('leads')
+            .select(`
+              id, name, phone, email, address, company, document_id, notes, purchase_value, 
+              owner_id, last_message, last_message_time, unread_count, created_at, updated_at,
+              whatsapp_number_id, kanban_stage_id, created_by_user_id, profile_pic_url
+            `)
+            .eq('id', leadId)
+            .eq('created_by_user_id', user.id)
+            .maybeSingle();
+          
+          if (error) throw error;
+          
+          if (leadData) {
+            console.log('[WhatsApp Chat] ✅ Contato encontrado no banco:', leadData.name);
+            
+            // Converter para formato Contact
+            const contact = {
+              id: leadData.id,
+              name: leadData.name || null,
+              phone: leadData.phone || '',
+              email: leadData.email,
+              address: leadData.address,
+              company: leadData.company,
+              documentId: leadData.document_id,
+              notes: leadData.notes,
+              purchaseValue: leadData.purchase_value,
+              assignedUser: leadData.owner_id,
+              lastMessage: leadData.last_message,
+              lastMessageTime: leadData.last_message_time,
+              unreadCount: leadData.unread_count && leadData.unread_count > 0 ? leadData.unread_count : undefined,
+              leadId: leadData.id,
+              whatsapp_number_id: leadData.whatsapp_number_id || undefined,
+              stageId: leadData.kanban_stage_id || null,
+              createdAt: leadData.created_at,
+              tags: [], // Tags serão carregadas separadamente se necessário
+              instanceInfo: undefined,
+              avatar: leadData.profile_pic_url || undefined,
+              profilePicUrl: leadData.profile_pic_url || undefined
+            };
+            
+            // Adicionar aos contatos e selecionar
+            console.log('[WhatsApp Chat] 📥 Adicionando contato da URL aos contatos carregados');
+            contacts.addNewContact(contact);
+            handleSelectContact(contact);
+            
+            toast.success(`Chat aberto com ${contact.name}`, {
+              description: "Lead encontrado e carregado"
+            });
+          } else {
+            console.log('[WhatsApp Chat] ⚠️ Contato não encontrado no banco:', leadId);
+            toast.error('Lead não encontrado ou não pertence ao usuário');
+          }
+        } catch (error) {
+          console.error('[WhatsApp Chat] ❌ Erro ao buscar contato no banco:', error);
+          toast.error('Erro ao carregar lead');
+        }
+        
+        setHasInitialized(true);
+      };
+      
+      findAndSelectContact();
     }
-  }, [leadId, contacts.contacts, selectedContact, hasInitialized, handleSelectContact]);
+  }, [leadId, selectedContact, hasInitialized, user?.id, contacts.contacts.length, contacts.isLoading, handleSelectContact, contacts.addNewContact]);
 
   // Notificações de saúde (isoladas)
   useEffect(() => {
@@ -305,6 +384,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     totalContactsAvailable: contacts.totalContactsAvailable,
     loadMoreContacts: contacts.loadMoreContacts,
     refreshContacts: contacts.refreshContacts,
+    searchContacts: contacts.searchContacts,
     
     // Mensagens isoladas - COM SCROLL CORRIGIDO
     messages: messages.messages,

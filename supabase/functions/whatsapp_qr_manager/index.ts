@@ -8,8 +8,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+// ✅ CONFIGURAÇÃO VPS PADRONIZADA
+const VPS_CONFIG = {
+  baseUrl: Deno.env.get('VPS_BASE_URL') ?? 'http://31.97.163.57:3001',
+  authToken: Deno.env.get('VPS_API_TOKEN') ?? '',
+  timeout: Number(Deno.env.get('VPS_TIMEOUT_MS') ?? '60000')
+};
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -20,9 +24,62 @@ serve(async (req: Request) => {
     return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
   try {
+    console.log('[QR Manager] 🚀 Iniciando processamento - VERSÃO CORRIGIDA');
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    // ✅ AUTENTICAÇÃO OBRIGATÓRIA
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[QR Manager] ❌ Token de autorização ausente ou malformado');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Token de autorização obrigatório (Bearer token)'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ✅ CLIENTE SUPABASE COM RLS PARA VALIDAÇÃO
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader
+        }
+      }
+    });
+
+    // ✅ VALIDAÇÃO DO USUÁRIO ATUAL
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) {
+      console.error('[QR Manager] ❌ Usuário não autenticado:', authError?.message);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Usuário não autenticado'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ✅ VERIFICAÇÃO DE TOKEN VPS
+    if (!VPS_CONFIG.authToken) {
+      console.error('[QR Manager] ❌ VPS_API_TOKEN não configurado');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Configuração VPS incompleta - token não encontrado'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ✅ CLIENTE SERVICE ROLE PARA OPERAÇÕES PRIVILEGIADAS
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { instanceId } = await req.json();
     console.log(`🔄 [QR Manager] Solicitando QR Code para instância: ${instanceId}`);
 
@@ -36,35 +93,44 @@ serve(async (req: Request) => {
       });
     }
 
-    // Buscar instância no banco
+    // ✅ BUSCAR INSTÂNCIA VERIFICANDO PROPRIEDADE DO USUÁRIO
     const { data: instance, error: fetchError } = await supabase
       .from('whatsapp_instances')
       .select('*')
       .eq('id', instanceId)
+      .eq('created_by_user_id', user.id)
       .single();
 
     if (fetchError || !instance) {
-      console.error("❌ [QR Manager] Instância não encontrada:", fetchError);
+      console.error("❌ [QR Manager] Instância não encontrada para o usuário:", {
+        instanceId,
+        userId: user.id,
+        error: fetchError?.message
+      });
       return new Response(JSON.stringify({ 
         success: false, 
-        error: "Instância não encontrada" 
+        error: "Instância não encontrada ou não pertence ao usuário" 
       }), { 
-        headers: corsHeaders, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
         status: 404 
       });
     }
 
-    console.log(`🌐 [QR Manager] Solicitando QR Code para VPS: ${instance.instance_name}`);
+    console.log(`🌐 [QR Manager] Solicitando QR Code para VPS: ${instance.instance_name} (${instance.vps_instance_id})`);
 
-    // CORREÇÃO: Usar URL correta da nova VPS
-    const vpsUrl = "http://31.97.163.57:3001";
-    const vpsToken = Deno.env.get('VPS_API_TOKEN') || 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
-    const response = await fetch(`${vpsUrl}/instance/${instance.vps_instance_id}/qr`, {
+    // ✅ REQUISIÇÃO VPS PADRONIZADA
+    const vpsEndpoint = `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/qr`;
+    console.log(`🎯 [QR Manager] Endpoint VPS: ${vpsEndpoint}`);
+
+    const response = await fetch(vpsEndpoint, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${vpsToken}`,
-      }
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+        'x-api-token': VPS_CONFIG.authToken,
+        'User-Agent': 'Supabase-Edge-Function/1.0'
+      },
+      signal: AbortSignal.timeout(VPS_CONFIG.timeout)
     });
 
     const vpsResult = await response.json();

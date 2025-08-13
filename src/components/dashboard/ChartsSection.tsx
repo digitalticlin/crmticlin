@@ -1,5 +1,7 @@
 
 import ChartCard from "@/components/dashboard/ChartCard";
+import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
+import { useTemporalEvolution } from "@/hooks/dashboard/useTemporalEvolution";
 import {
   AreaChart,
   Area,
@@ -10,27 +12,19 @@ import {
   ResponsiveContainer
 } from "recharts";
 
-const areaData = [
-  { name: "Jan", leads: 400, converted: 240 },
-  { name: "Fev", leads: 300, converted: 139 },
-  { name: "Mar", leads: 200, converted: 980 },
-  { name: "Abr", leads: 278, converted: 390 },
-  { name: "Mai", leads: 189, converted: 480 },
-  { name: "Jun", leads: 239, converted: 380 },
-  { name: "Jul", leads: 349, converted: 430 },
-];
-
 export default function ChartsSection() {
+  const { config } = useDashboardConfig();
+  const { data: areaData = [] } = useTemporalEvolution(config.period_filter);
   return (
     <ChartCard 
       title="Visão Geral de Leads" 
       description="Leads recebidos vs. convertidos nos últimos 6 meses"
     >
-      <div className="h-80">
+      <div className="h-80 min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={areaData}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            margin={{ top: 10, right: 10, left: 0, bottom: 24 }}
           >
             <defs>
               <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">

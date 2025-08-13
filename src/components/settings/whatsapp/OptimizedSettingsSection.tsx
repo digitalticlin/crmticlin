@@ -78,7 +78,7 @@ export const OptimizedSettingsSection = () => {
   const hasInstances = instances && instances.length > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-8">
       {/* Caso 1: Nenhuma instância - Mostrar apenas o card de conexão centralizado */}
       {!hasInstances && (
         <div className="flex justify-center items-center min-h-[400px]">

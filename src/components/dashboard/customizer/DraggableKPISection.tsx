@@ -2,7 +2,7 @@
 import { DashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { Switch } from "@/components/ui/switch";
-import { GripVertical, TrendingUp, Users, UserPlus, MessageSquare } from "lucide-react";
+import { GripVertical, TrendingUp, Users, UserPlus } from "lucide-react";
 
 const kpiIcons = {
   novos_leads: UserPlus,
@@ -11,8 +11,7 @@ const kpiIcons = {
   taxa_perda: TrendingUp,
   valor_pipeline: TrendingUp,
   ticket_medio: TrendingUp,
-  tempo_resposta: MessageSquare
-};
+} as const;
 
 const kpiLabels = {
   novos_leads: "Novos Leads",
@@ -21,8 +20,9 @@ const kpiLabels = {
   taxa_perda: "Taxa de Perda",
   valor_pipeline: "Valor do Pipeline",
   ticket_medio: "Ticket Médio",
-  tempo_resposta: "Tempo de Resposta"
-};
+} as const;
+
+const allowedKpis = Object.keys(kpiLabels);
 
 interface DraggableKPISectionProps {
   config: DashboardConfig;
@@ -47,7 +47,7 @@ export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISection
             ref={provided.innerRef}
             className="space-y-3"
           >
-            {config.layout.kpi_order.map((kpiKey, index) => {
+            {config.layout.kpi_order.filter(k => allowedKpis.includes(k)).map((kpiKey, index) => {
               const IconComponent = kpiIcons[kpiKey as keyof typeof kpiIcons];
               const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
               

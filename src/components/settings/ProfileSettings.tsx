@@ -49,7 +49,7 @@ const ProfileSettings = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-8">
       <AccountInfoSection userRole={userRole} />
       
       <ProfileAvatarSection 

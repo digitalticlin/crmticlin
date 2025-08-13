@@ -1,5 +1,7 @@
 
 import ChartCard from "@/components/dashboard/ChartCard";
+import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
+import { usePerformanceByOwner } from "@/hooks/dashboard/usePerformanceByOwner";
 import {
   BarChart,
   Bar,
@@ -11,33 +13,28 @@ import {
   Legend
 } from "recharts";
 
-// Mock data - será substituído por dados reais
-const performanceData = [
-  { name: "João Silva", leads: 45, conversoes: 12, vendas: 25000 },
-  { name: "Maria Santos", leads: 38, conversoes: 15, vendas: 32000 },
-  { name: "Pedro Costa", leads: 52, conversoes: 8, vendas: 18000 },
-  { name: "Ana Oliveira", leads: 41, conversoes: 18, vendas: 38000 },
-  { name: "Carlos Lima", leads: 29, conversoes: 9, vendas: 21000 }
-];
-
 export default function PerformanceChart() {
+  const { config } = useDashboardConfig();
+  const { data, isLoading } = usePerformanceByOwner(config.period_filter);
+
   return (
     <ChartCard 
       title="Performance de Vendedores" 
-      description="Análise de performance individual por vendedor"
+      description="Leads ativos e vendas ganhas por responsável"
     >
-      <div className="h-80">
+      <div className="h-80 min-w-0">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={performanceData}
-            margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            data={data}
+            margin={{ top: 10, right: 10, left: 0, bottom: 60 }}
           >
             <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
             <XAxis 
               dataKey="name" 
               angle={-45}
               textAnchor="end"
-              height={60}
+              height={70}
+              tickMargin={8}
               fontSize={12}
             />
             <YAxis />
@@ -51,14 +48,14 @@ export default function PerformanceChart() {
             />
             <Legend />
             <Bar 
-              dataKey="leads" 
-              name="Leads" 
+              dataKey="activeLeads" 
+              name="Leads Ativos" 
               fill="#d3d800" 
               radius={[4, 4, 0, 0]} 
             />
             <Bar 
-              dataKey="conversoes" 
-              name="Conversões" 
+              dataKey="wonInPeriod" 
+              name="Vendas (ganhas no período)" 
               fill="#0088FE" 
               radius={[4, 4, 0, 0]} 
             />

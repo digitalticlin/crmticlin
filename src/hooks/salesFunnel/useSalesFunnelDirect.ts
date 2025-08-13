@@ -51,25 +51,32 @@ export function useSalesFunnelDirect() {
     queryKey: ['leads', selectedFunnel?.id],
     queryFn: async () => {
       if (!selectedFunnel?.id) return [];
-      
-      const { data, error } = await supabase
-        .from('leads')
-        .select(`
-          *,
-          lead_tags(
-            tag_id,
-            tags:tag_id(
-              id,
-              name,
-              color
+
+      // Carregar leads de forma paginada para evitar limite de 1000
+      const PAGE_SIZE = 1000;
+      let allLeads: any[] = [];
+      for (let offset = 0; ; offset += PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from('leads')
+          .select(`
+            *,
+            lead_tags(
+              tag_id,
+              tags:tag_id(
+                id,
+                name,
+                color
+              )
             )
-          )
-        `)
-        .eq('funnel_id', selectedFunnel.id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data || [];
+          `)
+          .eq('funnel_id', selectedFunnel.id)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + PAGE_SIZE - 1);
+        if (error) throw error;
+        allLeads = allLeads.concat(data || []);
+        if (!data || data.length < PAGE_SIZE) break;
+      }
+      return allLeads;
     },
     enabled: !!selectedFunnel?.id
   });

@@ -5,11 +5,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
 
-// Configuração VPS corrigida
+// ✅ CONFIGURAÇÃO VPS PADRONIZADA (igual às edges funcionais)
 const VPS_CONFIG = {
-  baseUrl: 'http://31.97.163.57:3001',
+  baseUrl: Deno.env.get('VPS_BASE_URL') ?? 'http://31.97.163.57:3001',
+  authToken: Deno.env.get('VPS_API_TOKEN') ?? '',
+  timeout: Number(Deno.env.get('VPS_TIMEOUT_MS') ?? '60000'),
   endpoints: {
-    createInstance: '/instance/create',  // CORREÇÃO: Endpoint correto conforme server.js
+    createInstance: '/instance/create',
     instanceInfo: '/instance/info',
     generateQR: '/instance/:instanceId/qr',
     deleteInstance: '/instance/logout'
@@ -29,36 +31,64 @@ Deno.serve(async (req) => {
   console.log(`🚀 [${executionId}] WhatsApp Instance Manager iniciado`);
 
   try {
+    console.log('[Instance Manager] 🚀 Iniciando processamento - VERSÃO CORRIGIDA');
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    // ✅ AUTENTICAÇÃO PADRONIZADA (igual às edges funcionais)
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Token de autorização necessário');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[Instance Manager] ❌ Token de autorização ausente ou malformado');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Token de autorização obrigatório (Bearer token)'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        global: {
-          headers: {
-            Authorization: authHeader
-          }
-        },
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
+    // ✅ CLIENTE SUPABASE COM RLS PARA VALIDAÇÃO
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader
         }
       }
-    );
+    });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error('Usuário não autenticado');
+    // ✅ VALIDAÇÃO DO USUÁRIO ATUAL
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) {
+      console.error('[Instance Manager] ❌ Usuário não autenticado:', authError?.message);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Usuário não autenticado'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
+
+    // ✅ CLIENTE SERVICE ROLE PARA OPERAÇÕES PRIVILEGIADAS
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { action, instanceName, instanceId } = await req.json();
     console.log(`[${executionId}] Processando ação: ${action} para usuário: ${user.email}`);
 
-    const vpsToken = Deno.env.get('VPS_API_TOKEN') || 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
+    // ✅ VERIFICAÇÃO DE TOKEN VPS
+    if (!VPS_CONFIG.authToken) {
+      console.error('[Instance Manager] ❌ VPS_API_TOKEN não configurado');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Configuração VPS incompleta - token não encontrado'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     switch (action) {
       case 'create_instance': {
@@ -138,10 +168,12 @@ Deno.serve(async (req) => {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${vpsToken}`
+              'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+              'x-api-token': VPS_CONFIG.authToken,
+              'User-Agent': 'Supabase-Edge-Function/1.0'
             },
             body: JSON.stringify(vpsPayload),
-            signal: AbortSignal.timeout(30000)  // 30s timeout
+            signal: AbortSignal.timeout(VPS_CONFIG.timeout)
           });
 
           if (!vpsResponse.ok) {
@@ -224,14 +256,21 @@ Deno.serve(async (req) => {
           throw new Error('instanceId é obrigatório');
         }
 
+        // ✅ VERIFICAR SE INSTÂNCIA PERTENCE AO USUÁRIO
         const { data: instance, error: instanceError } = await supabase
           .from('whatsapp_instances')
           .select('*')
           .eq('id', instanceId)
+          .eq('created_by_user_id', user.id)
           .single();
 
         if (instanceError || !instance) {
-          throw new Error('Instância não encontrada');
+          console.error(`[${executionId}] ❌ Instância não encontrada para o usuário:`, {
+            instanceId,
+            userId: user.id,
+            error: instanceError?.message
+          });
+          throw new Error('Instância não encontrada ou não pertence ao usuário');
         }
 
         return new Response(JSON.stringify({
@@ -253,7 +292,9 @@ Deno.serve(async (req) => {
           const healthResponse = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
             method: 'GET',
             headers: {
-              'Authorization': `Bearer ${vpsToken}`
+              'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+              'x-api-token': VPS_CONFIG.authToken,
+              'User-Agent': 'Supabase-Edge-Function/1.0'
             },
             signal: AbortSignal.timeout(10000)  // 10s timeout para health check
           });

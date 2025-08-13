@@ -17,6 +17,7 @@ interface WhatsAppContactsListProps {
   onRefreshContacts?: () => void;
   totalContactsAvailable?: number;
   onEditLead?: () => void;
+  onSearch?: (query: string) => Promise<void>;
 }
 
 export const WhatsAppContactsList = React.memo(({
@@ -29,21 +30,22 @@ export const WhatsAppContactsList = React.memo(({
   onLoadMoreContacts,
   onRefreshContacts,
   totalContactsAvailable = 0,
-  onEditLead
+  onEditLead,
+  onSearch
 }: WhatsAppContactsListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
 
-  // Filtrar contatos baseado na busca
+  // 🚀 CORREÇÃO: Não filtrar localmente - dados já vêm filtrados do servidor
   const filteredContacts = useMemo(() => {
-    if (!searchQuery.trim()) return contacts;
-    
-    const query = searchQuery.toLowerCase();
-    return contacts.filter(contact => 
-      contact.name?.toLowerCase().includes(query) ||
-      contact.phone.includes(query) ||
-      (contact.lastMessage && contact.lastMessage.toLowerCase().includes(query))
-    );
+    // Se há busca ativa, os contatos já vêm filtrados do servidor via onSearch
+    // Se não há busca, mostra todos os contatos carregados
+    console.log('[WhatsAppContactsList] 📊 Contatos recebidos:', {
+      total: contacts.length,
+      hasSearch: !!searchQuery.trim(),
+      searchQuery
+    });
+    return contacts;
   }, [contacts, searchQuery]);
 
   // Filtrar por tipo
@@ -92,7 +94,13 @@ export const WhatsAppContactsList = React.memo(({
             <Input
               placeholder="Buscar conversas..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                const q = e.target.value;
+                setSearchQuery(q);
+                if (onSearch) {
+                  onSearch(q);
+                }
+              }}
               className="pl-10 pr-10 bg-white/20 border-white/30 text-gray-800 placeholder:text-gray-600 h-9"
             />
             {searchQuery && (

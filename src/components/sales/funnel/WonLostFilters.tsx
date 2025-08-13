@@ -146,7 +146,12 @@ export const WonLostFilters = ({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Contador removido conforme solicitado */}
+      {/* Contador de resultados filtrados */}
+      {hasActiveFilters && (
+        <div className="text-sm text-gray-600 bg-white/20 backdrop-blur-lg border-white/30 rounded-2xl h-9 px-3 flex items-center">
+          <span className="font-medium">{resultsCount} leads</span>
+        </div>
+      )}
 
       {/* Botão Limpar Filtros */}
       {hasActiveFilters && (

@@ -19,16 +19,24 @@ export function useFunnelDashboard(funnelId: string) {
   const loadReport = async () => {
     setLoading(true);
 
-    // Consulta: conta leads por etapa para um funil específico
-    const { data, error } = await supabase
-      .from("leads")
-      .select("kanban_stage_id")
-      .eq("funnel_id", funnelId);
+    // Consulta paginada: conta leads por etapa para um funil específico (evita corte em 1000)
+    const PAGE_SIZE = 1000;
+    let all: { kanban_stage_id: string }[] = [];
+    for (let offset = 0; ; offset += PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("kanban_stage_id")
+        .eq("funnel_id", funnelId)
+        .range(offset, offset + PAGE_SIZE - 1);
+      if (error) break;
+      all = all.concat(data || []);
+      if (!data || data.length < PAGE_SIZE) break;
+    }
 
-    if (!error && data) {
+    if (all.length) {
       // Conta por etapa manualmente
       const countByStage: Record<string, number> = {};
-      data.forEach((row: { kanban_stage_id: string }) => {
+      all.forEach((row: { kanban_stage_id: string }) => {
         if (row.kanban_stage_id)
           countByStage[row.kanban_stage_id] = (countByStage[row.kanban_stage_id] || 0) + 1;
       });

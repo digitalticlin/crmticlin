@@ -36,15 +36,27 @@ export function useDashboardKPIs(periodFilter: string) {
       startDate.setDate(startDate.getDate() - days);
 
       try {
-        // Total de leads
-        const { data: allLeads, error: allLeadsError } = await supabase
+        // Estágios ativos (não ganho, não perdido)
+        const { data: activeStages, error: stagesError } = await supabase
+          .from('kanban_stages')
+          .select('id, is_won, is_lost')
+          .eq('is_won', false)
+          .eq('is_lost', false);
+
+        if (stagesError) throw stagesError;
+        const activeStageIds = (activeStages || []).map(s => s.id);
+
+        // Contagem total de leads (sem baixar todos)
+        const { count: totalLeadsCount, error: totalCountError } = await supabase
           .from('leads')
-          .select('id, created_at, purchase_value')
-          .eq('created_by_user_id', user.id);
+          .select('id', { count: 'exact', head: true })
+          .eq('created_by_user_id', user.id)
+          .not('funnel_id', 'is', null)
+          .in('kanban_stage_id', activeStageIds);
 
-        if (allLeadsError) throw allLeadsError;
+        if (totalCountError) throw totalCountError;
 
-        // Novos leads no período
+        // Novos leads no período (sem filtrar por estágio)
         const { data: newLeads, error: newLeadsError } = await supabase
           .from('leads')
           .select('id')
@@ -53,7 +65,7 @@ export function useDashboardKPIs(periodFilter: string) {
 
         if (newLeadsError) throw newLeadsError;
 
-        // Deals no período
+        // Deals no período (para conversão, perda e ticket médio)
         const { data: deals, error: dealsError } = await supabase
           .from('deals')
           .select('status, value, date')
@@ -62,7 +74,7 @@ export function useDashboardKPIs(periodFilter: string) {
 
         if (dealsError) throw dealsError;
 
-        const totalLeads = allLeads?.length || 0;
+        const totalLeads = totalLeadsCount || 0;
         const novosLeads = newLeads?.length || 0;
         const wonDeals = deals?.filter(d => d.status === 'won').length || 0;
         const lostDeals = deals?.filter(d => d.status === 'lost').length || 0;
@@ -71,7 +83,23 @@ export function useDashboardKPIs(periodFilter: string) {
         const taxaConversao = totalDeals > 0 ? Math.round((wonDeals / totalDeals) * 100) : 0;
         const taxaPerda = totalDeals > 0 ? Math.round((lostDeals / totalDeals) * 100) : 0;
 
-        const valorPipeline = allLeads?.reduce((sum, lead) => sum + (Number(lead.purchase_value) || 0), 0) || 0;
+        // Somatório de purchase_value de forma paginada para evitar limite de 1000 (somente ativos em funil)
+        let valorPipeline = 0;
+        const PAGE_SIZE = 1000;
+        for (let offset = 0; ; offset += PAGE_SIZE) {
+          const { data: pageData, error: pageError } = await supabase
+            .from('leads')
+            .select('purchase_value')
+            .eq('created_by_user_id', user.id)
+            .not('funnel_id', 'is', null)
+            .in('kanban_stage_id', activeStageIds)
+            .range(offset, offset + PAGE_SIZE - 1);
+
+          if (pageError) throw pageError;
+          const current = (pageData || []).reduce((sum, lead: any) => sum + (Number(lead.purchase_value) || 0), 0);
+          valorPipeline += current;
+          if (!pageData || pageData.length < PAGE_SIZE) break;
+        }
         const ticketMedio = wonDeals > 0 ? 
           (deals?.filter(d => d.status === 'won').reduce((sum, d) => sum + (Number(d.value) || 0), 0) || 0) / wonDeals : 0;
 

@@ -118,7 +118,7 @@ export default function TeamSettings() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-8">
       {/* 1º Card: Visão Geral da Equipe */}
       <div className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-2xl p-8 transition-all duration-300 hover:bg-white/50 animate-fade-in">
         <div className="flex items-center space-x-4 mb-6">

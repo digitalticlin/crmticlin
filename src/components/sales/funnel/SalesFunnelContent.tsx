@@ -82,6 +82,66 @@ export function SalesFunnelContent() {
     return Array.from(unique);
   }, [leads]);
 
+  // Função para filtrar leads baseado nos filtros ativos
+  const filterLeads = useCallback((leadsToFilter: KanbanLead[]) => {
+    return leadsToFilter.filter((lead) => {
+      // Filtro por termo de busca (nome, email, telefone, notas)
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const matchesSearch = 
+          lead.name?.toLowerCase().includes(searchLower) ||
+          lead.email?.toLowerCase().includes(searchLower) ||
+          lead.phone?.toLowerCase().includes(searchLower) ||
+          lead.notes?.toLowerCase().includes(searchLower);
+        
+        if (!matchesSearch) return false;
+      }
+
+      // Filtro por tags selecionadas
+      if (selectedTags.length > 0) {
+        const leadTags = lead.tags || [];
+        const hasSelectedTag = selectedTags.some(tagId => 
+          leadTags.some(tag => tag.id === tagId)
+        );
+        if (!hasSelectedTag) return false;
+      }
+
+      // Filtro por usuário responsável
+      if (selectedUser) {
+        if (lead.assignedUser !== selectedUser) return false;
+      }
+
+      return true;
+    });
+  }, [searchTerm, selectedTags, selectedUser]);
+
+  // Aplicar filtros às colunas do Kanban
+  const filteredColumns = useMemo(() => {
+    if (!columns || columns.length === 0) return [];
+    
+    // Se não há filtros ativos, retornar colunas originais
+    const hasActiveFilters = searchTerm || selectedTags.length > 0 || selectedUser;
+    if (!hasActiveFilters) return columns;
+
+    // Filtrar leads em cada coluna
+    return columns.map(column => ({
+      ...column,
+      leads: filterLeads(column.leads)
+    }));
+  }, [columns, filterLeads, searchTerm, selectedTags, selectedUser]);
+
+  // Contador de resultados filtrados
+  const filteredResultsCount = useMemo(() => {
+    return filteredColumns.reduce((total, column) => total + column.leads.length, 0);
+  }, [filteredColumns]);
+
+  // Handler para mudanças de colunas que preserva os dados originais
+  const handleColumnsChange = useCallback((newColumns: typeof columns) => {
+    // Sempre atualizar as colunas originais (sem filtro)
+    // Os filtros serão reaplicados automaticamente via useMemo
+    setColumns(newColumns);
+  }, [setColumns]);
+
   // Função para carregar todas as tags disponíveis
   const fetchAvailableTags = useCallback(async () => {
     try {
@@ -289,13 +349,13 @@ export function SalesFunnelContent() {
                 setSelectedTags([]);
                 setSelectedUser("");
               }}
-              resultsCount={0}
+              resultsCount={filteredResultsCount}
             />
             {/* Wrapper somente do board: permite scroll horizontal natural */}
             <div className="flex-1 min-h-0">
               <KanbanBoard
-                columns={columns}
-                onColumnsChange={setColumns}
+                columns={filteredColumns}
+                onColumnsChange={handleColumnsChange}
                 onOpenLeadDetail={openLeadDetail}
                 onOpenChat={handleOpenChatWithLead}
                 onMoveToWonLost={handleMoveToWonLost}
@@ -321,13 +381,13 @@ export function SalesFunnelContent() {
                 setSelectedTags([]);
                 setSelectedUser("");
               }}
-              resultsCount={0}
+              resultsCount={filteredResultsCount}
             />
             {/* Board Won/Lost (pode rolar verticalmente dentro das etapas) */}
             <div className="flex-1 min-h-0">
               <WonLostBoard
                 stages={stages}
-                leads={leads}
+                leads={filterLeads(leads)}
                 onOpenLeadDetail={openLeadDetail}
                 onReturnToFunnel={handleReturnToFunnel}
                 onOpenChat={handleOpenChatWithLead}

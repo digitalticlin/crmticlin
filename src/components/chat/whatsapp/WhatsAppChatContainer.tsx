@@ -13,6 +13,7 @@ export function WhatsAppChatContainer() {
     activeInstance,
     refreshMessages,
     refreshContacts,
+    searchContacts,
     contacts,
     isLoadingContacts,
     isLoadingMoreContacts,
@@ -72,6 +73,7 @@ export function WhatsAppChatContainer() {
       isSending={isSendingMessage}
       onRefreshMessages={refreshMessages}
       onRefreshContacts={refreshContacts}
+      onSearch={searchContacts}
       totalContactsAvailable={totalContactsAvailable}
     />
   );

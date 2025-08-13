@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ClientData } from "./types";
 
 const CLIENTS_PER_PAGE = 50;
+const SEARCH_LIMIT = 500; // Limite de segurança para buscas
 
 // Hook para buscar instância padrão do WhatsApp
 export const useDefaultWhatsAppInstance = (userId: string | null) => {
@@ -32,13 +33,14 @@ export const useDefaultWhatsAppInstance = (userId: string | null) => {
 };
 
 // Hook principal com paginação infinita
-export const useClientsQuery = (userId: string | null) => {
+export const useClientsQuery = (userId: string | null, searchQuery: string = "") => {
   return useInfiniteQuery({
-    queryKey: ["clients", userId],
+    queryKey: ["clients", userId, searchQuery],
     queryFn: async ({ pageParam = 0 }): Promise<{
       data: ClientData[];
       nextCursor: number | undefined;
       hasMore: boolean;
+      totalCount: number;
     }> => {
       if (!userId) return { data: [], nextCursor: undefined, hasMore: false };
       
@@ -49,12 +51,42 @@ export const useClientsQuery = (userId: string | null) => {
       });
       
       // Buscar leads do usuário com paginação
-      const { data: leadsData, error: leadsError, count } = await supabase
+      let query = supabase
         .from("leads")
         .select("*", { count: 'exact' })
         .eq("created_by_user_id", userId)
-        .order("created_at", { ascending: false })
-        .range(pageParam, pageParam + CLIENTS_PER_PAGE - 1);
+        .order("created_at", { ascending: false });
+
+      if (searchQuery && searchQuery.trim()) {
+        const q = searchQuery.trim();
+        const ilike = `%${q}%`;
+        query = query.or(
+          `name.ilike.${ilike},phone.ilike.${ilike},email.ilike.${ilike},company.ilike.${ilike}`
+        );
+      }
+
+      // 🚀 CORREÇÃO CRÍTICA: Em modo de busca, usar limite de segurança para performance
+      let leadsData, leadsError, count;
+      if (searchQuery && searchQuery.trim()) {
+        // Busca com limite de segurança - performance otimizada
+        console.log('[Clients Query] 🔍 Busca com limite de segurança (500 resultados)');
+        const result = await query.limit(SEARCH_LIMIT);
+        leadsData = result.data;
+        leadsError = result.error;
+        count = result.data?.length || 0;
+        
+        // Log se atingiu o limite
+        if (count === SEARCH_LIMIT) {
+          console.warn('[Clients Query] ⚠️ Busca atingiu limite de 500 resultados');
+        }
+      } else {
+        // Paginação normal quando não está pesquisando
+        console.log('[Clients Query] 📄 Carregamento paginado normal');
+        const result = await query.range(pageParam, pageParam + CLIENTS_PER_PAGE - 1);
+        leadsData = result.data;
+        leadsError = result.error;
+        count = result.count;
+      }
 
       if (leadsError) {
         console.error("Erro ao buscar clientes:", leadsError);
@@ -86,13 +118,15 @@ export const useClientsQuery = (userId: string | null) => {
         contacts: [], // Não temos tabela separada de contatos
       }));
 
-      const hasMore = (leadsData?.length || 0) === CLIENTS_PER_PAGE;
+      // 🚀 Em modo de busca, não há mais páginas (todos os resultados carregados)
+      const hasMore = searchQuery && searchQuery.trim() ? false : (leadsData?.length || 0) === CLIENTS_PER_PAGE;
       const nextCursor = hasMore ? pageParam + CLIENTS_PER_PAGE : undefined;
 
       return {
         data: clientsData,
         nextCursor,
-        hasMore
+        hasMore,
+        totalCount: count || 0
       };
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor,

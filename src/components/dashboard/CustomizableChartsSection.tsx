@@ -64,12 +64,8 @@ export default function CustomizableChartsSection() {
     );
   }
 
-  const getGridCols = (count: number) => {
-    if (count === 1) return "grid-cols-1 max-w-4xl mx-auto";
-    if (count === 2) return "grid-cols-1 lg:grid-cols-2";
-    if (count === 3) return "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3";
-    return "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4";
-  };
+  // Sempre 2 cards por linha (mobile: 1 por linha)
+  const getGridCols = (_count: number) => "grid-cols-1 lg:grid-cols-2";
 
   return (
     <div 

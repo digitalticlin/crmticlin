@@ -8,7 +8,7 @@ import PeriodFilter from "@/components/dashboard/PeriodFilter";
 import { BackgroundGradient } from "@/components/ui/BackgroundGradient";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/contexts/SidebarContext";
-import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
+import { useDashboardConfig, DashboardConfigProvider } from "@/hooks/dashboard/useDashboardConfig";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 
@@ -53,6 +53,7 @@ export default function Dashboard() {
             "main-content-scale p-4 md:p-6 space-y-6 md:space-y-8 min-h-full",
             isMobile && "pt-6"
           )}>
+            <DashboardConfigProvider>
             <DashboardHeader />
             
             <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-4 md:p-6 shadow-md">
@@ -80,6 +81,7 @@ export default function Dashboard() {
             <div key={`dashboard-charts-${forceUpdate}`}>
               <CustomizableChartsSection />
             </div>
+            </DashboardConfigProvider>
           </div>
         </div>
       </main>

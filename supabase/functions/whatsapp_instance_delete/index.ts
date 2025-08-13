@@ -7,12 +7,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-// CONFIGURAÇÃO VPS CORRIGIDA - PORTA 3001
-const VPS_SERVER_URL = 'http://31.97.163.57:3001';
-const VPS_AUTH_TOKEN = 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
+// ✅ CONFIGURAÇÃO VPS PADRONIZADA
+const VPS_CONFIG = {
+  baseUrl: Deno.env.get('VPS_BASE_URL') ?? 'http://31.97.163.57:3001',
+  authToken: Deno.env.get('VPS_API_TOKEN') ?? '',
+  timeout: Number(Deno.env.get('VPS_TIMEOUT_MS') ?? '60000')
+};
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -24,16 +24,67 @@ serve(async (req: Request) => {
   }
 
   const executionId = `delete_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-  console.log(`🗑️ [${executionId}] WHATSAPP INSTANCE DELETE - VPS 3001 CORRIGIDA`);
-
-  const supabase = createClient(supabaseUrl, supabaseKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
+  console.log(`🗑️ [${executionId}] WHATSAPP INSTANCE DELETE - VERSÃO CORRIGIDA`);
 
   try {
+    console.log('[Instance Delete] 🚀 Iniciando processamento - VERSÃO CORRIGIDA');
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    // ✅ AUTENTICAÇÃO OBRIGATÓRIA
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[Instance Delete] ❌ Token de autorização ausente ou malformado');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Token de autorização obrigatório (Bearer token)',
+        executionId
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ✅ CLIENTE SUPABASE COM RLS PARA VALIDAÇÃO
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader
+        }
+      }
+    });
+
+    // ✅ VALIDAÇÃO DO USUÁRIO ATUAL
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) {
+      console.error('[Instance Delete] ❌ Usuário não autenticado:', authError?.message);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Usuário não autenticado',
+        executionId
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ✅ VERIFICAÇÃO DE TOKEN VPS
+    if (!VPS_CONFIG.authToken) {
+      console.error('[Instance Delete] ❌ VPS_API_TOKEN não configurado');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Configuração VPS incompleta - token não encontrado',
+        executionId
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // ✅ CLIENTE SERVICE ROLE PARA OPERAÇÕES PRIVILEGIADAS
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { instanceId } = await req.json();
     console.log(`🗑️ [${executionId}] Deletando instância: ${instanceId}`);
 
@@ -48,22 +99,27 @@ serve(async (req: Request) => {
       });
     }
 
-    // 1. BUSCAR INSTÂNCIA NO BANCO
+    // ✅ BUSCAR INSTÂNCIA VERIFICANDO PROPRIEDADE DO USUÁRIO
     console.log(`🔍 [${executionId}] Buscando instância no banco...`);
     const { data: instance, error: fetchError } = await supabase
       .from('whatsapp_instances')
       .select('*')
       .eq('id', instanceId)
+      .eq('created_by_user_id', user.id)
       .single();
 
     if (fetchError || !instance) {
-      console.error(`❌ [${executionId}] Instância não encontrada:`, fetchError);
+      console.error(`❌ [${executionId}] Instância não encontrada para o usuário:`, {
+        instanceId,
+        userId: user.id,
+        error: fetchError?.message
+      });
       return new Response(JSON.stringify({ 
         success: false, 
-        error: "Instância não encontrada",
+        error: "Instância não encontrada ou não pertence ao usuário",
         executionId 
       }), { 
-        headers: corsHeaders, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
         status: 404 
       });
     }
@@ -81,23 +137,20 @@ serve(async (req: Request) => {
       console.log(`🌐 [${executionId}] Deletando da VPS: ${instance.vps_instance_id}`);
       
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-        // CORREÇÃO: Endpoint correto conforme server.js
-        const vpsEndpoint = `${VPS_SERVER_URL}/instance/${instance.vps_instance_id}`;
+        // ✅ ENDPOINT VPS PADRONIZADO
+        const vpsEndpoint = `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}`;
         console.log(`🎯 [${executionId}] Endpoint VPS: ${vpsEndpoint}`);
         
         const vpsResponse = await fetch(vpsEndpoint, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${VPS_AUTH_TOKEN}`
+            'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+            'x-api-token': VPS_CONFIG.authToken,
+            'User-Agent': 'Supabase-Edge-Function/1.0'
           },
-          signal: controller.signal
+          signal: AbortSignal.timeout(VPS_CONFIG.timeout)
         });
-
-        clearTimeout(timeoutId);
 
         if (vpsResponse.ok) {
           const vpsData = await vpsResponse.json();
@@ -116,7 +169,7 @@ serve(async (req: Request) => {
         console.error(`❌ [${executionId}] VPS delete error:`, {
           message: error.message,
           name: error.name,
-          endpoint: `${VPS_SERVER_URL}/instance/${instance.vps_instance_id}`
+          endpoint: `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}`
         });
         // Continuar mesmo se VPS falhar - não é crítico
       }

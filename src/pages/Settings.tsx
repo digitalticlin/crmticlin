@@ -45,16 +45,16 @@ export default function Settings() {
             </TabsList>
           </div>
 
-          {/* Conteúdo das abas */}
-          <TabsContent value="profile">
+          {/* Conteúdo das abas com scroll */}
+          <TabsContent value="profile" className="h-[calc(100vh-16rem)] overflow-y-auto custom-scrollbar">
             <ProfileSettings />
           </TabsContent>
 
-          <TabsContent value="whatsapp" className="space-y-6">
+          <TabsContent value="whatsapp" className="h-[calc(100vh-16rem)] overflow-y-auto custom-scrollbar space-y-6">
             <OptimizedSettingsSection />
           </TabsContent>
 
-          <TabsContent value="team" className="space-y-6">
+          <TabsContent value="team" className="h-[calc(100vh-16rem)] overflow-y-auto custom-scrollbar space-y-6">
             <TeamSettings />
           </TabsContent>
         </Tabs>

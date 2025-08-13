@@ -29,6 +29,7 @@ interface WhatsAppChatLayoutProps {
   onRefreshMessages?: () => void;
   onRefreshContacts?: () => void;
   totalContactsAvailable?: number;
+  onSearchContacts?: (query: string) => Promise<void>;
 }
 
 export const WhatsAppChatLayout = ({
@@ -48,7 +49,8 @@ export const WhatsAppChatLayout = ({
   isSending,
   onRefreshMessages,
   onRefreshContacts,
-  totalContactsAvailable = 0
+  totalContactsAvailable = 0,
+  onSearchContacts
 }: WhatsAppChatLayoutProps) => {
   const [isDetailsSidebarOpen, setIsDetailsSidebarOpen] = useState(false);
 
@@ -129,6 +131,7 @@ export const WhatsAppChatLayout = ({
                 onLoadMoreContacts={onLoadMoreContacts}
                 onRefreshContacts={onRefreshContacts}
                 totalContactsAvailable={totalContactsAvailable}
+                onSearch={onSearchContacts}
                 onEditLead={handleEditLead}
               />
             </div>
@@ -178,6 +181,7 @@ export const WhatsAppChatLayout = ({
                   onLoadMoreContacts={onLoadMoreContacts}
                   onRefreshContacts={onRefreshContacts}
                   totalContactsAvailable={totalContactsAvailable}
+                  onSearch={onSearchContacts}
                   onEditLead={handleEditLead}
                 />
               </div>

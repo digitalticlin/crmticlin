@@ -200,19 +200,21 @@ export const EnhancedPromptConfiguration = ({
   const handleFieldSave = async (fieldKey: string, value: any) => {
     console.log('💾 EnhancedPrompt - handleFieldSave chamado:', { fieldKey, value });
     
-    // Para campos com exemplos, salvar separadamente no estado local
-    if (typeof value === 'object' && value.description !== undefined && value.examples !== undefined) {
-      onPromptDataChange(fieldKey, value.description);
-      onPromptDataChange(`${fieldKey}_examples`, value.examples);
-    } else {
-      onPromptDataChange(fieldKey, value);
-    }
-    
-    console.log('📝 Estado local atualizado, salvando no banco...');
-    
-    // Aguardar um pouco para o estado atualizar e então salvar no banco
     try {
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Para campos com exemplos, atualizar ambos os campos de uma vez usando batch updates
+      if (typeof value === 'object' && value.description !== undefined && value.examples !== undefined) {
+        console.log('📝 Campo com exemplos detectado - atualizando description e examples juntos');
+        
+        // Usar uma única função que atualiza ambos os campos atomicamente
+        onPromptDataChange(fieldKey, value.description, `${fieldKey}_examples`, value.examples);
+      } else {
+        console.log('📝 Campo simples detectado - atualizando valor único');
+        onPromptDataChange(fieldKey, value);
+      }
+      
+      console.log('📝 Estado local atualizado, salvando no banco imediatamente...');
+      
+      // Salvar imediatamente após atualizar o estado - sem timeout
       await onSave();
       console.log('✅ EnhancedPrompt - Dados persistidos no banco com sucesso');
     } catch (error) {
@@ -224,26 +226,26 @@ export const EnhancedPromptConfiguration = ({
   const handleStepSave = async (step: FlowStepEnhanced) => {
     console.log('📋 EnhancedPrompt - handleStepSave chamado:', { step, editingStep });
     
-    const newFlow = [...promptData.flow];
-    
-    if (editingStep && editingStep.step) {
-      // Editando passo existente
-      newFlow[editingStep.index] = step;
-      console.log('✏️ Editando passo existente no índice:', editingStep.index);
-    } else {
-      // Adicionando novo passo
-      newFlow.push(step);
-      console.log('➕ Adicionando novo passo');
-    }
-    
-    onPromptDataChange('flow', newFlow);
-    setEditingStep(null);
-    
-    console.log('📝 Fluxo atualizado, salvando no banco...');
-    
-    // Salvar no banco após atualizar o estado local
     try {
-      await new Promise(resolve => setTimeout(resolve, 200));
+      const newFlow = [...promptData.flow];
+      
+      if (editingStep && editingStep.step) {
+        // Editando passo existente
+        newFlow[editingStep.index] = step;
+        console.log('✏️ Editando passo existente no índice:', editingStep.index);
+      } else {
+        // Adicionando novo passo
+        newFlow.push(step);
+        console.log('➕ Adicionando novo passo');
+      }
+      
+      // Atualizar estado e salvar imediatamente
+      onPromptDataChange('flow', newFlow);
+      setEditingStep(null);
+      
+      console.log('📝 Fluxo atualizado, salvando no banco imediatamente...');
+      
+      // Salvar imediatamente - sem timeout desnecessário
       await onSave();
       console.log('✅ EnhancedPrompt - Fluxo persistido no banco com sucesso');
     } catch (error) {
@@ -256,12 +258,13 @@ export const EnhancedPromptConfiguration = ({
     if (confirm('Tem certeza que deseja excluir este passo?')) {
       console.log('🗑️ handleStepDelete chamado para índice:', index);
       
-      const newFlow = promptData.flow.filter((_, i) => i !== index);
-      onPromptDataChange('flow', newFlow);
-      
-      // Salvar no banco após remoção
       try {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        const newFlow = promptData.flow.filter((_, i) => i !== index);
+        onPromptDataChange('flow', newFlow);
+        
+        console.log('📝 Passo removido, salvando no banco imediatamente...');
+        
+        // Salvar imediatamente após remoção - sem timeout
         await onSave();
         console.log('✅ Passo removido e salvo no banco com sucesso');
       } catch (error) {

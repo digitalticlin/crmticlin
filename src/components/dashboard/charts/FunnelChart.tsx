@@ -76,7 +76,7 @@ export default function FunnelChart({ className }: FunnelChartProps) {
       title="Funil de Conversão" 
       description={`Análise do funil de vendas - ${selectedFunnel?.name || 'Funil Principal'}`}
     >
-      <div className="h-96">
+      <div className="h-96 min-w-0">
         <div className="space-y-2">
           {funnelData.map((stage, index) => {
             const percentage = index === 0 ? 100 : Math.round((stage.value / totalLeads) * 100);

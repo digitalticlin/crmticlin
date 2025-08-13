@@ -16,8 +16,7 @@ const chartLabels = {
   funil_conversao: "Funil de Conversão",
   performance_vendedores: "Performance dos Vendedores",
   evolucao_temporal: "Evolução Temporal",
-  leads_etiquetas: "Leads por Etiquetas",
-  distribuicao_fonte: "Distribuição por Fonte"
+  leads_etiquetas: "Leads por Etiquetas"
 };
 
 interface DraggableChartsSectionProps {
@@ -43,7 +42,7 @@ export function DraggableChartsSection({ config, onChartToggle }: DraggableChart
             ref={provided.innerRef}
             className="space-y-3"
           >
-            {config.layout.chart_order.map((chartKey, index) => {
+            {config.layout.chart_order.filter(k => Object.keys(chartLabels).includes(k)).map((chartKey, index) => {
               const IconComponent = chartIcons[chartKey as keyof typeof chartIcons];
               const isEnabled = config.charts[chartKey as keyof typeof config.charts];
               

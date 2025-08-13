@@ -30,7 +30,7 @@ interface UseWhatsAppContactsReturn {
   updateUnreadCount: (contactId: string, increment?: boolean) => void;
   addNewContact: (newContactData: Partial<Contact>) => void;
   getContactById: (contactId: string) => Contact | null;
-  searchContacts: (query: string) => Contact[];
+  searchContacts: (query: string) => Promise<void>;
 }
 
 const CONTACTS_LIMIT = 50;
@@ -60,6 +60,8 @@ export const useWhatsAppContacts = ({
   const lastActiveInstanceRef = useRef<string | undefined>(activeInstanceId || undefined);
   const isLoadingRef = useRef(false);
   const currentOffsetRef = useRef(0);
+  const isSearchModeRef = useRef(false);
+  const searchQueryRef = useRef("");
 
   // Chave de cache isolada
   const cacheKey = useMemo(() => {
@@ -121,7 +123,7 @@ export const useWhatsAppContacts = ({
           kanban_stage_id,
           created_by_user_id,
           profile_pic_url
-        `)
+        `, { count: 'exact' })
         .eq('created_by_user_id', user.id)
         .order('last_message_time', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
@@ -131,8 +133,32 @@ export const useWhatsAppContacts = ({
         query = query.eq('whatsapp_number_id', activeInstanceId);
       }
 
-      const { data: leadsData, error, count } = await query
-        .range(offset, offset + CONTACTS_LIMIT - 1);
+      // Aplicar busca no servidor quando em modo de busca
+      if (isSearchModeRef.current && searchQueryRef.current.trim()) {
+        const q = searchQueryRef.current.trim();
+        const ilike = `%${q}%`;
+        query = query.or(
+          `name.ilike.${ilike},phone.ilike.${ilike},email.ilike.${ilike},notes.ilike.${ilike}`
+        );
+      }
+
+      // 🚀 CORREÇÃO CRÍTICA: Em modo de busca, não aplicar paginação para encontrar todos os resultados
+      let leadsData, error, count;
+      if (isSearchModeRef.current && searchQueryRef.current.trim()) {
+        // Busca SEM paginação - retorna todos os resultados que fazem match
+        console.log('[WhatsApp Contacts] 🔍 Busca sem paginação - pesquisando em todos os leads');
+        const result = await query;
+        leadsData = result.data;
+        error = result.error;
+        count = result.data?.length || 0;
+      } else {
+        // Paginação normal quando não está pesquisando
+        console.log('[WhatsApp Contacts] 📄 Carregamento paginado normal');
+        const result = await query.range(offset, offset + CONTACTS_LIMIT - 1);
+        leadsData = result.data;
+        error = result.error;
+        count = result.count;
+      }
 
       if (error) throw error;
 
@@ -192,22 +218,34 @@ export const useWhatsAppContacts = ({
       }));
 
       if (offset === 0) {
+        // Para primeira página (seja busca ou carregamento normal), substitui todos os contatos
+        console.log('[WhatsApp Contacts] 🔄 Substituindo todos os contatos (primeira página)');
         setContacts(fetchedContacts);
         
         // Atualizar cache isolado
         cache.current.set(cacheKey, {
           data: fetchedContacts,
           timestamp: Date.now(),
-          hasMore: fetchedContacts.length === CONTACTS_LIMIT,
+          hasMore: !isSearchModeRef.current && fetchedContacts.length === CONTACTS_LIMIT,
           total: count || 0
         });
       } else {
+        // Para páginas subsequentes (apenas quando não pesquisando)
+        console.log('[WhatsApp Contacts] ➕ Adicionando contatos à lista existente (paginação)');
         setContacts(prev => [...prev, ...fetchedContacts]);
       }
 
-      setHasMoreContacts(fetchedContacts.length === CONTACTS_LIMIT);
+      // 🚀 Em modo de busca, não há mais páginas (todos os resultados carregados)
+      const hasMoreResults = isSearchModeRef.current ? false : fetchedContacts.length === CONTACTS_LIMIT;
+      setHasMoreContacts(hasMoreResults);
       setTotalContactsAvailable(count || 0);
-      currentOffsetRef.current = offset + fetchedContacts.length;
+      
+      // Atualizar offset apenas se não estiver pesquisando
+      if (!isSearchModeRef.current) {
+        currentOffsetRef.current = offset + fetchedContacts.length;
+      } else {
+        currentOffsetRef.current = 0; // Reset offset para busca
+      }
 
       console.log('[WhatsApp Contacts] ✅ Contatos carregados isoladamente:', {
         count: fetchedContacts.length,
@@ -239,8 +277,12 @@ export const useWhatsAppContacts = ({
 
   // Carregar mais contatos
   const loadMoreContacts = useCallback(async () => {
-    if (hasMoreContacts && !isLoadingRef.current) {
+    // 🚀 Não carregar mais páginas se estiver em modo de busca (todos os resultados já carregados)
+    if (hasMoreContacts && !isLoadingRef.current && !isSearchModeRef.current) {
+      console.log('[WhatsApp Contacts] 📄 Carregando próxima página...');
       await fetchContacts(currentOffsetRef.current);
+    } else if (isSearchModeRef.current) {
+      console.log('[WhatsApp Contacts] 🔍 Em modo de busca - todos os resultados já carregados');
     }
   }, [hasMoreContacts, fetchContacts]);
 
@@ -249,6 +291,7 @@ export const useWhatsAppContacts = ({
     // Invalidar cache
     cache.current.delete(cacheKey);
     currentOffsetRef.current = 0;
+    // Não alterar o modo de busca aqui; apenas recarregar conforme o estado atual
     fetchContacts(0, true);
   }, [fetchContacts, cacheKey]);
 
@@ -323,8 +366,10 @@ export const useWhatsAppContacts = ({
 
   // Adicionar novo contato
   const addNewContact = useCallback((newContactData: Partial<Contact>) => {
+    console.log('[WhatsApp Contacts] ➕ addNewContact chamado:', newContactData);
+    
     if (!newContactData.id && !newContactData.leadId) {
-      console.error('[WhatsApp Contacts] ❌ Novo contato sem ID válido');
+      console.error('[WhatsApp Contacts] ❌ Novo contato sem ID válido:', newContactData);
       return;
     }
 
@@ -333,24 +378,48 @@ export const useWhatsAppContacts = ({
       name: newContactData.name || 'Novo Contato',
       phone: newContactData.phone || '',
       email: newContactData.email,
+      address: newContactData.address,
+      company: newContactData.company,
+      documentId: newContactData.documentId,
+      notes: newContactData.notes,
+      purchaseValue: newContactData.purchaseValue,
+      assignedUser: newContactData.assignedUser,
       lastMessage: newContactData.lastMessage,
       lastMessageTime: newContactData.lastMessageTime || new Date().toISOString(),
-      unreadCount: newContactData.unreadCount || 1,
+      unreadCount: newContactData.unreadCount, // Não forçar 1 se não tiver
       leadId: newContactData.leadId || newContactData.id,
+      whatsapp_number_id: newContactData.whatsapp_number_id,
       stageId: newContactData.stageId || null,
       createdAt: newContactData.createdAt || new Date().toISOString(),
       tags: newContactData.tags || [],
-      instanceInfo: newContactData.instanceInfo
+      instanceInfo: newContactData.instanceInfo,
+      avatar: newContactData.avatar,
+      profilePicUrl: newContactData.profilePicUrl
     };
+    
+    console.log('[WhatsApp Contacts] 📋 Contato formatado para adicionar:', {
+      id: newContact.id,
+      name: newContact.name,
+      phone: newContact.phone,
+      leadId: newContact.leadId
+    });
 
     setContacts(prevContacts => {
+      console.log('[WhatsApp Contacts] 🔍 Verificando se contato já existe...');
+      console.log('[WhatsApp Contacts] 📊 Contatos atuais:', prevContacts.length);
+      
       // Verificar se contato já existe
       const existingIndex = prevContacts.findIndex(c => 
         c.id === newContact.id || c.leadId === newContact.leadId
       );
       
       if (existingIndex !== -1) {
-        console.log('[WhatsApp Contacts] ⚠️ Contato já existe, movendo para topo');
+        console.log('[WhatsApp Contacts] ⚠️ Contato já existe no índice:', existingIndex);
+        console.log('[WhatsApp Contacts] 📋 Contato existente:', {
+          id: prevContacts[existingIndex].id,
+          name: prevContacts[existingIndex].name,
+          leadId: prevContacts[existingIndex].leadId
+        });
         moveContactToTop(newContact.id, {
           text: newContact.lastMessage || '',
           timestamp: newContact.lastMessageTime,
@@ -359,8 +428,10 @@ export const useWhatsAppContacts = ({
         return prevContacts;
       }
       
-      console.log('[WhatsApp Contacts] ➕ Adicionando novo contato (isolado):', newContact.name);
-      return [newContact, ...prevContacts];
+      console.log('[WhatsApp Contacts] ➕ Adicionando novo contato ao topo:', newContact.name);
+      const newContacts = [newContact, ...prevContacts];
+      console.log('[WhatsApp Contacts] 📊 Total após adição:', newContacts.length);
+      return newContacts;
     });
   }, [moveContactToTop]);
 
@@ -370,16 +441,42 @@ export const useWhatsAppContacts = ({
   }, [contacts]);
 
   // Buscar contatos por query
-  const searchContacts = useCallback((query: string): Contact[] => {
-    if (!query.trim()) return contacts;
+  const searchContacts = useCallback(async (query: string) => {
+    const hasQuery = !!query.trim();
     
-    const lowerQuery = query.toLowerCase();
-    return contacts.filter(contact => 
-      contact.name?.toLowerCase().includes(lowerQuery) ||
-      contact.phone.includes(lowerQuery) ||
-      (contact.lastMessage && contact.lastMessage.toLowerCase().includes(lowerQuery))
-    );
-  }, [contacts]);
+    console.log('[WhatsApp Contacts] 🔍 searchContacts chamado:', {
+      query,
+      hasQuery,
+      previousMode: isSearchModeRef.current,
+      newMode: hasQuery
+    });
+    
+    // Detectar se estamos limpando o filtro (saindo do modo de busca)
+    const wasSearching = isSearchModeRef.current;
+    const isNowSearching = hasQuery;
+    
+    // Atualizar refs de busca
+    isSearchModeRef.current = isNowSearching;
+    searchQueryRef.current = query || "";
+    
+    // Se estávamos pesquisando e agora não estamos mais, limpar cache para carregar dados originais
+    if (wasSearching && !isNowSearching) {
+      console.log('[WhatsApp Contacts] 🔄 Saindo do modo de busca - limpando cache e resetando paginação');
+      cache.current.delete(cacheKey);
+      currentOffsetRef.current = 0;
+    } else if (!wasSearching && isNowSearching) {
+      console.log('[WhatsApp Contacts] 🔍 Entrando no modo de busca - invalidando cache');
+      cache.current.delete(cacheKey);
+      currentOffsetRef.current = 0;
+    } else if (wasSearching && isNowSearching) {
+      console.log('[WhatsApp Contacts] 🔄 Alterando termo de busca');
+      cache.current.delete(cacheKey);
+      currentOffsetRef.current = 0;
+    }
+    
+    // Sempre recarregar do servidor quando há mudança na busca
+    await fetchContacts(0, true);
+  }, [fetchContacts, cacheKey]);
 
   // Effect para carregar contatos quando instância ativa muda
   useEffect(() => {

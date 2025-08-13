@@ -104,9 +104,7 @@ export default function ResponsiveSidebar() {
       icon: Settings,
       label: "Configurações",
       href: "/settings",
-      comingSoon: true,
-      badgeIcon: Wrench,
-      disabledReason: 'Ajustes internos em andamento. Por favor, tente mais tarde.',
+      comingSoon: false,
       requiredPermission: 'canAccessSettings' // Apenas gestores e admins
     }
   ];

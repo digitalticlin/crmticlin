@@ -15,6 +15,7 @@ interface RealClientsLayoutProps {
   onSelectClient: (client: ClientData) => void;
   onDeleteClient: (clientId: string) => void;
   onLoadMoreClients?: () => Promise<void>;
+  onSearchChange?: (query: string) => void;
   onUpdateNotes?: (notes: string) => void;
   onUpdatePurchaseValue?: (value: number | undefined) => void;
   onUpdateBasicInfo?: (data: { name: string; email: string; company: string }) => void;
@@ -42,6 +43,7 @@ export function RealClientsLayout({
   onSelectClient,
   onDeleteClient,
   onLoadMoreClients,
+  onSearchChange,
   onUpdateNotes,
   onUpdatePurchaseValue,
   onUpdateBasicInfo,
@@ -62,6 +64,7 @@ export function RealClientsLayout({
         hasMoreClients={hasMoreClients}
         onLoadMoreClients={onLoadMoreClients}
         totalClientsCount={totalClientsCount}
+        onServerSearch={onSearchChange}
       />
       
       <RealClientDetails
