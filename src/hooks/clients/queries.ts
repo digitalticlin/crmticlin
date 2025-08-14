@@ -1,3 +1,4 @@
+
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientData } from "./types";
@@ -29,53 +30,22 @@ export const useDefaultWhatsAppInstance = (userId: string | null) => {
   });
 };
 
+// Temporarily disable clients queries since the table doesn't exist
 export const useClientsQuery = (userId: string | null, searchQuery: string = '') => {
   return useInfiniteQuery({
     queryKey: ['clients', userId, searchQuery],
     queryFn: async ({ pageParam }) => {
-      if (!userId) {
-        return {
-          data: [],
-          nextCursor: undefined,
-          hasMore: false,
-          totalCount: 0
-        };
-      }
-
-      const limit = 20;
-      const offset = pageParam || 0;
-
-      let query = supabase
-        .from('clients')
-        .select('*', { count: 'exact' })
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
-
-      if (searchQuery.trim()) {
-        query = query.or(`name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%,company.ilike.%${searchQuery}%`);
-      }
-
-      const { data, error, count } = await query;
-
-      if (error) {
-        console.error('[Clients Query] ❌ Erro:', error);
-        throw error;
-      }
-
-      const hasMore = (data?.length || 0) === limit;
-      const nextCursor = hasMore ? offset + limit : undefined;
-
+      // Return empty data since clients table doesn't exist
       return {
-        data: data || [],
-        nextCursor,
-        hasMore,
-        totalCount: count || 0
+        data: [],
+        nextCursor: undefined,
+        hasMore: false,
+        totalCount: 0
       };
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    enabled: !!userId,
+    enabled: false, // Disable until clients table is created
     staleTime: 30000,
   });
 };
@@ -84,24 +54,10 @@ export const useClientQuery = (clientId: string | null) => {
   return useQuery({
     queryKey: ['client', clientId],
     queryFn: async () => {
-      if (!clientId) {
-        return null;
-      }
-
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('id', clientId)
-        .single();
-
-      if (error) {
-        console.error('[Client Query] ❌ Erro:', error);
-        throw error;
-      }
-
-      return data;
+      // Return null since clients table doesn't exist
+      return null;
     },
-    enabled: !!clientId,
+    enabled: false, // Disable until clients table is created
     staleTime: 30000,
   });
 };

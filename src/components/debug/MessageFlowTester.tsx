@@ -1,15 +1,14 @@
+
 import React, { useState } from 'react';
 import { useWhatsAppInstances } from '@/hooks/useWhatsAppInstances';
 import { useWhatsAppContacts } from '@/hooks/whatsapp/useWhatsAppContacts';
 
 export function MessageFlowTester() {
   const [selectedInstance, setSelectedInstance] = useState<string>('');
-  const { data: instances } = useWhatsAppInstances();
+  const { instances } = useWhatsAppInstances();
   
-  // Fix the hook call by passing proper parameters
-  const { data: contacts } = useWhatsAppContacts({
-    instanceId: selectedInstance || undefined,
-    searchQuery: '',
+  // Fix the hook call by using the correct return type
+  const { contacts } = useWhatsAppContacts({
     enabled: !!selectedInstance
   });
 

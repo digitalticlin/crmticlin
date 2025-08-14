@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,12 +14,23 @@ export interface AIAgentPrompt {
   created_by_user_id?: string;
   created_at?: string;
   updated_at?: string;
-  agent_name: string;
-  agent_role: string;
+  agent_id: string;
   agent_function: string;
+  agent_objective: string;
   communication_style: string;
   communication_style_examples: PQExample[];
-  additional_instructions: string;
+  company_info: string;
+  products_services: string;
+  products_services_examples: PQExample[];
+  rules_guidelines: string;
+  rules_guidelines_examples: PQExample[];
+  prohibitions: string;
+  prohibitions_examples: PQExample[];
+  client_objections: string;
+  client_objections_examples: PQExample[];
+  phrase_tips: string;
+  phrase_tips_examples: PQExample[];
+  flow: any[];
 }
 
 export const useAIAgentPrompts = () => {
@@ -54,7 +66,23 @@ export const useAIAgentPrompts = () => {
         ...prompt,
         communication_style_examples: Array.isArray(prompt.communication_style_examples) 
           ? prompt.communication_style_examples as PQExample[]
-          : []
+          : [],
+        products_services_examples: Array.isArray(prompt.products_services_examples) 
+          ? prompt.products_services_examples as PQExample[]
+          : [],
+        rules_guidelines_examples: Array.isArray(prompt.rules_guidelines_examples) 
+          ? prompt.rules_guidelines_examples as PQExample[]
+          : [],
+        prohibitions_examples: Array.isArray(prompt.prohibitions_examples) 
+          ? prompt.prohibitions_examples as PQExample[]
+          : [],
+        client_objections_examples: Array.isArray(prompt.client_objections_examples) 
+          ? prompt.client_objections_examples as PQExample[]
+          : [],
+        phrase_tips_examples: Array.isArray(prompt.phrase_tips_examples) 
+          ? prompt.phrase_tips_examples as PQExample[]
+          : [],
+        flow: Array.isArray(prompt.flow) ? prompt.flow : []
       })) || [];
 
       return convertedData as AIAgentPrompt[];
@@ -62,16 +90,56 @@ export const useAIAgentPrompts = () => {
     enabled: !!user?.id,
   });
 
+  const getPromptByAgentId = async (agentId: string): Promise<AIAgentPrompt | null> => {
+    if (!user?.id) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('ai_agent_prompts')
+      .select('*')
+      .eq('agent_id', agentId)
+      .eq('created_by_user_id', user.id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // No data found
+      }
+      console.error('[useAIAgentPrompts] ❌ Erro ao buscar prompt por agent_id:', error);
+      throw error;
+    }
+
+    return {
+      ...data,
+      communication_style_examples: Array.isArray(data.communication_style_examples) 
+        ? data.communication_style_examples as PQExample[]
+        : [],
+      products_services_examples: Array.isArray(data.products_services_examples) 
+        ? data.products_services_examples as PQExample[]
+        : [],
+      rules_guidelines_examples: Array.isArray(data.rules_guidelines_examples) 
+        ? data.rules_guidelines_examples as PQExample[]
+        : [],
+      prohibitions_examples: Array.isArray(data.prohibitions_examples) 
+        ? data.prohibitions_examples as PQExample[]
+        : [],
+      client_objections_examples: Array.isArray(data.client_objections_examples) 
+        ? data.client_objections_examples as PQExample[]
+        : [],
+      phrase_tips_examples: Array.isArray(data.phrase_tips_examples) 
+        ? data.phrase_tips_examples as PQExample[]
+        : [],
+      flow: Array.isArray(data.flow) ? data.flow : []
+    } as AIAgentPrompt;
+  };
+
   const createPromptMutation = useMutation({
     mutationFn: async (promptData: Omit<AIAgentPrompt, 'id' | 'created_at' | 'updated_at'>) => {
       if (!user?.id) throw new Error('User not authenticated');
 
       console.log('[useAIAgentPrompts] ➕ Criando novo prompt:', promptData.agent_function);
 
-      // Convert PQExample[] to Json for database storage
       const dataForDatabase = {
         ...promptData,
-        communication_style_examples: promptData.communication_style_examples as any,
         created_by_user_id: user.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -107,10 +175,8 @@ export const useAIAgentPrompts = () => {
 
       console.log('[useAIAgentPrompts] 🔄 Atualizando prompt:', id);
 
-      // Convert PQExample[] to Json for database storage
       const dataForDatabase = {
         ...promptData,
-        communication_style_examples: promptData.communication_style_examples as any,
         updated_at: new Date().toISOString()
       };
 
@@ -171,6 +237,7 @@ export const useAIAgentPrompts = () => {
     error,
     isLoading,
     refetch,
+    getPromptByAgentId,
     createPrompt: createPromptMutation.mutateAsync,
     updatePrompt: updatePromptMutation.mutateAsync,
     deletePrompt: deletePromptMutation.mutateAsync,

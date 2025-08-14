@@ -1,199 +1,276 @@
-import React, { useMemo, useRef } from "react";
-import { KanbanColumn, KanbanLead } from "@/types/kanban";
-import { KanbanColumnMemo } from "../KanbanColumnMemo";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  PointerEvent,
+} from "react";
+import { useSalesFunnelContext } from "@/components/sales/funnel/SalesFunnelProvider";
+import { ColumnHeader } from "@/components/sales/column/ColumnHeader";
+import { ColumnContent } from "@/components/sales/column/ColumnContent";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { KanbanLead } from "@/types/kanban";
+import { KanbanColumn } from "@/types/kanban";
+import { DragCloneLayer } from "../drag/DragCloneLayer";
+import { useDragClone } from "@/hooks/kanban/useDragClone";
+import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyFunnel } from "./EmptyFunnel";
+import { WonLostFunnel } from "./WonLostFunnel";
+import { AIToggleSwitchEnhanced } from "../ai/AIToggleSwitchEnhanced";
+import { useToast } from "@/components/ui/use-toast";
+import { useAIColumnMutation } from "@/hooks/kanban/useAIColumnMutation";
 
 interface BoardContentOptimizedProps {
-  columns: KanbanColumn[];
-  onOpenLeadDetail: (lead: KanbanLead) => void;
-  onColumnUpdate?: (updatedColumn: KanbanColumn) => void;
-  onColumnDelete?: (columnId: string) => void;
-  onOpenChat?: (lead: KanbanLead) => void;
-  onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
-  onReturnToFunnel?: (lead: KanbanLead) => void;
   isWonLostView?: boolean;
-  wonStageId?: string;
-  lostStageId?: string;
 }
 
-export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
-  columns,
-  onOpenLeadDetail,
-  onColumnUpdate,
-  onColumnDelete,
-  onOpenChat,
-  onMoveToWonLost,
-  onReturnToFunnel,
-  isWonLostView = false,
-  wonStageId,
-  lostStageId
-}) => {
-  console.log('[BoardContentOptimized] 🎯 FASES 2+3 - Renderizando com arquitetura refinada:', {
-    columnsCount: columns?.length || 0,
-    isWonLostView
-  });
+export const BoardContentOptimized = ({ isWonLostView = false }: BoardContentOptimizedProps) => {
+  const {
+    loading,
+    columns,
+    setColumns,
+    selectedFunnel,
+    openLeadDetail,
+    moveLeadToStage,
+    refetchLeads,
+    isAdmin,
+    wonStageId,
+    lostStageId,
+    leads
+  } = useSalesFunnelContext();
+  const { toast } = useToast();
 
-  // Ref para container principal
-  const mainScrollRef = useRef<HTMLDivElement>(null);
+  // AI Column Mutation
+  const {
+    isAIEnabled,
+    setIsAIEnabled,
+    isLoadingAI,
+    toggleAIColumn
+  } = useAIColumnMutation();
 
-  // Memoizar colunas validadas para evitar recálculos
-  const validatedColumns = useMemo(() => {
-    if (!Array.isArray(columns)) return [];
-    return columns.filter(col => col && col.id && col.title && Array.isArray(col.leads));
-  }, [columns]);
+  // Drag & Drop State
+  const [isDragging, setIsDragging] = useState(false);
+  const { cloneState, updateClonePosition, resetClone } = useDragClone();
+  const boardRef = useRef<HTMLDivElement>(null);
 
-  // Memoizar estilos para evitar recriações
-  const containerStyles = useMemo(() => ({
-    height: '100%',
-    minWidth: 'max-content',
-    overscrollBehaviorX: 'contain'
-  }), []);
+  // Handlers
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
 
-  // Removido useEffect problemático - scroll funciona naturalmente
+  const handleDragEnd = async (result: any) => {
+    setIsDragging(false);
+    resetClone();
 
-  if (!validatedColumns.length) {
+    const { destination, source, draggableId } = result;
+
+    if (!destination) {
+      return;
+    }
+
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+
+    const start = columns.find((col) => col.id === source.droppableId);
+    const end = columns.find((col) => col.id === destination.droppableId);
+
+    if (!start || !end) {
+      console.error("❌ Coluna de início ou fim não encontrada!");
+      return;
+    }
+
+    if (start === end) {
+      // Reordenação na mesma coluna (opcional, dependendo dos requisitos)
+      const newLeads = Array.from(leads);
+      const [removed] = newLeads.splice(source.index, 1);
+      newLeads.splice(destination.index, 0, removed);
+
+      // Atualizar o estado local (opcional)
+      // setColumns(
+      //   columns.map((col) =>
+      //     col.id === start.id ? { ...col, leads: newLeads } : col
+      //   )
+      // );
+      return;
+    }
+
+    // Mover o lead para outra coluna
+    const leadId = draggableId;
+    const targetColumnId = destination.droppableId;
+
+    try {
+      const leadToMove = leads.find((lead) => lead.id === leadId);
+      if (!leadToMove) {
+        console.error("❌ Lead não encontrado!");
+        return;
+      }
+
+      await moveLeadToStage(leadToMove, targetColumnId);
+      toast({
+        title: "Lead movido!",
+        description: `O lead ${leadToMove.name} foi movido para a coluna ${end.title}.`,
+      });
+    } catch (error) {
+      console.error("❌ Erro ao mover lead:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao mover lead!",
+        description: "Ocorreu um erro ao mover o lead. Por favor, tente novamente.",
+      });
+    } finally {
+      await refetchLeads();
+    }
+  };
+
+  const renderClone = useCallback(
+    (provided: any, snapshot: any, item: any) => {
+      if (!item.id) return null;
+
+      const lead = leads.find((l) => l.id === item.draggableId);
+
+      if (!lead) {
+        console.warn(
+          "[BoardContentOptimized] ⚠️ Lead não encontrado para clonar:",
+          item.draggableId
+        );
+        return null;
+      }
+
+      return (
+        <div
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          ref={provided.innerRef}
+        >
+          {/* Renderize o clone do cartão aqui */}
+          {cloneState.isVisible && cloneState.lead ? (
+            cloneState.lead.name
+          ) : (
+            <div>Clone Indisponível</div>
+          )}
+        </div>
+      );
+    },
+    [cloneState.isVisible, cloneState.lead, leads]
+  );
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Convert React.PointerEvent to native PointerEvent
+    const nativeEvent = e.nativeEvent as PointerEvent;
+    updateClonePosition(nativeEvent);
+  };
+
+  useEffect(() => {
+    if (isDragging && boardRef.current) {
+      const handlePointerDown = (e: PointerEvent) => {
+        const element = e.target as HTMLElement;
+        if (element && element.closest(".kanban-card")) {
+          const leadId = element.closest(".kanban-card")?.id;
+          if (!leadId) {
+            console.warn("[BoardContentOptimized] ⚠️ Lead ID não encontrado");
+            return;
+          }
+
+          const lead = leads.find((l) => l.id === leadId);
+          if (!lead) {
+            console.warn("[BoardContentOptimized] ⚠️ Lead não encontrado:", leadId);
+            return;
+          }
+
+          updateClonePosition(e);
+          cloneState.setLead(lead);
+          cloneState.setIsVisible(true);
+        } else {
+          cloneState.setIsVisible(false);
+          cloneState.setLead(null);
+        }
+      };
+
+      window.addEventListener("pointerdown", handlePointerDown);
+      window.addEventListener("pointermove", handlePointerMove);
+
+      return () => {
+        window.removeEventListener("pointerdown", handlePointerDown);
+        window.removeEventListener("pointermove", handlePointerMove);
+      };
+    }
+  }, [isDragging, leads, updateClonePosition, cloneState]);
+
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
-        <p>Nenhuma etapa encontrada</p>
+      <div className="flex flex-1 overflow-x-auto w-full gap-4 p-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="w-80 flex-shrink-0 rounded-2xl overflow-hidden">
+            <Skeleton className="h-10 w-full rounded-t-2xl" />
+            <div className="flex-1 flex flex-col">
+              {[...Array(5)].map((_, j) => (
+                <Skeleton key={j} className="h-24 w-full my-2 rounded-xl" />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
 
+  if (!selectedFunnel) {
+    return <EmptyFunnel />;
+  }
+
+  if (isWonLostView) {
+    return <WonLostFunnel />;
+  }
+
   return (
-    // VERSÃO FUNCIONAL - Copiando EXATAMENTE o teste que funcionou
-    <div style={{ height: '100%', width: '100%', position: 'relative' }}>
+    <div className="flex flex-col h-full">
+      {/* AI Toggle (apenas para administradores) */}
+      {isAdmin && (
+        <div className="flex justify-end items-center p-4 bg-gray-100/50 backdrop-blur-sm rounded-t-2xl border-b border-gray-200/50">
+          <AIToggleSwitchEnhanced
+            enabled={isAIEnabled}
+            onToggle={toggleAIColumn}
+            isLoading={isLoadingAI}
+            size="md"
+            variant="prominent"
+            label="IA Colunas"
+            showLabel={true}
+          />
+        </div>
+      )}
+
       <div
-        ref={mainScrollRef}
-        data-kanban-board
+        className="flex flex-1 overflow-x-auto gap-4 p-4"
+        ref={boardRef}
         style={{
-          display: 'flex',
-          height: '100%',
-          width: '100%',
-          overflowX: 'auto',
-          overflowY: 'hidden',
-          gap: '24px',
-          padding: '24px',
-          cursor: 'grab',
-          // Estilização da barra de scroll inline - padrão branco glassmorphism
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(255,255,255,0.8) transparent'
-        }}
-        // className="kanban-scrollbar" // TEMPORARIAMENTE REMOVIDO
-        onWheel={(e) => {
-          // Shift+scroll
-          if (!e.shiftKey) return;
-          e.currentTarget.scrollLeft += e.deltaY;
-          e.preventDefault();
-        }}
-        onPointerDown={(e) => {
-          const el = e.currentTarget as HTMLDivElement;
-          const target = e.target as HTMLElement;
-          
-          // Bloquear em elementos interativos
-          if (target.closest('button, input, select, textarea, [role="button"], [data-rbd-draggable-id]')) return;
-          
-          e.preventDefault(); // Prevenir seleção de texto
-          
-          let startX = e.clientX;
-          let startScroll = el.scrollLeft;
-          let isScrolling = false;
-          let moved = false;
-          
-          const threshold = 5; // Pixels mínimos para considerar movimento
-          
-          const onMove = (ev: PointerEvent) => {
-            const dx = ev.clientX - startX;
-            
-            // Só inicia o scroll após threshold para evitar cliques acidentais
-            if (!moved && Math.abs(dx) < threshold) return;
-            
-            if (!moved) {
-              moved = true;
-              isScrolling = true;
-              el.style.cursor = 'grabbing';
-              el.style.userSelect = 'none';
-            }
-            
-            // Scroll apenas se estivermos em modo scrolling
-            if (isScrolling) {
-              el.scrollLeft = startScroll - dx;
-            }
-          };
-          
-          const onUp = (ev: PointerEvent) => {
-            // IMPORTANTE: Limpar TUDO ao soltar
-            isScrolling = false;
-            moved = false;
-            
-            // Restaurar cursor e comportamento
-            el.style.cursor = 'grab';
-            el.style.userSelect = '';
-            
-            // Limpar capture e listeners
-            el.releasePointerCapture(e.pointerId);
-            document.removeEventListener('pointermove', onMove);
-            document.removeEventListener('pointerup', onUp);
-            document.removeEventListener('pointercancel', onCancel);
-            
-          };
-          
-          const onCancel = () => {
-            // Mesmo cleanup para cancel
-            onUp(e);
-          };
-          
-          // Usar document em vez de element para captura global
-          el.setPointerCapture(e.pointerId);
-          document.addEventListener('pointermove', onMove);
-          document.addEventListener('pointerup', onUp);
-          document.addEventListener('pointercancel', onCancel);
-          
-        }}
-        onPointerLeave={() => {
-          // Garantir limpeza se cursor sair da área durante drag
-          const el = mainScrollRef.current;
-          if (el) {
-            el.style.cursor = 'grab';
-            el.style.userSelect = '';
-          }
+          minHeight: "200px",
         }}
       >
-        {validatedColumns.map((column, index) => (
-          <KanbanColumnMemo
-            key={column.id}
-            column={column}
-            index={index}
-            onOpenLeadDetail={onOpenLeadDetail}
-            onUpdateColumn={onColumnUpdate}
-            onDeleteColumn={onColumnDelete}
-            onOpenChat={onOpenChat}
-            onMoveToWonLost={onMoveToWonLost}
-            onReturnToFunnel={onReturnToFunnel}
-            isWonLostView={isWonLostView}
-            wonStageId={wonStageId}
-            lostStageId={lostStageId}
-          />
-        ))}
+        <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+          {columns.map((column) => (
+            <div
+              key={column.id}
+              className="w-80 flex-shrink-0 rounded-2xl overflow-hidden flex flex-col"
+            >
+              <ColumnHeader column={column} />
+              <ColumnContent
+                columnId={column.id}
+                leads={leads.filter((lead) => lead.stage_id === column.id)}
+                onOpenLeadDetail={openLeadDetail}
+                renderClone={renderClone}
+                wonStageId={wonStageId}
+                lostStageId={lostStageId}
+              />
+            </div>
+          ))}
+        </DragDropContext>
       </div>
+
+      <DragCloneLayer cloneState={cloneState} />
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Comparação otimizada do BoardContent (mantida da Fase 1)
-  const columnsChanged = 
-    prevProps.columns.length !== nextProps.columns.length ||
-    prevProps.columns.some((col, index) => {
-      const nextCol = nextProps.columns[index];
-      return !nextCol || 
-        col.id !== nextCol.id || 
-        col.title !== nextCol.title ||
-        col.leads.length !== nextCol.leads.length;
-    });
-
-  const stateChanged = 
-    prevProps.isWonLostView !== nextProps.isWonLostView ||
-    prevProps.wonStageId !== nextProps.wonStageId ||
-    prevProps.lostStageId !== nextProps.lostStageId;
-
-  return !(columnsChanged || stateChanged);
-});
-
-BoardContentOptimized.displayName = 'BoardContentOptimized';
+};

@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 
-interface WhatsAppInstance {
+export interface WhatsAppInstance {
   id: string;
   name: string;
   status: 'connected' | 'disconnected' | 'connecting';

@@ -1,3 +1,4 @@
+
 import { WhatsAppChatLayout } from "./WhatsAppChatLayout";
 import { useWhatsAppChat } from "@/hooks/whatsapp/useWhatsAppChat";
 import { useSendMessage } from "@/hooks/whatsapp/messaging/useSendMessage";
@@ -60,7 +61,7 @@ export function WhatsAppChatContainer() {
       selectedContact={selectedContact}
       onSelectContact={setSelectedContact}
       messages={messages}
-        onSendMessage={onSendMessageWrapper}
+      onSendMessage={onSendMessageWrapper}
       isLoadingContacts={isLoadingContacts}
       isLoadingMoreContacts={isLoadingMoreContacts}
       hasMoreContacts={hasMoreContacts}
@@ -72,7 +73,6 @@ export function WhatsAppChatContainer() {
       isSending={isSendingMessage}
       onRefreshMessages={refreshMessages}
       onRefreshContacts={refreshContacts}
-      onSearch={searchContacts}
       totalContactsAvailable={totalContactsAvailable}
     />
   );
