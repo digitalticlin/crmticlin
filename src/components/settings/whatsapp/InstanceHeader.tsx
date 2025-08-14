@@ -41,7 +41,7 @@ export const InstanceHeader = ({ instance }: InstanceHeaderProps) => {
   };
 
   const isConnected = instance.status === 'connected' || instance.status === 'ready';
-  const phone = instance.phone_number || 'Não configurado';
+  const phone = instance.phoneNumber || 'Não configurado';
 
   return (
     <Card>
@@ -49,7 +49,7 @@ export const InstanceHeader = ({ instance }: InstanceHeaderProps) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Avatar className="h-12 w-12">
-              <AvatarImage src={instance.profilePicUrl} alt={instance.name} />
+              <AvatarImage src={instance.profilePicture} alt={instance.name} />
               <AvatarFallback>
                 {instance.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
@@ -85,7 +85,7 @@ export const InstanceHeader = ({ instance }: InstanceHeaderProps) => {
           </div>
           <div>
             <p className="font-medium text-gray-600">Tipo</p>
-            <p className="capitalize">{instance.type}</p>
+            <p className="capitalize">{instance.connectionType}</p>
           </div>
           <div>
             <p className="font-medium text-gray-600">Criado</p>

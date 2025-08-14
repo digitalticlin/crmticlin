@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ClientData, ClientFormData } from "./clients/types";
-import { useDefaultWhatsAppInstance, useClientsQuery } from "./clients/queries";
+import { useClientsQuery } from "./clients/queries";
 import { useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation } from "./clients/mutations";
 import { toast } from "sonner";
 
@@ -15,7 +15,6 @@ export function useRealClientManagement() {
   const userId = user?.id;
 
   // Queries
-  const defaultWhatsAppQuery = useDefaultWhatsAppInstance(userId || null);
   const clientsQuery = useClientsQuery(userId || null, searchQuery);
 
   // Mutations
@@ -23,26 +22,8 @@ export function useRealClientManagement() {
   const updateClientMutation = useUpdateClientMutation(userId || '');
   const deleteClientMutation = useDeleteClientMutation(userId || '');
 
-  // 🚀 FLATTEN DOS DADOS PAGINADOS
-  const clients = useMemo(() => {
-    if (!clientsQuery.data?.pages) return [];
-    
-    return clientsQuery.data.pages.flatMap(page => page.data);
-  }, [clientsQuery.data?.pages]);
-
-  // 🚀 VERIFICAR SE HÁ MAIS PÁGINAS
-  const hasMoreClients = useMemo(() => {
-    const lastPage = clientsQuery.data?.pages?.[clientsQuery.data.pages.length - 1];
-    return lastPage?.hasMore ?? false;
-  }, [clientsQuery.data?.pages]);
-
-  // 🚀 FUNÇÃO PARA CARREGAR MAIS CLIENTES
-  const loadMoreClients = async () => {
-    if (!clientsQuery.isFetchingNextPage && hasMoreClients) {
-      console.log('[RealClientManagement] 📄 Carregando próxima página...');
-      await clientsQuery.fetchNextPage();
-    }
-  };
+  // Simple clients array (not paginated)
+  const clients = clientsQuery.data || [];
 
   const handleSelectClient = (client: ClientData) => {
     setSelectedClient(client);
@@ -173,10 +154,10 @@ export function useRealClientManagement() {
     isDetailsOpen,
     isCreateMode,
     isLoading: clientsQuery.isLoading || updateClientMutation.isPending || createClientMutation.isPending,
-    isLoadingMore: clientsQuery.isFetchingNextPage,
-    hasMoreClients,
-    loadMoreClients,
-    totalClientsCount: clientsQuery.data?.pages?.[0]?.totalCount || clients.length,
+    isLoadingMore: false,
+    hasMoreClients: false,
+    loadMoreClients: async () => {},
+    totalClientsCount: clients.length,
     setIsDetailsOpen: (open: boolean) => {
       setIsDetailsOpen(open);
       if (!open) {

@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 
 interface BoardContentOptimizedProps {
   selectedFunnelId: string;
+  columns: KanbanColumn[];
   onOpenLeadDetail: (lead: KanbanLead) => void;
   onColumnUpdate: (updatedColumn: KanbanColumn) => void;
   onColumnDelete: (columnId: string) => void;
@@ -19,26 +20,9 @@ interface BoardContentOptimizedProps {
   lostStageId: string;
 }
 
-// Mock data for now
-const mockColumns: KanbanColumn[] = [
-  {
-    id: '1',
-    title: 'Novos Leads',
-    position: 0,
-    leads: [],
-    color: '#3b82f6'
-  },
-  {
-    id: '2', 
-    title: 'Em Contato',
-    position: 1,
-    leads: [],
-    color: '#f59e0b'
-  }
-];
-
 export const BoardContentOptimized: React.FC<BoardContentOptimizedProps> = ({
   selectedFunnelId,
+  columns,
   onOpenLeadDetail,
   onColumnUpdate,
   onColumnDelete,
@@ -49,9 +33,6 @@ export const BoardContentOptimized: React.FC<BoardContentOptimizedProps> = ({
 }) => {
   const boardRef = useRef<HTMLDivElement>(null);
   const { cloneState, showClone, updateClonePosition, hideClone } = useDragClone();
-
-  // Use mock data for now
-  const columns = mockColumns;
 
   // Handle empty states
   if (!selectedFunnelId) {
