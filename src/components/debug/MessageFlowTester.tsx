@@ -1,15 +1,14 @@
 
 import React, { useState } from 'react';
-import { useWhatsAppInstances } from '@/hooks/useWhatsAppInstances';
+import { useWhatsAppInstances } from '@/hooks/whatsapp/useWhatsAppInstances';
 import { useWhatsAppContacts } from '@/hooks/whatsapp/useWhatsAppContacts';
 
 export function MessageFlowTester() {
   const [selectedInstance, setSelectedInstance] = useState<string>('');
   const { instances } = useWhatsAppInstances();
   
-  // Fix the hook call by using the correct return type
   const { contacts } = useWhatsAppContacts({
-    enabled: !!selectedInstance
+    activeInstanceId: selectedInstance || null
   });
 
   return (
@@ -26,7 +25,7 @@ export function MessageFlowTester() {
           <option value="">Select an instance</option>
           {instances?.map((instance) => (
             <option key={instance.id} value={instance.id}>
-              {instance.name}
+              {instance.instance_name || instance.id}
             </option>
           ))}
         </select>

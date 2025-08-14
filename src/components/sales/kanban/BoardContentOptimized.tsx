@@ -1,16 +1,15 @@
+
 import React, {
   useState,
   useRef,
   useEffect,
   useCallback,
-  PointerEvent,
 } from "react";
 import { useSalesFunnelContext } from "@/components/sales/funnel/SalesFunnelProvider";
 import { ColumnHeader } from "@/components/sales/column/ColumnHeader";
 import { ColumnContent } from "@/components/sales/column/ColumnContent";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext } from "react-beautiful-dnd";
 import { KanbanLead } from "@/types/kanban";
-import { KanbanColumn } from "@/types/kanban";
 import { DragCloneLayer } from "../drag/DragCloneLayer";
 import { useDragClone } from "@/hooks/kanban/useDragClone";
 import { cn } from "@/lib/utils";
@@ -29,7 +28,6 @@ export const BoardContentOptimized = ({ isWonLostView = false }: BoardContentOpt
   const {
     loading,
     columns,
-    setColumns,
     selectedFunnel,
     openLeadDetail,
     moveLeadToStage,
@@ -89,13 +87,6 @@ export const BoardContentOptimized = ({ isWonLostView = false }: BoardContentOpt
       const newLeads = Array.from(leads);
       const [removed] = newLeads.splice(source.index, 1);
       newLeads.splice(destination.index, 0, removed);
-
-      // Atualizar o estado local (opcional)
-      // setColumns(
-      //   columns.map((col) =>
-      //     col.id === start.id ? { ...col, leads: newLeads } : col
-      //   )
-      // );
       return;
     }
 
@@ -147,7 +138,6 @@ export const BoardContentOptimized = ({ isWonLostView = false }: BoardContentOpt
           {...provided.dragHandleProps}
           ref={provided.innerRef}
         >
-          {/* Renderize o clone do cartão aqui */}
           {cloneState.isVisible && cloneState.lead ? (
             cloneState.lead.name
           ) : (
@@ -160,9 +150,8 @@ export const BoardContentOptimized = ({ isWonLostView = false }: BoardContentOpt
   );
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    // Convert React.PointerEvent to native PointerEvent
-    const nativeEvent = e.nativeEvent as PointerEvent;
-    updateClonePosition(nativeEvent);
+    const nativeEvent = e.nativeEvent;
+    updateClonePosition(nativeEvent.clientX, nativeEvent.clientY);
   };
 
   useEffect(() => {
@@ -182,24 +171,24 @@ export const BoardContentOptimized = ({ isWonLostView = false }: BoardContentOpt
             return;
           }
 
-          updateClonePosition(e);
-          cloneState.setLead(lead);
-          cloneState.setIsVisible(true);
-        } else {
-          cloneState.setIsVisible(false);
-          cloneState.setLead(null);
+          updateClonePosition(e.clientX, e.clientY);
+          // Note: cloneState doesn't have setLead/setIsVisible methods based on the hook
         }
       };
 
+      const handlePointerMoveNative = (e: PointerEvent) => {
+        updateClonePosition(e.clientX, e.clientY);
+      };
+
       window.addEventListener("pointerdown", handlePointerDown);
-      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointermove", handlePointerMoveNative);
 
       return () => {
         window.removeEventListener("pointerdown", handlePointerDown);
-        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointermove", handlePointerMoveNative);
       };
     }
-  }, [isDragging, leads, updateClonePosition, cloneState]);
+  }, [isDragging, leads, updateClonePosition]);
 
   if (loading) {
     return (
