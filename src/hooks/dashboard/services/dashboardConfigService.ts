@@ -1,5 +1,4 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import type { DashboardConfig as LayoutConfig } from "../types/dashboardConfigTypes";
 
 export interface DashboardConfigRow {
@@ -9,36 +8,27 @@ export interface DashboardConfigRow {
   updated_at: string;
 }
 
+// Since dashboard_configs table doesn't exist in Supabase, we'll use localStorage
 export const dashboardConfigService = {
   async getConfig(userId: string): Promise<{ layoutConfig: LayoutConfig } | null> {
-    const { data, error } = await supabase
-      .from('dashboard_configs')
-      .select('layout_config, updated_at, created_by_user_id')
-      .eq('created_by_user_id', userId)
-      .maybeSingle();
-
-    if (error) {
-      console.warn('[dashboardConfigService] getConfig error:', error.message);
+    try {
+      const stored = localStorage.getItem(`dashboard_config_${userId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return { layoutConfig: parsed };
+      }
+      return null;
+    } catch (error) {
+      console.warn('[dashboardConfigService] getConfig error:', error);
       return null;
     }
-
-    if (!data) return null;
-
-    return { layoutConfig: data.layout_config as LayoutConfig };
   },
 
   async saveConfig(userId: string, config: LayoutConfig): Promise<void> {
-    const { error } = await supabase
-      .from('dashboard_configs')
-      .upsert({
-        user_id: userId,
-        created_by_user_id: userId,
-        layout_config: config as any,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
-
-    if (error) {
-      console.error('[dashboardConfigService] saveConfig error:', error.message);
+    try {
+      localStorage.setItem(`dashboard_config_${userId}`, JSON.stringify(config));
+    } catch (error) {
+      console.error('[dashboardConfigService] saveConfig error:', error);
       throw error;
     }
   }

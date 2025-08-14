@@ -1,66 +1,98 @@
 
-import { Phone, RefreshCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { WhatsAppInstance } from "@/hooks/whatsapp/whatsappInstanceStore";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface InstanceHeaderProps {
   instance: WhatsAppInstance;
-  onRefreshStatus?: () => Promise<void>;
-  isStatusLoading?: boolean;
 }
 
-const InstanceHeader = ({ 
-  instance, 
-  onRefreshStatus,
-  isStatusLoading = false
-}: InstanceHeaderProps) => {
+export const InstanceHeader = ({ instance }: InstanceHeaderProps) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'connected':
+      case 'ready':
+        return 'bg-green-500';
+      case 'connecting':
+        return 'bg-yellow-500';
+      case 'disconnected':
+      case 'error':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'connected':
+      case 'ready':
+        return 'Conectado';
+      case 'connecting':
+        return 'Conectando';
+      case 'disconnected':
+        return 'Desconectado';
+      case 'error':
+        return 'Erro';
+      default:
+        return 'Desconhecido';
+    }
+  };
+
+  const isConnected = instance.connection_status === 'connected' || instance.connection_status === 'ready';
+  const phone = instance.phone || 'Não configurado';
+
   return (
-    <div className="flex justify-between items-center mb-3">
-      <div>
-        <h4 className="font-medium">WhatsApp</h4>
-        <p className="text-sm text-muted-foreground">Instance: {instance.instanceName}</p>
-        {instance.connected && instance.phoneNumber && (
-          <div className="flex items-center mt-1 gap-1 text-green-600 dark:text-green-400">
-            <Phone className="w-3 h-3" />
-            <p className="text-xs font-medium">{instance.phoneNumber}</p>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={instance.profile_pic_url} alt={instance.instance_name} />
+              <AvatarFallback>
+                {instance.instance_name.substring(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="text-lg font-semibold">{instance.instance_name}</h3>
+              <p className="text-sm text-gray-600">{phone}</p>
+            </div>
           </div>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className={instance.connected ? 
-          "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400" : 
-          "bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400"}>
-          {instance.connected ? "Connected" : "Disconnected"}
-        </Badge>
-        
-        {onRefreshStatus && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6" 
-                  onClick={onRefreshStatus}
-                  disabled={isStatusLoading}
-                >
-                  <RefreshCcw 
-                    className={`h-3 w-3 ${isStatusLoading ? 'animate-spin' : ''}`} 
-                  />
-                  <span className="sr-only">Refresh Status</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Refresh connection status</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </div>
-    </div>
+          
+          <div className="flex items-center space-x-3">
+            <Badge 
+              variant={isConnected ? "default" : "secondary"}
+              className={`${getStatusColor(instance.connection_status)} text-white`}
+            >
+              {getStatusText(instance.connection_status)}
+            </Badge>
+            
+            {isConnected && (
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-green-600">Online</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-3 gap-4 text-sm">
+          <div>
+            <p className="font-medium text-gray-600">Status</p>
+            <p>{getStatusText(instance.connection_status)}</p>
+          </div>
+          <div>
+            <p className="font-medium text-gray-600">Tipo</p>
+            <p className="capitalize">{instance.connection_type}</p>
+          </div>
+          <div>
+            <p className="font-medium text-gray-600">Criado</p>
+            <p>{new Date(instance.created_at).toLocaleDateString()}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
-
-export default InstanceHeader;

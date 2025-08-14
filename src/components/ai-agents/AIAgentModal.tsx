@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,7 +24,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   const [activeTab, setActiveTab] = useState("basic");
   const [workingAgent, setWorkingAgent] = useState<AIAgent | null>(null);
   const [isMounted, setIsMounted] = useState(true);
-  const [allowTabNavigation, setAllowTabNavigation] = useState(false); // Permitir navegação livre
+  const [allowTabNavigation, setAllowTabNavigation] = useState(false);
   const { getPromptByAgentId, createPrompt, updatePrompt } = useAIAgentPrompts();
   
   // Centralized form data state with database structure
@@ -61,25 +60,22 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   useEffect(() => {
     if (isOpen && agent) {
       setWorkingAgent(agent);
-      setAllowTabNavigation(true); // Permitir navegação para agente existente
-      // Só carregar dados se não houver mudanças não salvas
+      setAllowTabNavigation(true);
       if (!hasUnsavedChanges) {
         loadPromptData(agent.id);
       }
     } else if (isOpen && !agent) {
-      // Reset state for new agent
       setWorkingAgent(null);
-      setAllowTabNavigation(true); // Permitir navegação livre para novo agente
+      setAllowTabNavigation(true);
       resetPromptData();
     } else if (!isOpen) {
-      // Reset everything when modal closes
       setActiveTab("basic");
       setWorkingAgent(null);
       setAllowTabNavigation(false);
       resetPromptData();
       setHasUnsavedChanges(false);
     }
-  }, [isOpen, agent]); // Removido hasUnsavedChanges da dependência para evitar loops
+  }, [isOpen, agent]);
 
   const resetPromptData = () => {
     unstable_batchedUpdates(() => {
@@ -101,7 +97,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
         phrase_tips_examples: [],
         flow: []
       });
-      // Reset também não deve marcar como alteração não salva
       setHasUnsavedChanges(false);
     });
   };
@@ -116,7 +111,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       
       if (existingPrompt) {
         console.log('📝 Mapeando dados do prompt encontrado...');
-        // Mapear dados diretamente da nova estrutura do banco usando batch update
         unstable_batchedUpdates(() => {
           setPromptData({
             agent_function: existingPrompt.agent_function || "",
@@ -136,7 +130,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
             phrase_tips_examples: existingPrompt.phrase_tips_examples || [],
             flow: existingPrompt.flow || []
           });
-          // NÃO marcar como hasUnsavedChanges pois é carregamento inicial
           setHasUnsavedChanges(false);
         });
         console.log('✅ Dados do prompt carregados e mapeados com sucesso - sem marcar como alteração');
@@ -166,10 +159,8 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     exampleValue?: any,
     isInternalLoad: boolean = false
   ) => {
-    // Usar batch updates para estabilidade, suportando atualização atômica de campos com exemplos
     unstable_batchedUpdates(() => {
       if (exampleField && exampleValue !== undefined) {
-        // Atualizar ambos os campos atomicamente para evitar race conditions
         console.log('🔄 Atualizando campo duplo:', { field, value, exampleField, exampleValue, isInternalLoad });
         setPromptData(prev => ({ 
           ...prev, 
@@ -177,12 +168,10 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           [exampleField]: exampleValue
         }));
       } else {
-        // Atualização de campo único
         console.log('🔄 Atualizando campo único:', { field, value, isInternalLoad });
         setPromptData(prev => ({ ...prev, [field]: value }));
       }
       
-      // Só marcar como não salvo se for uma mudança real do usuário, não carregamento interno
       if (!isInternalLoad) {
         console.log('💾 Marcando como alteração não salva (mudança do usuário)');
         setHasUnsavedChanges(true);
@@ -193,20 +182,18 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   };
 
   const handleClose = () => {
-    if (!isMounted) return; // Safety check
+    if (!isMounted) return;
     
-    // Verificar se há dados não salvos
     if (hasUnsavedChanges) {
       const confirmClose = confirm(
         'Tem certeza que deseja fechar sem salvar?\n\nTodas as alterações não salvas serão perdidas.'
       );
       if (!confirmClose) {
-        return; // Usuário cancelou, não fechar
+        return;
       }
     }
     
     console.log('🚪 Fechando modal - dados salvos ou usuário confirmou');
-    // Add a small delay to ensure proper cleanup
     setTimeout(() => {
       onClose();
     }, 0);
@@ -219,15 +206,8 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     console.log('  - agent (prop recebida):', agent ? { id: agent.id, name: agent.name } : null);
     console.log('  - workingAgent (estado local):', workingAgent ? { id: workingAgent.id, name: workingAgent.name } : null);
     console.log('  - currentAgent (computed):', (workingAgent || agent) ? { id: (workingAgent || agent)?.id, name: (workingAgent || agent)?.name } : null);
-    console.log('\n📝 PROMPT DATA:');
-    console.log('  - agent_function:', promptData.agent_function ? 'PREENCHIDO' : 'VAZIO');
-    console.log('  - agent_objective:', promptData.agent_objective ? 'PREENCHIDO' : 'VAZIO');
-    console.log('  - communication_style:', promptData.communication_style ? 'PREENCHIDO' : 'VAZIO');
-    console.log('  - flow steps:', promptData.flow.length);
-    console.log('\n🔍 MODO DE OPERAÇÃO:', agent ? 'EDIÇÃO' : 'CRIAÇÃO');
     
     try {
-      // Verificar se temos um agente (criado ou existente)
       const targetAgent = workingAgent || agent;
       console.log('\n🎯 TARGET AGENT SELECIONADO:', targetAgent ? {
         id: targetAgent.id,
@@ -238,7 +218,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       
       if (!targetAgent) {
         console.log('❌ Nenhum agente encontrado');
-        console.log('  - Sugestão: Primeiro salve as informações básicas na aba 1');
         toast.error('🚀 Primeiro salve as informações básicas para criar o agente', {
           description: 'Vá para a aba "Informações Básicas" e clique em "Salvar"',
           duration: 5000
@@ -253,7 +232,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
         type: targetAgent.type
       });
 
-      // Preparar dados do prompt para salvamento
       const promptDataToSave = {
         agent_id: targetAgent.id,
         ...promptData
@@ -261,39 +239,31 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       
       console.log('📝 Dados do prompt para salvar:', promptDataToSave);
 
-      // Verificar se já existe um prompt para este agente
       console.log('\n🔎 VERIFICANDO PROMPT EXISTENTE');
       console.log('  - Agente ID:', targetAgent.id);
-      console.log('  - Agente pertence ao usuário:', targetAgent.created_by_user_id);
       
       const existingPrompt = await getPromptByAgentId(targetAgent.id);
       console.log('\n📊 RESULTADO DA BUSCA:');
       if (existingPrompt) {
         console.log('  - Prompt encontrado ID:', existingPrompt.id);
-        console.log('  - Prompt criado por:', existingPrompt.created_by_user_id);
-        console.log('  - Prompt criado em:', existingPrompt.created_at);
         console.log('  - Modo de operação: ATUALIZAR');
-      } else {
-        console.log('  - Nenhum prompt encontrado');
-        console.log('  - Modo de operação: CRIAR NOVO');
-      }
-      
-      if (existingPrompt) {
-        // Atualizar prompt existente
+        
         console.log('🔄 Atualizando prompt existente:', existingPrompt.id);
-        const success = await updatePrompt(existingPrompt.id, promptDataToSave);
+        const success = await updatePrompt({ id: existingPrompt.id, ...promptDataToSave });
         console.log('💾 Resultado da atualização:', success);
         
         if (success) {
           toast.success('Configuração do agente salva com sucesso');
           setHasUnsavedChanges(false);
-          onSave(); // Notificar parent component
+          onSave();
           console.log('✅ SALVAMENTO CONCLUÍDO COM SUCESSO (UPDATE)');
         } else {
           throw new Error('Falha na atualização do prompt');
         }
       } else {
-        // Criar novo prompt
+        console.log('  - Nenhum prompt encontrado');
+        console.log('  - Modo de operação: CRIAR NOVO');
+        
         console.log('➕ Criando novo prompt');
         const newPrompt = await createPrompt(promptDataToSave);
         console.log('💾 Resultado da criação:', newPrompt);
@@ -301,7 +271,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
         if (newPrompt) {
           toast.success('Configuração do agente salva com sucesso');
           setHasUnsavedChanges(false);
-          onSave(); // Notificar parent component
+          onSave();
           console.log('✅ SALVAMENTO CONCLUÍDO COM SUCESSO (CREATE)');
         } else {
           throw new Error('Falha na criação do prompt');
@@ -310,7 +280,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     } catch (error) {
       console.error('💥 ERRO CRÍTICO no salvamento:', error);
       toast.error('Erro ao salvar configuração do agente');
-      throw error; // Re-throw para que componentes filhos saibam que houve erro
+      throw error;
     }
   };
 
@@ -318,13 +288,11 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   const currentAgent = workingAgent || agent;
   const stepsCount = promptData.flow.length;
   
-  // Permitir acesso às abas mesmo sem agent (para novos agentes)
   const canAccessTabs = allowTabNavigation;
 
   return (
     <PortalErrorBoundary>
       <Dialog open={isOpen} onOpenChange={(open) => {
-        // Permitir fechamento apenas com ESC ou programaticamente
         if (!open) {
           handleClose();
         }
@@ -459,7 +427,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
             </TabsContent>
           </Tabs>
           
-          {/* Info de como salvar */}
           <div className="mt-4 p-3 bg-blue-50/80 backdrop-blur-sm border border-blue-200/60 rounded-lg">
             <p className="text-sm text-blue-800 text-center">
               💡 <strong>Dica:</strong> Use os botões "Configurar" em cada campo para editar e salvar suas configurações

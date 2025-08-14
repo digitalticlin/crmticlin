@@ -9,7 +9,7 @@ import { useSalesFunnelContext } from "@/components/sales/funnel/SalesFunnelProv
 import { ColumnHeader } from "@/components/sales/column/ColumnHeader";
 import { ColumnContent } from "@/components/sales/column/ColumnContent";
 import { DragDropContext } from "react-beautiful-dnd";
-import { KanbanLead } from "@/types/kanban";
+import { KanbanLead, KanbanColumn } from "@/types/kanban";
 import { DragCloneLayer } from "../drag/DragCloneLayer";
 import { useDragClone } from "@/hooks/kanban/useDragClone";
 import { cn } from "@/lib/utils";
@@ -21,20 +21,36 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAIColumnMutation } from "@/hooks/kanban/useAIColumnMutation";
 
 interface BoardContentOptimizedProps {
+  columns: KanbanColumn[];
+  onOpenLeadDetail: (lead: KanbanLead) => void;
+  onColumnUpdate?: (updatedColumn: KanbanColumn) => void;
+  onColumnDelete?: (columnId: string) => void;
+  onOpenChat?: (lead: KanbanLead) => void;
+  onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
+  onReturnToFunnel?: (lead: KanbanLead) => void;
   isWonLostView?: boolean;
+  wonStageId?: string;
+  lostStageId?: string;
 }
 
-export const BoardContentOptimized = ({ isWonLostView = false }: BoardContentOptimizedProps) => {
+export const BoardContentOptimized = ({ 
+  columns,
+  onOpenLeadDetail,
+  onColumnUpdate,
+  onColumnDelete,
+  onOpenChat,
+  onMoveToWonLost,
+  onReturnToFunnel,
+  isWonLostView = false,
+  wonStageId,
+  lostStageId
+}: BoardContentOptimizedProps) => {
   const {
     loading,
-    columns,
     selectedFunnel,
-    openLeadDetail,
     moveLeadToStage,
     refetchLeads,
     isAdmin,
-    wonStageId,
-    lostStageId,
     leads
   } = useSalesFunnelContext();
   const { toast } = useToast();
@@ -49,7 +65,7 @@ export const BoardContentOptimized = ({ isWonLostView = false }: BoardContentOpt
 
   // Drag & Drop State
   const [isDragging, setIsDragging] = useState(false);
-  const { cloneState, updateClonePosition, resetClone } = useDragClone();
+  const { cloneState, updateClonePosition, hideClone } = useDragClone();
   const boardRef = useRef<HTMLDivElement>(null);
 
   // Handlers
@@ -59,7 +75,7 @@ export const BoardContentOptimized = ({ isWonLostView = false }: BoardContentOpt
 
   const handleDragEnd = async (result: any) => {
     setIsDragging(false);
-    resetClone();
+    hideClone();
 
     const { destination, source, draggableId } = result;
 
@@ -150,8 +166,7 @@ export const BoardContentOptimized = ({ isWonLostView = false }: BoardContentOpt
   );
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const nativeEvent = e.nativeEvent;
-    updateClonePosition(nativeEvent.clientX, nativeEvent.clientY);
+    updateClonePosition(e.clientX, e.clientY);
   };
 
   useEffect(() => {
@@ -172,7 +187,6 @@ export const BoardContentOptimized = ({ isWonLostView = false }: BoardContentOpt
           }
 
           updateClonePosition(e.clientX, e.clientY);
-          // Note: cloneState doesn't have setLead/setIsVisible methods based on the hook
         }
       };
 
@@ -245,11 +259,17 @@ export const BoardContentOptimized = ({ isWonLostView = false }: BoardContentOpt
               key={column.id}
               className="w-80 flex-shrink-0 rounded-2xl overflow-hidden flex flex-col"
             >
-              <ColumnHeader column={column} />
+              <ColumnHeader 
+                column={column}
+                isHovered={false}
+                canEdit={!column.isFixed}
+                onUpdate={onColumnUpdate ? (updatedColumn) => onColumnUpdate(updatedColumn) : undefined}
+                onDelete={onColumnDelete ? () => onColumnDelete(column.id) : undefined}
+              />
               <ColumnContent
                 columnId={column.id}
-                leads={leads.filter((lead) => lead.stage_id === column.id)}
-                onOpenLeadDetail={openLeadDetail}
+                leads={leads.filter((lead) => lead.kanban_stage_id === column.id)}
+                onOpenLeadDetail={onOpenLeadDetail}
                 renderClone={renderClone}
                 wonStageId={wonStageId}
                 lostStageId={lostStageId}
