@@ -1,66 +1,86 @@
+
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { BackgroundGradient } from "@/components/ui/BackgroundGradient";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function ConfirmEmail() {
   const { token } = useParams();
+  const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const verifyToken = async () => {
+    const verifyEmailConfirmation = async () => {
       try {
-        // Na realidade, o processo de verificação do token é automático
-        // pelo Supabase quando o usuário clica no link enviado por e-mail.
-        // Aqui, apenas verificamos se há um token e se o usuário está autenticado.
+        console.log('[ConfirmEmail] 🔍 Verificando confirmação de email...');
         
-        // Como o token é passado via URL, podemos verificar se ele existe
-        if (!token) {
+        // Verificar se há hash na URL (formato: #access_token=...&type=signup)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const tokenType = hashParams.get('type');
+        const refreshToken = hashParams.get('refresh_token');
+
+        console.log('[ConfirmEmail] 📝 Parâmetros do hash:', {
+          hasAccessToken: !!accessToken,
+          tokenType,
+          hasRefreshToken: !!refreshToken
+        });
+
+        if (!accessToken || tokenType !== 'signup') {
+          console.log('[ConfirmEmail] ❌ Token de confirmação inválido ou ausente');
           setStatus("error");
-          setMessage("Token de confirmação não encontrado. Por favor, solicite um novo e-mail de confirmação.");
+          setMessage("Link de confirmação inválido ou expirado. Por favor, solicite um novo email de confirmação.");
           return;
         }
+
+        // Verificar se há uma sessão ativa após o redirect
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
-        // Verificar se o usuário já está autenticado
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session) {
-          // Se o usuário já está autenticado, a confirmação foi bem-sucedida
-          setStatus("success");
-          setMessage("Seu e-mail foi confirmado com sucesso!");
-        } else {
-          // O Supabase deve ter direcionado o usuário para esta página,
-          // mas o processo de confirmação não foi concluído por algum motivo
+        if (sessionError) {
+          console.error('[ConfirmEmail] ❌ Erro ao verificar sessão:', sessionError);
           setStatus("error");
-          setMessage("Não foi possível verificar seu e-mail. O link pode ter expirado ou ser inválido.");
+          setMessage("Erro ao verificar confirmação. Por favor, tente fazer login.");
+          return;
         }
-      } catch (error) {
-        console.error("Erro na verificação do token:", error);
+
+        if (sessionData.session) {
+          console.log('[ConfirmEmail] ✅ Email confirmado com sucesso!');
+          setStatus("success");
+          setMessage("Seu email foi confirmado com sucesso! Você já está logado.");
+          
+          // Redirecionar para dashboard após 3 segundos
+          setTimeout(() => {
+            navigate('/dashboard', { replace: true });
+          }, 3000);
+        } else {
+          console.log('[ConfirmEmail] ✅ Email confirmado, mas sessão não ativa');
+          setStatus("success");
+          setMessage("Seu email foi confirmado com sucesso! Você pode fazer login agora.");
+        }
+
+      } catch (error: any) {
+        console.error('[ConfirmEmail] ❌ Erro na verificação:', error);
         setStatus("error");
-        setMessage("Ocorreu um erro ao confirmar seu e-mail. Por favor, tente novamente.");
+        setMessage("Ocorreu um erro ao confirmar seu email. Por favor, tente novamente ou faça login.");
       }
     };
 
-    verifyToken();
-  }, [token]);
+    verifyEmailConfirmation();
+  }, [navigate]);
 
   const handleResendEmail = async () => {
     try {
-      // Para reenviar o email, precisaríamos do email do usuário
-      // Por simplicidade, redirecionamos para a página de recuperação de senha
-      // onde o usuário pode informar o email novamente
-      setMessage("Redirecionando para recuperação de senha...");
+      toast.info("Para reenviar o email de confirmação, use a opção 'Esqueci minha senha' na tela de login.");
       
       setTimeout(() => {
-        window.location.href = "/forgot-password";
+        navigate('/login', { replace: true });
       }, 2000);
     } catch (error) {
-      console.error("Erro ao reenviar email:", error);
-      setStatus("error");
-      setMessage("Erro ao reenviar e-mail de confirmação. Tente novamente.");
+      console.error("Erro ao redirecionar:", error);
     }
   };
 
@@ -90,7 +110,7 @@ export default function ConfirmEmail() {
                   Verificando...
                 </h1>
                 <p className="text-sm text-gray-700 font-medium">
-                  Estamos verificando seu e-mail. Por favor, aguarde.
+                  Estamos verificando seu email. Por favor, aguarde.
                 </p>
               </div>
             </>
@@ -107,9 +127,9 @@ export default function ConfirmEmail() {
                 </h1>
                 <p className="text-sm text-gray-700 font-medium">{message}</p>
               </div>
-              <Link to="/">
+              <Link to="/dashboard">
                 <Button className="w-full h-12 rounded-full bg-gradient-to-r from-ticlin-500 to-ticlin-600 hover:from-ticlin-600 hover:to-ticlin-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-0">
-                  Ir para o login
+                  Ir para o Dashboard
                 </Button>
               </Link>
             </>
@@ -132,9 +152,9 @@ export default function ConfirmEmail() {
                   className="w-full h-12 rounded-full bg-white/50 backdrop-blur-sm border-white/30 text-gray-800 hover:bg-white/60 transition-all duration-300" 
                   onClick={handleResendEmail}
                 >
-                  Reenviar e-mail de confirmação
+                  Ir para o Login
                 </Button>
-                <Link to="/">
+                <Link to="/login">
                   <Button 
                     variant="link" 
                     className="w-full text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200"
