@@ -1,4 +1,3 @@
-
 import { WhatsAppChatLayout } from "./WhatsAppChatLayout";
 import { useWhatsAppChat } from "@/hooks/whatsapp/useWhatsAppChat";
 import { useSendMessage } from "@/hooks/whatsapp/messaging/useSendMessage";
