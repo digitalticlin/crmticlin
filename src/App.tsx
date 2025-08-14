@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 import { QRCodeModalProvider } from "@/contexts/QRCodeModalContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
@@ -54,35 +55,47 @@ function App() {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/confirm-email/:token?" element={<ConfirmEmail />} />
 
-                {/* Protected Routes */}
+                {/* Protected Routes - wrapped with SidebarProvider */}
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <SidebarProvider>
+                      <Dashboard />
+                    </SidebarProvider>
                   </ProtectedRoute>
                 } />
                 <Route path="/whatsapp" element={
                   <ProtectedRoute>
-                    <WhatsApp />
+                    <SidebarProvider>
+                      <WhatsApp />
+                    </SidebarProvider>
                   </ProtectedRoute>
                 } />
                 <Route path="/sales-funnel" element={
                   <ProtectedRoute>
-                    <SalesFunnel />
+                    <SidebarProvider>
+                      <SalesFunnel />
+                    </SidebarProvider>
                   </ProtectedRoute>
                 } />
                 <Route path="/clients" element={
                   <ProtectedRoute>
-                    <Clients />
+                    <SidebarProvider>
+                      <Clients />
+                    </SidebarProvider>
                   </ProtectedRoute>
                 } />
                 <Route path="/automations" element={
                   <ProtectedRoute>
-                    <Automations />
+                    <SidebarProvider>
+                      <Automations />
+                    </SidebarProvider>
                   </ProtectedRoute>
                 } />
                 <Route path="/settings" element={
                   <ProtectedRoute>
-                    <Settings />
+                    <SidebarProvider>
+                      <Settings />
+                    </SidebarProvider>
                   </ProtectedRoute>
                 } />
 
