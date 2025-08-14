@@ -40,8 +40,8 @@ export const InstanceHeader = ({ instance }: InstanceHeaderProps) => {
     }
   };
 
-  const isConnected = instance.connection_status === 'connected' || instance.connection_status === 'ready';
-  const phone = instance.phone || 'Não configurado';
+  const isConnected = instance.status === 'connected' || instance.status === 'ready';
+  const phone = instance.phone_number || 'Não configurado';
 
   return (
     <Card>
@@ -49,13 +49,13 @@ export const InstanceHeader = ({ instance }: InstanceHeaderProps) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Avatar className="h-12 w-12">
-              <AvatarImage src={instance.profile_pic_url} alt={instance.instance_name} />
+              <AvatarImage src={instance.profilePicUrl} alt={instance.name} />
               <AvatarFallback>
-                {instance.instance_name.substring(0, 2).toUpperCase()}
+                {instance.name.substring(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="text-lg font-semibold">{instance.instance_name}</h3>
+              <h3 className="text-lg font-semibold">{instance.name}</h3>
               <p className="text-sm text-gray-600">{phone}</p>
             </div>
           </div>
@@ -63,9 +63,9 @@ export const InstanceHeader = ({ instance }: InstanceHeaderProps) => {
           <div className="flex items-center space-x-3">
             <Badge 
               variant={isConnected ? "default" : "secondary"}
-              className={`${getStatusColor(instance.connection_status)} text-white`}
+              className={`${getStatusColor(instance.status)} text-white`}
             >
-              {getStatusText(instance.connection_status)}
+              {getStatusText(instance.status)}
             </Badge>
             
             {isConnected && (
@@ -81,15 +81,15 @@ export const InstanceHeader = ({ instance }: InstanceHeaderProps) => {
         <div className="grid grid-cols-3 gap-4 text-sm">
           <div>
             <p className="font-medium text-gray-600">Status</p>
-            <p>{getStatusText(instance.connection_status)}</p>
+            <p>{getStatusText(instance.status)}</p>
           </div>
           <div>
             <p className="font-medium text-gray-600">Tipo</p>
-            <p className="capitalize">{instance.connection_type}</p>
+            <p className="capitalize">{instance.type}</p>
           </div>
           <div>
             <p className="font-medium text-gray-600">Criado</p>
-            <p>{new Date(instance.created_at).toLocaleDateString()}</p>
+            <p>{new Date(instance.createdAt).toLocaleDateString()}</p>
           </div>
         </div>
       </CardContent>

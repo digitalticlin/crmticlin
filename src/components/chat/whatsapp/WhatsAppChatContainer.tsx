@@ -52,7 +52,7 @@ export function WhatsAppChatContainer() {
     });
     const result = await sendMessage(message, mediaType, mediaUrl);
     console.log('[WhatsAppChatContainer] ✅ Resultado de sendMessage:', result);
-    return result;
+    return result?.success || false;
   };
 
   return (

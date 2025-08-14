@@ -15,15 +15,27 @@ export const useWhatsAppChat = (instanceId?: string) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isLoadingMoreContacts, setIsLoadingMoreContacts] = useState(false);
+  const [isLoadingMoreMessages, setIsLoadingMoreMessages] = useState(false);
+  const [hasMoreContacts, setHasMoreContacts] = useState(true);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [totalContactsAvailable, setTotalContactsAvailable] = useState(0);
   const { user } = useAuth();
+
+  // Mock active instance for now
+  const activeInstance = {
+    id: instanceId || 'default',
+    instance_name: 'Default Instance',
+    connection_status: 'connected' as const
+  };
 
   // Load contacts (leads) for the user
   const loadContacts = useCallback(async () => {
     if (!user?.id) return;
 
-    setIsLoading(true);
+    setIsLoadingContacts(true);
     try {
       const { data: leadsData, error } = await supabase
         .from('leads')
@@ -75,17 +87,17 @@ export const useWhatsAppChat = (instanceId?: string) => {
           created_at: lead.created_at,
           tags: [],
           funnel_id: '',
-          // Add profile pic support when available
           avatar: undefined
         }));
 
         setContacts(transformedContacts);
+        setTotalContactsAvailable(transformedContacts.length);
       }
     } catch (error: any) {
       console.error('[useWhatsAppChat] Error loading contacts:', error);
       toast.error('Erro ao carregar contatos');
     } finally {
-      setIsLoading(false);
+      setIsLoadingContacts(false);
     }
   }, [user?.id]);
 
@@ -111,9 +123,12 @@ export const useWhatsAppChat = (instanceId?: string) => {
       if (messagesData) {
         const transformedMessages: Message[] = messagesData.map(msg => ({
           id: msg.id,
+          text: msg.text || '',
           content: msg.text || '',
           timestamp: msg.timestamp,
+          time: msg.timestamp,
           fromMe: msg.from_me || false,
+          sender: msg.from_me ? 'user' : 'contact',
           leadId: msg.lead_id,
           mediaType: msg.media_type || 'text',
           mediaUrl: msg.media_url,
@@ -161,7 +176,7 @@ export const useWhatsAppChat = (instanceId?: string) => {
         lead_id: selectedContact.id,
         created_by_user_id: user.id,
         whatsapp_number_id: selectedContact.whatsapp_number_id,
-        media_type: mediaType as any, // Cast to match enum
+        media_type: mediaType as any,
         media_url: mediaUrl,
         timestamp: new Date().toISOString(),
         status: 'sent' as any
@@ -183,9 +198,12 @@ export const useWhatsAppChat = (instanceId?: string) => {
         // Add to local messages
         const transformedMessage: Message = {
           id: data.id,
+          text: data.text || '',
           content: data.text || '',
           timestamp: data.timestamp,
+          time: data.timestamp,
           fromMe: data.from_me || false,
+          sender: data.from_me ? 'user' : 'contact',
           leadId: data.lead_id,
           mediaType: data.media_type || 'text',
           mediaUrl: data.media_url,
@@ -222,6 +240,32 @@ export const useWhatsAppChat = (instanceId?: string) => {
     loadMessages(contact.id);
   }, [loadMessages]);
 
+  // Search contacts (mock implementation)
+  const searchContacts = useCallback(async (query: string) => {
+    // Mock implementation for now
+    console.log('Searching contacts:', query);
+  }, []);
+
+  // Load more contacts (mock implementation)
+  const loadMoreContacts = useCallback(async () => {
+    setIsLoadingMoreContacts(true);
+    // Mock implementation
+    setTimeout(() => {
+      setIsLoadingMoreContacts(false);
+      setHasMoreContacts(false);
+    }, 1000);
+  }, []);
+
+  // Load more messages (mock implementation)
+  const loadMoreMessages = useCallback(async () => {
+    setIsLoadingMoreMessages(true);
+    // Mock implementation
+    setTimeout(() => {
+      setIsLoadingMoreMessages(false);
+      setHasMoreMessages(false);
+    }, 1000);
+  }, []);
+
   // Load contacts on mount
   useEffect(() => {
     loadContacts();
@@ -230,12 +274,23 @@ export const useWhatsAppChat = (instanceId?: string) => {
   return {
     contacts,
     selectedContact,
+    setSelectedContact,
+    activeInstance,
     messages,
-    isLoading,
+    isLoading: isLoadingContacts,
+    isLoadingContacts,
     isLoadingMessages,
+    isLoadingMoreContacts,
+    isLoadingMoreMessages,
+    hasMoreContacts,
+    hasMoreMessages,
+    totalContactsAvailable,
     selectContact,
     sendMessage,
     refreshContacts: loadContacts,
-    refreshMessages: () => selectedContact && loadMessages(selectedContact.id)
+    refreshMessages: () => selectedContact && loadMessages(selectedContact.id),
+    searchContacts,
+    loadMoreContacts,
+    loadMoreMessages
   };
 };
