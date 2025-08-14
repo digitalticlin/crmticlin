@@ -124,12 +124,10 @@ export const useWhatsAppChat = (instanceId?: string) => {
         const transformedMessages: Message[] = messagesData.map(msg => ({
           id: msg.id,
           text: msg.text || '',
-          content: msg.text || '',
           timestamp: msg.timestamp,
           time: msg.timestamp,
           fromMe: msg.from_me || false,
           sender: msg.from_me ? 'user' : 'contact',
-          leadId: msg.lead_id,
           mediaType: msg.media_type || 'text',
           mediaUrl: msg.media_url,
           status: msg.status === 'received' ? 'delivered' : (msg.status as 'sent' | 'delivered' | 'read' | 'failed' | 'sending') || 'sent'
@@ -179,7 +177,7 @@ export const useWhatsAppChat = (instanceId?: string) => {
         media_type: mediaType as any,
         media_url: mediaUrl,
         timestamp: new Date().toISOString(),
-        status: 'sent' as 'sent' | 'delivered' | 'read' | 'failed' | 'sending'
+        status: 'sent' as 'sent' | 'delivered' | 'read' | 'failed' | 'received'
       };
 
       const { data, error } = await supabase
@@ -199,12 +197,10 @@ export const useWhatsAppChat = (instanceId?: string) => {
         const transformedMessage: Message = {
           id: data.id,
           text: data.text || '',
-          content: data.text || '',
           timestamp: data.timestamp,
           time: data.timestamp,
           fromMe: data.from_me || false,
           sender: data.from_me ? 'user' : 'contact',
-          leadId: data.lead_id,
           mediaType: data.media_type || 'text',
           mediaUrl: data.media_url,
           status: data.status === 'received' ? 'delivered' : (data.status as 'sent' | 'delivered' | 'read' | 'failed' | 'sending') || 'sent'

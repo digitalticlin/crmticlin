@@ -1,153 +1,128 @@
 
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
-import { KanbanColumn, KanbanLead } from '@/types/kanban';
-import { ColumnHeader } from './ColumnHeader';
-import { LeadCard } from '../lead/LeadCard';
-import { useDragClone } from '@/hooks/kanban/useDragClone';
-import { EmptyFunnel } from './EmptyFunnel';
-import { WonLostFunnel } from './WonLostFunnel';
-import { Card } from '@/components/ui/card';
+import React from "react";
+import { Droppable, Draggable } from "react-beautiful-dnd";
+import { KanbanColumn, KanbanLead } from "@/types/kanban";
+import { ColumnHeader } from "./ColumnHeader";
+import { LeadCard } from "../lead/LeadCard";
 
 interface BoardContentOptimizedProps {
-  selectedFunnelId: string;
   columns: KanbanColumn[];
   onOpenLeadDetail: (lead: KanbanLead) => void;
   onColumnUpdate: (updatedColumn: KanbanColumn) => void;
   onColumnDelete: (columnId: string) => void;
-  onMoveLeadToStage: (leadId: string, targetStageId: string) => void;
-  isWonLostView: boolean;
+  onOpenChat?: (lead: KanbanLead) => void;
+  onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
+  onReturnToFunnel?: (lead: KanbanLead) => void;
+  isWonLostView?: boolean;
   wonStageId: string;
   lostStageId: string;
 }
 
-export const BoardContentOptimized: React.FC<BoardContentOptimizedProps> = ({
-  selectedFunnelId,
+export const BoardContentOptimized = ({
   columns,
   onOpenLeadDetail,
   onColumnUpdate,
   onColumnDelete,
-  onMoveLeadToStage,
-  isWonLostView,
+  onOpenChat,
+  onMoveToWonLost,
+  onReturnToFunnel,
+  isWonLostView = false,
   wonStageId,
   lostStageId
-}) => {
-  const boardRef = useRef<HTMLDivElement>(null);
-  const { cloneState, showClone, updateClonePosition, hideClone } = useDragClone();
+}: BoardContentOptimizedProps) => {
+  // Transform columns to match expected format
+  const transformedColumns = columns.map((column, index) => ({
+    ...column,
+    position: index
+  }));
 
-  // Handle empty states
-  if (!selectedFunnelId) {
-    return <EmptyFunnel />;
-  }
+  const transformedWonColumn = {
+    id: wonStageId,
+    title: "Ganhos",
+    color: "#10b981",
+    position: 0
+  };
 
-  if (isWonLostView) {
-    return <WonLostFunnel />;
-  }
+  const transformedLostColumn = {
+    id: lostStageId,
+    title: "Perdidos", 
+    color: "#ef4444",
+    position: 1
+  };
 
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, lead: KanbanLead) => {
-    e.preventDefault();
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
-    
-    showClone(lead, { x: e.clientX, y: e.clientY });
-    
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      updateClonePosition(moveEvent.clientX - offsetX, moveEvent.clientY - offsetY);
-    };
-    
-    const handlePointerUp = () => {
-      hideClone();
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    };
-    
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-  }, [showClone, updateClonePosition, hideClone]);
-
-  const handleDrop = useCallback((e: React.DragEvent, targetColumn: KanbanColumn) => {
-    e.preventDefault();
-    
-    try {
-      const leadData = e.dataTransfer.getData('application/json');
-      const lead: KanbanLead = JSON.parse(leadData);
-      
-      if (lead && targetColumn.id !== lead.columnId) {
-        onMoveLeadToStage(lead.id, targetColumn.id);
-      }
-    } catch (error) {
-      console.error('Error handling drop:', error);
-    }
-  }, [onMoveLeadToStage]);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-  }, []);
+  const columnsToRender = isWonLostView 
+    ? [transformedWonColumn, transformedLostColumn]
+    : transformedColumns;
 
   return (
-    <div ref={boardRef} className="flex-1 overflow-auto">
-      <div className="flex gap-6 p-6 min-h-full">
-        {columns.map((column) => (
-          <Card
-            key={column.id}
-            className="flex-shrink-0 w-80 bg-white/50 backdrop-blur-sm border border-white/20 shadow-xl"
-            onDrop={(e) => handleDrop(e, column)}
-            onDragOver={handleDragOver}
-          >
-            <div className="p-4">
-              <ColumnHeader
-                column={column}
-                isHovered={false}
-                canEdit={true}
-                onUpdate={onColumnUpdate}
-                onDelete={onColumnDelete}
-              />
-              
-              <div className="mt-4 space-y-3">
-                {column.leads?.map((lead) => (
-                  <div
-                    key={lead.id}
-                    onPointerDown={(e) => handlePointerDown(e, lead)}
-                    style={{ touchAction: 'none' }}
-                  >
-                    <LeadCard
-                      lead={lead}
-                      onClick={() => onOpenLeadDetail(lead)}
-                      isWonLostView={isWonLostView}
-                    />
-                  </div>
-                ))}
-                
-                {(!column.leads || column.leads.length === 0) && (
-                  <div className="text-center py-8 text-gray-500">
-                    Nenhum lead nesta etapa
-                  </div>
-                )}
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {/* Clone overlay */}
-      {cloneState.isVisible && cloneState.lead && (
-        <div
-          className="fixed pointer-events-none z-50 transform -translate-x-1/2 -translate-y-1/2"
-          style={{
-            left: cloneState.position.x,
-            top: cloneState.position.y,
-          }}
-        >
-          <div className="opacity-80 scale-95">
-            <LeadCard
-              lead={cloneState.lead}
-              onClick={() => {}}
-              isWonLostView={isWonLostView}
+    <div className="flex gap-6 h-full overflow-x-auto pb-6">
+      {columnsToRender.map((column) => (
+        <div key={column.id} className="flex-shrink-0 w-80">
+          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-glass-lg h-full flex flex-col">
+            <ColumnHeader
+              column={column}
+              isHovered={false}
+              canEdit={!isWonLostView}
+              onUpdate={onColumnUpdate}
+              onDelete={onColumnDelete}
             />
+
+            <Droppable droppableId={column.id}>
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className={`flex-1 p-4 space-y-3 overflow-y-auto glass-scrollbar transition-colors duration-200 ${
+                    snapshot.isDraggingOver
+                      ? "bg-blue-500/10 border-blue-400/30"
+                      : ""
+                  }`}
+                  style={{ minHeight: "200px" }}
+                >
+                  {column.leads?.map((lead, index) => (
+                    <Draggable
+                      key={lead.id}
+                      draggableId={lead.id}
+                      index={index}
+                      isDragDisabled={isWonLostView}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          style={{
+                            ...provided.draggableProps.style,
+                          }}
+                        >
+                          <LeadCard
+                            lead={lead}
+                            onOpenDetail={onOpenLeadDetail}
+                            onOpenChat={onOpenChat}
+                            onMoveToWonLost={onMoveToWonLost}
+                            onReturnToFunnel={onReturnToFunnel}
+                            isWonLostView={isWonLostView}
+                            isDragging={snapshot.isDragging}
+                            wonStageId={wonStageId}
+                            lostStageId={lostStageId}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                  
+                  {column.leads?.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p className="text-sm">Nenhum lead nesta coluna</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Droppable>
           </div>
         </div>
-      )}
+      ))}
     </div>
   );
 };

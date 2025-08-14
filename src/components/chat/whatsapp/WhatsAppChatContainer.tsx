@@ -42,7 +42,7 @@ export function WhatsAppChatContainer() {
     isLoadingMessages
   });
 
-  const onSendMessageWrapper = async (message: string, mediaType?: string, mediaUrl?: string) => {
+  const onSendMessageWrapper = async (message: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
     console.log('[WhatsAppChatContainer] ▶️ onSendMessage chamado', {
       hasContact: !!selectedContact,
       contactId: selectedContact?.id,
@@ -55,11 +55,16 @@ export function WhatsAppChatContainer() {
     return result?.success || false;
   };
 
+  const onSelectContactWrapper = (contact: any) => {
+    console.log('[WhatsAppChatContainer] 📞 Selecionando contato:', contact?.name);
+    setSelectedContact(contact);
+  };
+
   return (
     <WhatsAppChatLayout
       contacts={contacts}
       selectedContact={selectedContact}
-      onSelectContact={setSelectedContact}
+      onSelectContact={onSelectContactWrapper}
       messages={messages}
       onSendMessage={onSendMessageWrapper}
       isLoadingContacts={isLoadingContacts}

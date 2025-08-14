@@ -1,9 +1,9 @@
 
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { ClientData } from './types';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { ClientData } from "./types";
 
-export function useClientsQuery(userId: string | null, searchQuery: string = '') {
+export const useClientsQuery = (userId: string | null, searchQuery: string) => {
   return useQuery({
     queryKey: ['clients', userId, searchQuery],
     queryFn: async (): Promise<ClientData[]> => {
@@ -22,11 +22,12 @@ export function useClientsQuery(userId: string | null, searchQuery: string = '')
           notes,
           purchase_value,
           created_at,
-          updated_at
+          updated_at,
+          created_by_user_id
         `)
         .eq('created_by_user_id', userId);
 
-      if (searchQuery.trim()) {
+      if (searchQuery) {
         query = query.or(`name.ilike.%${searchQuery}%,phone.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`);
       }
 
@@ -37,7 +38,7 @@ export function useClientsQuery(userId: string | null, searchQuery: string = '')
         throw error;
       }
 
-      return data?.map((lead): ClientData => ({
+      return (data || []).map(lead => ({
         id: lead.id,
         name: lead.name,
         phone: lead.phone,
@@ -48,9 +49,11 @@ export function useClientsQuery(userId: string | null, searchQuery: string = '')
         notes: lead.notes || '',
         purchase_value: lead.purchase_value || 0,
         created_at: lead.created_at,
-        updated_at: lead.updated_at
-      })) || [];
+        updated_at: lead.updated_at,
+        created_by_user_id: lead.created_by_user_id,
+        contacts: []
+      }));
     },
     enabled: !!userId,
   });
-}
+};
