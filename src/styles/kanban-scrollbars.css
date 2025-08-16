@@ -59,11 +59,13 @@
   position: relative !important;
 }
 
-/* CRITICAL: Dragging state styles with FULL VISIBILITY */
+/* SOLUÇÃO DEFINITIVA: Ocultar card ORIGINAL durante drag */
 [data-rbd-draggable-context-id][data-rbd-draggable-id]:has([data-rbd-drag-handle-dragging="true"]) {
-  z-index: 10000 !important;
-  pointer-events: none !important;
-  opacity: 1 !important; /* MANTÉM CARD TOTALMENTE VISÍVEL */
+  opacity: 0 !important; /* CARD ORIGINAL INVISÍVEL durante drag */
+  transform: none !important; /* SEM transformações visuais */
+  pointer-events: none !important; /* SEM interação */
+  z-index: 1 !important; /* ATRÁS - mantém funcionalidade drop zones */
+  visibility: hidden !important; /* FORÇA invisibilidade total */
 }
 
 /* Enhanced drop zone highlighting */
@@ -95,16 +97,14 @@ body.rbd-dragging * {
   -webkit-touch-callout: none;
 }
 
-/* CORRIGIDO: Enhanced drag preview styling - MANTÉM VISIBILIDADE TOTAL */
+/* CORRIGIDO: Ocultar clone RBD nativo - mantém funcionalidade drop zones */
 [data-react-beautiful-dnd-dragging] {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
-  transform: rotate(3deg) scale(1.05) !important;
-  border: 2px solid rgba(59, 130, 246, 0.8) !important;
-  background: rgba(255, 255, 255, 0.98) !important;
-  backdrop-filter: blur(12px) !important;
-  opacity: 1 !important; /* FORÇA VISIBILIDADE COMPLETA */
-  z-index: 10000 !important;
-  transition: all 0.15s ease !important;
+  opacity: 0 !important; /* INVISÍVEL - evita duplicação com clone customizado */
+  transform: none !important; /* SEM transformações visuais */
+  pointer-events: none !important; /* SEM interação */
+  z-index: 1 !important; /* ATRÁS - mas funcional para drop detection */
+  transition: none !important; /* SEM animações */
+  /* Mantém posição original para react-beautiful-dnd detectar drop zones */
 }
 
 /* Prevent layout shifts during drag */
@@ -118,11 +118,23 @@ body.rbd-dragging * {
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
-/* NOVO: Placeholder otimizado */
+/* NOVO: Placeholder otimizado - mais visível */
 [data-react-beautiful-dnd-placeholder] {
-  opacity: 0.5;
-  border: 2px dashed rgba(59, 130, 246, 0.3);
-  background: rgba(59, 130, 246, 0.05);
+  opacity: 0.8;
+  border: 2px dashed rgba(59, 130, 246, 0.6);
+  background: rgba(59, 130, 246, 0.1);
   border-radius: 12px;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  min-height: 100px; /* Garantir área de drop visível */
+}
+
+/* Drop zone highlight durante drag */
+[data-rbd-droppable-id] {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Drop zone ativa - feedback visual melhorado */
+body.rbd-dragging [data-rbd-droppable-id]:hover {
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 8px;
 }

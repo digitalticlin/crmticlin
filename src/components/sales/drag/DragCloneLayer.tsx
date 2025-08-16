@@ -21,6 +21,7 @@ export const DragCloneLayer = ({ cloneState }: DragCloneLayerProps) => {
     <CardClone 
       lead={cloneState.lead} 
       position={cloneState.position} 
+      size={cloneState.size}
     />,
     document.body
   );

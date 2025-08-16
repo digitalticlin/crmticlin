@@ -82,23 +82,30 @@ export const useWhatsAppWebInstances = () => {
 
   const refreshQRCode = useCallback(async (instanceId: string) => {
     try {
-      console.log(`[WhatsApp Web Instances] 🔄 Atualizando QR Code: ${instanceId}`);
+      console.log(`[WhatsApp Web Instances] 🔄 Atualizando/gerando QR Code via Edge: ${instanceId}`);
       
-      const { data, error } = await supabase.functions.invoke('whatsapp_instance_qr', {
+      // Usar edge padronizada para solicitar/forçar geração do QR na VPS
+      const { data, error } = await supabase.functions.invoke('whatsapp_qr_manager', {
         body: { instanceId }
       });
 
       if (error) throw error;
 
       if (data?.success) {
-        console.log(`[WhatsApp Web Instances] ✅ QR Code atualizado: ${instanceId}`);
+        console.log(`[WhatsApp Web Instances] ✅ QR Code atualizado/obtido: ${instanceId}`);
         toast.success('QR Code atualizado!');
-        // Recarregar instâncias para mostrar QR atualizado
         await loadInstances();
         return data;
-      } else {
-        throw new Error(data?.error || 'Erro ao atualizar QR Code');
       }
+
+      // Caso esteja aguardando, informar e manter polling via realtime
+      if (data?.waiting) {
+        console.log(`[WhatsApp Web Instances] ⏳ QR aguardando geração na VPS: ${instanceId}`);
+        toast.info('Gerando QR Code, aguarde alguns segundos...');
+        return data;
+      }
+
+      throw new Error(data?.error || 'Erro ao atualizar QR Code');
     } catch (error: any) {
       console.error(`[WhatsApp Web Instances] ❌ Erro ao atualizar QR:`, error);
       toast.error(`Erro ao atualizar QR Code: ${error.message}`);

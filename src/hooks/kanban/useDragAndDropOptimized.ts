@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import { DropResult } from "react-beautiful-dnd";
 import { KanbanColumn } from "@/types/kanban";
 import { toast } from "sonner";
@@ -38,14 +38,25 @@ export const useDragAndDropOptimized = ({
     const draggedLead = sourceColumn?.leads[start.source.index];
     
     if (draggedLead) {
-      // Pegar posição inicial do mouse
-      const rect = document.querySelector(`[data-rbd-draggable-id="${start.draggableId}"]`)?.getBoundingClientRect();
-      const initialPosition = rect ? 
-        { x: rect.left, y: rect.top } : 
-        { x: 200, y: 200 };
-      
-      // Mostrar clone
-      showClone(draggedLead, initialPosition);
+      const element = document.querySelector(`[data-rbd-draggable-id="${start.draggableId}"]`);
+      const rect = element?.getBoundingClientRect();
+
+      const lastMouse = (window as any).__lastMouse as { x: number; y: number } | undefined;
+      // Posição inicial do clone: canto superior esquerdo do card
+      const initialPosition = rect
+        ? { x: rect.left, y: rect.top }
+        : { x: 30, y: 140 };
+
+      // Offset inicial: ponto exato onde o usuário clicou dentro do card
+      const initialOffset = rect && lastMouse
+        ? { x: lastMouse.x - rect.left, y: lastMouse.y - rect.top }
+        : undefined;
+
+      const size = rect
+        ? { width: Math.round(rect.width), height: Math.round(rect.height) }
+        : { width: 320, height: 120 };
+
+      showClone(draggedLead, initialPosition, size, initialOffset);
     }
   }, [columns, showClone]);
 

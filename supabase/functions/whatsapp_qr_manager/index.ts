@@ -136,8 +136,9 @@ serve(async (req: Request) => {
     const vpsResult = await response.json();
     console.log(`📱 [QR Manager] Resposta da VPS:`, vpsResult);
 
-    if (response.ok && (vpsResult.qr || vpsResult.qrcode)) {
-      const qrCode = vpsResult.qr || vpsResult.qrcode;
+    // Aceitar diferentes formatos do campo de QR Code enviados pela VPS
+    if (response.ok && (vpsResult.qr || vpsResult.qrcode || vpsResult.qrCode)) {
+      const qrCode = vpsResult.qr || vpsResult.qrcode || vpsResult.qrCode;
       // Atualizar instância com QR Code
       const { error: updateError } = await supabase
         .from('whatsapp_instances')

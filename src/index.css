@@ -185,3 +185,13 @@ body {
   background: rgba(0, 0, 0, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* Drag & Drop: ocultar o card ORIGINAL enquanto arrasta para exibir apenas o clone visual */
+[data-rbd-draggable-context-id][data-rbd-draggable-id][data-rbd-drag-handle-dragging="true"],
+[data-rbd-draggable-context-id][data-rbd-draggable-id]:has([data-rbd-drag-handle-dragging="true"]) {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: none !important;
+  z-index: 1 !important;
+}

@@ -1,5 +1,5 @@
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { DragDropContext } from "react-beautiful-dnd";
 import { AdvancedErrorTracker } from "./AdvancedErrorTracker";
 import { DragCloneLayer } from "../drag/DragCloneLayer";
@@ -21,6 +21,19 @@ export const StableDragDropWrapper = ({
   cloneState
 }: StableDragDropWrapperProps) => {
   console.log('[StableDragDropWrapper] 🔄 RADICAL - Wrapper otimizado com clone visual');
+
+  // Rastrear continuamente a posição do mouse para ancoragem exata no início do drag
+  useEffect(() => {
+    const track = (e: MouseEvent) => {
+      (window as any).__lastMouse = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener('mousemove', track, { passive: true });
+    window.addEventListener('mousedown', track, { passive: true });
+    return () => {
+      window.removeEventListener('mousemove', track);
+      window.removeEventListener('mousedown', track);
+    };
+  }, []);
 
   // AUTO-SCROLL APENAS DURANTE DRAG AND DROP
   const handleGlobalMouseMove = (ev: MouseEvent) => {
