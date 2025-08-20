@@ -51,6 +51,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
 
   // Auto-save functionality
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hasBasicFormChanges, setHasBasicFormChanges] = useState(false);
   const [showConfirmCloseModal, setShowConfirmCloseModal] = useState(false);
 
   // Track component mount state
@@ -58,6 +59,17 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     setIsMounted(true);
     return () => setIsMounted(false);
   }, []);
+
+  // Função unificada para obter o agente atual - garante consistência
+  const getCurrentAgent = (): AIAgent | null => {
+    const currentAgent = workingAgent || agent;
+    console.log('🎯 getCurrentAgent() chamado:', currentAgent ? {
+      id: currentAgent.id,
+      name: currentAgent.name,
+      source: workingAgent ? 'workingAgent' : 'agent prop'
+    } : null);
+    return currentAgent;
+  };
 
   // Initialize or reset state when modal opens/closes or agent changes
   useEffect(() => {
@@ -80,6 +92,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       setAllowTabNavigation(false);
       resetPromptData();
       setHasUnsavedChanges(false);
+      setHasBasicFormChanges(false);
     }
   }, [isOpen, agent]); // Removido hasUnsavedChanges da dependência para evitar loops
 
@@ -159,11 +172,19 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     unstable_batchedUpdates(() => {
       setWorkingAgent(savedAgent);
       setAllowTabNavigation(true);
+      // BUG 1 FIX: Resetar estado de mudanças não salvas após salvamento bem-sucedido
+      setHasUnsavedChanges(false);
+      setHasBasicFormChanges(false);
     });
     
     // CRÍTICO: Chamar onSave para notificar a página principal
     console.log('📢 Notificando página principal via onSave...');
     onSave();
+  };
+
+  const handleBasicFormChange = (hasChanges: boolean) => {
+    console.log(`📊 AIAgentModal - Mudanças na Aba 1: ${hasChanges}`);
+    setHasBasicFormChanges(hasChanges);
   };
 
   const handlePromptDataChange = (
@@ -202,12 +223,24 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   const handleClose = () => {
     if (!isMounted) return; // Safety check
     
-    // Verificar se há dados não salvos
-    if (hasUnsavedChanges) {
+    console.log('🚪 handleClose chamado - verificando estado antes de fechar');
+    console.log('📊 Estado atual:', {
+      hasUnsavedChanges,
+      currentAgent: getCurrentAgent()?.id || null,
+      promptDataEmpty: !promptData.agent_function && !promptData.agent_objective,
+      flowSteps: promptData.flow.length
+    });
+
+    // BUG ABA 1 FIX: Verificar mudanças tanto da Aba 1 quanto da Aba 2
+    if (hasUnsavedChanges || hasBasicFormChanges) {
+      console.log('⚠️ Alterações não salvas detectadas - solicitando confirmação');
+      console.log('  - Aba 2 (prompts):', hasUnsavedChanges);
+      console.log('  - Aba 1 (dados básicos):', hasBasicFormChanges);
       setShowConfirmCloseModal(true);
       return; // Mostrar modal de confirmação
     }
     
+    console.log('✅ Nenhuma alteração não salva detectada - fechando diretamente');
     // Fechar diretamente se não há mudanças não salvas
     handleForceClose();
   };
@@ -226,13 +259,14 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     setShowConfirmCloseModal(false);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (saveContext?: { fromTab?: string; skipRedirect?: boolean }) => {
     console.log('\n=== SALVAMENTO INICIADO ===');
     console.log('🚀 handleSave do modal principal - DIAGNÓSTICO COMPLETO');
+    console.log('🔧 Contexto do salvamento:', saveContext);
     console.log('\n📊 ESTADO ATUAL:');
     console.log('  - agent (prop recebida):', agent ? { id: agent.id, name: agent.name } : null);
     console.log('  - workingAgent (estado local):', workingAgent ? { id: workingAgent.id, name: workingAgent.name } : null);
-    console.log('  - currentAgent (computed):', (workingAgent || agent) ? { id: (workingAgent || agent)?.id, name: (workingAgent || agent)?.name } : null);
+    console.log('  - currentAgent (computed):', getCurrentAgent() ? { id: getCurrentAgent()?.id, name: getCurrentAgent()?.name } : null);
     console.log('\n📝 PROMPT DATA:');
     console.log('  - agent_function:', promptData.agent_function ? 'PREENCHIDO' : 'VAZIO');
     console.log('  - agent_objective:', promptData.agent_objective ? 'PREENCHIDO' : 'VAZIO');
@@ -242,7 +276,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     
     try {
       // Verificar se temos um agente (criado ou existente)
-      const targetAgent = workingAgent || agent;
+      const targetAgent = getCurrentAgent();
       console.log('\n🎯 TARGET AGENT SELECIONADO:', targetAgent ? {
         id: targetAgent.id,
         name: targetAgent.name,
@@ -252,26 +286,106 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       
       if (!targetAgent) {
         console.log('❌ Nenhum agente encontrado');
-        console.log('  - Redirecionando usuário para criar o agente primeiro');
         
-        toast.info('📝 Crie o agente primeiro', {
-          description: 'Complete as informações básicas antes de configurar prompts e fluxos',
-          duration: 4000
-        });
-        
-        setActiveTab('basic');
-        return; // Não gerar erro - apenas redirecionar
+        // Se for salvamento da ABA 2/3, auto-criar agente
+        if (saveContext?.fromTab === 'objectives' || saveContext?.skipRedirect) {
+          console.log('🚀 AUTO-CRIANDO agente para salvamento da Aba 2/3');
+          
+          try {
+            // Criar agente com dados mínimos
+            const newAgentData = {
+              name: "NOVO AGENTE",
+              type: "sales" as const,
+              funnel_id: null,
+              whatsapp_number_id: null
+            };
+            
+            console.log('📝 Criando agente com dados:', newAgentData);
+            
+            // Criar agente usando supabase diretamente
+            const { supabase } = await import('@/integrations/supabase/client');
+            const { data: user } = await supabase.auth.getUser();
+            
+            if (!user.user) {
+              throw new Error('Usuário não autenticado');
+            }
+            
+            const { data: newAgent, error: createError } = await supabase
+              .from('ai_agents')
+              .insert({
+                ...newAgentData,
+                created_by_user_id: user.user.id
+              })
+              .select()
+              .single();
+              
+            if (createError) throw createError;
+            
+            if (newAgent) {
+              console.log('✅ Agente auto-criado com sucesso:', newAgent.id);
+              
+              // Atualizar estados do modal
+              const typedAgent = {
+                ...newAgent,
+                type: newAgent.type as 'attendance' | 'sales' | 'support' | 'custom',
+                status: newAgent.status as 'active' | 'inactive'
+              };
+              
+              setWorkingAgent(typedAgent);
+              setAllowTabNavigation(true);
+              
+              toast.success('🤖 Agente criado automaticamente', {
+                description: 'Você pode renomear na Aba 1 depois',
+                duration: 3000
+              });
+              
+              // Notificar componente pai sobre a criação do agente
+              onSave();
+              
+              // Continuar com o salvamento usando o agente recém-criado
+              // Atualizar targetAgent para o novo agente
+              console.log('🔄 Continuando salvamento com agente auto-criado');
+            } else {
+              throw new Error('Falha ao criar agente');
+            }
+          } catch (error) {
+            console.error('❌ Erro ao auto-criar agente:', error);
+            toast.error('Erro ao criar agente automaticamente', {
+              description: 'Crie o agente na Aba 1 primeiro',
+              duration: 4000
+            });
+            setActiveTab('basic');
+            return;
+          }
+        } else {
+          console.log('  - Redirecionando usuário para criar o agente primeiro');
+          
+          toast.info('📝 Crie o agente primeiro', {
+            description: 'Complete as informações básicas antes de configurar prompts e fluxos',
+            duration: 4000
+          });
+          
+          setActiveTab('basic');
+          return;
+        }
       }
       
-      console.log('✅ Target Agent encontrado:', {
-        id: targetAgent.id,
-        name: targetAgent.name,
-        type: targetAgent.type
+      // Re-obter targetAgent após possível criação automática
+      const finalTargetAgent = getCurrentAgent();
+      console.log('✅ Target Agent final:', {
+        id: finalTargetAgent?.id,
+        name: finalTargetAgent?.name,
+        type: finalTargetAgent?.type
       });
+      
+      if (!finalTargetAgent) {
+        console.error('❌ Falha crítica: nenhum agente disponível após tentativa de criação');
+        return;
+      }
 
       // Preparar dados do prompt para salvamento
       const promptDataToSave = {
-        agent_id: targetAgent.id,
+        agent_id: finalTargetAgent.id,
         ...promptData
       };
       
@@ -279,10 +393,10 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
 
       // Verificar se já existe um prompt para este agente
       console.log('\n🔎 VERIFICANDO PROMPT EXISTENTE');
-      console.log('  - Agente ID:', targetAgent.id);
-      console.log('  - Agente pertence ao usuário:', targetAgent.created_by_user_id);
+      console.log('  - Agente ID:', finalTargetAgent.id);
+      console.log('  - Agente pertence ao usuário:', finalTargetAgent.created_by_user_id);
       
-      const existingPrompt = await getPromptByAgentId(targetAgent.id);
+      const existingPrompt = await getPromptByAgentId(finalTargetAgent.id);
       console.log('\n📊 RESULTADO DA BUSCA:');
       if (existingPrompt) {
         console.log('  - Prompt encontrado ID:', existingPrompt.id);
@@ -331,7 +445,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   };
 
   // Get current agent (either existing or newly created)
-  const currentAgent = workingAgent || agent;
+  const currentAgent = getCurrentAgent();
   const stepsCount = promptData.flow.length;
   
   // Permitir acesso às abas mesmo sem agent (para novos agentes)
@@ -355,7 +469,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           </DialogTitle>
           <p className="text-gray-700 mt-1 text-sm font-medium">
             Configure seu assistente inteligente para automatizar conversas e processos
-            {hasUnsavedChanges && (
+            {(hasUnsavedChanges || hasBasicFormChanges) && (
               <span className="ml-2 text-yellow-600">• Alterações não salvas</span>
             )}
           </p>
@@ -419,6 +533,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
                     agent={agent} 
                     onSave={handleAgentSaved}
                     onCancel={handleClose}
+                    onFormChange={handleBasicFormChange}
                   />
                 </CardContent>
               </Card>

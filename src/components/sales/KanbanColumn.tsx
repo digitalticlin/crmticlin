@@ -15,6 +15,7 @@ import { KanbanColumn as KanbanColumnType, KanbanLead } from "@/types/kanban";
 import { AIToggleSwitchEnhanced } from "./ai/AIToggleSwitchEnhanced";
 import { useAIStageControl } from "@/hooks/salesFunnel/useAIStageControl";
 import { toast } from "sonner";
+import { MassSelectionReturn } from "@/hooks/useMassSelection";
 
 // Hook customizado para gerenciar scroll infinito
 const useInfiniteScroll = (totalItems: number, initialCount: number = 25) => {
@@ -258,6 +259,7 @@ interface KanbanColumnProps {
   isWonLostView?: boolean;
   wonStageId?: string;
   lostStageId?: string;
+  massSelection?: MassSelectionReturn;
 }
 
 export function KanbanColumn({
@@ -271,8 +273,18 @@ export function KanbanColumn({
   onReturnToFunnel,
   isWonLostView = false,
   wonStageId,
-  lostStageId
+  lostStageId,
+  massSelection
 }: KanbanColumnProps) {
+  // Debug logs
+  console.log('🐛 [DEBUG] KanbanColumn render:', {
+    columnId: column.id,
+    columnTitle: column.title,
+    leadsCount: column.leads.length,
+    hasMassSelection: !!massSelection,
+    massSelectionMode: massSelection?.isSelectionMode
+  });
+  
   // Hooks customizados
   const { toggleAI, isLoading: isTogglingAI } = useAIStageControl();
   const {
@@ -410,6 +422,7 @@ export function KanbanColumn({
                     wonStageId={wonStageId}
                     lostStageId={lostStageId}
                     isDragging={snapshot.isDragging}
+                    massSelection={massSelection}
                   />
                 )}
               </Draggable>

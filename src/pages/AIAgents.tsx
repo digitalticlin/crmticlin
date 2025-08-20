@@ -11,10 +11,12 @@ import {
   MessageSquare, 
   Users, 
   Zap,
-  Pencil
+  Pencil,
+  Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AIAgentModal } from "@/components/ai-agents/AIAgentModal";
 import { useAIAgents } from "@/hooks/useAIAgents";
 import { AIAgent } from "@/types/aiAgent";
@@ -25,6 +27,8 @@ export default function AIAgents() {
   const [editingAgent, setEditingAgent] = useState<AIAgent | null>(null);
   const [agentsConfig, setAgentsConfig] = useState<Record<string, any>>({});
   const [togglingStatus, setTogglingStatus] = useState<string | null>(null);
+  const [deletingAgent, setDeletingAgent] = useState<AIAgent | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Carregar configurações dos agentes
   useEffect(() => {
@@ -114,9 +118,25 @@ export default function AIAgents() {
     setIsModalOpen(true);
   };
 
-  const handleDeleteAgent = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja remover este agente?')) {
-      await deleteAgent(id);
+  const handleDeleteAgent = (agent: AIAgent) => {
+    setDeletingAgent(agent);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteAgent = async () => {
+    if (!deletingAgent) return;
+    
+    try {
+      const success = await deleteAgent(deletingAgent.id);
+      if (success) {
+        setShowDeleteConfirm(false);
+        setDeletingAgent(null);
+        // Recarregar lista e configurações
+        await refetch();
+        await loadAgentsConfig();
+      }
+    } catch (error) {
+      console.error('❌ Erro ao excluir agente:', error);
     }
   };
 
@@ -270,14 +290,24 @@ export default function AIAgents() {
 
                     {/* Coluna Ações */}
                     <td className="py-4">
-                      <div className="flex justify-center">
+                      <div className="flex justify-center gap-1">
                         <Button 
                           variant="ghost" 
                           size="sm"
                           onClick={() => handleEditAgent(agent)}
                           className="h-9 w-9 p-0 hover:bg-ticlin/10 hover:text-ticlin transition-colors"
+                          title="Editar agente"
                         >
                           <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDeleteAgent(agent)}
+                          className="h-9 w-9 p-0 hover:bg-red-50 hover:text-red-600 transition-colors"
+                          title="Excluir agente"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </td>
@@ -302,6 +332,47 @@ export default function AIAgents() {
         agent={editingAgent}
         onSave={handleModalSave}
       />
+
+      {/* Modal de confirmação para exclusão */}
+      <Dialog open={showDeleteConfirm} onOpenChange={() => setShowDeleteConfirm(false)}>
+        <DialogContent className="max-w-md bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-xl">
+          <DialogHeader className="border-b border-white/30 pb-3 bg-white/20 backdrop-blur-sm rounded-t-xl -mx-6 -mt-6 px-6 pt-6">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
+              <div className="p-2 bg-red-500/20 backdrop-blur-sm rounded-lg border border-red-500/30">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              Confirmar exclusão
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="text-gray-700 text-sm leading-relaxed mb-3">
+              Tem certeza que deseja excluir o agente <strong>"{deletingAgent?.name}"</strong>?
+            </p>
+            <p className="text-red-600 text-sm font-medium">
+              ⚠️ Esta ação não pode ser desfeita. Todas as configurações, prompts e fluxos serão perdidos permanentemente.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-white/30 bg-white/10 backdrop-blur-sm -mx-6 -mb-6 px-6 pb-6 rounded-b-xl">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowDeleteConfirm(false)}
+              className="px-4 h-10 bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-lg transition-all duration-200"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={confirmDeleteAgent}
+              className="px-4 h-10 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-all duration-200"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Excluir Agente
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 }

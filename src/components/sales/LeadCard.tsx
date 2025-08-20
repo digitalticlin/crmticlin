@@ -4,7 +4,9 @@ import { DraggableProvided } from "react-beautiful-dnd";
 import { LeadCardContent } from "./lead/LeadCardContent";
 import { LeadCardTags } from "./lead/LeadCardTags";
 import { LeadCardActions } from "./lead/LeadCardActions";
+import { Check } from "lucide-react";
 import React from "react";
+import { MassSelectionReturn } from "@/hooks/useMassSelection";
 
 interface LeadCardProps {
   lead: KanbanLead;
@@ -21,6 +23,7 @@ interface LeadCardProps {
   onMouseLeave?: () => void;
   wonStageId?: string;
   lostStageId?: string;
+  massSelection?: MassSelectionReturn;
 }
 
 export const LeadCard = ({
@@ -37,14 +40,54 @@ export const LeadCard = ({
   onMouseEnter,
   onMouseLeave,
   wonStageId,
-  lostStageId
+  lostStageId,
+  massSelection
 }: LeadCardProps) => {
+  // Se não tiver massSelection via props, usar valores padrão
+  const effectiveMassSelection = massSelection || {
+    selectedLeads: new Set(),
+    isSelectionMode: false,
+    toggleLead: () => {},
+    isLeadSelected: () => false
+  };
+
+  const { selectedLeads, isSelectionMode, toggleLead, isLeadSelected } = effectiveMassSelection;
+  const isSelected = isLeadSelected ? isLeadSelected(lead.id) : selectedLeads.has(lead.id);
+  
+  // Temporary debug logs
+  console.log('🐛 [DEBUG] LeadCard render:', {
+    leadId: lead.id,
+    isSelectionMode,
+    hasMassSelection: !!massSelection,
+    massSelectionType: typeof massSelection
+  });
   const isWon = isWonLostView && lead.columnId === wonStageId;
   const isLost = isWonLostView && lead.columnId === lostStageId;
   
   const handleCardClick = (e: React.MouseEvent) => {
+    console.log('🐛 [DEBUG] LeadCard clicked:', {
+      leadId: lead.id,
+      isSelectionMode,
+      hasMassSelection: !!massSelection,
+      hasToggleLead: typeof toggleLead === 'function',
+      target: (e.target as HTMLElement).tagName
+    });
+    
+    // Se estiver em modo seleção e não clicou no checkbox
+    if (isSelectionMode && !(e.target as HTMLElement).closest('.selection-checkbox')) {
+      console.log('🐛 [DEBUG] Calling toggleLead for:', lead.id);
+      toggleLead(lead.id);
+      return;
+    }
+    
+    // Comportamento normal
     if (onOpenChat) onOpenChat();
     else onClick();
+  };
+
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleLead(lead.id);
   };
 
   return (
@@ -62,13 +105,34 @@ export const LeadCard = ({
         
         // Estados especiais para Won/Lost
         isWon && "border-l-[4px] border-l-green-500 bg-green-50/20",
-        isLost && "border-l-[4px] border-l-red-500 bg-red-50/20"
+        isLost && "border-l-[4px] border-l-red-500 bg-red-50/20",
+        
+        // Estado selecionado - borda azul destacada
+        isSelected && "ring-2 ring-blue-500 border-blue-300 bg-blue-50/20"
       )}
       style={provided.draggableProps.style}
       onClick={!isDragging ? handleCardClick : undefined}
       onMouseEnter={!isDragging ? onMouseEnter : undefined}
       onMouseLeave={!isDragging ? onMouseLeave : undefined}
     >
+      {/* Checkbox de seleção - aparece apenas no modo seleção */}
+      {isSelectionMode && (
+        <div 
+          className="selection-checkbox absolute -top-2 -right-2 z-30"
+          onClick={handleCheckboxClick}
+        >
+          <div className={cn(
+            "w-6 h-6 rounded-full border-2 bg-white shadow-lg cursor-pointer transition-all duration-200",
+            "flex items-center justify-center",
+            isSelected 
+              ? "bg-blue-500 border-blue-500 text-white" 
+              : "border-gray-300 hover:border-blue-400"
+          )}>
+            {isSelected && <Check size={14} />}
+          </div>
+        </div>
+      )}
+
       {/* Glassmorphism overlay padrão */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-xl pointer-events-none" />
       

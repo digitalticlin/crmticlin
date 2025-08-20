@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from "react";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
 import { KanbanColumnMemo } from "../KanbanColumnMemo";
+import { MassSelectionReturn } from "@/hooks/useMassSelection";
 
 interface BoardContentOptimizedProps {
   columns: KanbanColumn[];
@@ -13,6 +14,7 @@ interface BoardContentOptimizedProps {
   isWonLostView?: boolean;
   wonStageId?: string;
   lostStageId?: string;
+  massSelection?: MassSelectionReturn;
 }
 
 export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
@@ -25,11 +27,14 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
   onReturnToFunnel,
   isWonLostView = false,
   wonStageId,
-  lostStageId
+  lostStageId,
+  massSelection
 }) => {
   console.log('[BoardContentOptimized] 🎯 FASES 2+3 - Renderizando com arquitetura refinada:', {
     columnsCount: columns?.length || 0,
-    isWonLostView
+    isWonLostView,
+    hasMassSelection: !!massSelection,
+    massSelectionMode: massSelection?.isSelectionMode
   });
 
   // Ref para container principal
@@ -171,6 +176,7 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
             isWonLostView={isWonLostView}
             wonStageId={wonStageId}
             lostStageId={lostStageId}
+            massSelection={massSelection}
           />
         ))}
       </div>
@@ -193,7 +199,19 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
     prevProps.wonStageId !== nextProps.wonStageId ||
     prevProps.lostStageId !== nextProps.lostStageId;
 
-  return !(columnsChanged || stateChanged);
+  // 🚀 CORREÇÃO CRÍTICA: Verificar mudanças no massSelection
+  const massSelectionChanged = 
+    prevProps.massSelection?.isSelectionMode !== nextProps.massSelection?.isSelectionMode ||
+    prevProps.massSelection?.selectedCount !== nextProps.massSelection?.selectedCount;
+
+  console.log('🐛 [DEBUG] BoardContentOptimized memo check:', {
+    columnsChanged,
+    stateChanged,
+    massSelectionChanged,
+    shouldRerender: !!(columnsChanged || stateChanged || massSelectionChanged)
+  });
+
+  return !(columnsChanged || stateChanged || massSelectionChanged);
 });
 
 BoardContentOptimized.displayName = 'BoardContentOptimized';

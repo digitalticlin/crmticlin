@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Search, Tag, User, X } from "lucide-react";
 import { KanbanTag } from "@/types/kanban";
+import { MassSelectionFilterButton } from "../mass-selection/MassSelectionFilterButton";
+import { MassSelectionReturn } from "@/hooks/useMassSelection";
 
 interface WonLostFiltersProps {
   searchTerm: string;
@@ -17,6 +19,7 @@ interface WonLostFiltersProps {
   availableUsers: string[];
   onClearFilters: () => void;
   resultsCount: number;
+  massSelection: MassSelectionReturn;
 }
 
 export const WonLostFilters = ({
@@ -29,7 +32,8 @@ export const WonLostFilters = ({
   availableTags,
   availableUsers,
   onClearFilters,
-  resultsCount
+  resultsCount,
+  massSelection
 }: WonLostFiltersProps) => {
   const hasActiveFilters = searchTerm || selectedTags.length > 0 || selectedUser;
 
@@ -145,6 +149,9 @@ export const WonLostFilters = ({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Botão de Seleção em Massa */}
+      <MassSelectionFilterButton massSelection={massSelection} />
 
       {/* Contador de resultados filtrados */}
       {hasActiveFilters && (

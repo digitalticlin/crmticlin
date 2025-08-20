@@ -261,13 +261,15 @@ export const FunnelConfigModal = ({
       // Por enquanto, não salvar telefone global até a migração ser aplicada
       console.log('📞 Telefone global configurado:', globalNotifyEnabled ? globalNotifyPhone : 'Desabilitado');
 
-      // Salvar configurações de cada estágio
-      const stageUpdates = funnelStages.map(stage => ({
-        id: stage.id,
-        ai_stage_description: stageDescriptions[stage.id] || '',
-        ai_notify_enabled: globalNotifyEnabled && stageNotifications[stage.id],
-        notify_phone: (globalNotifyEnabled && stageNotifications[stage.id]) ? globalNotifyPhone : '',
-      }));
+      // Salvar configurações de cada estágio (excluindo automáticos)
+      const stageUpdates = funnelStages
+        .filter(stage => stage.title !== 'Entrada de Leads' && stage.title !== 'Em atendimento')
+        .map(stage => ({
+          id: stage.id,
+          ai_stage_description: stageDescriptions[stage.id] || '',
+          ai_notify_enabled: globalNotifyEnabled && stageNotifications[stage.id],
+          notify_phone: (globalNotifyEnabled && stageNotifications[stage.id]) ? globalNotifyPhone : '',
+        }));
 
       for (const update of stageUpdates) {
         try {
@@ -311,8 +313,9 @@ export const FunnelConfigModal = ({
       // Chamar onSave do parent para atualizar estado
       await onSave({ configured: true });
 
-      // Fechar modal após sucesso
+      // Fechar modal após sucesso com feedback melhor
       setTimeout(() => {
+        console.log('🚪 Fechando FunnelConfigModal automaticamente após salvamento bem-sucedido');
         onClose();
       }, 1000);
 
@@ -386,7 +389,7 @@ export const FunnelConfigModal = ({
             )}
           </DialogTitle>
           <p className="text-sm text-gray-600 mt-1">
-            Configure como a IA deve identificar e notificar sobre cada estágio do funil
+            Ensine o agente quando mover os leads entre os estágios do funil
           </p>
         </DialogHeader>
 
@@ -470,11 +473,44 @@ export const FunnelConfigModal = ({
                       Estágios do Funil ({funnelStages.length})
                     </CardTitle>
                     <p className="text-sm text-gray-600">
-                      Configure a descrição IA e ative notificações para cada estágio
+                      Explique quando um lead deve estar em cada estágio
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {funnelStages.map((stage, index) => (
+                    {funnelStages.map((stage, index) => {
+                      // Pular configuração para as duas primeiras etapas (automáticas)
+                      const isAutomaticStage = stage.title === 'Entrada de Leads' || stage.title === 'Em atendimento';
+                      
+                      if (isAutomaticStage) {
+                        return (
+                          <div 
+                            key={stage.id}
+                            className="p-4 bg-green-50/80 backdrop-blur-sm border border-green-200/60 rounded-lg"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div 
+                                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                                  style={{ backgroundColor: stage.color || '#e0e0e0' }}
+                                >
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-green-800 flex items-center gap-2">
+                                    {getStageEmoji(stage.order_position)} {stage.title}
+                                  </h4>
+                                  <p className="text-xs text-green-600">Configuração automática - A IA já entende este estágio</p>
+                                </div>
+                              </div>
+                              <div className="text-green-600">
+                                ✅ Automático
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      return (
                       <div 
                         key={stage.id}
                         className="p-4 bg-white/30 backdrop-blur-sm border border-white/20 rounded-lg space-y-3"
@@ -511,18 +547,19 @@ export const FunnelConfigModal = ({
                         {/* Campo descrição IA */}
                         <div className="space-y-2">
                           <Label className="text-sm font-medium text-gray-700">
-                            📝 Como a IA identifica este estágio:
+                            📝 Quando um lead deve estar neste estágio:
                           </Label>
                           <Textarea
                             value={stageDescriptions[stage.id] || ''}
                             onChange={(e) => handleStageDescriptionChange(stage.id, e.target.value)}
-                            placeholder={`Ex: Lead demonstrou interesse, fez perguntas específicas sobre ${stage.title.toLowerCase()}, solicitou informações detalhadas...`}
+                            placeholder={`Ex: Quando o lead pede orçamento, quando demonstra interesse em comprar, quando faz perguntas sobre valores...`}
                             className="min-h-20 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-lg resize-none text-sm"
                             rows={3}
                           />
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </CardContent>
                 </Card>
               )}

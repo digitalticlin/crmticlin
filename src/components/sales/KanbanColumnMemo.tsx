@@ -2,6 +2,7 @@
 import React from "react";
 import { KanbanColumn as KanbanColumnType, KanbanLead } from "@/types/kanban";
 import { KanbanColumn } from "./KanbanColumn";
+import { MassSelectionReturn } from "@/hooks/useMassSelection";
 
 interface KanbanColumnMemoProps {
   column: KanbanColumnType;
@@ -15,6 +16,7 @@ interface KanbanColumnMemoProps {
   isWonLostView?: boolean;
   wonStageId?: string;
   lostStageId?: string;
+  massSelection?: MassSelectionReturn;
 }
 
 // Memoização inteligente da KanbanColumn - evita re-renders desnecessários
@@ -57,17 +59,15 @@ export const KanbanColumnMemo = React.memo<KanbanColumnMemoProps>(
       prevProps.wonStageId !== nextProps.wonStageId ||
       prevProps.lostStageId !== nextProps.lostStageId ||
       prevProps.index !== nextProps.index;
+    
+    // 🚀 CORREÇÃO CRÍTICA: Verificar mudanças no massSelection
+    const massSelectionChanged = 
+      prevProps.massSelection?.isSelectionMode !== nextProps.massSelection?.isSelectionMode ||
+      prevProps.massSelection?.selectedCount !== nextProps.massSelection?.selectedCount;
 
-    const shouldRerender = columnChanged || leadsChanged || stateChanged;
+    const shouldRerender = columnChanged || leadsChanged || stateChanged || massSelectionChanged;
 
-    if (shouldRerender) {
-      console.log('[KanbanColumnMemo] 🔄 Re-renderizando coluna:', nextProps.column.title, {
-        columnChanged,
-        leadsChanged,
-        stateChanged,
-        leadsCount: nextProps.column.leads.length
-      });
-    }
+    // Production-ready memoization without debug logs
 
     return !shouldRerender;
   }

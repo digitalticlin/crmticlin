@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -19,69 +19,69 @@ export type Database = {
           agent_function: string
           agent_id: string
           agent_objective: string | null
-          communication_style: string
-          communication_style_examples: Json | null
-          company_info: string | null
-          products_services: string | null
-          products_services_examples: Json | null
-          rules_guidelines: string | null
-          rules_guidelines_examples: Json | null
-          prohibitions: string | null
-          prohibitions_examples: Json | null
           client_objections: string | null
           client_objections_examples: Json | null
-          phrase_tips: string | null
-          phrase_tips_examples: Json | null
-          flow: Json | null
+          communication_style: string | null
+          communication_style_examples: Json | null
+          company_info: string | null
           created_at: string
           created_by_user_id: string
+          flow: Json | null
           id: string
+          phrase_tips: string | null
+          phrase_tips_examples: Json | null
+          products_services: string | null
+          products_services_examples: Json | null
+          prohibitions: string | null
+          prohibitions_examples: Json | null
+          rules_guidelines: string | null
+          rules_guidelines_examples: Json | null
           updated_at: string
         }
         Insert: {
           agent_function: string
           agent_id: string
           agent_objective?: string | null
-          communication_style: string
-          communication_style_examples?: Json | null
-          company_info?: string | null
-          products_services?: string | null
-          products_services_examples?: Json | null
-          rules_guidelines?: string | null
-          rules_guidelines_examples?: Json | null
-          prohibitions?: string | null
-          prohibitions_examples?: Json | null
           client_objections?: string | null
           client_objections_examples?: Json | null
-          phrase_tips?: string | null
-          phrase_tips_examples?: Json | null
-          flow?: Json | null
+          communication_style?: string | null
+          communication_style_examples?: Json | null
+          company_info?: string | null
           created_at?: string
           created_by_user_id: string
+          flow?: Json | null
           id?: string
+          phrase_tips?: string | null
+          phrase_tips_examples?: Json | null
+          products_services?: string | null
+          products_services_examples?: Json | null
+          prohibitions?: string | null
+          prohibitions_examples?: Json | null
+          rules_guidelines?: string | null
+          rules_guidelines_examples?: Json | null
           updated_at?: string
         }
         Update: {
           agent_function?: string
           agent_id?: string
           agent_objective?: string | null
-          communication_style?: string
-          communication_style_examples?: Json | null
-          company_info?: string | null
-          products_services?: string | null
-          products_services_examples?: Json | null
-          rules_guidelines?: string | null
-          rules_guidelines_examples?: Json | null
-          prohibitions?: string | null
-          prohibitions_examples?: Json | null
           client_objections?: string | null
           client_objections_examples?: Json | null
-          phrase_tips?: string | null
-          phrase_tips_examples?: Json | null
-          flow?: Json | null
+          communication_style?: string | null
+          communication_style_examples?: Json | null
+          company_info?: string | null
           created_at?: string
           created_by_user_id?: string
+          flow?: Json | null
           id?: string
+          phrase_tips?: string | null
+          phrase_tips_examples?: Json | null
+          products_services?: string | null
+          products_services_examples?: Json | null
+          prohibitions?: string | null
+          prohibitions_examples?: Json | null
+          rules_guidelines?: string | null
+          rules_guidelines_examples?: Json | null
           updated_at?: string
         }
         Relationships: [
@@ -99,6 +99,7 @@ export type Database = {
           created_at: string
           created_by_user_id: string
           funnel_id: string | null
+          global_notify_phone: string | null
           id: string
           messages_count: number
           name: string
@@ -111,6 +112,7 @@ export type Database = {
           created_at?: string
           created_by_user_id: string
           funnel_id?: string | null
+          global_notify_phone?: string | null
           id?: string
           messages_count?: number
           name: string
@@ -123,6 +125,7 @@ export type Database = {
           created_at?: string
           created_by_user_id?: string
           funnel_id?: string | null
+          global_notify_phone?: string | null
           id?: string
           messages_count?: number
           name?: string
@@ -184,6 +187,27 @@ export type Database = {
           instances_found?: number | null
           instances_updated?: number | null
           status?: string
+        }
+        Relationships: []
+      }
+      dashboard_configs: {
+        Row: {
+          created_by_user_id: string
+          layout_config: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_by_user_id: string
+          layout_config: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_by_user_id?: string
+          layout_config?: Json
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -261,6 +285,8 @@ export type Database = {
       kanban_stages: {
         Row: {
           ai_enabled: boolean
+          ai_notify_enabled: boolean | null
+          ai_stage_description: string | null
           color: string | null
           created_at: string | null
           created_by_user_id: string
@@ -269,12 +295,15 @@ export type Database = {
           is_fixed: boolean | null
           is_lost: boolean | null
           is_won: boolean | null
+          notify_phone: string | null
           order_position: number | null
           title: string
           updated_at: string | null
         }
         Insert: {
           ai_enabled?: boolean
+          ai_notify_enabled?: boolean | null
+          ai_stage_description?: string | null
           color?: string | null
           created_at?: string | null
           created_by_user_id: string
@@ -283,12 +312,15 @@ export type Database = {
           is_fixed?: boolean | null
           is_lost?: boolean | null
           is_won?: boolean | null
+          notify_phone?: string | null
           order_position?: number | null
           title: string
           updated_at?: string | null
         }
         Update: {
           ai_enabled?: boolean
+          ai_notify_enabled?: boolean | null
+          ai_stage_description?: string | null
           color?: string | null
           created_at?: string | null
           created_by_user_id?: string
@@ -297,6 +329,7 @@ export type Database = {
           is_fixed?: boolean | null
           is_lost?: boolean | null
           is_won?: boolean | null
+          notify_phone?: string | null
           order_position?: number | null
           title?: string
           updated_at?: string | null
@@ -353,16 +386,14 @@ export type Database = {
       leads: {
         Row: {
           address: string | null
-          bairro: string | null
-          cep: string | null
-          cidade: string | null
+          city: string | null
           company: string | null
+          country: string | null
           created_at: string | null
           created_by_user_id: string
           deleted_whatsapp_instance_name: string | null
           document_id: string | null
           email: string | null
-          estado: string | null
           funnel_id: string | null
           id: string
           import_source: string | null
@@ -370,28 +401,30 @@ export type Database = {
           last_message: string | null
           last_message_time: string | null
           name: string
+          neighborhood: string | null
           notes: string | null
           order_position: number | null
           owner_id: string | null
-          pais: string | null
           phone: string
+          profile_pic_media_cache_id: string | null
+          profile_pic_url: string | null
           purchase_value: number | null
+          state: string | null
           unread_count: number | null
           updated_at: string | null
           whatsapp_number_id: string | null
+          zip_code: string | null
         }
         Insert: {
           address?: string | null
-          bairro?: string | null
-          cep?: string | null
-          cidade?: string | null
+          city?: string | null
           company?: string | null
+          country?: string | null
           created_at?: string | null
           created_by_user_id: string
           deleted_whatsapp_instance_name?: string | null
           document_id?: string | null
           email?: string | null
-          estado?: string | null
           funnel_id?: string | null
           id?: string
           import_source?: string | null
@@ -399,28 +432,30 @@ export type Database = {
           last_message?: string | null
           last_message_time?: string | null
           name: string
+          neighborhood?: string | null
           notes?: string | null
           order_position?: number | null
           owner_id?: string | null
-          pais?: string | null
           phone: string
+          profile_pic_media_cache_id?: string | null
+          profile_pic_url?: string | null
           purchase_value?: number | null
+          state?: string | null
           unread_count?: number | null
           updated_at?: string | null
           whatsapp_number_id?: string | null
+          zip_code?: string | null
         }
         Update: {
           address?: string | null
-          bairro?: string | null
-          cep?: string | null
-          cidade?: string | null
+          city?: string | null
           company?: string | null
+          country?: string | null
           created_at?: string | null
           created_by_user_id?: string
           deleted_whatsapp_instance_name?: string | null
           document_id?: string | null
           email?: string | null
-          estado?: string | null
           funnel_id?: string | null
           id?: string
           import_source?: string | null
@@ -428,15 +463,19 @@ export type Database = {
           last_message?: string | null
           last_message_time?: string | null
           name?: string
+          neighborhood?: string | null
           notes?: string | null
           order_position?: number | null
           owner_id?: string | null
-          pais?: string | null
           phone?: string
+          profile_pic_media_cache_id?: string | null
+          profile_pic_url?: string | null
           purchase_value?: number | null
+          state?: string | null
           unread_count?: number | null
           updated_at?: string | null
           whatsapp_number_id?: string | null
+          zip_code?: string | null
         }
         Relationships: [
           {
@@ -458,6 +497,13 @@ export type Database = {
             columns: ["kanban_stage_id"]
             isOneToOne: false
             referencedRelation: "kanban_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_profile_pic_media_cache_id_fkey"
+            columns: ["profile_pic_media_cache_id"]
+            isOneToOne: false
+            referencedRelation: "media_cache"
             referencedColumns: ["id"]
           },
           {
@@ -526,6 +572,13 @@ export type Database = {
             referencedRelation: "messages"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "media_cache_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "messages_chat"
+            referencedColumns: ["id"]
+          },
         ]
       }
       message_usage_tracking: {
@@ -583,6 +636,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          base64_data: string | null
           content_hash: string | null
           created_at: string | null
           created_by_user_id: string
@@ -600,6 +654,7 @@ export type Database = {
           whatsapp_number_id: string | null
         }
         Insert: {
+          base64_data?: string | null
           content_hash?: string | null
           created_at?: string | null
           created_by_user_id: string
@@ -617,6 +672,7 @@ export type Database = {
           whatsapp_number_id?: string | null
         }
         Update: {
+          base64_data?: string | null
           content_hash?: string | null
           created_at?: string | null
           created_by_user_id?: string
@@ -997,6 +1053,69 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_instances_backup: {
+        Row: {
+          connection_status: string | null
+          connection_type: string | null
+          created_at: string | null
+          created_by_user_id: string | null
+          date_connected: string | null
+          date_disconnected: string | null
+          id: string | null
+          instance_name: string | null
+          n8n_webhook_url: string | null
+          phone: string | null
+          profile_name: string | null
+          profile_pic_url: string | null
+          qr_code: string | null
+          server_url: string | null
+          session_data: Json | null
+          updated_at: string | null
+          vps_instance_id: string | null
+          web_status: string | null
+        }
+        Insert: {
+          connection_status?: string | null
+          connection_type?: string | null
+          created_at?: string | null
+          created_by_user_id?: string | null
+          date_connected?: string | null
+          date_disconnected?: string | null
+          id?: string | null
+          instance_name?: string | null
+          n8n_webhook_url?: string | null
+          phone?: string | null
+          profile_name?: string | null
+          profile_pic_url?: string | null
+          qr_code?: string | null
+          server_url?: string | null
+          session_data?: Json | null
+          updated_at?: string | null
+          vps_instance_id?: string | null
+          web_status?: string | null
+        }
+        Update: {
+          connection_status?: string | null
+          connection_type?: string | null
+          created_at?: string | null
+          created_by_user_id?: string | null
+          date_connected?: string | null
+          date_disconnected?: string | null
+          id?: string | null
+          instance_name?: string | null
+          n8n_webhook_url?: string | null
+          phone?: string | null
+          profile_name?: string | null
+          profile_pic_url?: string | null
+          qr_code?: string | null
+          server_url?: string | null
+          session_data?: Json | null
+          updated_at?: string | null
+          vps_instance_id?: string | null
+          web_status?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       media_conversion_stats: {
@@ -1022,8 +1141,74 @@ export type Database = {
         }
         Relationships: []
       }
+      messages_chat: {
+        Row: {
+          created_at: string | null
+          created_by_user_id: string | null
+          from_me: boolean | null
+          id: string | null
+          lead_id: string | null
+          message: string | null
+          session_id: string | null
+          whatsapp_number_id: string | null
+        }
+        Insert: {
+          created_at?: never
+          created_by_user_id?: string | null
+          from_me?: boolean | null
+          id?: string | null
+          lead_id?: string | null
+          message?: string | null
+          session_id?: never
+          whatsapp_number_id?: string | null
+        }
+        Update: {
+          created_at?: never
+          created_by_user_id?: string | null
+          from_me?: boolean | null
+          id?: string | null
+          lead_id?: string | null
+          message?: string | null
+          session_id?: never
+          whatsapp_number_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_messages_lead_id"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_messages_whatsapp_number_id"
+            columns: ["whatsapp_number_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_whatsapp_number_id_fkey"
+            columns: ["whatsapp_number_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      _preserve_name: {
+        Args: { existing: string; incoming: string }
+        Returns: string
+      }
       bytea_to_text: {
         Args: { data: string }
         Returns: string
@@ -1044,18 +1229,38 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
       http: {
         Args: { request: Database["public"]["CompositeTypes"]["http_request"] }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_delete: {
         Args:
+          | { content: string; content_type: string; uri: string }
           | { uri: string }
-          | { uri: string; content: string; content_type: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_get: {
-        Args: { uri: string } | { uri: string; data: Json }
+        Args: { data: Json; uri: string } | { uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_head: {
@@ -1074,17 +1279,17 @@ export type Database = {
         }[]
       }
       http_patch: {
-        Args: { uri: string; content: string; content_type: string }
+        Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_post: {
         Args:
-          | { uri: string; content: string; content_type: string }
-          | { uri: string; data: Json }
+          | { content: string; content_type: string; uri: string }
+          | { data: Json; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_put: {
-        Args: { uri: string; content: string; content_type: string }
+        Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_reset_curlopt: {
@@ -1100,55 +1305,73 @@ export type Database = {
         Returns: undefined
       }
       insert_lead_direct: {
-        Args: { p_phone: string; p_name: string; p_user_id: string }
+        Args: { p_name: string; p_phone: string; p_user_id: string }
         Returns: Json
       }
       insert_message_bypass_rls: {
         Args: {
-          p_lead_id: string
-          p_whatsapp_number_id: string
-          p_text: string
-          p_from_me: boolean
-          p_timestamp: string
-          p_status: string
           p_created_by_user_id: string
+          p_from_me: boolean
+          p_lead_id: string
           p_media_type?: string
           p_media_url?: string
+          p_status: string
+          p_text: string
+          p_timestamp: string
+          p_whatsapp_number_id: string
         }
         Returns: string
       }
       insert_message_optimized: {
         Args: {
-          p_lead_id: string
-          p_instance_id: string
-          p_message_text: string
+          p_external_message_id?: string
           p_from_me: boolean
-          p_user_id: string
+          p_instance_id: string
+          p_lead_id: string
           p_media_type?: string
           p_media_url?: string
-          p_external_message_id?: string
+          p_message_text: string
+          p_user_id: string
         }
         Returns: Json
       }
       insert_message_safe: {
         Args: {
-          p_lead_id: string
-          p_instance_id: string
-          p_message_text: string
+          p_external_message_id?: string
           p_from_me: boolean
-          p_user_id: string
+          p_instance_id: string
+          p_lead_id: string
           p_media_type?: string
           p_media_url?: string
-          p_external_message_id?: string
+          p_message_text: string
+          p_user_id: string
         }
         Returns: Json
       }
+      pgmq_delete: {
+        Args: { p_msg_id: number; p_queue_name: string }
+        Returns: undefined
+      }
+      pgmq_read: {
+        Args: { p_qty: number; p_queue_name: string; p_vt: number }
+        Returns: {
+          enqueued_at: string
+          message: Json
+          msg_id: number
+          read_ct: number
+          vt_at: string
+        }[]
+      }
+      pgmq_send: {
+        Args: { msg: Json; queue_name: string }
+        Returns: number
+      }
       save_message_simple: {
         Args: {
-          lead_id_param: string
-          instance_id_param: string
-          text_param: string
           from_me_param: boolean
+          instance_id_param: string
+          lead_id_param: string
+          text_param: string
           user_id_param: string
         }
         Returns: string
@@ -1156,47 +1379,74 @@ export type Database = {
       save_sent_message: {
         Args: {
           p_instance_id: string
-          p_phone: string
           p_message: string
-          p_user_id: string
           p_message_id?: string
+          p_phone: string
+          p_user_id: string
         }
         Returns: string
       }
       save_sent_message_only: {
         Args: {
-          p_vps_instance_id: string
-          p_phone: string
-          p_message_text: string
-          p_external_message_id?: string
           p_contact_name?: string
+          p_external_message_id?: string
           p_media_type?: string
           p_media_url?: string
+          p_message_text: string
+          p_phone: string
+          p_vps_instance_id: string
         }
         Returns: Json
       }
+      save_whatsapp_message_complete: {
+        Args: {
+          p_contact_name: string
+          p_external_message_id: string
+          p_formatted_phone: string
+          p_from_me: boolean
+          p_instance_id: string
+          p_media_type: string
+          p_media_url: string
+          p_message_text: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       save_whatsapp_message_service_role: {
         Args: {
-          p_vps_instance_id: string
-          p_phone: string
-          p_message_text: string
+          p_base64_data?: string
+          p_contact_name?: string
+          p_external_message_id?: string
           p_from_me: boolean
           p_media_type?: string
           p_media_url?: string
-          p_external_message_id?: string
-          p_contact_name?: string
+          p_message_text: string
+          p_phone: string
+          p_vps_instance_id: string
         }
         Returns: Json
       }
       save_whatsapp_message_simple: {
         Args: {
-          p_vps_instance_id: string
-          p_phone: string
-          p_message_text: string
-          p_from_me: boolean
           p_external_message_id?: string
+          p_from_me: boolean
+          p_message_text: string
+          p_phone: string
+          p_vps_instance_id: string
         }
         Returns: Json
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
       }
       sync_whatsapp_instances: {
         Args: Record<PropertyKey, never>
@@ -1218,6 +1468,14 @@ export type Database = {
         Args: { data: string }
         Returns: string
       }
+      unaccent: {
+        Args: { "": string }
+        Returns: string
+      }
+      unaccent_init: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
       urlencode: {
         Args: { data: Json } | { string: string } | { string: string }
         Returns: string
@@ -1228,12 +1486,12 @@ export type Database = {
       }
       webhook_insert_message: {
         Args: {
-          p_whatsapp_number_id: string
-          p_contact_phone: string
           p_contact_name: string
+          p_contact_phone: string
+          p_media_url?: string
           p_message_content: string
           p_message_type: string
-          p_media_url?: string
+          p_whatsapp_number_id: string
         }
         Returns: Json
       }
@@ -1243,12 +1501,12 @@ export type Database = {
       }
       webhook_insert_message_radical: {
         Args: {
-          p_whatsapp_number_id: string
-          p_contact_phone: string
           p_contact_name: string
+          p_contact_phone: string
+          p_media_url?: string
           p_message_content: string
           p_message_type: string
-          p_media_url?: string
+          p_whatsapp_number_id: string
         }
         Returns: Json
       }

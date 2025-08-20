@@ -1,5 +1,6 @@
 
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
+import { MassSelectionReturn } from "@/hooks/useMassSelection";
 import { useDragAndDropOptimized } from "@/hooks/kanban/useDragAndDropOptimized";
 import { BoardContentOptimized } from "./kanban/BoardContentOptimized";
 import { StableDragDropWrapper } from "./funnel/StableDragDropWrapper";
@@ -18,6 +19,7 @@ interface KanbanBoardProps {
   isWonLostView?: boolean;
   wonStageId?: string;
   lostStageId?: string;
+  massSelection?: MassSelectionReturn;
 }
 
 export const KanbanBoard = ({
@@ -31,7 +33,8 @@ export const KanbanBoard = ({
   onReturnToFunnel,
   isWonLostView = false,
   wonStageId,
-  lostStageId
+  lostStageId,
+  massSelection
 }: KanbanBoardProps) => {
   console.log('[KanbanBoard] 🚀 FASES 2+3 - Renderizando com arquitetura otimizada + clone visual:', {
     columnsReceived: columns?.length || 0,
@@ -109,11 +112,11 @@ export const KanbanBoard = ({
               isWonLostView={isWonLostView}
               wonStageId={wonStageId}
               lostStageId={lostStageId}
+              massSelection={massSelection}
             />
           </StableDragDropWrapper>
         )}
       </DataErrorBoundary>
-
     </div>
   );
 };

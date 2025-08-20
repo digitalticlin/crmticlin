@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { MoreVertical, Edit, Trash2 } from "lucide-react";
+import { MoreVertical, Edit, Trash2, Check, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { KanbanColumn, FIXED_COLUMN_IDS } from "@/types/kanban";
@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { AIToggleSwitchEnhanced } from "../ai/AIToggleSwitchEnhanced";
 import { useAIStageControl } from "@/hooks/salesFunnel/useAIStageControl";
+import { MassSelectionReturn } from "@/hooks/useMassSelection";
 
 interface ColumnHeaderProps {
   column: KanbanColumn;
@@ -29,6 +30,7 @@ interface ColumnHeaderProps {
   canEdit: boolean;
   onUpdate: (field: keyof KanbanColumn, value: any) => void;
   onDelete: () => void;
+  massSelection?: MassSelectionReturn;
 }
 
 export const ColumnHeader = ({
@@ -36,10 +38,20 @@ export const ColumnHeader = ({
   isHovered,
   canEdit,
   onUpdate,
-  onDelete
+  onDelete,
+  massSelection
 }: ColumnHeaderProps) => {
   const [editingColumn, setEditingColumn] = useState<KanbanColumn | null>(null);
   const { toggleAI, isLoading: isTogglingAI } = useAIStageControl();
+  
+  // Usar massSelection via props ou valores padrão
+  const effectiveMassSelection = massSelection || {
+    isSelectionMode: false,
+    selectStage: () => {},
+    getStageSelectionState: () => 'none' as const
+  };
+
+  const { isSelectionMode, selectStage, getStageSelectionState } = effectiveMassSelection;
   
   const updateColumn = () => {
     if (!editingColumn || !editingColumn.title.trim()) return;
@@ -71,13 +83,74 @@ export const ColumnHeader = ({
     }
   };
 
+  // Calcular valor total da etapa
+  const totalValue = column.leads.reduce((total, lead) => {
+    const value = lead.purchaseValue || lead.purchase_value || 0;
+    return total + value;
+  }, 0);
+
+  // Formatação monetária brasileira
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  // Estados da seleção de etapa
+  const stageSelectionState = isSelectionMode ? getStageSelectionState(column.leads) : 'none';
+  const hasLeads = column.leads.length > 0;
+
+  // Handler para seleção de etapa completa
+  const handleStageSelection = () => {
+    if (hasLeads) {
+      selectStage(column.leads);
+    }
+  };
+
   return (
     <div className="p-4 flex items-center justify-between border-b border-slate-200/15 bg-transparent">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Checkbox de seleção de etapa - aparece apenas no modo seleção */}
+        {isSelectionMode && hasLeads && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              "h-6 w-6 rounded border-2 transition-all hover:scale-105",
+              stageSelectionState === 'all' 
+                ? "bg-blue-600 border-blue-600 text-white" 
+                : stageSelectionState === 'some'
+                  ? "bg-blue-100 border-blue-600 text-blue-600"
+                  : "bg-white border-gray-400 hover:border-blue-400"
+            )}
+            onClick={handleStageSelection}
+          >
+            {stageSelectionState === 'all' ? (
+              <Check className="h-3 w-3" />
+            ) : stageSelectionState === 'some' ? (
+              <Minus className="h-3 w-3" />
+            ) : null}
+          </Button>
+        )}
+        
         <h3 className="font-semibold font-inter text-lg truncate text-gray-900">{displayTitle}</h3>
-        <span className="bg-gray-100 text-gray-800 font-bold rounded-xl px-3 py-0.5 text-xs border border-gray-300">
-          {column.leads.length}
-        </span>
+        
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Contador de leads */}
+          <span className="bg-gray-100 text-gray-800 font-bold rounded-xl px-3 py-0.5 text-xs border border-gray-300">
+            {column.leads.length}
+          </span>
+          
+          {/* Valor total da etapa */}
+          {totalValue > 0 && (
+            <span className="bg-green-100 text-green-800 font-bold rounded-xl px-3 py-0.5 text-xs border border-green-300 flex items-center gap-1">
+              💰 {formatCurrency(totalValue)}
+            </span>
+          )}
+        </div>
       </div>
       
       <div className="flex items-center gap-3">

@@ -8,6 +8,8 @@ import { FieldConfigModal } from "./FieldConfigModal";
 import { FlowStepConfigModal } from "./FlowStepConfigModal";
 import { FunnelConfigModal } from "./FunnelConfigModal";
 import { AIAgent, FieldWithExamples, FlowStepEnhanced, PQExample } from "@/types/aiAgent";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 import { 
   User, 
   Target, 
@@ -47,7 +49,7 @@ interface EnhancedPromptConfigurationProps {
     flow: FlowStepEnhanced[];
   };
   onPromptDataChange: (field: string, value: any) => void;
-  onSave: () => void;
+  onSave: (saveContext?: { fromTab?: string; skipRedirect?: boolean }) => Promise<void>;
   onCancel: () => void;
   focusObjectives?: boolean;
 }
@@ -64,6 +66,54 @@ export const EnhancedPromptConfiguration = ({
   const [editingStep, setEditingStep] = useState<{ step: FlowStepEnhanced | null; index: number } | null>(null);
   const [newStepText, setNewStepText] = useState<string>("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<{ show: boolean; index: number | null }>({ show: false, index: null });
+  const [funnelConfigStatus, setFunnelConfigStatus] = useState<'not-selected' | 'ready' | 'configured'>('not-selected');
+
+  // Função para verificar status de configuração do funil
+  const checkFunnelConfigStatus = async () => {
+    if (!agent?.funnel_id) {
+      setFunnelConfigStatus('not-selected');
+      return;
+    }
+
+    try {
+      // Verificar se há estágios configurados com ai_stage_description
+      const { data: stages, error } = await supabase
+        .from('kanban_stages')
+        .select('ai_stage_description, title')
+        .eq('funnel_id', agent.funnel_id);
+
+      if (error) {
+        console.warn('Erro ao verificar configuração do funil:', error);
+        setFunnelConfigStatus('ready');
+        return;
+      }
+
+      // Contar estágios configurados (excluindo etapas automáticas)
+      const configurableStages = stages?.filter(stage => 
+        stage.title !== 'Entrada de Leads' && 
+        stage.title !== 'Em atendimento'
+      ) || [];
+
+      const configuredStages = configurableStages.filter(stage => 
+        stage.ai_stage_description && stage.ai_stage_description.trim().length > 0
+      );
+
+      // Se pelo menos uma etapa configurável tem descrição, considerar configurado
+      if (configuredStages.length > 0) {
+        setFunnelConfigStatus('configured');
+      } else {
+        setFunnelConfigStatus('ready');
+      }
+    } catch (error) {
+      console.warn('Erro ao verificar status do funil:', error);
+      setFunnelConfigStatus('ready');
+    }
+  };
+
+  // Verificar status quando agente ou funil mudar
+  useEffect(() => {
+    checkFunnelConfigStatus();
+  }, [agent?.funnel_id]);
 
   // Configurações dos campos
   const fieldConfigs = [
@@ -229,8 +279,15 @@ export const EnhancedPromptConfiguration = ({
       console.log('📝 Estado local atualizado, salvando no banco imediatamente...');
       
       // Salvar imediatamente após atualizar o estado - sem timeout
-      await onSave();
+      // Passar contexto para evitar redirecionamento desnecessário
+      await onSave({ fromTab: 'objectives', skipRedirect: true });
       console.log('✅ EnhancedPrompt - Dados persistidos no banco com sucesso');
+      
+      // Se foi configuração de funil, recarregar status
+      if (fieldKey === 'funnel_stages') {
+        console.log('🔄 Recarregando status do funil após salvamento');
+        await checkFunnelConfigStatus();
+      }
     } catch (error) {
       console.error('❌ Erro ao persistir no banco:', error);
       throw error; // Re-throw para que o modal saiba que houve erro
@@ -332,21 +389,26 @@ export const EnhancedPromptConfiguration = ({
 
   const getFieldStatus = (config: any) => {
     if (config.type === 'simple') {
-      return config.value ? '✅' : (config.required ? '❌' : '⚪');
+      return config.value ? '✅' : '❌';
     } else if (config.type === 'funnel-config') {
-      // Para configuração de funil, verificar se tem funil selecionado
-      return agent?.funnel_id ? '🟡' : '⚪';
+      // Para configuração de funil, usar novo status
+      switch (funnelConfigStatus) {
+        case 'configured': return '✅';
+        case 'ready': return '🟡';
+        case 'not-selected': return '❌';
+        default: return '❌';
+      }
     } else {
       const hasDescription = config.value.description;
       const hasExamples = config.value.examples.length > 0;
       
       // Para "dicas de frases", considerar configurado apenas se tiver exemplos
       if (config.key === 'phrase_tips') {
-        return hasExamples ? '✅' : (config.required ? '❌' : '⚪');
+        return hasExamples ? '✅' : '❌';
       }
       
-      // Para outros campos, manter lógica original
-      return hasDescription ? (hasExamples ? '✅' : '🟡') : (config.required ? '❌' : '⚪');
+      // Para outros campos com exemplos
+      return hasDescription ? (hasExamples ? '✅' : '🟡') : '❌';
     }
   };
 
@@ -449,7 +511,7 @@ export const EnhancedPromptConfiguration = ({
           <Button 
             onClick={async (event) => {
               try {
-                await onSave();
+                await onSave({ fromTab: 'objectives', skipRedirect: true });
                 
                 // Feedback visual de sucesso
                 const button = event.currentTarget as HTMLButtonElement;
@@ -502,7 +564,8 @@ export const EnhancedPromptConfiguration = ({
                   {config.type === 'simple' 
                     ? (config.value ? 'Configurado' : 'Não configurado')
                     : config.type === 'funnel-config'
-                      ? (agent?.funnel_id ? 'Pronto para configurar' : 'Funil não selecionado')
+                      ? (funnelConfigStatus === 'configured' ? 'Configurado' : 
+                         funnelConfigStatus === 'ready' ? 'Pronto para configurar' : 'Não configurado')
                     : config.key === 'phrase_tips'
                       ? (config.value?.examples?.length > 0 ? 'Configurado' : 'Não configurado')
                       : (config.value?.description || config.value?.examples?.length > 0 ? 'Configurado' : 'Não configurado')
@@ -518,7 +581,8 @@ export const EnhancedPromptConfiguration = ({
                   </div>
                 ) : config.type === 'funnel-config' ? (
                   <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
-                    {agent?.funnel_id ? 'Funil selecionado - Configure os estágios' : 'Selecione um funil na Aba 1 primeiro'}
+                    {funnelConfigStatus === 'configured' ? 'Estágios do funil configurados para IA' : 
+                     funnelConfigStatus === 'ready' ? 'Ensine o agente quando mover os leads' : 'Selecione um funil na Aba 1 primeiro'}
                   </div>
                 ) : (
                   <div className="space-y-1">
@@ -595,7 +659,7 @@ export const EnhancedPromptConfiguration = ({
         stepNumber={editingStep ? editingStep.index + 1 : 1}
       />
 
-      {/* Botões de ação */}
+      {/* Botões de ação - BUG 2 FIX: Remover botão "Salvar Configuração" redundante */}
       <div className="flex justify-end gap-2 pt-4 border-t border-white/30">
         <Button 
           type="button" 
@@ -605,31 +669,11 @@ export const EnhancedPromptConfiguration = ({
         >
           Fechar
         </Button>
-        <Button 
-          onClick={async (event) => {
-            try {
-              await onSave();
-              
-              // Feedback visual de sucesso
-              const button = event?.currentTarget as HTMLButtonElement;
-              if (button) {
-                const originalText = button.textContent;
-                button.textContent = '✅ Salvo!';
-                button.style.backgroundColor = '#10b981';
-                setTimeout(() => {
-                  button.textContent = originalText;
-                  button.style.backgroundColor = '';
-                }, 2000);
-              }
-            } catch (error) {
-              console.error('❌ Erro no botão salvar:', error);
-              // Erro já é tratado pelo toast no componente pai
-            }
-          }}
-          className="px-6 h-9 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg shadow-glass hover:shadow-glass-lg transition-all duration-200 text-sm"
-        >
-          Salvar Configuração
-        </Button>
+        {/* Informação sobre salvamento automático */}
+        <div className="flex items-center gap-2 text-sm text-gray-600 bg-green-50/80 px-3 py-2 rounded-lg">
+          <span className="text-green-600">✅</span>
+          <span>Todas as configurações são salvas automaticamente</span>
+        </div>
       </div>
 
       {/* Modal de confirmação para deletar passo */}

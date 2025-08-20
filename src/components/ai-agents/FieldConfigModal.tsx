@@ -60,6 +60,13 @@ export const FieldConfigModal = ({
 
   // Estados para controle de confirmação
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isMounted, setIsMounted] = useState(true);
+
+  // Controlar mount/unmount para evitar atualizações após desmontagem
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
   // Valores iniciais para comparação
   const initialSimpleValue = simpleValue;
@@ -131,7 +138,14 @@ export const FieldConfigModal = ({
         }, 2000);
       }
       
-      // Modal não fecha automaticamente - usuário decide quando fechar
+      // Modal fecha automaticamente após salvamento bem-sucedido para melhor UX
+      // Aguardar um pouco para feedback visual e depois fechar
+      setTimeout(() => {
+        if (isMounted) {
+          console.log('🚪 Fechando modal automaticamente após salvamento bem-sucedido');
+          handleForceClose();
+        }
+      }, 1000);
     } catch (error) {
       console.error('❌ Erro ao salvar no FieldConfigModal:', error);
       toast.error('Erro ao salvar', {

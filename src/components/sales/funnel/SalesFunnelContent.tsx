@@ -17,10 +17,21 @@ import { KanbanLead } from "@/types/kanban";
 import { RealClientDetails } from "@/components/clients/RealClientDetails";
 import { ClientData } from "@/hooks/clients/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMassSelection } from "@/hooks/useMassSelection";
+import { MassSelectionToolbar } from "../mass-selection/MassSelectionToolbar";
+import { MassDeleteModal } from "../mass-selection/modals/MassDeleteModal";
+import { MassMoveModal } from "../mass-selection/modals/MassMoveModal";
+import { MassTagModal } from "../mass-selection/modals/MassTagModal";
+import { MassAssignUserModal } from "../mass-selection/modals/MassAssignUserModal";
+import { MassActionWrapper } from "../mass-selection/MassActionWrapper";
 
 export function SalesFunnelContent() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // ✅ Hook isolado para seleção em massa (sem Provider) - FUNCIONANDO
+  const massSelection = useMassSelection();
+  
   const {
     loading,
     error,
@@ -57,6 +68,12 @@ export function SalesFunnelContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedUser, setSelectedUser] = useState("");
+
+  // Estados para modais de seleção em massa
+  const [massDeleteModalOpen, setMassDeleteModalOpen] = useState(false);
+  const [massMoveModalOpen, setMassMoveModalOpen] = useState(false);
+  const [massTagModalOpen, setMassTagModalOpen] = useState(false);
+  const [massAssignUserModalOpen, setMassAssignUserModalOpen] = useState(false);
 
   // Identificar estágios ganho/perdido usando useMemo
   const { wonStageId, lostStageId } = useMemo(() => ({
@@ -285,6 +302,57 @@ export function SalesFunnelContent() {
     handleOpenChat(lead.id);
   }, [handleOpenChat]);
 
+  // Handlers para ações em massa
+  const handleMassDelete = useCallback((selectedLeads: KanbanLead[]) => {
+    setCurrentSelectedLeads(selectedLeads);
+    setMassDeleteModalOpen(true);
+  }, []);
+
+  const handleMassMove = useCallback((selectedLeads: KanbanLead[]) => {
+    setCurrentSelectedLeads(selectedLeads);
+    setMassMoveModalOpen(true);
+  }, []);
+
+  const handleMassAssignTags = useCallback((selectedLeads: KanbanLead[]) => {
+    setCurrentSelectedLeads(selectedLeads);
+    setMassTagModalOpen(true);
+  }, []);
+
+  const handleMassAssignUser = useCallback((selectedLeads: KanbanLead[]) => {
+    setCurrentSelectedLeads(selectedLeads);
+    setMassAssignUserModalOpen(true);
+  }, []);
+
+  // Handler para refresh após ações em massa
+  const handleMassActionSuccess = useCallback(async () => {
+    try {
+      // Executar refresh dos dados em paralelo
+      await Promise.all([
+        refetchLeads(),
+        refetchStages()
+      ]);
+      
+      // Recarregar as tags disponíveis também
+      await fetchAvailableTags();
+    } catch (error) {
+      console.error('Erro no refresh após ação em massa:', error);
+      // Se falhar, fazer um refresh completo da página como fallback
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    }
+  }, [refetchLeads, refetchStages, fetchAvailableTags]);
+
+  // Obter todos os leads para o MassSelectionToolbar
+  const allLeads = useMemo(() => {
+    return filteredColumns.reduce((acc: KanbanLead[], column) => {
+      return [...acc, ...column.leads];
+    }, []);
+  }, [filteredColumns]);
+
+  // Estado para armazenar leads selecionados no momento da ação
+  const [currentSelectedLeads, setCurrentSelectedLeads] = useState<KanbanLead[]>([]);
+
   // Renderização condicional com base no loading e error
   if (loading) {
     return <FunnelLoadingState />;
@@ -349,6 +417,7 @@ export function SalesFunnelContent() {
                 setSelectedUser("");
               }}
               resultsCount={filteredResultsCount}
+              massSelection={massSelection}
             />
             {/* Wrapper somente do board: permite scroll horizontal natural */}
             <div className="flex-1 min-h-0">
@@ -360,6 +429,7 @@ export function SalesFunnelContent() {
                 onMoveToWonLost={handleMoveToWonLost}
                 wonStageId={wonStageId}
                 lostStageId={lostStageId}
+                massSelection={massSelection}
               />
             </div>
           </div>
@@ -381,6 +451,7 @@ export function SalesFunnelContent() {
                 setSelectedUser("");
               }}
               resultsCount={filteredResultsCount}
+              massSelection={massSelection}
             />
             {/* Board Won/Lost (pode rolar verticalmente dentro das etapas) */}
             <div className="flex-1 min-h-0">
@@ -421,6 +492,53 @@ export function SalesFunnelContent() {
         isOpen={isFunnelConfigModalOpen}
         onClose={() => setIsFunnelConfigModalOpen(false)}
       />
+
+      {/* Toolbar de seleção em massa - aparece quando há leads selecionados */}
+      <MassSelectionToolbar
+        allLeads={allLeads}
+        massSelection={massSelection}
+        onDelete={handleMassDelete}
+        onMove={handleMassMove}
+        onAssignTags={handleMassAssignTags}
+        onAssignUser={handleMassAssignUser}
+      />
+
+      {/* Modais de ações em massa com wrapper para limpeza de seleção */}
+      <MassActionWrapper massSelection={massSelection} onSuccess={handleMassActionSuccess}>
+        <MassDeleteModal
+          isOpen={massDeleteModalOpen}
+          onClose={() => setMassDeleteModalOpen(false)}
+          selectedLeads={currentSelectedLeads}
+          onSuccess={() => {}} // Será sobrescrito pelo wrapper
+        />
+      </MassActionWrapper>
+
+      <MassActionWrapper massSelection={massSelection} onSuccess={handleMassActionSuccess}>
+        <MassMoveModal
+          isOpen={massMoveModalOpen}
+          onClose={() => setMassMoveModalOpen(false)}
+          selectedLeads={currentSelectedLeads}
+          onSuccess={() => {}} // Será sobrescrito pelo wrapper
+        />
+      </MassActionWrapper>
+
+      <MassActionWrapper massSelection={massSelection} onSuccess={handleMassActionSuccess}>
+        <MassTagModal
+          isOpen={massTagModalOpen}
+          onClose={() => setMassTagModalOpen(false)}
+          selectedLeads={currentSelectedLeads}
+          onSuccess={() => {}} // Será sobrescrito pelo wrapper
+        />
+      </MassActionWrapper>
+
+      <MassActionWrapper massSelection={massSelection} onSuccess={handleMassActionSuccess}>
+        <MassAssignUserModal
+          isOpen={massAssignUserModalOpen}
+          onClose={() => setMassAssignUserModalOpen(false)}
+          selectedLeads={currentSelectedLeads}
+          onSuccess={() => {}} // Será sobrescrito pelo wrapper
+        />
+      </MassActionWrapper>
 
     </div>
   );

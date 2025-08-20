@@ -15,14 +15,15 @@ interface AIAgentFormProps {
   agent?: AIAgent | null;
   onSave: (agent: AIAgent) => void;
   onCancel: () => void;
+  onFormChange?: (hasChanges: boolean) => void;
 }
 
-export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
+export const AIAgentForm = ({ agent, onSave, onCancel, onFormChange }: AIAgentFormProps) => {
   const { createAgent, updateAgent } = useAIAgents();
   const [isLoading, setIsLoading] = useState(false);
   const [funnels, setFunnels] = useState<any[]>([]);
   const [whatsappInstances, setWhatsappInstances] = useState<any[]>([]);
-  const [nameDebounceTimer, setNameDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const [existingAgents, setExistingAgents] = useState<AIAgent[]>([]);
   
   const [formData, setFormData] = useState<CreateAIAgentData>({
     name: agent?.name || "",
@@ -42,25 +43,19 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
     });
   }, [agent]);
 
-  // Limpar timer quando componente for desmontado
-  useEffect(() => {
-    return () => {
-      if (nameDebounceTimer) {
-        clearTimeout(nameDebounceTimer);
-      }
-    };
-  }, [nameDebounceTimer]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [funnelsRes, instancesRes] = await Promise.all([
+        const [funnelsRes, instancesRes, agentsRes] = await Promise.all([
           supabase.from('funnels').select('id, name'),
-          supabase.from('whatsapp_instances').select('id, instance_name, profile_name')
+          supabase.from('whatsapp_instances').select('id, instance_name, profile_name'),
+          supabase.from('ai_agents').select('id, name, funnel_id, whatsapp_number_id')
         ]);
 
         if (funnelsRes.data) setFunnels(funnelsRes.data);
         if (instancesRes.data) setWhatsappInstances(instancesRes.data);
+        if (agentsRes.data) setExistingAgents(agentsRes.data);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -70,99 +65,51 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
   }, []);
 
 
-  const handleFieldChange = async (field: keyof CreateAIAgentData, value: any) => {
+  // Filtrar funis disponíveis (excluir os já em uso por outros agentes)
+  const getAvailableFunnels = () => {
+    const usedFunnelIds = existingAgents
+      .filter(a => a.id !== agent?.id && a.funnel_id) // Excluir o agente atual (se editando)
+      .map(a => a.funnel_id);
+    
+    return funnels.filter(funnel => !usedFunnelIds.includes(funnel.id));
+  };
+
+  // Filtrar instâncias WhatsApp disponíveis (excluir as já em uso por outros agentes)
+  const getAvailableWhatsAppInstances = () => {
+    const usedInstanceIds = existingAgents
+      .filter(a => a.id !== agent?.id && a.whatsapp_number_id) // Excluir o agente atual (se editando)
+      .map(a => a.whatsapp_number_id);
+    
+    return whatsappInstances.filter(instance => !usedInstanceIds.includes(instance.id));
+  };
+
+  // Função para detectar se há mudanças comparando com dados originais
+  const hasFormChanges = (currentData: CreateAIAgentData): boolean => {
+    if (!agent) return false; // Para novos agentes, não há dados originais para comparar
+    
+    return (
+      currentData.name !== agent.name ||
+      currentData.type !== agent.type ||
+      currentData.funnel_id !== agent.funnel_id ||
+      currentData.whatsapp_number_id !== agent.whatsapp_number_id
+    );
+  };
+
+  const handleFieldChange = (field: keyof CreateAIAgentData, value: any) => {
     console.log(`🔄 Campo alterado: ${field} = ${value}`);
     
-    // Criar os novos dados com o valor atualizado
+    // Atualizar estado local
     const newFormData = { ...formData, [field]: value };
+    setFormData(newFormData);
     
-    // Atualizar estado local primeiro
-    unstable_batchedUpdates(() => {
-      setFormData(newFormData);
-    });
-    
-    // Auto-salvar se for um agente existente
-    if (agent) {
-      // Para o campo nome, usar debounce
-      if (field === 'name') {
-        // Limpar timer anterior se existir
-        if (nameDebounceTimer) {
-          clearTimeout(nameDebounceTimer);
-        }
-        
-        // Criar novo timer
-        const timer = setTimeout(async () => {
-          console.log(`💾 Auto-salvando nome (debounced) para agente ${agent.id}`);
-          await performSave(field, value, newFormData);
-        }, 1000); // 1 segundo de debounce
-        
-        setNameDebounceTimer(timer);
-      } else {
-        // Para outros campos, salvar imediatamente
-        await performSave(field, value, newFormData);
-      }
+    // Notificar modal principal sobre mudanças
+    if (onFormChange) {
+      const hasChanges = hasFormChanges(newFormData);
+      console.log(`📊 Mudanças detectadas na Aba 1: ${hasChanges}`);
+      onFormChange(hasChanges);
     }
   };
 
-  const performSave = async (field: keyof CreateAIAgentData, value: any, newFormData: CreateAIAgentData) => {
-    if (!agent) return;
-    
-    console.log(`💾 Executando salvamento para ${field} = ${value}`);
-    
-    try {
-      setIsLoading(true);
-      const success = await updateAgent(agent.id, newFormData);
-      
-      if (success) {
-        const updatedAgent = { ...agent, ...newFormData };
-        console.log('✅ Auto-salvamento realizado com sucesso');
-        
-        // Feedback visual discreto baseado no campo
-        let message = '';
-        
-        if (field === 'name') {
-          message = `Nome alterado para "${value}"`;
-        } else if (field === 'funnel_id') {
-          if (value === null || value === '') {
-            message = 'Funil removido';
-          } else {
-            const fieldValue = funnels.find(f => f.id === value)?.name;
-            message = `Funil alterado para "${fieldValue}"`;
-          }
-        } else if (field === 'whatsapp_number_id') {
-          if (value === null || value === '') {
-            message = 'Instância WhatsApp removida';
-          } else {
-            const fieldValue = whatsappInstances.find(i => i.id === value)?.profile_name || whatsappInstances.find(i => i.id === value)?.instance_name;
-            message = `Instância WhatsApp alterada para "${fieldValue}"`;
-          }
-        }
-        
-        if (message) {
-          toast.success(message, {
-            description: '💾 Salvo automaticamente',
-            duration: 2000,
-          });
-        }
-        
-        onSave(updatedAgent);
-      } else {
-        console.error('❌ Erro no auto-salvamento');
-        toast.error('Erro ao salvar alteração', {
-          description: 'Tente novamente ou use o botão Salvar',
-          duration: 3000,
-        });
-      }
-    } catch (error) {
-      console.error('❌ Erro crítico no auto-salvamento:', error);
-      toast.error('Erro ao salvar', {
-        description: 'Verifique sua conexão e tente novamente',
-        duration: 3000,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,6 +131,12 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
         if (success) {
           const updatedAgent = { ...agent, ...formData };
           console.log('✅ Agente atualizado com sucesso');
+          
+          // Resetar estado de mudanças após salvamento bem-sucedido
+          if (onFormChange) {
+            onFormChange(false);
+          }
+          
           onSave(updatedAgent);
           toast.success('Agente salvo com sucesso');
         }
@@ -192,6 +145,8 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
         const newAgent = await createAgent(formData);
         if (newAgent) {
           console.log('✅ Novo agente criado com sucesso:', newAgent.id);
+          
+          // Para novos agentes, não resetar estado pois não há mudanças para detectar
           onSave(newAgent);
           toast.success('Agente criado com sucesso');
         }
@@ -243,11 +198,17 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
                     className={`h-12 w-full bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-xl px-3 py-2 text-sm text-gray-800 appearance-none cursor-pointer transition-all duration-200 hover:bg-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <option value="" className="bg-white text-gray-800">🔄 Nenhum funil selecionado</option>
-                    {funnels.map((funnel) => (
+                    {getAvailableFunnels().map((funnel) => (
                       <option key={funnel.id} value={funnel.id} className="bg-white text-gray-800">
                         🎯 {funnel.name}
                       </option>
                     ))}
+                    {/* Mostrar funil atual se estiver editando, mesmo que esteja "em uso" */}
+                    {agent && agent.funnel_id && !getAvailableFunnels().find(f => f.id === agent.funnel_id) && (
+                      <option key={agent.funnel_id} value={agent.funnel_id} className="bg-white text-gray-800">
+                        🎯 {funnels.find(f => f.id === agent.funnel_id)?.name} (atual)
+                      </option>
+                    )}
                   </select>
                   {/* Loading indicator or arrow */}
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -280,11 +241,18 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
                     className={`h-12 w-full bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-xl px-3 py-2 text-sm text-gray-800 appearance-none cursor-pointer transition-all duration-200 hover:bg-white/50 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <option value="" className="bg-white text-gray-800">📱 Nenhuma instância selecionada</option>
-                    {whatsappInstances.map((instance) => (
+                    {getAvailableWhatsAppInstances().map((instance) => (
                       <option key={instance.id} value={instance.id} className="bg-white text-gray-800">
                         💬 {instance.profile_name || instance.instance_name}
                       </option>
                     ))}
+                    {/* Mostrar instância atual se estiver editando, mesmo que esteja "em uso" */}
+                    {agent && agent.whatsapp_number_id && !getAvailableWhatsAppInstances().find(i => i.id === agent.whatsapp_number_id) && (
+                      <option key={agent.whatsapp_number_id} value={agent.whatsapp_number_id} className="bg-white text-gray-800">
+                        💬 {whatsappInstances.find(i => i.id === agent.whatsapp_number_id)?.profile_name || 
+                             whatsappInstances.find(i => i.id === agent.whatsapp_number_id)?.instance_name} (atual)
+                      </option>
+                    )}
                   </select>
                   {/* Loading indicator or arrow */}
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">

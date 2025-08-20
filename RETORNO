@@ -1,714 +1,254 @@
-chunk-276SZO74.js?v=492ab39a:8462 Uncaught NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
-    at removeChildFromContainer (chunk-276SZO74.js?v=492ab39a:8462:23)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17508:21)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17534:17)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17577:15)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17503:17)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17577:15)
-removeChildFromContainer @ chunk-276SZO74.js?v=492ab39a:8462
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17508
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17534
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17503
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17610
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17503
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17503
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17610
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17534
-commitDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17477
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17674
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17813
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17896
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17896
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17896
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17896
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17727
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17896
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17896
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17813
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17896
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17896
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17727
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685Understand this error
-PortalErrorBoundary.tsx:20 [PortalErrorBoundary] Portal error captured: NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
-    at removeChildFromContainer (chunk-276SZO74.js?v=492ab39a:8462:23)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17508:21)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17534:17)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17577:15)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17503:17)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17577:15)
-getDerivedStateFromError @ PortalErrorBoundary.tsx:20
-update.payload @ chunk-276SZO74.js?v=492ab39a:14063
-getStateFromUpdate @ chunk-276SZO74.js?v=492ab39a:11089
-processUpdateQueue @ chunk-276SZO74.js?v=492ab39a:11191
-updateClassInstance @ chunk-276SZO74.js?v=492ab39a:13928
-updateClassComponent @ chunk-276SZO74.js?v=492ab39a:14662
-beginWork @ chunk-276SZO74.js?v=492ab39a:15930
-beginWork$1 @ chunk-276SZO74.js?v=492ab39a:19753
-performUnitOfWork @ chunk-276SZO74.js?v=492ab39a:19198
-workLoopSync @ chunk-276SZO74.js?v=492ab39a:19137
-renderRootSync @ chunk-276SZO74.js?v=492ab39a:19116
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=492ab39a:18874
-flushSyncCallbacks @ chunk-276SZO74.js?v=492ab39a:9119
-(anonymous) @ chunk-276SZO74.js?v=492ab39a:18627Understand this error
-suppressDragDropWarnings.ts:34 [PortalErrorBoundary] Portal error ignored, rendering children normally
+[LeadCardHeader] Debug unread messages: Object
+2SalesFunnelProvider.tsx:59 [SalesFunnelContext] ✅ Contexto acessado com sucesso
+MassSelectionToolbar.tsx:46 [MassSelectionToolbar] 🔧 Toolbar state: Object
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:119 [useUserPermissions] ✅ Permissões definidas: Object
+dragDropDebugger.ts:85 🚀 [DragDropDebugger] Iniciando diagnóstico completo
+dragDropDebugger.ts:6 🔍 [DragDropDebugger] Análise de elementos
+dragDropDebugger.ts:10 📐 Elementos com transform: 0
+dragDropDebugger.ts:14 🎯 Elementos RBD: 29
+dragDropDebugger.ts:18 🚫 Elementos com overflow hidden: 1
+dragDropDebugger.ts:22 👆 Elementos com pointer-events none: 0
+dragDropDebugger.ts:62 🧪 [DragDropDebugger] Verificação React Beautiful DND
+dragDropDebugger.ts:66 📦 Script RBD encontrado: false
+dragDropDebugger.ts:70 🎯 DragDropContext ativo: true
+dragDropDebugger.ts:74 🎪 Elementos draggable: 29
+dragDropDebugger.ts:78 🎯 Elementos droppable: 4
+dragDropDebugger.ts:29 🎬 [DragDropDebugger] Configurando monitoramento
+dragDropDebugger.ts:91 ✅ [DragDropDebugger] Diagnóstico concluído - verifique os logs acima
+MassSelectionFilterButton.tsx:20 [MassSelectionFilterButton] 🔄 Toggle clicked - BEFORE: false
+MassSelectionFilterButton.tsx:32 [MassSelectionFilterButton] 🔄 Toggle action called
+useMassSelection.ts:37 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: true, selectedCount: 0}
+SalesFunnelProvider.tsx:59 [SalesFunnelContext] ✅ Contexto acessado com sucesso
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+MassSelectionFilterButton.tsx:13 [MassSelectionFilterButton] 🔧 Render state: {isSelectionMode: true, selectedCount: 0, timestamp: '2025-08-20T18:07:36.254Z'}
+KanbanBoard.tsx:39 [KanbanBoard] 🚀 FASES 2+3 - Renderizando com arquitetura otimizada + clone visual: {columnsReceived: 4, isArray: true}
+KanbanBoard.tsx:72 [KanbanBoard] 🎯 FASES 2+3 + Clone - Renderizando board com clone visual
+StableDragDropWrapper.tsx:23 [StableDragDropWrapper] 🔄 RADICAL - Wrapper otimizado com clone visual
+StableDragDropWrapper.tsx:93 [StableDragDropWrapper] 🎯 RADICAL - Inicializando DragDropContext com clone visual
+SalesFunnelProvider.tsx:59 [SalesFunnelContext] ✅ Contexto acessado com sucesso
+MassSelectionToolbar.tsx:46 [MassSelectionToolbar] 🔧 Toolbar state: {isSelectionMode: true, selectedCount: 0, totalLeads: 201, shouldShow: true}
+useMassSelection.ts:37 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: true, selectedCount: 0}
+SalesFunnelProvider.tsx:59 [SalesFunnelContext] ✅ Contexto acessado com sucesso
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+MassSelectionFilterButton.tsx:13 [MassSelectionFilterButton] 🔧 Render state: {isSelectionMode: true, selectedCount: 0, timestamp: '2025-08-20T18:07:38.089Z'}
+KanbanBoard.tsx:39 [KanbanBoard] 🚀 FASES 2+3 - Renderizando com arquitetura otimizada + clone visual: {columnsReceived: 4, isArray: true}
+KanbanBoard.tsx:72 [KanbanBoard] 🎯 FASES 2+3 + Clone - Renderizando board com clone visual
+StableDragDropWrapper.tsx:23 [StableDragDropWrapper] 🔄 RADICAL - Wrapper otimizado com clone visual
+StableDragDropWrapper.tsx:93 [StableDragDropWrapper] 🎯 RADICAL - Inicializando DragDropContext com clone visual
+SalesFunnelProvider.tsx:59 [SalesFunnelContext] ✅ Contexto acessado com sucesso
+MassSelectionToolbar.tsx:46 [MassSelectionToolbar] 🔧 Toolbar state: {isSelectionMode: true, selectedCount: 0, totalLeads: 201, shouldShow: true}
+suppressDragDropWarnings.ts:34 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
 console.warn @ suppressDragDropWarnings.ts:34
-render @ PortalErrorBoundary.tsx:56
-finishClassComponent @ chunk-276SZO74.js?v=492ab39a:14699
-updateClassComponent @ chunk-276SZO74.js?v=492ab39a:14664
-beginWork @ chunk-276SZO74.js?v=492ab39a:15930
-beginWork$1 @ chunk-276SZO74.js?v=492ab39a:19753
-performUnitOfWork @ chunk-276SZO74.js?v=492ab39a:19198
-workLoopSync @ chunk-276SZO74.js?v=492ab39a:19137
-renderRootSync @ chunk-276SZO74.js?v=492ab39a:19116
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=492ab39a:18874
-flushSyncCallbacks @ chunk-276SZO74.js?v=492ab39a:9119
-(anonymous) @ chunk-276SZO74.js?v=492ab39a:18627Understand this warning
-chunk-276SZO74.js?v=492ab39a:8462 Uncaught NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
-    at removeChildFromContainer (chunk-276SZO74.js?v=492ab39a:8462:23)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17508:21)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17534:17)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17577:15)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17503:17)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17577:15)
-removeChildFromContainer @ chunk-276SZO74.js?v=492ab39a:8462
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17508
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17534
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17503
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17610
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17503
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17503
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17610
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17534
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17534
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17610
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17610
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17610
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17610
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17503
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17503
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17577
-recursivelyTraverseDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17486
-commitDeletionEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17503
-commitDeletionEffects @ chunk-276SZO74.js?v=492ab39a:17477
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17674
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17727
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17896
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17896
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17813
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17896
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17896
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17727
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17737
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685
-commitMutationEffectsOnFiber @ chunk-276SZO74.js?v=492ab39a:17699
-recursivelyTraverseMutationEffects @ chunk-276SZO74.js?v=492ab39a:17685Understand this error
-chunk-276SZO74.js?v=492ab39a:14032 The above error occurred in the <Portal> component:
+(anonymous) @ chunk-KJWD5A4B.js?v=2e6d94aa:340
+commitHookEffectListMount @ chunk-276SZO74.js?v=2e6d94aa:16915
+commitPassiveMountOnFiber @ chunk-276SZO74.js?v=2e6d94aa:18156
+commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=2e6d94aa:18129
+commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=2e6d94aa:18119
+commitPassiveMountEffects @ chunk-276SZO74.js?v=2e6d94aa:18109
+flushPassiveEffectsImpl @ chunk-276SZO74.js?v=2e6d94aa:19490
+flushPassiveEffects @ chunk-276SZO74.js?v=2e6d94aa:19447
+commitRootImpl @ chunk-276SZO74.js?v=2e6d94aa:19416
+commitRoot @ chunk-276SZO74.js?v=2e6d94aa:19277
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=2e6d94aa:18895
+flushSyncCallbacks @ chunk-276SZO74.js?v=2e6d94aa:9119
+(anonymous) @ chunk-276SZO74.js?v=2e6d94aa:18627Understand this warning
+2@radix-ui_react-select.js?v=2e6d94aa:876 Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at @radix-ui_react-select.js?v=2e6d94aa:876:13
+    at renderWithHooks (chunk-276SZO74.js?v=2e6d94aa:11548:26)
+    at updateForwardRef (chunk-276SZO74.js?v=2e6d94aa:14325:28)
+    at beginWork (chunk-276SZO74.js?v=2e6d94aa:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-276SZO74.js?v=2e6d94aa:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-276SZO74.js?v=2e6d94aa:3699:24)
+    at invokeGuardedCallback (chunk-276SZO74.js?v=2e6d94aa:3733:39)
+    at beginWork$1 (chunk-276SZO74.js?v=2e6d94aa:19765:15)
+    at performUnitOfWork (chunk-276SZO74.js?v=2e6d94aa:19198:20)
+    at workLoopSync (chunk-276SZO74.js?v=2e6d94aa:19137:13)
+(anonymous) @ @radix-ui_react-select.js?v=2e6d94aa:876
+renderWithHooks @ chunk-276SZO74.js?v=2e6d94aa:11548
+updateForwardRef @ chunk-276SZO74.js?v=2e6d94aa:14325
+beginWork @ chunk-276SZO74.js?v=2e6d94aa:15946
+callCallback2 @ chunk-276SZO74.js?v=2e6d94aa:3674
+invokeGuardedCallbackDev @ chunk-276SZO74.js?v=2e6d94aa:3699
+invokeGuardedCallback @ chunk-276SZO74.js?v=2e6d94aa:3733
+beginWork$1 @ chunk-276SZO74.js?v=2e6d94aa:19765
+performUnitOfWork @ chunk-276SZO74.js?v=2e6d94aa:19198
+workLoopSync @ chunk-276SZO74.js?v=2e6d94aa:19137
+renderRootSync @ chunk-276SZO74.js?v=2e6d94aa:19116
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=2e6d94aa:18874
+flushSyncCallbacks @ chunk-276SZO74.js?v=2e6d94aa:9119
+(anonymous) @ chunk-276SZO74.js?v=2e6d94aa:18627Understand this error
+2ErrorBoundary.tsx:29 [ErrorBoundary] Erro capturado: Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at @radix-ui_react-select.js?v=2e6d94aa:876:13
+    at renderWithHooks (chunk-276SZO74.js?v=2e6d94aa:11548:26)
+    at updateForwardRef (chunk-276SZO74.js?v=2e6d94aa:14325:28)
+    at beginWork (chunk-276SZO74.js?v=2e6d94aa:15946:22)
+    at beginWork$1 (chunk-276SZO74.js?v=2e6d94aa:19753:22)
+    at performUnitOfWork (chunk-276SZO74.js?v=2e6d94aa:19198:20)
+    at workLoopSync (chunk-276SZO74.js?v=2e6d94aa:19137:13)
+    at renderRootSync (chunk-276SZO74.js?v=2e6d94aa:19116:15)
+    at performSyncWorkOnRoot (chunk-276SZO74.js?v=2e6d94aa:18874:28)
+    at flushSyncCallbacks (chunk-276SZO74.js?v=2e6d94aa:9119:30)
+getDerivedStateFromError @ ErrorBoundary.tsx:29
+update.payload @ chunk-276SZO74.js?v=2e6d94aa:14063
+getStateFromUpdate @ chunk-276SZO74.js?v=2e6d94aa:11089
+processUpdateQueue @ chunk-276SZO74.js?v=2e6d94aa:11191
+updateClassInstance @ chunk-276SZO74.js?v=2e6d94aa:13928
+updateClassComponent @ chunk-276SZO74.js?v=2e6d94aa:14662
+beginWork @ chunk-276SZO74.js?v=2e6d94aa:15930
+beginWork$1 @ chunk-276SZO74.js?v=2e6d94aa:19753
+performUnitOfWork @ chunk-276SZO74.js?v=2e6d94aa:19198
+workLoopSync @ chunk-276SZO74.js?v=2e6d94aa:19137
+renderRootSync @ chunk-276SZO74.js?v=2e6d94aa:19116
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=2e6d94aa:18874
+flushSyncCallbacks @ chunk-276SZO74.js?v=2e6d94aa:9119
+(anonymous) @ chunk-276SZO74.js?v=2e6d94aa:18627Understand this error
+@radix-ui_react-select.js?v=2e6d94aa:876 Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at @radix-ui_react-select.js?v=2e6d94aa:876:13
+    at renderWithHooks (chunk-276SZO74.js?v=2e6d94aa:11548:26)
+    at updateForwardRef (chunk-276SZO74.js?v=2e6d94aa:14325:28)
+    at beginWork (chunk-276SZO74.js?v=2e6d94aa:15946:22)
+    at HTMLUnknownElement.callCallback2 (chunk-276SZO74.js?v=2e6d94aa:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-276SZO74.js?v=2e6d94aa:3699:24)
+    at invokeGuardedCallback (chunk-276SZO74.js?v=2e6d94aa:3733:39)
+    at beginWork$1 (chunk-276SZO74.js?v=2e6d94aa:19765:15)
+    at performUnitOfWork (chunk-276SZO74.js?v=2e6d94aa:19198:20)
+    at workLoopSync (chunk-276SZO74.js?v=2e6d94aa:19137:13)
+(anonymous) @ @radix-ui_react-select.js?v=2e6d94aa:876
+renderWithHooks @ chunk-276SZO74.js?v=2e6d94aa:11548
+updateForwardRef @ chunk-276SZO74.js?v=2e6d94aa:14325
+beginWork @ chunk-276SZO74.js?v=2e6d94aa:15946
+callCallback2 @ chunk-276SZO74.js?v=2e6d94aa:3674
+invokeGuardedCallbackDev @ chunk-276SZO74.js?v=2e6d94aa:3699
+invokeGuardedCallback @ chunk-276SZO74.js?v=2e6d94aa:3733
+beginWork$1 @ chunk-276SZO74.js?v=2e6d94aa:19765
+performUnitOfWork @ chunk-276SZO74.js?v=2e6d94aa:19198
+workLoopSync @ chunk-276SZO74.js?v=2e6d94aa:19137
+renderRootSync @ chunk-276SZO74.js?v=2e6d94aa:19116
+recoverFromConcurrentError @ chunk-276SZO74.js?v=2e6d94aa:18736
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=2e6d94aa:18879
+flushSyncCallbacks @ chunk-276SZO74.js?v=2e6d94aa:9119
+(anonymous) @ chunk-276SZO74.js?v=2e6d94aa:18627Understand this error
+ErrorBoundary.tsx:29 [ErrorBoundary] Erro capturado: Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at @radix-ui_react-select.js?v=2e6d94aa:876:13
+    at renderWithHooks (chunk-276SZO74.js?v=2e6d94aa:11548:26)
+    at updateForwardRef (chunk-276SZO74.js?v=2e6d94aa:14325:28)
+    at beginWork (chunk-276SZO74.js?v=2e6d94aa:15946:22)
+    at beginWork$1 (chunk-276SZO74.js?v=2e6d94aa:19753:22)
+    at performUnitOfWork (chunk-276SZO74.js?v=2e6d94aa:19198:20)
+    at workLoopSync (chunk-276SZO74.js?v=2e6d94aa:19137:13)
+    at renderRootSync (chunk-276SZO74.js?v=2e6d94aa:19116:15)
+    at recoverFromConcurrentError (chunk-276SZO74.js?v=2e6d94aa:18736:28)
+    at performSyncWorkOnRoot (chunk-276SZO74.js?v=2e6d94aa:18879:28)
+getDerivedStateFromError @ ErrorBoundary.tsx:29
+update.payload @ chunk-276SZO74.js?v=2e6d94aa:14063
+getStateFromUpdate @ chunk-276SZO74.js?v=2e6d94aa:11089
+processUpdateQueue @ chunk-276SZO74.js?v=2e6d94aa:11191
+updateClassInstance @ chunk-276SZO74.js?v=2e6d94aa:13928
+updateClassComponent @ chunk-276SZO74.js?v=2e6d94aa:14662
+beginWork @ chunk-276SZO74.js?v=2e6d94aa:15930
+beginWork$1 @ chunk-276SZO74.js?v=2e6d94aa:19753
+performUnitOfWork @ chunk-276SZO74.js?v=2e6d94aa:19198
+workLoopSync @ chunk-276SZO74.js?v=2e6d94aa:19137
+renderRootSync @ chunk-276SZO74.js?v=2e6d94aa:19116
+recoverFromConcurrentError @ chunk-276SZO74.js?v=2e6d94aa:18736
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=2e6d94aa:18879
+flushSyncCallbacks @ chunk-276SZO74.js?v=2e6d94aa:9119
+(anonymous) @ chunk-276SZO74.js?v=2e6d94aa:18627Understand this error
+chunk-276SZO74.js?v=2e6d94aa:14032 The above error occurred in the <SelectItem> component:
 
-    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-select.js?v=492ab39a:302:58
-    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=492ab39a:79:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=492ab39a:56:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=492ab39a:43:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-PZULDG2Y.js?v=492ab39a:260:22
+    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-select.js?v=2e6d94aa:849:7
+    at _c8 (http://localhost:8080/src/components/ui/select.tsx:234:60)
+    at div
+    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=2e6d94aa:43:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=2e6d94aa:79:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=2e6d94aa:56:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-JXZP3AW4.js?v=2e6d94aa:41:15
+    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-select.js?v=2e6d94aa:760:13
+    at div
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=2e6d94aa:79:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=2e6d94aa:56:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-JXZP3AW4.js?v=2e6d94aa:41:15
+    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=2e6d94aa:38:15)
+    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-select.js?v=2e6d94aa:303:58
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=2e6d94aa:79:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=2e6d94aa:56:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=2e6d94aa:43:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-UXUPDOHT.js?v=2e6d94aa:260:22
     at SelectPortal
     at _c4 (http://localhost:8080/src/components/ui/select.tsx:141:63)
-    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=492ab39a:38:15)
-    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=492ab39a:38:15)
-    at CollectionProvider (http://localhost:8080/node_modules/.vite/deps/chunk-JXZP3AW4.js?v=492ab39a:31:13)
-    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=492ab39a:38:15)
-    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=492ab39a:38:15)
-    at Popper (http://localhost:8080/node_modules/.vite/deps/chunk-A2ED7AJV.js?v=492ab39a:1935:11)
-    at Select (http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-select.js?v=492ab39a:88:5)
-    at div
-    at _c8 (http://localhost:8080/src/components/ui/card.tsx:95:61)
-    at div
-    at _c (http://localhost:8080/src/components/ui/card.tsx:23:53)
-    at div
-    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:61:9)
-    at AIAgentForm (http://localhost:8080/src/components/ai-agents/AIAgentForm.tsx?t=1755529492166:33:31)
-    at div
-    at _c8 (http://localhost:8080/src/components/ui/card.tsx:95:61)
-    at div
-    at _c (http://localhost:8080/src/components/ui/card.tsx:23:53)
-    at div
-    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=492ab39a:43:13
-    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-OFFUEB52.js?v=492ab39a:24:11)
-    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=492ab39a:177:13
-    at _c4 (http://localhost:8080/src/components/ui/tabs.tsx:61:61)
-    at div
-    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=492ab39a:43:13
-    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=492ab39a:38:15)
-    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=492ab39a:54:7
+    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=2e6d94aa:38:15)
+    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=2e6d94aa:38:15)
+    at CollectionProvider (http://localhost:8080/node_modules/.vite/deps/chunk-JXZP3AW4.js?v=2e6d94aa:31:13)
+    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=2e6d94aa:38:15)
+    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=2e6d94aa:38:15)
+    at Popper (http://localhost:8080/node_modules/.vite/deps/chunk-A2ED7AJV.js?v=2e6d94aa:1935:11)
+    at Select (http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-select.js?v=2e6d94aa:89:5)
     at div
     at div
-    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=492ab39a:43:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-PZULDG2Y.js?v=492ab39a:63:7
-    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=492ab39a:79:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=492ab39a:56:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=492ab39a:43:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-W4EMX6SA.js?v=492ab39a:29:5
-    at http://localhost:8080/node_modules/.vite/deps/chunk-U3H6DSG3.js?v=492ab39a:236:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-U3H6DSG3.js?v=492ab39a:159:58
-    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-OFFUEB52.js?v=492ab39a:24:11)
-    at http://localhost:8080/node_modules/.vite/deps/chunk-U3H6DSG3.js?v=492ab39a:150:64
-    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=492ab39a:79:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=492ab39a:56:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=492ab39a:43:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-PZULDG2Y.js?v=492ab39a:260:22
-    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-OFFUEB52.js?v=492ab39a:24:11)
-    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=492ab39a:38:15)
-    at DialogPortal (http://localhost:8080/node_modules/.vite/deps/chunk-U3H6DSG3.js?v=492ab39a:112:11)
+    at div
+    at div
+    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=2e6d94aa:43:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-UXUPDOHT.js?v=2e6d94aa:63:7
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=2e6d94aa:79:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=2e6d94aa:56:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=2e6d94aa:43:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-HKSXYMEN.js?v=2e6d94aa:34:5
+    at http://localhost:8080/node_modules/.vite/deps/chunk-KJWD5A4B.js?v=2e6d94aa:236:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-KJWD5A4B.js?v=2e6d94aa:159:58
+    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-OFFUEB52.js?v=2e6d94aa:24:11)
+    at http://localhost:8080/node_modules/.vite/deps/chunk-KJWD5A4B.js?v=2e6d94aa:150:64
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=2e6d94aa:79:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=2e6d94aa:56:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=2e6d94aa:43:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-UXUPDOHT.js?v=2e6d94aa:260:22
+    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-OFFUEB52.js?v=2e6d94aa:24:11)
+    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=2e6d94aa:38:15)
+    at DialogPortal (http://localhost:8080/node_modules/.vite/deps/chunk-KJWD5A4B.js?v=2e6d94aa:112:11)
     at DialogPortal (http://localhost:8080/src/components/ui/dialog.tsx:27:25)
     at _c2 (http://localhost:8080/src/components/ui/dialog.tsx:65:63)
-    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=492ab39a:38:15)
-    at Dialog (http://localhost:8080/node_modules/.vite/deps/chunk-U3H6DSG3.js?v=492ab39a:52:5)
-    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:61:9)
-    at AIAgentModal (http://localhost:8080/src/components/ai-agents/AIAgentModal.tsx?t=1755529561509:34:32)
+    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=2e6d94aa:38:15)
+    at Dialog (http://localhost:8080/node_modules/.vite/deps/chunk-KJWD5A4B.js?v=2e6d94aa:52:5)
+    at MassMoveModal (http://localhost:8080/src/components/sales/mass-selection/modals/MassMoveModal.tsx:30:33)
+    at MassActionWrapper (http://localhost:8080/src/components/sales/mass-selection/MassActionWrapper.tsx:21:37)
+    at div
+    at SalesFunnelContent (http://localhost:8080/src/components/sales/funnel/SalesFunnelContent.tsx?t=1755713188056:47:22)
+    at ErrorBoundary (http://localhost:8080/src/components/ErrorBoundary.tsx:296:5)
+    at SalesFunnelProvider (http://localhost:8080/src/components/sales/funnel/SalesFunnelProvider.tsx:35:39)
+    at SalesFunnelContextProvider (http://localhost:8080/src/components/sales/funnel/SalesFunnelContextProvider.tsx:220:46)
+    at ErrorBoundary (http://localhost:8080/src/components/ErrorBoundary.tsx:296:5)
+    at div
     at div
     at div
     at main
     at div
     at PageLayout (http://localhost:8080/src/components/layout/PageLayout.tsx:27:30)
-    at AIAgents (http://localhost:8080/src/pages/AIAgents.tsx?t=1755529561509:35:76)
+    at SalesFunnel
     at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
-    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=492ab39a:4088:5)
-    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=492ab39a:4558:5)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=2e6d94aa:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=2e6d94aa:4558:5)
     at QRCodeModalProvider (http://localhost:8080/src/modules/whatsapp/instanceCreation/hooks/useQRCodeModal.tsx:29:39)
     at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
     at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
     at div
-    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=492ab39a:4501:15)
-    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=492ab39a:5247:5)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=2e6d94aa:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=2e6d94aa:5247:5)
     at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:61:9)
-    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=492ab39a:2933:3)
-    at captureCommitPhaseError (http://localhost:8080/node_modules/.vite/deps/chunk-276SZO74.js?v=492ab39a:19577:33)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=2e6d94aa:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1755713188056:50:5)
 
-React will try to recreate this component tree from scratch using the error boundary you provided, PortalErrorBoundary.
-logCapturedError @ chunk-276SZO74.js?v=492ab39a:14032
-callback @ chunk-276SZO74.js?v=492ab39a:14078
-callCallback @ chunk-276SZO74.js?v=492ab39a:11248
-commitUpdateQueue @ chunk-276SZO74.js?v=492ab39a:11265
-commitLayoutEffectOnFiber @ chunk-276SZO74.js?v=492ab39a:17075
-commitLayoutMountEffects_complete @ chunk-276SZO74.js?v=492ab39a:17980
-commitLayoutEffects_begin @ chunk-276SZO74.js?v=492ab39a:17969
-commitLayoutEffects @ chunk-276SZO74.js?v=492ab39a:17920
-commitRootImpl @ chunk-276SZO74.js?v=492ab39a:19353
-commitRoot @ chunk-276SZO74.js?v=492ab39a:19277
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=492ab39a:18895
-flushSyncCallbacks @ chunk-276SZO74.js?v=492ab39a:9119
-(anonymous) @ chunk-276SZO74.js?v=492ab39a:18627Understand this error
-suppressDragDropWarnings.ts:34 [PortalErrorBoundary] Portal DOM error handled: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
-console.warn @ suppressDragDropWarnings.ts:34
-componentDidCatch @ PortalErrorBoundary.tsx:31
-callback @ chunk-276SZO74.js?v=492ab39a:14084
-callCallback @ chunk-276SZO74.js?v=492ab39a:11248
-commitUpdateQueue @ chunk-276SZO74.js?v=492ab39a:11265
-commitLayoutEffectOnFiber @ chunk-276SZO74.js?v=492ab39a:17075
-commitLayoutMountEffects_complete @ chunk-276SZO74.js?v=492ab39a:17980
-commitLayoutEffects_begin @ chunk-276SZO74.js?v=492ab39a:17969
-commitLayoutEffects @ chunk-276SZO74.js?v=492ab39a:17920
-commitRootImpl @ chunk-276SZO74.js?v=492ab39a:19353
-commitRoot @ chunk-276SZO74.js?v=492ab39a:19277
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=492ab39a:18895
-flushSyncCallbacks @ chunk-276SZO74.js?v=492ab39a:9119
-(anonymous) @ chunk-276SZO74.js?v=492ab39a:18627Understand this warning
-suppressDragDropWarnings.ts:34 [PortalErrorBoundary] Portal error handled gracefully, continuing...
-console.warn @ suppressDragDropWarnings.ts:34
-componentDidCatch @ PortalErrorBoundary.tsx:39
-callback @ chunk-276SZO74.js?v=492ab39a:14084
-callCallback @ chunk-276SZO74.js?v=492ab39a:11248
-commitUpdateQueue @ chunk-276SZO74.js?v=492ab39a:11265
-commitLayoutEffectOnFiber @ chunk-276SZO74.js?v=492ab39a:17075
-commitLayoutMountEffects_complete @ chunk-276SZO74.js?v=492ab39a:17980
-commitLayoutEffects_begin @ chunk-276SZO74.js?v=492ab39a:17969
-commitLayoutEffects @ chunk-276SZO74.js?v=492ab39a:17920
-commitRootImpl @ chunk-276SZO74.js?v=492ab39a:19353
-commitRoot @ chunk-276SZO74.js?v=492ab39a:19277
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=492ab39a:18895
-flushSyncCallbacks @ chunk-276SZO74.js?v=492ab39a:9119
-(anonymous) @ chunk-276SZO74.js?v=492ab39a:18627Understand this warning
-PortalErrorBoundary.tsx:20 [PortalErrorBoundary] Portal error captured: NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
-    at removeChildFromContainer (chunk-276SZO74.js?v=492ab39a:8462:23)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17508:21)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17534:17)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17577:15)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17503:17)
-    at recursivelyTraverseDeletionEffects (chunk-276SZO74.js?v=492ab39a:17486:13)
-    at commitDeletionEffectsOnFiber (chunk-276SZO74.js?v=492ab39a:17577:15)
-getDerivedStateFromError @ PortalErrorBoundary.tsx:20
-update.payload @ chunk-276SZO74.js?v=492ab39a:14063
-getStateFromUpdate @ chunk-276SZO74.js?v=492ab39a:11089
-processUpdateQueue @ chunk-276SZO74.js?v=492ab39a:11191
-updateClassInstance @ chunk-276SZO74.js?v=492ab39a:13928
-updateClassComponent @ chunk-276SZO74.js?v=492ab39a:14662
-beginWork @ chunk-276SZO74.js?v=492ab39a:15930
-beginWork$1 @ chunk-276SZO74.js?v=492ab39a:19753
-performUnitOfWork @ chunk-276SZO74.js?v=492ab39a:19198
-workLoopSync @ chunk-276SZO74.js?v=492ab39a:19137
-renderRootSync @ chunk-276SZO74.js?v=492ab39a:19116
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=492ab39a:18874
-flushSyncCallbacks @ chunk-276SZO74.js?v=492ab39a:9119
-(anonymous) @ chunk-276SZO74.js?v=492ab39a:18627Understand this error
-suppressDragDropWarnings.ts:34 [PortalErrorBoundary] Portal error ignored, rendering children normally
-console.warn @ suppressDragDropWarnings.ts:34
-render @ PortalErrorBoundary.tsx:56
-finishClassComponent @ chunk-276SZO74.js?v=492ab39a:14699
-updateClassComponent @ chunk-276SZO74.js?v=492ab39a:14664
-beginWork @ chunk-276SZO74.js?v=492ab39a:15930
-beginWork$1 @ chunk-276SZO74.js?v=492ab39a:19753
-performUnitOfWork @ chunk-276SZO74.js?v=492ab39a:19198
-workLoopSync @ chunk-276SZO74.js?v=492ab39a:19137
-renderRootSync @ chunk-276SZO74.js?v=492ab39a:19116
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=492ab39a:18874
-flushSyncCallbacks @ chunk-276SZO74.js?v=492ab39a:9119
-(anonymous) @ chunk-276SZO74.js?v=492ab39a:18627Understand this warning
-chunk-276SZO74.js?v=492ab39a:14032 The above error occurred in the <div> component:
-
-    at div
-    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:61:9)
-    at AIAgentForm (http://localhost:8080/src/components/ai-agents/AIAgentForm.tsx?t=1755529492166:33:31)
-    at div
-    at _c8 (http://localhost:8080/src/components/ui/card.tsx:95:61)
-    at div
-    at _c (http://localhost:8080/src/components/ui/card.tsx:23:53)
-    at div
-    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=492ab39a:43:13
-    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-OFFUEB52.js?v=492ab39a:24:11)
-    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=492ab39a:177:13
-    at _c4 (http://localhost:8080/src/components/ui/tabs.tsx:61:61)
-    at div
-    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=492ab39a:43:13
-    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=492ab39a:38:15)
-    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=492ab39a:54:7
-    at div
-    at div
-    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=492ab39a:43:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-PZULDG2Y.js?v=492ab39a:63:7
-    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=492ab39a:79:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=492ab39a:56:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=492ab39a:43:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-W4EMX6SA.js?v=492ab39a:29:5
-    at http://localhost:8080/node_modules/.vite/deps/chunk-U3H6DSG3.js?v=492ab39a:236:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-U3H6DSG3.js?v=492ab39a:159:58
-    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-OFFUEB52.js?v=492ab39a:24:11)
-    at http://localhost:8080/node_modules/.vite/deps/chunk-U3H6DSG3.js?v=492ab39a:150:64
-    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=492ab39a:79:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=492ab39a:56:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=492ab39a:43:13
-    at http://localhost:8080/node_modules/.vite/deps/chunk-PZULDG2Y.js?v=492ab39a:260:22
-    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-OFFUEB52.js?v=492ab39a:24:11)
-    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=492ab39a:38:15)
-    at DialogPortal (http://localhost:8080/node_modules/.vite/deps/chunk-U3H6DSG3.js?v=492ab39a:112:11)
-    at DialogPortal (http://localhost:8080/src/components/ui/dialog.tsx:27:25)
-    at _c2 (http://localhost:8080/src/components/ui/dialog.tsx:65:63)
-    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-6JTMSBF5.js?v=492ab39a:38:15)
-    at Dialog (http://localhost:8080/node_modules/.vite/deps/chunk-U3H6DSG3.js?v=492ab39a:52:5)
-    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:61:9)
-    at AIAgentModal (http://localhost:8080/src/components/ai-agents/AIAgentModal.tsx?t=1755529561509:34:32)
-    at div
-    at div
-    at main
-    at div
-    at PageLayout (http://localhost:8080/src/components/layout/PageLayout.tsx:27:30)
-    at AIAgents (http://localhost:8080/src/pages/AIAgents.tsx?t=1755529561509:35:76)
-    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
-    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=492ab39a:4088:5)
-    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=492ab39a:4558:5)
-    at QRCodeModalProvider (http://localhost:8080/src/modules/whatsapp/instanceCreation/hooks/useQRCodeModal.tsx:29:39)
-    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
-    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
-    at div
-    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=492ab39a:4501:15)
-    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=492ab39a:5247:5)
-    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:61:9)
-    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=492ab39a:2933:3)
-    at captureCommitPhaseError (http://localhost:8080/node_modules/.vite/deps/chunk-276SZO74.js?v=492ab39a:19577:33)
-
-React will try to recreate this component tree from scratch using the error boundary you provided, PortalErrorBoundary.
-logCapturedError @ chunk-276SZO74.js?v=492ab39a:14032
-callback @ chunk-276SZO74.js?v=492ab39a:14078
-callCallback @ chunk-276SZO74.js?v=492ab39a:11248
-commitUpdateQueue @ chunk-276SZO74.js?v=492ab39a:11265
-commitLayoutEffectOnFiber @ chunk-276SZO74.js?v=492ab39a:17075
-commitLayoutMountEffects_complete @ chunk-276SZO74.js?v=492ab39a:17980
-commitLayoutEffects_begin @ chunk-276SZO74.js?v=492ab39a:17969
-commitLayoutEffects @ chunk-276SZO74.js?v=492ab39a:17920
-commitRootImpl @ chunk-276SZO74.js?v=492ab39a:19353
-commitRoot @ chunk-276SZO74.js?v=492ab39a:19277
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=492ab39a:18895
-flushSyncCallbacks @ chunk-276SZO74.js?v=492ab39a:9119
-(anonymous) @ chunk-276SZO74.js?v=492ab39a:18627Understand this error
-suppressDragDropWarnings.ts:34 [PortalErrorBoundary] Portal DOM error handled: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
-console.warn @ suppressDragDropWarnings.ts:34
-componentDidCatch @ PortalErrorBoundary.tsx:31
-callback @ chunk-276SZO74.js?v=492ab39a:14084
-callCallback @ chunk-276SZO74.js?v=492ab39a:11248
-commitUpdateQueue @ chunk-276SZO74.js?v=492ab39a:11265
-commitLayoutEffectOnFiber @ chunk-276SZO74.js?v=492ab39a:17075
-commitLayoutMountEffects_complete @ chunk-276SZO74.js?v=492ab39a:17980
-commitLayoutEffects_begin @ chunk-276SZO74.js?v=492ab39a:17969
-commitLayoutEffects @ chunk-276SZO74.js?v=492ab39a:17920
-commitRootImpl @ chunk-276SZO74.js?v=492ab39a:19353
-commitRoot @ chunk-276SZO74.js?v=492ab39a:19277
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=492ab39a:18895
-flushSyncCallbacks @ chunk-276SZO74.js?v=492ab39a:9119
-(anonymous) @ chunk-276SZO74.js?v=492ab39a:18627Understand this warning
-suppressDragDropWarnings.ts:34 [PortalErrorBoundary] Portal error handled gracefully, continuing...
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+logCapturedError @ chunk-276SZO74.js?v=2e6d94aa:14032
+callback @ chunk-276SZO74.js?v=2e6d94aa:14078
+callCallback @ chunk-276SZO74.js?v=2e6d94aa:11248
+commitUpdateQueue @ chunk-276SZO74.js?v=2e6d94aa:11265
+commitLayoutEffectOnFiber @ chunk-276SZO74.js?v=2e6d94aa:17075
+commitLayoutMountEffects_complete @ chunk-276SZO74.js?v=2e6d94aa:17980
+commitLayoutEffects_begin @ chunk-276SZO74.js?v=2e6d94aa:17969
+commitLayoutEffects @ chunk-276SZO74.js?v=2e6d94aa:17920
+commitRootImpl @ chunk-276SZO74.js?v=2e6d94aa:19353
+commitRoot @ chunk-276SZO74.js?v=2e6d94aa:19277
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=2e6d94aa:18895
+flushSyncCallbacks @ chunk-276SZO74.js?v=2e6d94aa:9119
+(anonymous) @ chunk-276SZO74.js?v=2e6d94aa:18627Understand this error
+ErrorBoundary.tsx:42 [ErrorBoundary] Detalhes do erro: {error: 'A <Select.Item /> must have a value prop that is n… to clear the selection and show the placeholder.', stack: 'Error: A <Select.Item /> must have a value prop th….vite/deps/chunk-276SZO74.js?v=2e6d94aa:18879:28)', componentStack: '\n    at http://localhost:8080/node_modules/.vite/d…/localhost:8080/src/App.tsx?t=1755713188056:50:5)'}
