@@ -24,6 +24,7 @@ interface RealClientDetailsProps {
   onUpdateDocument?: (data: { document_type: 'cpf' | 'cnpj'; document_id: string }) => void;
   onUpdateAddress?: (data: { 
     address: string; 
+    bairro: string;
     city: string; 
     state: string; 
     country: string; 

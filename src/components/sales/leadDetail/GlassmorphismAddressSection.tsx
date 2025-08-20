@@ -21,6 +21,7 @@ export const GlassmorphismAddressSection = ({
   const [isLoading, setIsLoading] = useState(false);
   const [editedData, setEditedData] = useState({
     address: selectedLead.address || "",
+    bairro: selectedLead.bairro || "",
     city: selectedLead.city || "",
     state: selectedLead.state || "",
     country: selectedLead.country || "Brasil",
@@ -36,10 +37,11 @@ export const GlassmorphismAddressSection = ({
         .from('leads')
         .update({
           address: editedData.address,
-          city: editedData.city,
-          state: editedData.state,
-          country: editedData.country,
-          zip_code: editedData.zip_code
+          bairro: editedData.bairro,
+          cidade: editedData.city,
+          estado: editedData.state,
+          pais: editedData.country,
+          cep: editedData.zip_code
         })
         .eq('id', selectedLead.id);
 
@@ -59,6 +61,7 @@ export const GlassmorphismAddressSection = ({
   const handleCancel = () => {
     setEditedData({
       address: selectedLead.address || "",
+      bairro: selectedLead.bairro || "",
       city: selectedLead.city || "",
       state: selectedLead.state || "",
       country: selectedLead.country || "Brasil",
@@ -129,6 +132,26 @@ export const GlassmorphismAddressSection = ({
           ) : (
             <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/20">
               <p className="text-white/80">{selectedLead.address || 'Não informado'}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Bairro */}
+        <div className="space-y-3">
+          <Label className="text-white/90 font-medium flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-lime-400" />
+            Bairro
+          </Label>
+          {isEditing ? (
+            <Input
+              value={editedData.bairro}
+              onChange={(e) => setEditedData({...editedData, bairro: e.target.value})}
+              className="bg-white/15 backdrop-blur-sm border-lime-400/40 text-white placeholder:text-white/60 focus:border-lime-400 focus:ring-lime-400/30 rounded-xl"
+              placeholder="Nome do bairro"
+            />
+          ) : (
+            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <p className="text-white/80">{selectedLead.bairro || 'Não informado'}</p>
             </div>
           )}
         </div>

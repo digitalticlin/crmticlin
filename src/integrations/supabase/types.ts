@@ -353,12 +353,16 @@ export type Database = {
       leads: {
         Row: {
           address: string | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
           company: string | null
           created_at: string | null
           created_by_user_id: string
           deleted_whatsapp_instance_name: string | null
           document_id: string | null
           email: string | null
+          estado: string | null
           funnel_id: string | null
           id: string
           import_source: string | null
@@ -369,6 +373,7 @@ export type Database = {
           notes: string | null
           order_position: number | null
           owner_id: string | null
+          pais: string | null
           phone: string
           purchase_value: number | null
           unread_count: number | null
@@ -377,12 +382,16 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
           company?: string | null
           created_at?: string | null
           created_by_user_id: string
           deleted_whatsapp_instance_name?: string | null
           document_id?: string | null
           email?: string | null
+          estado?: string | null
           funnel_id?: string | null
           id?: string
           import_source?: string | null
@@ -393,6 +402,7 @@ export type Database = {
           notes?: string | null
           order_position?: number | null
           owner_id?: string | null
+          pais?: string | null
           phone: string
           purchase_value?: number | null
           unread_count?: number | null
@@ -401,12 +411,16 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
           company?: string | null
           created_at?: string | null
           created_by_user_id?: string
           deleted_whatsapp_instance_name?: string | null
           document_id?: string | null
           email?: string | null
+          estado?: string | null
           funnel_id?: string | null
           id?: string
           import_source?: string | null
@@ -417,6 +431,7 @@ export type Database = {
           notes?: string | null
           order_position?: number | null
           owner_id?: string | null
+          pais?: string | null
           phone?: string
           purchase_value?: number | null
           unread_count?: number | null

@@ -10,6 +10,7 @@ interface AddressSectionProps {
   client: ClientData;
   onUpdateAddress?: (data: { 
     address: string; 
+    bairro: string;
     city: string; 
     state: string; 
     country: string; 
@@ -22,6 +23,7 @@ export function AddressSection({ client, onUpdateAddress, isCreateMode = false }
   const [isEditing, setIsEditing] = useState(isCreateMode);
   const [editedData, setEditedData] = useState({
     address: client.address || "",
+    bairro: client.bairro || "",
     city: client.city || "",
     state: client.state || "",
     country: client.country || "Brasil",
@@ -79,6 +81,20 @@ export function AddressSection({ client, onUpdateAddress, isCreateMode = false }
             />
           ) : (
             <p className="text-white/80">{client.address || 'Não informado'}</p>
+          )}
+        </div>
+
+        <div>
+          <Label className="text-sm font-medium text-white/90">Bairro</Label>
+          {isEditing || isCreateMode ? (
+            <Input
+              value={editedData.bairro}
+              onChange={(e) => setEditedData({...editedData, bairro: e.target.value})}
+              className="mt-1 bg-white/10 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60"
+              placeholder="Bairro"
+            />
+          ) : (
+            <p className="text-white/80">{client.bairro || 'Não informado'}</p>
           )}
         </div>
 
@@ -160,6 +176,7 @@ export function AddressSection({ client, onUpdateAddress, isCreateMode = false }
                 setIsEditing(false);
                 setEditedData({
                   address: client.address || "",
+                  bairro: client.bairro || "",
                   city: client.city || "",
                   state: client.state || "",
                   country: client.country || "Brasil",

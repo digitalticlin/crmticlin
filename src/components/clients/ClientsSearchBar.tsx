@@ -1,10 +1,13 @@
 
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, FileSpreadsheet } from "lucide-react";
+import { Search, FileSpreadsheet, Upload } from "lucide-react";
 import { ClientData } from "@/hooks/clients/types";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { toast } from "sonner";
+import { ImportSpreadsheetModal } from "./import/ImportSpreadsheetModal";
+import { AdvancedFiltersPopover } from "./filters/AdvancedFiltersPopover";
 
 interface ClientsSearchBarProps {
   searchQuery: string;
@@ -23,6 +26,7 @@ export const ClientsSearchBar = ({
   totalClientsCount = 0,
   hasMoreClients = false
 }: ClientsSearchBarProps) => {
+  const [showImportModal, setShowImportModal] = useState(false);
   const exportToCSV = () => {
     // Create CSV header
     let csv = "Nome,Telefone,Email,Empresa,Valor de Compra,Notas\n";
@@ -79,14 +83,16 @@ export const ClientsSearchBar = ({
           />
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-700 font-medium">
-            <strong className="text-black">{getCountText()}</strong>
-          </span>
-          {hasMoreClients && !searchQuery.trim() && (
-            <span className="text-xs text-gray-600 bg-white/20 px-2 py-1 rounded-full">
-              Carregando sob demanda
-            </span>
-          )}
+          <AdvancedFiltersPopover />
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-2 rounded-xl bg-blue-600/20 backdrop-blur-sm border-blue-400/40 text-blue-800 hover:bg-blue-600/30 hover:text-blue-900"
+            onClick={() => setShowImportModal(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Importar
+          </Button>
           <Button 
             variant="outline" 
             size="sm"
@@ -95,10 +101,15 @@ export const ClientsSearchBar = ({
             disabled={filteredClients.length === 0}
           >
             <FileSpreadsheet className="h-4 w-4" />
-            Exportar {searchQuery.trim() ? 'Filtrados' : 'Todos'}
+            Exportar
           </Button>
         </div>
       </div>
+      
+      <ImportSpreadsheetModal 
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+      />
     </div>
   );
 };

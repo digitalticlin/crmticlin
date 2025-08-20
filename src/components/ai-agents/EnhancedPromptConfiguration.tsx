@@ -2,8 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { FieldConfigModal } from "./FieldConfigModal";
 import { FlowStepConfigModal } from "./FlowStepConfigModal";
+import { FunnelConfigModal } from "./FunnelConfigModal";
 import { AIAgent, FieldWithExamples, FlowStepEnhanced, PQExample } from "@/types/aiAgent";
 import { 
   User, 
@@ -60,6 +63,7 @@ export const EnhancedPromptConfiguration = ({
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [editingStep, setEditingStep] = useState<{ step: FlowStepEnhanced | null; index: number } | null>(null);
   const [newStepText, setNewStepText] = useState<string>("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<{ show: boolean; index: number | null }>({ show: false, index: null });
 
   // Configurações dos campos
   const fieldConfigs = [
@@ -194,6 +198,16 @@ export const EnhancedPromptConfiguration = ({
         answer: 'Use quando o cliente demonstrar dúvida ou resistência, para mostrar que você está focado em ajudá-lo.'
       },
       description: 'Frases úteis com contexto de uso'
+    },
+    {
+      key: 'funnel_stages',
+      title: 'Configuração do Funil',
+      icon: <Target className="h-4 w-4 text-yellow-500" />,
+      type: 'funnel-config' as const,
+      required: false,
+      placeholder: '',
+      value: null, // Será calculado dinamicamente
+      description: 'Configure os estágios do funil e notificações'
     }
   ];
 
@@ -254,24 +268,38 @@ export const EnhancedPromptConfiguration = ({
     }
   };
 
-  const handleStepDelete = async (index: number) => {
-    if (confirm('Tem certeza que deseja excluir este passo?')) {
-      console.log('🗑️ handleStepDelete chamado para índice:', index);
+  const handleStepDelete = (index: number) => {
+    setShowDeleteConfirm({ show: true, index });
+  };
+
+  const handleConfirmDelete = async () => {
+    const { index } = showDeleteConfirm;
+    if (index === null) return;
+    
+    console.log('🗑️ handleConfirmDelete chamado para índice:', index);
+    
+    try {
+      const newFlow = promptData.flow.filter((_, i) => i !== index);
+      onPromptDataChange('flow', newFlow);
       
-      try {
-        const newFlow = promptData.flow.filter((_, i) => i !== index);
-        onPromptDataChange('flow', newFlow);
-        
-        console.log('📝 Passo removido, salvando no banco imediatamente...');
-        
-        // Salvar imediatamente após remoção - sem timeout
-        await onSave();
-        console.log('✅ Passo removido e salvo no banco com sucesso');
-      } catch (error) {
-        console.error('❌ Erro ao salvar remoção no banco:', error);
-        // Não bloquear operação se houver erro - apenas reportar
-      }
+      console.log('📝 Passo removido, salvando no banco imediatamente...');
+      
+      // Salvar imediatamente após remoção
+      await onSave();
+      toast.success('Passo removido com sucesso');
+      console.log('✅ Passo removido e salvo no banco com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao salvar remoção no banco:', error);
+      toast.error('Erro ao remover passo', {
+        description: 'Não foi possível salvar a alteração. Tente novamente.',
+      });
+    } finally {
+      setShowDeleteConfirm({ show: false, index: null });
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm({ show: false, index: null });
   };
 
   const handleAddStep = () => {
@@ -305,6 +333,9 @@ export const EnhancedPromptConfiguration = ({
   const getFieldStatus = (config: any) => {
     if (config.type === 'simple') {
       return config.value ? '✅' : (config.required ? '❌' : '⚪');
+    } else if (config.type === 'funnel-config') {
+      // Para configuração de funil, verificar se tem funil selecionado
+      return agent?.funnel_id ? '🟡' : '⚪';
     } else {
       const hasDescription = config.value.description;
       const hasExamples = config.value.examples.length > 0;
@@ -470,6 +501,8 @@ export const EnhancedPromptConfiguration = ({
                 <span className="text-xs font-medium text-gray-700">
                   {config.type === 'simple' 
                     ? (config.value ? 'Configurado' : 'Não configurado')
+                    : config.type === 'funnel-config'
+                      ? (agent?.funnel_id ? 'Pronto para configurar' : 'Funil não selecionado')
                     : config.key === 'phrase_tips'
                       ? (config.value?.examples?.length > 0 ? 'Configurado' : 'Não configurado')
                       : (config.value?.description || config.value?.examples?.length > 0 ? 'Configurado' : 'Não configurado')
@@ -482,6 +515,10 @@ export const EnhancedPromptConfiguration = ({
                 {config.type === 'simple' ? (
                   <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
                     {config.value ? String(config.value).substring(0, 80) + (String(config.value).length > 80 ? '...' : '') : 'Clique em "Configurar" para adicionar'}
+                  </div>
+                ) : config.type === 'funnel-config' ? (
+                  <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
+                    {agent?.funnel_id ? 'Funil selecionado - Configure os estágios' : 'Selecione um funil na Aba 1 primeiro'}
                   </div>
                 ) : (
                   <div className="space-y-1">
@@ -514,7 +551,7 @@ export const EnhancedPromptConfiguration = ({
       </div>
 
       {/* Modais de configuração */}
-      {fieldConfigs.map((config) => (
+      {fieldConfigs.filter(config => config.type !== 'funnel-config').map((config) => (
         <FieldConfigModal
           key={config.key}
           isOpen={activeModal === config.key}
@@ -531,6 +568,16 @@ export const EnhancedPromptConfiguration = ({
           examplePlaceholder={config.examplePlaceholder}
         />
       ))}
+
+      {/* Modal de configuração do funil */}
+      <FunnelConfigModal
+        isOpen={activeModal === 'funnel_stages'}
+        onClose={() => setActiveModal(null)}
+        onSave={(value) => handleFieldSave('funnel_stages', value)}
+        title="Configuração do Funil"
+        icon={<Target className="h-5 w-5 text-yellow-500" />}
+        agent={agent}
+      />
 
       {/* Modal de configuração de passos do fluxo */}
       <FlowStepConfigModal
@@ -584,6 +631,43 @@ export const EnhancedPromptConfiguration = ({
           Salvar Configuração
         </Button>
       </div>
+
+      {/* Modal de confirmação para deletar passo */}
+      <Dialog open={showDeleteConfirm.show} onOpenChange={() => setShowDeleteConfirm({ show: false, index: null })}>
+        <DialogContent className="max-w-md bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-xl">
+          <DialogHeader className="border-b border-white/30 pb-3 bg-white/20 backdrop-blur-sm rounded-t-xl -mx-6 -mt-6 px-6 pt-6">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
+              <div className="p-2 bg-red-500/20 backdrop-blur-sm rounded-lg border border-red-500/30">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              Confirmar exclusão
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="text-gray-700 text-sm leading-relaxed">
+              Tem certeza que deseja excluir este passo? Esta ação não pode ser desfeita.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-white/30 bg-white/10 backdrop-blur-sm -mx-6 -mb-6 px-6 pb-6 rounded-b-xl">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleCancelDelete}
+              className="px-4 h-10 bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-lg transition-all duration-200"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleConfirmDelete}
+              className="px-4 h-10 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-all duration-200"
+            >
+              Excluir passo
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

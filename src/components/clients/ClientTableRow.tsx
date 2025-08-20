@@ -6,6 +6,7 @@ import { Edit, Phone, Mail, Building } from "lucide-react";
 import { ClientData } from "@/hooks/clients/types";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { ClientDeleteDialog } from "./ClientDeleteDialog";
+import { WhatsAppButton } from "./actions/WhatsAppButton";
 
 interface ClientTableRowProps {
   client: ClientData;
@@ -28,11 +29,33 @@ export const ClientTableRow = ({
     }).format(value);
   };
 
-  const getStatusBadge = (client: ClientData) => {
-    if (client.purchase_value && client.purchase_value > 0) {
-      return <Badge className="bg-green-100 text-green-800 border-green-200">Cliente</Badge>;
+  const getClientTags = (client: ClientData) => {
+    if (!client.tags || client.tags.length === 0) {
+      // Fallback para mostrar status baseado em purchase_value se não há tags
+      if (client.purchase_value && client.purchase_value > 0) {
+        return <Badge className="bg-green-100 text-green-800 border-green-200">Cliente</Badge>;
+      }
+      return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Lead</Badge>;
     }
-    return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Lead</Badge>;
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {client.tags.slice(0, 2).map(tag => (
+          <Badge 
+            key={tag.id} 
+            style={{ backgroundColor: tag.color + '20', color: tag.color, borderColor: tag.color + '40' }}
+            className="text-xs font-medium"
+          >
+            {tag.name}
+          </Badge>
+        ))}
+        {client.tags.length > 2 && (
+          <Badge variant="outline" className="text-xs">
+            +{client.tags.length - 2}
+          </Badge>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -73,7 +96,7 @@ export const ClientTableRow = ({
         )}
       </TableCell>
       <TableCell>
-        {getStatusBadge(client)}
+        {getClientTags(client)}
       </TableCell>
       <TableCell>
         <span className="font-medium text-gray-800">
@@ -87,6 +110,7 @@ export const ClientTableRow = ({
       </TableCell>
       <TableCell>
         <div className="flex items-center gap-1">
+          <WhatsAppButton client={client} />
           <Button
             variant="ghost"
             size="icon"

@@ -5,6 +5,11 @@ export interface Contact {
   phone: string;
   email?: string;
   address?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  pais?: string;
+  cep?: string;
   company?: string;
   notes?: string;
   tags?: KanbanTag[]; // Make this optional
@@ -15,6 +20,7 @@ export interface Contact {
   isOnline?: boolean;
   funnelStage?: string;
   purchaseValue?: number;
+  currentDeal?: CurrentDeal; // ✅ NOVO: Negociação atual
   assignedUser?: string;
   profilePicUrl?: string;
   // Adding missing properties
@@ -40,6 +46,27 @@ export interface Deal {
   value: number;
   date: string;
   note?: string;
+  stage?: string; // ✅ NOVO: Estágio onde aconteceu
+}
+
+// ✅ NOVO: Interface para negociação atual
+export interface CurrentDeal {
+  id: string;
+  value: number;
+  status: 'active' | 'pending' | 'negotiating';
+  startDate: string;
+  currentStage: string;
+  notes?: string;
+}
+
+// ✅ NOVO: Interface para item do histórico
+export interface DealHistoryItem {
+  id: string;
+  type: 'win' | 'loss';
+  value?: number;
+  date: string;
+  stage: string;
+  notes?: string;
 }
 
 // ✅ NOVO: Interface para media_cache

@@ -76,10 +76,12 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     throw error;
   }
   
+  let phoneParam;
   try {
     const [searchParams] = useSearchParams();
     leadId = searchParams.get('leadId');
-    console.log('[WhatsApp Chat] ✅ useSearchParams funcionou:', { leadId });
+    phoneParam = searchParams.get('phone');
+    console.log('[WhatsApp Chat] ✅ useSearchParams funcionou:', { leadId, phoneParam });
   } catch (error) {
     console.error('[WhatsApp Chat] ❌ Erro em useSearchParams:', error);
     throw error;
@@ -88,6 +90,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
   console.log('[WhatsApp Chat] 🎯 Hook principal inicializado:', {
     userId: user?.id,
     leadId,
+    phoneParam,
     timestamp: new Date().toISOString()
   });
   
@@ -267,9 +270,9 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
 
   // Auto-seleção de contato da URL (isolada) - com busca no banco se necessário
   useEffect(() => {
-    if (leadId && !selectedContact && !hasInitialized && user?.id) {
+    if ((leadId || phoneParam) && !selectedContact && !hasInitialized && user?.id) {
       const findAndSelectContact = async () => {
-        console.log('[WhatsApp Chat] 🎯 Procurando contato da URL:', leadId);
+        console.log('[WhatsApp Chat] 🎯 Procurando contato da URL:', { leadId, phoneParam });
         console.log('[WhatsApp Chat] 📊 Estado atual:', {
           contactsLoaded: contacts.contacts.length,
           isLoadingContacts: contacts.isLoading,
@@ -278,7 +281,19 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
         
         // Primeiro, tentar encontrar nos contatos já carregados (se houver)
         if (contacts.contacts.length > 0) {
-          const targetContact = contacts.contacts.find(contact => contact.id === leadId);
+          let targetContact;
+          
+          if (leadId) {
+            targetContact = contacts.contacts.find(contact => contact.id === leadId);
+          } else if (phoneParam) {
+            // Limpar telefone para comparação
+            const cleanPhoneParam = phoneParam.replace(/\D/g, '');
+            targetContact = contacts.contacts.find(contact => {
+              const cleanContactPhone = contact.phone.replace(/\D/g, '');
+              return cleanContactPhone.includes(cleanPhoneParam) || cleanPhoneParam.includes(cleanContactPhone);
+            });
+          }
+          
           if (targetContact) {
             console.log('[WhatsApp Chat] ✅ Contato encontrado nos carregados:', targetContact.name);
             handleSelectContact(targetContact);
@@ -290,16 +305,24 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
         // Se não encontrou nos carregados OU ainda não carregou contatos, buscar no banco
         console.log('[WhatsApp Chat] 🔍 Contato não encontrado nos carregados, buscando diretamente no banco...');
         try {
-          const { data: leadData, error } = await supabase
+          let query = supabase
             .from('leads')
             .select(`
               id, name, phone, email, address, company, document_id, notes, purchase_value, 
               owner_id, last_message, last_message_time, unread_count, created_at, updated_at,
               whatsapp_number_id, kanban_stage_id, created_by_user_id, profile_pic_url
             `)
-            .eq('id', leadId)
-            .eq('created_by_user_id', user.id)
-            .maybeSingle();
+            .eq('created_by_user_id', user.id);
+          
+          if (leadId) {
+            query = query.eq('id', leadId);
+          } else if (phoneParam) {
+            // Buscar por telefone - tentar várias variações
+            const cleanPhone = phoneParam.replace(/\D/g, '');
+            query = query.or(`phone.ilike.%${cleanPhone}%,phone.ilike.%${cleanPhone.slice(-11)}%,phone.ilike.%${cleanPhone.slice(-10)}%`);
+          }
+          
+          const { data: leadData, error } = await query.maybeSingle();
           
           if (error) throw error;
           
@@ -340,8 +363,45 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
               description: "Lead encontrado e carregado"
             });
           } else {
-            console.log('[WhatsApp Chat] ⚠️ Contato não encontrado no banco:', leadId);
-            toast.error('Lead não encontrado ou não pertence ao usuário');
+            console.log('[WhatsApp Chat] ⚠️ Contato não encontrado no banco:', { leadId, phoneParam });
+            
+            // Se não encontrou por telefone, criar um contato temporário para iniciar conversa
+            if (phoneParam && !leadId) {
+              console.log('[WhatsApp Chat] 📱 Criando contato temporário para novo telefone:', phoneParam);
+              
+              const tempContact = {
+                id: `temp_${phoneParam}`,
+                name: `Contato ${phoneParam}`,
+                phone: phoneParam,
+                email: undefined,
+                address: undefined,
+                company: undefined,
+                documentId: undefined,
+                notes: undefined,
+                purchaseValue: undefined,
+                assignedUser: undefined,
+                lastMessage: undefined,
+                lastMessageTime: undefined,
+                unreadCount: undefined,
+                leadId: undefined,
+                whatsapp_number_id: undefined,
+                stageId: null,
+                createdAt: new Date().toISOString(),
+                tags: [],
+                instanceInfo: undefined,
+                avatar: undefined,
+                profilePicUrl: undefined
+              };
+              
+              contacts.addNewContact(tempContact);
+              handleSelectContact(tempContact);
+              
+              toast.success(`Chat iniciado com ${phoneParam}`, {
+                description: "Novo contato criado"
+              });
+            } else {
+              toast.error('Lead não encontrado ou não pertence ao usuário');
+            }
           }
         } catch (error) {
           console.error('[WhatsApp Chat] ❌ Erro ao buscar contato no banco:', error);
@@ -353,7 +413,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
       
       findAndSelectContact();
     }
-  }, [leadId, selectedContact, hasInitialized, user?.id, contacts.contacts.length, contacts.isLoading, handleSelectContact, contacts.addNewContact]);
+  }, [leadId, phoneParam, selectedContact, hasInitialized, user?.id, contacts.contacts.length, contacts.isLoading, handleSelectContact, contacts.addNewContact]);
 
   // Notificações de saúde (isoladas)
   useEffect(() => {

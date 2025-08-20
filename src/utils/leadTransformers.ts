@@ -31,12 +31,13 @@ export const transformDatabaseLeadToKanban = (lead: any): KanbanLead => {
     last_message: lead.last_message,
     purchase_value: lead.purchase_value,
     unread_count: lead.unread_count,
-    documentId: (lead as any).document_id || undefined,
-    address: (lead as any).address || undefined,
-    city: undefined,
-    state: undefined,
-    country: undefined,
-    zip_code: undefined
+    documentId: lead.document_id || undefined,
+    address: lead.address || undefined,
+    bairro: lead.bairro || undefined,
+    city: lead.cidade || undefined,
+    state: lead.estado || undefined,
+    country: lead.pais || undefined,
+    zip_code: lead.cep || undefined
   };
 };
 

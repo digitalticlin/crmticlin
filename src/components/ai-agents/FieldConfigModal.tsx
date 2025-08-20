@@ -7,6 +7,7 @@ import { ExamplesManager } from "./ExamplesManager";
 import { PhraseTipsManager } from "./PhraseTipsManager";
 import { PQExample, FieldWithExamples } from "@/types/aiAgent";
 import { Save, X, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 
 interface FieldConfigModalProps {
   isOpen: boolean;
@@ -94,14 +95,18 @@ export const FieldConfigModal = ({
     
     if (type === 'simple') {
       if (required && !simpleData.trim()) {
-        alert('Este campo é obrigatório!');
+        toast.error('Campo obrigatório', {
+          description: 'Por favor, preencha este campo antes de salvar.',
+        });
         return;
       }
       valueToSave = simpleData;
     } else {
       // Para dicas de frases, não exigir descrição
       if (fieldKey !== 'phrase_tips' && required && !complexData.description.trim()) {
-        alert('A descrição é obrigatória!');
+        toast.error('Descrição obrigatória', {
+          description: 'Por favor, preencha a descrição antes de salvar.',
+        });
         return;
       }
       valueToSave = complexData;
@@ -129,7 +134,9 @@ export const FieldConfigModal = ({
       // Modal não fecha automaticamente - usuário decide quando fechar
     } catch (error) {
       console.error('❌ Erro ao salvar no FieldConfigModal:', error);
-      alert('Erro ao salvar configuração. Verifique os dados e tente novamente.');
+      toast.error('Erro ao salvar', {
+        description: 'Não foi possível salvar a configuração. Verifique os dados e tente novamente.',
+      });
     }
   };
 

@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { AIAgent, AIAgentPrompt } from "@/types/aiAgent";
 import { AIAgentForm } from "./AIAgentForm";
 import { EnhancedPromptConfiguration } from "./EnhancedPromptConfiguration";
+import { FunnelStagesConfiguration } from "./FunnelStagesConfiguration";
 import { useAIAgentPrompts } from "@/hooks/useAIAgentPrompts";
 import { PortalErrorBoundary } from "@/components/error/PortalErrorBoundary";
 import { FlowStepEnhanced, PQExample } from "@/types/aiAgent";
-import { Bot, MessageSquare, ListChecks, Sparkles } from "lucide-react";
+import { Bot, MessageSquare, ListChecks, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { unstable_batchedUpdates } from "react-dom";
 
@@ -50,6 +51,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
 
   // Auto-save functionality
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showConfirmCloseModal, setShowConfirmCloseModal] = useState(false);
 
   // Track component mount state
   useEffect(() => {
@@ -153,10 +155,15 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   };
 
   const handleAgentSaved = (savedAgent: AIAgent) => {
+    console.log('🎯 AIAgentModal.handleAgentSaved chamado:', savedAgent.name);
     unstable_batchedUpdates(() => {
       setWorkingAgent(savedAgent);
       setAllowTabNavigation(true);
     });
+    
+    // CRÍTICO: Chamar onSave para notificar a página principal
+    console.log('📢 Notificando página principal via onSave...');
+    onSave();
   };
 
   const handlePromptDataChange = (
@@ -197,19 +204,26 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     
     // Verificar se há dados não salvos
     if (hasUnsavedChanges) {
-      const confirmClose = confirm(
-        'Tem certeza que deseja fechar sem salvar?\n\nTodas as alterações não salvas serão perdidas.'
-      );
-      if (!confirmClose) {
-        return; // Usuário cancelou, não fechar
-      }
+      setShowConfirmCloseModal(true);
+      return; // Mostrar modal de confirmação
     }
     
+    // Fechar diretamente se não há mudanças não salvas
+    handleForceClose();
+  };
+
+  const handleForceClose = () => {
     console.log('🚪 Fechando modal - dados salvos ou usuário confirmou');
+    setShowConfirmCloseModal(false);
+    
     // Add a small delay to ensure proper cleanup
     setTimeout(() => {
       onClose();
     }, 0);
+  };
+
+  const handleCancelClose = () => {
+    setShowConfirmCloseModal(false);
   };
 
   const handleSave = async () => {
@@ -238,13 +252,15 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       
       if (!targetAgent) {
         console.log('❌ Nenhum agente encontrado');
-        console.log('  - Sugestão: Primeiro salve as informações básicas na aba 1');
-        toast.error('🚀 Primeiro salve as informações básicas para criar o agente', {
-          description: 'Vá para a aba "Informações Básicas" e clique em "Salvar"',
-          duration: 5000
+        console.log('  - Redirecionando usuário para criar o agente primeiro');
+        
+        toast.info('📝 Crie o agente primeiro', {
+          description: 'Complete as informações básicas antes de configurar prompts e fluxos',
+          duration: 4000
         });
+        
         setActiveTab('basic');
-        throw new Error('Agente não encontrado - é necessário criar o agente primeiro');
+        return; // Não gerar erro - apenas redirecionar
       }
       
       console.log('✅ Target Agent encontrado:', {
@@ -355,6 +371,9 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
                 <Bot className="h-3 w-3" />
                 <span className="hidden sm:inline">Informações Básicas</span>
                 <span className="sm:hidden">Básico</span>
+                {!agent && !workingAgent && (
+                  <span className="ml-1 w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Comece aqui"></span>
+                )}
               </TabsTrigger>
               <TabsTrigger 
                 value="prompt" 
@@ -363,6 +382,9 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
                 <MessageSquare className="h-3 w-3" />
                 <span className="hidden sm:inline">Configuração do Prompt</span>
                 <span className="sm:hidden">Prompt</span>
+                {currentAgent && !agent && (
+                  <span className="ml-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" title="Próximo passo"></span>
+                )}
               </TabsTrigger>
               <TabsTrigger 
                 value="objectives" 
@@ -461,10 +483,53 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           
           {/* Info de como salvar */}
           <div className="mt-4 p-3 bg-blue-50/80 backdrop-blur-sm border border-blue-200/60 rounded-lg">
-            <p className="text-sm text-blue-800 text-center">
-              💡 <strong>Dica:</strong> Use os botões "Configurar" em cada campo para editar e salvar suas configurações
-            </p>
+            {!currentAgent ? (
+              <p className="text-sm text-blue-800 text-center">
+                🚀 <strong>Novo agente:</strong> Comece criando as informações básicas na primeira aba, depois configure prompts e fluxos
+              </p>
+            ) : (
+              <p className="text-sm text-blue-800 text-center">
+                💡 <strong>Dica:</strong> Use os botões "Configurar" em cada campo para editar e salvar suas configurações
+              </p>
+            )}
           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* Modal de confirmação para fechar sem salvar */}
+    <Dialog open={showConfirmCloseModal} onOpenChange={() => setShowConfirmCloseModal(false)}>
+      <DialogContent className="max-w-md bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-xl">
+        <DialogHeader className="border-b border-white/30 pb-3 bg-white/20 backdrop-blur-sm rounded-t-xl -mx-6 -mt-6 px-6 pt-6">
+          <DialogTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
+            <div className="p-2 bg-yellow-500/20 backdrop-blur-sm rounded-lg border border-yellow-500/30">
+              <X className="h-5 w-5 text-yellow-600" />
+            </div>
+            Alterações não salvas
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="py-4">
+          <p className="text-gray-700 text-sm leading-relaxed">
+            Tem certeza que deseja sair sem salvar? Todas as alterações feitas serão perdidas.
+          </p>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-4 border-t border-white/30 bg-white/10 backdrop-blur-sm -mx-6 -mb-6 px-6 pb-6 rounded-b-xl">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={handleCancelClose}
+            className="px-4 h-10 bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-lg transition-all duration-200"
+          >
+            Continuar editando
+          </Button>
+          <Button 
+            onClick={handleForceClose}
+            className="px-4 h-10 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-all duration-200"
+          >
+            Sair sem salvar
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

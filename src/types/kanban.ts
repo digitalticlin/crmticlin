@@ -37,6 +37,7 @@ export interface KanbanLead {
   unread_count?: number;
   documentId?: string;
   address?: string;
+  bairro?: string;
   city?: string;
   state?: string;
   country?: string;

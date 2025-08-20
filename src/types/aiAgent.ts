@@ -60,8 +60,8 @@ export interface AIAgentPrompt {
 export interface CreateAIAgentData {
   name: string;
   type: 'attendance' | 'sales' | 'support' | 'custom';
-  funnel_id?: string; // Por enquanto apenas um funil (limitação do banco atual)
-  whatsapp_number_id?: string; // Por enquanto apenas uma instância (limitação do banco atual)
+  funnel_id?: string | null; // Por enquanto apenas um funil (limitação do banco atual)
+  whatsapp_number_id?: string | null; // Por enquanto apenas uma instância (limitação do banco atual)
 }
 
 export interface CreateAIAgentPromptData {

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExamplesManager } from "./ExamplesManager";
 import { FlowStepEnhanced } from "@/types/aiAgent";
 import { Save, X, ListChecks } from "lucide-react";
+import { toast } from "sonner";
 
 interface FlowStepConfigModalProps {
   isOpen: boolean;
@@ -35,7 +36,9 @@ export const FlowStepConfigModal = ({
 
   const handleSave = async () => {
     if (!stepData.description.trim()) {
-      alert('A descrição do passo é obrigatória!');
+      toast.error('Descrição obrigatória', {
+        description: 'Por favor, descreva o que o agente deve fazer neste passo.',
+      });
       return;
     }
     
@@ -60,7 +63,9 @@ export const FlowStepConfigModal = ({
       console.log('✅ Passo salvo com sucesso');
     } catch (error) {
       console.error('❌ Erro ao salvar passo:', error);
-      alert('Erro ao salvar passo. Tente novamente.');
+      toast.error('Erro ao salvar passo', {
+        description: 'Não foi possível salvar o passo. Verifique os dados e tente novamente.',
+      });
     }
   };
 

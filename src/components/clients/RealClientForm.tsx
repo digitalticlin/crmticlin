@@ -24,6 +24,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
     phone: "",
     email: "",
     address: "",
+    bairro: "",
     city: "",
     state: "",
     country: "Brasil",
@@ -60,6 +61,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
         phone: client.phone || "",
         email: client.email || "",
         address: client.address || "",
+        bairro: client.bairro || "",
         city: client.city || "",
         state: client.state || "",
         country: client.country || "Brasil",
@@ -216,6 +218,19 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
                 value={formData.address}
                 onChange={handleChange}
                 placeholder="Rua, número, complemento"
+                disabled={isLoading}
+                className="border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bairro" className="text-gray-700 font-medium">Bairro</Label>
+              <Input
+                id="bairro"
+                name="bairro"
+                value={formData.bairro}
+                onChange={handleChange}
+                placeholder="Nome do bairro"
                 disabled={isLoading}
                 className="border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm"
               />

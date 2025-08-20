@@ -6,12 +6,19 @@ export interface LeadContact {
   is_primary: boolean;
 }
 
+export interface ClientTag {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface ClientData {
   id: string;
   name: string;
   phone: string;
   email?: string;
   address?: string;
+  bairro?: string;
   city?: string;
   state?: string;
   country?: string;
@@ -25,6 +32,7 @@ export interface ClientData {
   updated_at: string;
   created_by_user_id: string;
   contacts?: LeadContact[];
+  tags?: ClientTag[];
 }
 
 export interface ClientFormData {
@@ -34,6 +42,7 @@ export interface ClientFormData {
   phone: string;
   email?: string;
   address?: string;
+  bairro?: string;
   city?: string;
   state?: string;
   country?: string;

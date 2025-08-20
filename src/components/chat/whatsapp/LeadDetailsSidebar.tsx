@@ -6,14 +6,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Save, User, Building2, Mail, DollarSign, Calendar, Tag, Phone } from "lucide-react";
+import { X, Save, User, Building2, Mail, DollarSign, Calendar, Tag, Phone, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Contact } from "@/types/chat";
+import { Contact, CurrentDeal, DealHistoryItem } from "@/types/chat";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
 import { SalesHistorySection } from "./sidebar/SalesHistorySection";
+import { AddressSection } from "./sections/AddressSection";
+import { CurrentDealSection } from "./sections/CurrentDealSection";
+import { DealHistorySection } from "./sections/DealHistorySection";
 
 interface LeadDetailsSidebarProps {
   selectedContact: Contact | null;
@@ -242,89 +245,85 @@ export const LeadDetailsSidebar = ({
           
           <div className="flex-1 overflow-y-auto glass-scrollbar p-6 space-y-6">
             {/* Informações básicas do contato */}
-            <Card className="bg-white/20 backdrop-blur-sm border-white/40">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Informações do Lead
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/40">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-blue-400" />
+                  <h3 className="text-lg font-semibold text-gray-800">👤 Informações do Lead</h3>
+                </div>
+                {!isEditing && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={handleEditToggle}
+                    className="text-gray-600 hover:text-gray-800 hover:bg-white/20"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              
+              <div className="space-y-4">
                 {/* Nome */}
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Nome
-                  </Label>
+                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">Nome</Label>
                   {isEditing ? (
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="bg-white/30 border-white/50"
+                      className="mt-1 bg-white/50 backdrop-blur-sm border-white/40 focus:border-blue-400"
                       placeholder="Nome do lead"
                     />
                   ) : (
-                    <p className="text-gray-800 font-medium">{displayName}</p>
+                    <p className="text-gray-800 mt-1">{displayName}</p>
                   )}
                 </div>
 
                 {/* Telefone (sempre readonly) */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <Phone className="h-4 w-4" />
-                    Telefone
-                  </Label>
-                  <p className="text-gray-800 font-mono text-sm bg-gray-50/50 px-3 py-2 rounded-md">
+                  <Label className="text-sm font-medium text-gray-700">Telefone</Label>
+                  <p className="text-gray-800 mt-1 font-mono text-sm bg-white/30 px-3 py-2 rounded-md">
                     {formatPhoneDisplay(selectedContact.phone)}
                   </p>
                 </div>
 
                 {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    Email
-                  </Label>
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
                   {isEditing ? (
                     <Input
                       id="email"
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                      className="bg-white/30 border-white/50"
+                      className="mt-1 bg-white/50 backdrop-blur-sm border-white/40 focus:border-blue-400"
                       placeholder="email@exemplo.com"
                     />
                   ) : (
-                    <p className="text-gray-800">{selectedContact.email || "Não informado"}</p>
+                    <p className="text-gray-800 mt-1">{selectedContact.email || "Não informado"}</p>
                   )}
                 </div>
 
                 {/* Empresa */}
                 <div className="space-y-2">
-                  <Label htmlFor="company" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    Empresa
-                  </Label>
+                  <Label htmlFor="company" className="text-sm font-medium text-gray-700">Empresa</Label>
                   {isEditing ? (
                     <Input
                       id="company"
                       value={formData.company}
                       onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
-                      className="bg-white/30 border-white/50"
+                      className="mt-1 bg-white/50 backdrop-blur-sm border-white/40 focus:border-blue-400"
                       placeholder="Nome da empresa"
                     />
                   ) : (
-                    <p className="text-gray-800">{selectedContact.company || "Não informado"}</p>
+                    <p className="text-gray-800 mt-1">{selectedContact.company || "Não informado"}</p>
                   )}
                 </div>
 
                 {/* Valor de compra */}
                 <div className="space-y-2">
-                  <Label htmlFor="purchaseValue" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" />
-                    Valor de Compra
-                  </Label>
+                  <Label htmlFor="purchaseValue" className="text-sm font-medium text-gray-700">Valor de Compra</Label>
                   {isEditing ? (
                     <Input
                       id="purchaseValue"
@@ -332,11 +331,11 @@ export const LeadDetailsSidebar = ({
                       step="0.01"
                       value={formData.purchaseValue}
                       onChange={(e) => setFormData(prev => ({ ...prev, purchaseValue: e.target.value }))}
-                      className="bg-white/30 border-white/50"
+                      className="mt-1 bg-white/50 backdrop-blur-sm border-white/40 focus:border-blue-400"
                       placeholder="0.00"
                     />
                   ) : (
-                    <p className="text-gray-800">
+                    <p className="text-gray-800 mt-1">
                       {selectedContact.purchaseValue 
                         ? `R$ ${Number(selectedContact.purchaseValue).toFixed(2)}` 
                         : "Não informado"
@@ -347,131 +346,218 @@ export const LeadDetailsSidebar = ({
 
                 {/* Notas */}
                 <div className="space-y-2">
-                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                    <Tag className="h-4 w-4" />
-                    Observações
-                  </Label>
+                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700">Observações</Label>
                   {isEditing ? (
                     <Textarea
                       id="notes"
                       value={formData.notes}
                       onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                      className="bg-white/30 border-white/50 min-h-[80px]"
+                      className="mt-1 bg-white/50 backdrop-blur-sm border-white/40 focus:border-blue-400 min-h-[80px]"
                       placeholder="Observações sobre o lead..."
                     />
                   ) : (
-                    <p className="text-gray-800 text-sm">
+                    <p className="text-gray-800 mt-1 text-sm">
                       {selectedContact.notes || "Nenhuma observação"}
                     </p>
                   )}
                 </div>
 
                 {/* Botões de ação */}
-                <div className="flex gap-2 pt-4">
-                  {isEditing ? (
-                    <>
-                      <Button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        size="sm"
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        {isSaving ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                            Salvando...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-4 w-4 mr-2" />
-                            Salvar
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        onClick={() => setIsEditing(false)}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 bg-white/20 border-white/40 text-gray-700 hover:bg-white/30"
-                      >
-                        Cancelar
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      onClick={handleEditToggle}
-                      size="sm"
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                {isEditing && (
+                  <div className="flex gap-2 pt-4 border-t border-white/30">
+                    <Button 
+                      size="sm" 
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
                     >
-                      Editar Informações
+                      <Save className="h-3 w-3 mr-1" />
+                      {isSaving ? 'Salvando...' : 'Salvar'}
                     </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tags */}
-            {selectedContact.tags && selectedContact.tags.length > 0 && (
-              <Card className="bg-white/20 backdrop-blur-sm border-white/40">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-                    <Tag className="h-5 w-5" />
-                    Tags
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedContact.tags.map((tag, index) => (
-                      <Badge 
-                        key={index} 
-                        variant="secondary" 
-                        className="bg-blue-100 text-blue-800 hover:bg-blue-200"
-                      >
-                        {tag.name}
-                      </Badge>
-                    ))}
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => setIsEditing(false)}
+                      className="bg-white/20 backdrop-blur-sm border-white/40 text-gray-700 hover:bg-white/30"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Cancelar
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                )}
+              </div>
+            </div>
 
-            {/* Histórico de vendas */}
-            {selectedContact.deals && selectedContact.deals.length > 0 && (
-              <SalesHistorySection deals={selectedContact.deals} />
-            )}
 
-            {/* Informações de contato adicionais */}
-            <Card className="bg-white/20 backdrop-blur-sm border-white/40">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Informações Adicionais
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Última mensagem:</span>
-                  <span className="text-gray-800 font-medium">
-                    {selectedContact.lastMessageTime 
-                      ? new Date(selectedContact.lastMessageTime).toLocaleDateString('pt-BR')
-                      : "Nunca"
-                    }
-                  </span>
+            {/* Endereço Completo */}
+            <AddressSection 
+              contact={selectedContact}
+              onUpdateAddress={async (addressData) => {
+                try {
+                  const { error } = await supabase
+                    .from('leads')
+                    .update({
+                      address: addressData.address,
+                      bairro: addressData.bairro,
+                      cidade: addressData.cidade,
+                      estado: addressData.estado,
+                      pais: addressData.pais,
+                      cep: addressData.cep,
+                      updated_at: new Date().toISOString()
+                    })
+                    .eq('id', selectedContact.id);
+
+                  if (error) throw error;
+
+                  onUpdateContact({
+                    ...selectedContact,
+                    address: addressData.address,
+                    bairro: addressData.bairro,
+                    cidade: addressData.cidade,
+                    estado: addressData.estado,
+                    pais: addressData.pais,
+                    cep: addressData.cep
+                  });
+
+                  toast.success("Endereço atualizado com sucesso!");
+                } catch (error) {
+                  console.error("Erro ao atualizar endereço:", error);
+                  toast.error("Erro ao atualizar endereço");
+                  throw error;
+                }
+              }}
+            />
+
+            {/* Negociação Atual */}
+            <CurrentDealSection 
+              currentDeal={selectedContact.currentDeal}
+              onUpdateDeal={async (deal: CurrentDeal) => {
+                try {
+                  // Buscar deal ativo existente
+                  const { data: existingDeal } = await supabase
+                    .from('deals')
+                    .select('id')
+                    .eq('lead_id', selectedContact.id)
+                    .in('status', ['active', 'pending', 'negotiating'])
+                    .single();
+
+                  if (existingDeal) {
+                    // Atualizar deal existente
+                    const { error } = await supabase
+                      .from('deals')
+                      .update({
+                        value: deal.value,
+                        status: deal.status,
+                        note: deal.notes,
+                        date: new Date().toISOString()
+                      })
+                      .eq('id', existingDeal.id);
+
+                    if (error) throw error;
+                  } else {
+                    // Criar novo deal ativo
+                    const { error } = await supabase
+                      .from('deals')
+                      .insert({
+                        lead_id: selectedContact.id,
+                        value: deal.value,
+                        status: deal.status,
+                        note: deal.notes,
+                        date: new Date().toISOString(),
+                        created_by_user_id: selectedContact.id // Ajustar conforme necessário
+                      });
+
+                    if (error) throw error;
+                  }
+
+                  onUpdateContact({
+                    ...selectedContact,
+                    currentDeal: deal
+                  });
+
+                  toast.success("Negociação atualizada com sucesso!");
+                } catch (error) {
+                  console.error("Erro ao atualizar negociação:", error);
+                  toast.error("Erro ao atualizar negociação");
+                  throw error;
+                }
+              }}
+            />
+
+            {/* Histórico de Negociações */}
+            <DealHistorySection 
+              dealHistory={selectedContact.deals?.map(deal => ({
+                id: deal.id,
+                type: deal.status,
+                value: deal.value,
+                date: deal.date,
+                stage: deal.stage || 'Não informado',
+                notes: deal.note
+              } as DealHistoryItem)) || []}
+            />
+
+            {/* NOTAS */}
+            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/40">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-5 w-5 text-blue-400" />
+                  <h3 className="text-lg font-semibold text-gray-800">📝 NOTAS</h3>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Mensagens não lidas:</span>
-                  <Badge variant={selectedContact.unreadCount > 0 ? "destructive" : "secondary"}>
-                    {selectedContact.unreadCount || 0}
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Status:</span>
-                  <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                    Ativo
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+                {!isEditing && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={handleEditToggle}
+                    className="text-gray-600 hover:text-gray-800 hover:bg-white/20"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Observações</Label>
+                {isEditing ? (
+                  <Textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    className="mt-1 bg-white/50 backdrop-blur-sm border-white/40 focus:border-blue-400 min-h-[100px]"
+                    placeholder="Adicione observações sobre este lead..."
+                  />
+                ) : (
+                  <div className="mt-1">
+                    {selectedContact.notes ? (
+                      <p className="text-gray-800 text-sm whitespace-pre-wrap">{selectedContact.notes}</p>
+                    ) : (
+                      <p className="text-gray-500 text-sm italic">Nenhuma observação adicionada</p>
+                    )}
+                  </div>
+                )}
+
+                {isEditing && (
+                  <div className="flex gap-2 pt-4 border-t border-white/30">
+                    <Button 
+                      size="sm" 
+                      onClick={handleSave}
+                      disabled={isSaving}
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
+                    >
+                      <Save className="h-3 w-3 mr-1" />
+                      {isSaving ? 'Salvando...' : 'Salvar'}
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => setIsEditing(false)}
+                      className="bg-white/20 backdrop-blur-sm border-white/40 text-gray-700 hover:bg-white/30"
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Cancelar
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
