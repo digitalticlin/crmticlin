@@ -10,21 +10,10 @@ interface MassSelectionFilterButtonProps {
 export const MassSelectionFilterButton = ({ massSelection }: MassSelectionFilterButtonProps) => {
   const { isSelectionMode, selectedLeads, enterSelectionMode, exitSelectionMode } = massSelection;
 
-  // Temporary debug logs
-  console.log('🐛 [DEBUG] MassSelectionFilterButton render:', {
-    isSelectionMode,
-    selectedCount: selectedLeads.size,
-    hasEnterSelectionMode: typeof enterSelectionMode === 'function',
-    hasExitSelectionMode: typeof exitSelectionMode === 'function'
-  });
-
   const handleToggle = () => {
-    console.log('🐛 [DEBUG] Toggle button clicked, current mode:', isSelectionMode);
     if (isSelectionMode) {
-      console.log('🐛 [DEBUG] Calling exitSelectionMode');
       exitSelectionMode();
     } else {
-      console.log('🐛 [DEBUG] Calling enterSelectionMode');
       enterSelectionMode();
     }
   };

@@ -204,12 +204,7 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
     prevProps.massSelection?.isSelectionMode !== nextProps.massSelection?.isSelectionMode ||
     prevProps.massSelection?.selectedCount !== nextProps.massSelection?.selectedCount;
 
-  console.log('🐛 [DEBUG] BoardContentOptimized memo check:', {
-    columnsChanged,
-    stateChanged,
-    massSelectionChanged,
-    shouldRerender: !!(columnsChanged || stateChanged || massSelectionChanged)
-  });
+  // Debug logs removidos para produção
 
   return !(columnsChanged || stateChanged || massSelectionChanged);
 });

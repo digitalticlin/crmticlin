@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo, useReducer } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { KanbanLead } from "@/types/kanban";
 
 export interface MassSelectionReturn {
@@ -28,9 +28,6 @@ export interface MassSelectionReturn {
 export const useMassSelection = (): MassSelectionReturn => {
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(() => new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  
-  // 🚀 CORREÇÃO: Force update para garantir re-renders
-  const [, forceUpdate] = useReducer(x => x + 1, 0);
   
   // 🔧 Debug apenas em desenvolvimento
   if (process.env.NODE_ENV === 'development') {
@@ -66,7 +63,6 @@ export const useMassSelection = (): MassSelectionReturn => {
     if (!isSelectionMode) {
       setIsSelectionMode(true);
     }
-    forceUpdate(); // 🚀 CORREÇÃO: Força re-render
   }, [isSelectionMode]);
 
   const unselectLead = useCallback((leadId: string) => {
@@ -81,21 +77,17 @@ export const useMassSelection = (): MassSelectionReturn => {
       }
       return newSet;
     });
-    forceUpdate(); // 🚀 CORREÇÃO: Força re-render
   }, []);
 
   const toggleLead = useCallback((leadId: string) => {
-    console.log('🐛 [DEBUG] useMassSelection.toggleLead called for:', leadId);
     setSelectedLeads(prev => {
       const newSet = new Set(prev);
       if (newSet.has(leadId)) {
-        console.log('🐛 [DEBUG] Removing lead from selection');
         newSet.delete(leadId);
         if (newSet.size === 0) {
           setIsSelectionMode(false);
         }
       } else {
-        console.log('🐛 [DEBUG] Adding lead to selection');
         newSet.add(leadId);
         if (!isSelectionMode) {
           setIsSelectionMode(true);
@@ -103,11 +95,8 @@ export const useMassSelection = (): MassSelectionReturn => {
       }
       // 🚀 PRODUÇÃO: Limpar cache de etapas quando seleção muda
       stageSelectionCache.current.clear();
-      console.log('🐛 [DEBUG] New selection set size:', newSet.size);
       return newSet;
     });
-    forceUpdate(); // 🚀 CORREÇÃO: Força re-render
-    console.log('🐛 [DEBUG] useMassSelection.toggleLead completed');
   }, [isSelectionMode]);
 
   // ✅ OTIMIZAÇÃO: Batch operations para múltiplos leads
@@ -130,16 +119,12 @@ export const useMassSelection = (): MassSelectionReturn => {
   }, []);
 
   const enterSelectionMode = useCallback(() => {
-    console.log('🐛 [DEBUG] useMassSelection.enterSelectionMode called');
     setIsSelectionMode(true);
-    forceUpdate(); // 🚀 CORREÇÃO: Força re-render
-    console.log('🐛 [DEBUG] useMassSelection.enterSelectionMode completed');
   }, []);
 
   const exitSelectionMode = useCallback(() => {
     setSelectedLeads(new Set());
     setIsSelectionMode(false);
-    forceUpdate(); // 🚀 CORREÇÃO: Força re-render
     // 🚀 PRODUÇÃO: Limpar todos os caches ao sair
     stageSelectionCache.current.clear();
     cachedSelectedArray.current = [];
@@ -213,7 +198,8 @@ export const useMassSelection = (): MassSelectionReturn => {
     return result;
   }, [selectedLeads]);
 
-  return {
+  // 🚀 CORREÇÃO CRÍTICA: Garantir nova referência a cada render para forçar re-renders downstream
+  return useMemo(() => ({
     selectedLeads,
     isSelectionMode,
     selectedCount,
@@ -228,5 +214,20 @@ export const useMassSelection = (): MassSelectionReturn => {
     getSelectedLeadsData,
     getStageSelectionState,
     isLeadSelected
-  };
+  }), [
+    selectedLeads,
+    isSelectionMode,
+    selectedCount,
+    selectLead,
+    unselectLead,
+    toggleLead,
+    selectAll,
+    selectStage,
+    clearSelection,
+    enterSelectionMode,
+    exitSelectionMode,
+    getSelectedLeadsData,
+    getStageSelectionState,
+    isLeadSelected
+  ]);
 };

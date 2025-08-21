@@ -67,7 +67,7 @@ export const KanbanColumnMemo = React.memo<KanbanColumnMemoProps>(
 
     const shouldRerender = columnChanged || leadsChanged || stateChanged || massSelectionChanged;
 
-    // Production-ready memoization without debug logs
+    // Debug logs removidos para produção
 
     return !shouldRerender;
   }

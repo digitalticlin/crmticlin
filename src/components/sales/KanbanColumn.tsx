@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
-import { MoreVertical, Edit, Trash2, Plus, Lock } from "lucide-react";
+import { MoreVertical, Edit, Trash2, Plus, Lock, CheckSquare, Square, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -114,6 +114,7 @@ interface ColumnHeaderProps {
   onToggleAI: (enabled: boolean) => void;
   onEdit: () => void;
   onDelete: () => void;
+  massSelection?: MassSelectionReturn;
   titleEditor: {
     isEditing: boolean;
     editTitle: string;
@@ -132,14 +133,42 @@ const ColumnHeader = ({
   onToggleAI,
   onEdit,
   onDelete,
+  massSelection,
   titleEditor
 }: ColumnHeaderProps) => {
   // Verificar se é etapa GANHO ou PERDIDO (essas não devem ter controle de IA)
   const isWonLostStage = column.title === "GANHO" || column.title === "PERDIDO";
   
+  // Lógica para seleção de etapa
+  const stageSelectionState = massSelection?.getStageSelectionState(column.leads) || 'none';
+  const handleStageSelection = () => {
+    if (massSelection) {
+      massSelection.selectStage(column.leads);
+    }
+  };
+  
   return (
     <div className="flex items-center justify-between mb-4 px-1">
       <div className="flex items-center gap-2 flex-1">
+        {/* Checkbox de seleção da etapa - só aparece no modo seleção */}
+        {massSelection?.isSelectionMode && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleStageSelection}
+            className="p-0 h-auto hover:bg-transparent"
+            title="Selecionar/Deselecionar todos os leads desta etapa"
+          >
+            {stageSelectionState === 'all' ? (
+              <CheckSquare className="h-4 w-4 text-blue-500" />
+            ) : stageSelectionState === 'some' ? (
+              <Minus className="h-4 w-4 text-blue-400" />
+            ) : (
+              <Square className="h-4 w-4 text-gray-400 hover:text-blue-400" />
+            )}
+          </Button>
+        )}
+        
         {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
         {titleEditor.isEditing ? (
           <Input
@@ -276,14 +305,6 @@ export function KanbanColumn({
   lostStageId,
   massSelection
 }: KanbanColumnProps) {
-  // Debug logs
-  console.log('🐛 [DEBUG] KanbanColumn render:', {
-    columnId: column.id,
-    columnTitle: column.title,
-    leadsCount: column.leads.length,
-    hasMassSelection: !!massSelection,
-    massSelectionMode: massSelection?.isSelectionMode
-  });
   
   // Hooks customizados
   const { toggleAI, isLoading: isTogglingAI } = useAIStageControl();
@@ -369,7 +390,7 @@ export function KanbanColumn({
   });
 
   return (
-    <div className="bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 py-3 min-w-[300px] w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg">
+    <div className="bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 pt-1.5 pb-0 min-w-[300px] w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg">
       {/* Header com controle de IA aprimorado */}
       <ColumnHeader
         column={column}
@@ -380,12 +401,13 @@ export function KanbanColumn({
         onToggleAI={handleAIToggle}
         onEdit={titleEditor.startEditing}
         onDelete={handleDelete}
+        massSelection={massSelection}
         titleEditor={titleEditor}
       />
 
       {/* Color bar */}
       <div
-        className="h-1 rounded-full mb-4 mx-1"
+        className="h-1 rounded-full mb-2 mx-1"
         style={{ backgroundColor: column.color || "#e0e0e0" }}
       />
 
@@ -396,7 +418,7 @@ export function KanbanColumn({
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "flex-1 rounded-xl px-0.5 py-2 kanban-column-scrollbar overflow-y-auto overflow-x-hidden",
+              "flex-1 rounded-xl px-0.5 pt-1 pb-0 kanban-column-scrollbar overflow-y-auto overflow-x-hidden",
               snapshot.isDraggingOver && "bg-blue-50/50 border-2 border-dashed border-blue-400/70 transition-all duration-150"
             )}
             style={{

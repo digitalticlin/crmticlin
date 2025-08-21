@@ -54,28 +54,13 @@ export const LeadCard = ({
   const { selectedLeads, isSelectionMode, toggleLead, isLeadSelected } = effectiveMassSelection;
   const isSelected = isLeadSelected ? isLeadSelected(lead.id) : selectedLeads.has(lead.id);
   
-  // Temporary debug logs
-  console.log('🐛 [DEBUG] LeadCard render:', {
-    leadId: lead.id,
-    isSelectionMode,
-    hasMassSelection: !!massSelection,
-    massSelectionType: typeof massSelection
-  });
+  // Debug logs removidos para produção
   const isWon = isWonLostView && lead.columnId === wonStageId;
   const isLost = isWonLostView && lead.columnId === lostStageId;
   
   const handleCardClick = (e: React.MouseEvent) => {
-    console.log('🐛 [DEBUG] LeadCard clicked:', {
-      leadId: lead.id,
-      isSelectionMode,
-      hasMassSelection: !!massSelection,
-      hasToggleLead: typeof toggleLead === 'function',
-      target: (e.target as HTMLElement).tagName
-    });
-    
     // Se estiver em modo seleção e não clicou no checkbox
     if (isSelectionMode && !(e.target as HTMLElement).closest('.selection-checkbox')) {
-      console.log('🐛 [DEBUG] Calling toggleLead for:', lead.id);
       toggleLead(lead.id);
       return;
     }
@@ -97,7 +82,7 @@ export const LeadCard = ({
       {...provided.dragHandleProps}
       className={cn(
         // Base do card - design glassmórfico
-        "bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg mb-4 rounded-xl p-4 cursor-pointer group",
+        "bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg mb-2 rounded-xl p-2 cursor-pointer group",
         "w-[98.5%] max-w-[380px] mx-auto",
         
         // Estados normais - hover e transições

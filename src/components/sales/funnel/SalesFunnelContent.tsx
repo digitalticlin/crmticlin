@@ -379,7 +379,7 @@ export function SalesFunnelContent() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)]">
+    <div className="flex flex-col h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)]" style={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: '125%', height: '125%' }}>
       {/* Barra de Controles compacta e sticky */}
       <div className="sticky top-0 z-10 px-3 py-2 -mt-4 md:-mt-6 bg-transparent border-none backdrop-blur-0">
         <ModernFunnelControlBar
