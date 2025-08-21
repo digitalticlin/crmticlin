@@ -1,98 +1,51 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, CheckCheck, ChevronDown, ChevronUp, Coins, Copy, Edit, Mail, Phone, Plus, Search, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { cn } from '@/lib/utils';
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Separator } from "@/components/ui/separator"
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { DateRange } from 'react-day-picker';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/contexts/AuthContext';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Link } from 'react-router-dom';
 
 interface LeadDetailsSidebarProps {
   lead: any;
-  onUpdate: (lead: any) => void;
-  onDelete: (lead: any) => void;
+  onClose: () => void;
+  onUpdate?: () => void;
 }
 
 interface DealHistoryItem {
   id: string;
-  type: 'win' | 'loss';
+  type: 'win' | 'loss' | 'negotiation' | 'proposal';
   value: number;
   date: string;
   stage: string;
   notes?: string;
 }
 
-export const LeadDetailsSidebar: React.FC<LeadDetailsSidebarProps> = ({ lead, onUpdate, onDelete }) => {
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [name, setName] = React.useState(lead?.name || '');
-  const [phone, setPhone] = React.useState(lead?.phone || '');
-  const [email, setEmail] = React.useState(lead?.email || '');
-  const [notes, setNotes] = React.useState(lead?.notes || '');
-  const [date, setDate] = React.useState<DateRange | undefined>(undefined);
-  const [selectedStage, setSelectedStage] = React.useState(lead?.kanban_stage_id || '');
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
+const LeadDetailsSidebar = ({ lead, onClose, onUpdate }) => {
+  const [editedLead, setEditedLead] = useState({
+    name: lead.name,
+    phone: lead.phone,
+    email: lead.email,
+    notes: lead.notes,
+  });
 
-  const { mutate: updateLead, isLoading: isUpdating } = useMutation(
-    async (leadData: any) => {
+  const queryClient = useQueryClient();
+
+  const updateLeadMutation = useMutation({
+    mutationFn: async (leadData: any) => {
       const { data, error } = await supabase
         .from('leads')
         .update(leadData)
@@ -100,319 +53,169 @@ export const LeadDetailsSidebar: React.FC<LeadDetailsSidebarProps> = ({ lead, on
         .select()
         .single();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       return data;
     },
-    {
-      onSuccess: (data) => {
-        toast({
-          title: "Lead atualizado com sucesso!",
-        });
-        onUpdate(data);
-        setIsEditing(false);
-        queryClient.invalidateQueries(['leads']);
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Erro ao atualizar lead.",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
+    onSuccess: () => {
+      toast.success('Lead atualizado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      onUpdate?.();
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao atualizar lead');
+      console.error('Error updating lead:', error);
     }
-  );
+  });
 
-  const { mutate: deleteLead, isLoading: isDeleting } = useMutation(
-    async () => {
-      const { data, error } = await supabase
+  const deleteLeadMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
         .from('leads')
         .delete()
         .eq('id', lead.id);
 
-      if (error) {
-        throw error;
-      }
-      return data;
+      if (error) throw error;
+      return null;
     },
-    {
-      onSuccess: () => {
-        toast({
-          title: "Lead deletado com sucesso!",
-        });
-        onDelete(lead);
-        setIsDeleteDialogOpen(false);
-        queryClient.invalidateQueries(['leads']);
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Erro ao deletar lead.",
-          description: error.message,
-          variant: "destructive",
-        });
-      },
+    onSuccess: () => {
+      toast.success('Lead excluído com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao excluir lead');
+      console.error('Error deleting lead:', error);
     }
-  );
+  });
 
-  const handleEditClick = () => {
-    setIsEditing(true);
+  const handleSave = () => {
+    updateLeadMutation.mutate({
+      name: editedLead.name,
+      phone: editedLead.phone,
+      email: editedLead.email,
+      notes: editedLead.notes,
+    });
   };
 
-  const handleCancelClick = () => {
-    setIsEditing(false);
-    setName(lead?.name || '');
-    setPhone(lead?.phone || '');
-    setEmail(lead?.email || '');
-    setNotes(lead?.notes || '');
-  };
-
-  const handleSaveClick = async () => {
-    const updatedLead = {
-      name: name,
-      phone: phone,
-      email: email,
-      notes: notes,
-    };
-
-    updateLead(updatedLead);
-  };
-
-  const handleDeleteClick = () => {
-    deleteLead();
-  };
-
-  const stages = [
-    { id: '1', title: 'Contato Inicial' },
-    { id: '2', title: 'Qualificação' },
-    { id: '3', title: 'Proposta' },
-    { id: '4', title: 'Negociação' },
-    { id: '5', title: 'Fechamento' },
-  ];
-
-  const dealHistory: DealHistoryItem[] = [
+  const dealHistoryItems: DealHistoryItem[] = [
     {
       id: '1',
-      type: 'win' as const, // Fix: Use 'win' instead of 'won'
+      type: 'win', // Fix: use 'win' instead of 'won'
       value: 1500,
       date: '2024-01-15',
       stage: 'Fechamento',
-      notes: 'Cliente fechou pacote premium'
+      notes: 'Venda concluída com sucesso'
     },
     {
-      id: '2', 
-      type: 'loss' as const, // Fix: Use 'loss' instead of 'lost'
+      id: '2',
+      type: 'negotiation',
       value: 800,
-      date: '2024-01-10',
-      stage: 'Negociação',
-      notes: 'Não teve budget aprovado'
-    }
+      date: '2024-02-01',
+      stage: 'Proposta Enviada',
+      notes: 'Aguardando feedback do cliente'
+    },
+    {
+      id: '3',
+      type: 'proposal',
+      value: 1200,
+      date: '2024-02-10',
+      stage: 'Qualificação',
+      notes: 'Cliente interessado, agendada reunião'
+    },
+    {
+      id: '4',
+      type: 'loss', // Fix: use 'loss' instead of 'lost'
+      value: 500,
+      date: '2024-03-01',
+      stage: 'Contato Inicial',
+      notes: 'Cliente optou por outra solução'
+    },
   ];
 
   return (
-    <Card className="h-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>
-            {isEditing ? 'Editando Lead' : lead?.name}
-          </CardTitle>
+    <div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Detalhes do Lead</CardTitle>
+          <CardDescription>
+            Informações sobre o lead selecionado
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           <div>
-            {isEditing ? (
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  onClick={handleCancelClick}
-                  disabled={isUpdating}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={handleSaveClick}
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? 'Salvando...' : 'Salvar'}
-                </Button>
-              </div>
-            ) : (
-              <Button onClick={handleEditClick}>
-                <Edit className="w-4 h-4 mr-2" />
-                Editar
-              </Button>
-            )}
-          </div>
-        </div>
-        <CardDescription>
-          Detalhes e histórico do lead.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center space-x-4">
-          <Avatar>
-            <AvatarImage src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${lead?.name}`} />
-            <AvatarFallback>{lead?.name?.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="text-sm font-medium leading-none">{lead?.name}</p>
-            <p className="text-sm text-muted-foreground">
-              {lead?.phone}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid gap-4">
-          <div className="space-y-2">
             <Label htmlFor="name">Nome</Label>
             <Input
               id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={!isEditing}
+              value={editedLead.name}
+              onChange={(e) => setEditedLead({ ...editedLead, name: e.target.value })}
             />
           </div>
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="phone">Telefone</Label>
             <Input
               id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              disabled={!isEditing}
+              value={editedLead.phone}
+              onChange={(e) => setEditedLead({ ...editedLead, phone: e.target.value })}
             />
           </div>
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={!isEditing}
+              value={editedLead.email || ''}
+              onChange={(e) => setEditedLead({ ...editedLead, email: e.target.value })}
             />
           </div>
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="notes">Anotações</Label>
             <Textarea
               id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              disabled={!isEditing}
+              value={editedLead.notes || ''}
+              onChange={(e) => setEditedLead({ ...editedLead, notes: e.target.value })}
             />
           </div>
-
-          <div className="space-y-2">
-            <Label>Data de Contato</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-[240px] justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
-                  )}
-                  disabled={!isEditing}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date?.from ? (
-                    date.to ? (
-                      `${format(date.from, "dd/MM/yyyy", { locale: ptBR })} - ${format(date.to, "dd/MM/yyyy", { locale: ptBR })}`
-                    ) : (
-                      format(date.from, "dd/MM/yyyy", { locale: ptBR })
-                    )
-                  ) : (
-                    <span>Selecionar data</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="center" side="bottom">
-                <Calendar
-                  mode="range"
-                  defaultMonth={date?.from}
-                  selected={date}
-                  onSelect={setDate}
-                  disabled={!isEditing}
-                  locale={ptBR}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="stage">Etapa do Funil</Label>
-            <Select onValueChange={setSelectedStage} defaultValue={selectedStage} disabled={!isEditing}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecione uma etapa" />
-              </SelectTrigger>
-              <SelectContent>
-                {stages.map((stage) => (
-                  <SelectItem key={stage.id} value={stage.id}>{stage.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <Separator />
-
-        <div>
-          <h3 className="text-sm font-medium">Histórico de Negociações</h3>
-          <Table>
-            <TableCaption>Ações recentes do lead.</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Etapa</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {dealHistory.map((deal) => (
-                <TableRow key={deal.id}>
-                  <TableCell className="font-medium">{deal.type === 'win' ? 'Ganho' : 'Perda'}</TableCell>
-                  <TableCell>{deal.value}</TableCell>
-                  <TableCell>{deal.date}</TableCell>
-                  <TableCell>{deal.stage}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={4}>
-                  <Button variant="link" size="sm">
-                    Ver tudo
-                  </Button>
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </div>
-
-        <Separator />
-
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" disabled={isEditing}>
-              Deletar Lead
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancelar
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta ação é irreversível. Todos os dados do lead serão permanentemente removidos.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>
-                Cancelar
-              </AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteClick} disabled={isDeleting}>
-                {isDeleting ? 'Deletando...' : 'Deletar'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </CardContent>
-    </Card>
+            <Button onClick={handleSave} disabled={updateLeadMutation.isLoading}>
+              {updateLeadMutation.isLoading ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Histórico de Negociações</CardTitle>
+          <CardDescription>
+            Últimas negociações com este lead
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {dealHistoryItems.map((item) => (
+            <div key={item.id} className="border rounded-md p-2">
+              <div className="font-semibold">Negociação {item.type}</div>
+              <div className="text-sm">Valor: R$ {item.value}</div>
+              <div className="text-sm">Data: {format(new Date(item.date), 'dd/MM/yyyy', { locale: ptBR })}</div>
+              <div className="text-sm">Etapa: {item.stage}</div>
+              {item.notes && <div className="text-sm">Notas: {item.notes}</div>}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end mt-4">
+        <Button
+          variant="destructive"
+          onClick={() => deleteLeadMutation.mutate()}
+          disabled={deleteLeadMutation.isLoading}
+        >
+          {deleteLeadMutation.isLoading ? 'Excluindo...' : 'Excluir Lead'}
+        </Button>
+      </div>
+    </div>
   );
 };
+
+export default LeadDetailsSidebar;

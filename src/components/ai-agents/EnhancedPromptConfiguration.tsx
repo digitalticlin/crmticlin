@@ -47,22 +47,22 @@ export const EnhancedPromptConfiguration: React.FC<EnhancedPromptConfigurationPr
         if (error) throw error;
 
         if (data) {
-          setAgentFunction(data.agent_function || '');
-          setAgentObjective(data.agent_objective || '');
-          setCompanyInfo(data.company_info || '');
-          setProductsServices(data.products_services || '');
-          setCommunicationStyle(data.communication_style || '');
-          setRulesGuidelines(data.rules_guidelines || '');
-          setProhibitions(data.prohibitions || '');
-          setClientObjections(data.client_objections || '');
-          setPhraseTips(data.phrase_tips || '');
-          setFlow(data.flow || '');
-          setCommunicationStyleExamples(data.communication_style_examples || '');
-          setProductsServicesExamples(data.products_services_examples || '');
-          setRulesGuidelinesExamples(data.rules_guidelines_examples || '');
-          setProhibitionsExamples(data.prohibitions_examples || '');
-          setClientObjectionsExamples(data.client_objections_examples || '');
-          setPhraseTipsExamples(data.phrase_tips_examples || '');
+          setAgentFunction(String(data.agent_function || ''));
+          setAgentObjective(String(data.agent_objective || ''));
+          setCompanyInfo(String(data.company_info || ''));
+          setProductsServices(String(data.products_services || ''));
+          setCommunicationStyle(String(data.communication_style || ''));
+          setRulesGuidelines(String(data.rules_guidelines || ''));
+          setProhibitions(String(data.prohibitions || ''));
+          setClientObjections(String(data.client_objections || ''));
+          setPhraseTips(String(data.phrase_tips || ''));
+          setFlow(String(data.flow || ''));
+          setCommunicationStyleExamples(String(data.communication_style_examples || ''));
+          setProductsServicesExamples(String(data.products_services_examples || ''));
+          setRulesGuidelinesExamples(String(data.rules_guidelines_examples || ''));
+          setProhibitionsExamples(String(data.prohibitions_examples || ''));
+          setClientObjectionsExamples(String(data.client_objections_examples || ''));
+          setPhraseTipsExamples(String(data.phrase_tips_examples || ''));
         }
       } catch (error) {
         console.error('Error fetching prompt:', error);
@@ -75,47 +75,46 @@ export const EnhancedPromptConfiguration: React.FC<EnhancedPromptConfigurationPr
     }
   }, [agentId]);
 
-const savePrompt = async () => {
-  try {
-    setIsSaving(true);
-    
-    const promptData = {
-      agent_id: agentId,
-      agent_function: agentFunction,
-      agent_objective: agentObjective,
-      company_info: companyInfo,
-      products_services: productsServices,
-      communication_style: communicationStyle,
-      rules_guidelines: rulesGuidelines,
-      prohibitions: prohibitions,
-      client_objections: clientObjections,
-      phrase_tips: phraseTips,
-      flow: flow,
-      communication_style_examples: communicationStyleExamples,
-      products_services_examples: productsServicesExamples,
-      rules_guidelines_examples: rulesGuidelinesExamples,
-      prohibitions_examples: prohibitionsExamples,
-      client_objections_examples: clientObjectionsExamples,
-      phrase_tips_examples: phraseTipsExamples,
-      created_by_user_id: user?.id
-    };
+  const savePrompt = async () => {
+    try {
+      setIsSaving(true);
+      
+      const promptData = {
+        agent_id: agentId,
+        agent_function: agentFunction,
+        agent_objective: agentObjective,
+        company_info: companyInfo,
+        products_services: productsServices,
+        communication_style: communicationStyle,
+        rules_guidelines: rulesGuidelines,
+        prohibitions: prohibitions,
+        client_objections: clientObjections,
+        phrase_tips: phraseTips,
+        flow: flow,
+        communication_style_examples: communicationStyleExamples,
+        products_services_examples: productsServicesExamples,
+        rules_guidelines_examples: rulesGuidelinesExamples,
+        prohibitions_examples: prohibitionsExamples,
+        client_objections_examples: clientObjectionsExamples,
+        phrase_tips_examples: phraseTipsExamples,
+        created_by_user_id: user?.id
+      };
 
-    // Fix: Remove extra parameters
-    const { data, error } = await supabase
-      .from('ai_agent_prompts')
-      .upsert([promptData], { onConflict: 'agent_id' });
+      const { data, error } = await supabase
+        .from('ai_agent_prompts')
+        .upsert([promptData], { onConflict: 'agent_id' });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    toast.success('Prompt salvo com sucesso!');
-    if (onSave) onSave();
-  } catch (error) {
-    console.error('Error saving prompt:', error);
-    toast.error('Erro ao salvar prompt');
-  } finally {
-    setIsSaving(false);
-  }
-};
+      toast.success('Prompt salvo com sucesso!');
+      if (onSave) onSave();
+    } catch (error) {
+      console.error('Error saving prompt:', error);
+      toast.error('Erro ao salvar prompt');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <Card>

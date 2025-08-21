@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,9 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { AIAgent } from '@/types';
+import { AIAgent } from '@/types/aiAgent';
 import { v4 as uuidv4 } from 'uuid';
-import { useToast } from '@/components/ui/use-toast';
 import {
   Dialog,
   DialogContent,
@@ -46,14 +46,13 @@ interface AIAgentFormProps {
 export const AIAgentForm = ({ onSuccess }: AIAgentFormProps) => {
   const [agents, setAgents] = useState<AIAgent[]>([]);
   const [name, setName] = useState('');
-  const [type, setType] = useState<AIAgent['type']>('customer_service');
+  const [type, setType] = useState<AIAgent['type']>('attendance');
   const [status, setStatus] = useState<AIAgent['status']>('inactive');
   const [funnelId, setFunnelId] = useState<string | null>(null);
   const [whatsappNumberId, setWhatsappNumberId] = useState<string | null>(null);
   const [globalNotifyPhone, setGlobalNotifyPhone] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { user } = useAuth();
-  const { toast } = useToast();
   const { instances } = useWhatsAppInstanceStore();
 
   const fetchAgents = async () => {
@@ -67,11 +66,10 @@ export const AIAgentForm = ({ onSuccess }: AIAgentFormProps) => {
 
       if (error) throw error;
 
-      // Fix: Map the data to match AIAgent type
       const mappedAgents = (data || []).map(agent => ({
         id: agent.id,
         name: agent.name,
-        type: agent.type || 'customer_service',
+        type: agent.type || 'attendance',
         status: agent.status || 'inactive',
         messages_count: agent.messages_count || 0,
         created_by_user_id: agent.created_by_user_id,
@@ -95,31 +93,24 @@ export const AIAgentForm = ({ onSuccess }: AIAgentFormProps) => {
 
     try {
       if (!user?.id) {
-        toast({
-          title: "Erro",
-          description: "Usuário não autenticado.",
-        });
+        toast.error('Usuário não autenticado.');
         return;
       }
 
-      const newAgent: Omit<AIAgent, 'id' | 'messages_count' | 'created_at' | 'updated_at'> = {
+      const newAgent = {
+        id: uuidv4(),
         name,
         type,
         status,
         created_by_user_id: user.id,
         funnel_id: funnelId,
         whatsapp_number_id: whatsappNumberId,
-        global_notify_phone,
+        global_notify_phone: globalNotifyPhone,
       };
 
       const { data, error } = await supabase
         .from('ai_agents')
-        .insert([
-          {
-            ...newAgent,
-            id: uuidv4(),
-          },
-        ])
+        .insert([newAgent])
         .select();
 
       if (error) {
@@ -130,7 +121,7 @@ export const AIAgentForm = ({ onSuccess }: AIAgentFormProps) => {
       toast.success('Agente criado com sucesso!');
       onSuccess?.();
       setName('');
-      setType('customer_service');
+      setType('attendance');
       setStatus('inactive');
       setFunnelId(null);
       setWhatsappNumberId(null);
@@ -158,7 +149,6 @@ export const AIAgentForm = ({ onSuccess }: AIAgentFormProps) => {
           <FormDescription>
             Dê um nome para este agente.
           </FormDescription>
-          <FormMessage />
         </div>
 
         <div>
@@ -168,15 +158,12 @@ export const AIAgentForm = ({ onSuccess }: AIAgentFormProps) => {
               <SelectValue placeholder="Selecione um tipo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="customer_service">Atendimento ao Cliente</SelectItem>
+              <SelectItem value="attendance">Atendimento</SelectItem>
               <SelectItem value="sales">Vendas</SelectItem>
-              <SelectItem value="support">Suporte Técnico</SelectItem>
+              <SelectItem value="support">Suporte</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
             </SelectContent>
           </Select>
-          <FormDescription>
-            Selecione o tipo de agente.
-          </FormDescription>
-          <FormMessage />
         </div>
 
         <div>
@@ -190,10 +177,6 @@ export const AIAgentForm = ({ onSuccess }: AIAgentFormProps) => {
               <SelectItem value="inactive">Inativo</SelectItem>
             </SelectContent>
           </Select>
-          <FormDescription>
-            Selecione o status do agente.
-          </FormDescription>
-          <FormMessage />
         </div>
 
         <div>
@@ -211,10 +194,6 @@ export const AIAgentForm = ({ onSuccess }: AIAgentFormProps) => {
               ))}
             </SelectContent>
           </Select>
-          <FormDescription>
-            Selecione a instância do WhatsApp para este agente.
-          </FormDescription>
-          <FormMessage />
         </div>
 
         <div>
@@ -227,10 +206,6 @@ export const AIAgentForm = ({ onSuccess }: AIAgentFormProps) => {
               placeholder="Número de telefone"
             />
           </FormControl>
-          <FormDescription>
-            Número de telefone para receber notificações importantes.
-          </FormDescription>
-          <FormMessage />
         </div>
 
         <Button type="submit" disabled={isSaving}>
