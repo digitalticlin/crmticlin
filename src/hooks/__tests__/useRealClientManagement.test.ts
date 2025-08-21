@@ -70,8 +70,8 @@ const mockUseAdvancedFilters = {
 };
 
 // Helper para renderizar hooks em testes
-function renderHook<T>(callback: () => T) {
-  let result: T;
+function renderHook(callback: () => any) {
+  let result: any;
   const TestComponent = () => {
     result = callback();
     return null;
