@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Info } from "lucide-react";
 import { NewBroadcastListForm } from "@/components/automation/NewBroadcastListForm";
 import { BroadcastLists } from "@/components/automation/BroadcastLists";
+import { BroadcastSimulationCard } from "@/components/automation/BroadcastSimulationCard";
 import { toast } from "sonner";
 
 export default function Automation() {
@@ -18,6 +19,28 @@ export default function Automation() {
       description: "Sua campanha foi configurada e está pronta para ser iniciada."
     });
   };
+
+  // Dados de exemplo para simulação
+  const simulationCampaigns = [
+    {
+      id: 'sim-1',
+      name: 'Teste - Promoção Semanal',
+      message: 'Olá! Temos uma promoção especial esta semana com 30% de desconto em todos os produtos. Aproveite!',
+      mediaType: 'text' as const,
+      fragments: 1,
+      targetCount: 150,
+      instanceName: 'WhatsApp Principal'
+    },
+    {
+      id: 'sim-2',
+      name: 'Teste - Apresentação com Vídeo',
+      message: 'Confira nosso novo produto no vídeo em anexo. Esperamos seu feedback!',
+      mediaType: 'video' as const,
+      fragments: 2,
+      targetCount: 85,
+      instanceName: 'WhatsApp Vendas'
+    }
+  ];
   
   return (
     <PageLayout>
@@ -37,6 +60,7 @@ export default function Automation() {
         <TabsList>
           <TabsTrigger value="lists">Campanhas</TabsTrigger>
           <TabsTrigger value="new">Nova Campanha</TabsTrigger>
+          <TabsTrigger value="simulation">Simulação</TabsTrigger>
         </TabsList>
         
         <TabsContent value="lists" className="space-y-4">
@@ -45,6 +69,26 @@ export default function Automation() {
         
         <TabsContent value="new">
           <NewBroadcastListForm onSuccess={handleCampaignSuccess} />
+        </TabsContent>
+
+        <TabsContent value="simulation" className="space-y-4">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Campanhas de Teste</h3>
+              <p className="text-sm text-gray-500">
+                Use para testar configurações sem enviar mensagens reais
+              </p>
+            </div>
+            
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {simulationCampaigns.map((campaign) => (
+                <BroadcastSimulationCard
+                  key={campaign.id}
+                  {...campaign}
+                />
+              ))}
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </PageLayout>

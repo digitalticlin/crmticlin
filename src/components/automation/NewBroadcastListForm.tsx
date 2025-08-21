@@ -1,381 +1,297 @@
-
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { BroadcastService, BroadcastTarget, CreateCampaignData } from '@/services/broadcast/broadcastService';
-import { useBroadcastCampaigns } from '@/hooks/broadcast/useBroadcastCampaigns';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { BroadcastService } from '@/services/broadcast/broadcastService';
+import { MediaUploader } from './MediaUploader';
+import { MessageFragmenter } from './MessageFragmenter';
+import { InstanceSelector } from './InstanceSelector';
+import { AdvancedScheduler, ScheduleConfig } from './AdvancedScheduler';
+import { AlertCircle, Send, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-import { Users, MessageSquare, Settings, Target, Clock } from 'lucide-react';
+
+interface MessageFragment {
+  id: string;
+  text: string;
+  order: number;
+}
 
 interface NewBroadcastListFormProps {
   onSuccess?: () => void;
 }
 
-export const NewBroadcastListForm: React.FC<NewBroadcastListFormProps> = ({
-  onSuccess
-}) => {
-  const { createCampaign } = useBroadcastCampaigns();
-  const [loading, setLoading] = useState(false);
-  const [funnels, setFunnels] = useState<any[]>([]);
-  const [stages, setStages] = useState<any[]>([]);
-  const [tags, setTags] = useState<any[]>([]);
-  const [preview, setPreview] = useState<{ leads: any[]; totalCount: number }>({
-    leads: [],
-    totalCount: 0
+export const NewBroadcastListForm: React.FC<NewBroadcastListFormProps> = ({ onSuccess }) => {
+  const [campaignName, setCampaignName] = useState('');
+  const [messageText, setMessageText] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [mediaType, setMediaType] = useState<'text' | 'image' | 'video' | 'audio' | 'document'>('text');
+  const [fragments, setFragments] = useState<MessageFragment[]>([]);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  
+  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
+    type: 'immediate',
+    businessHoursOnly: false,
+    startHour: 8,
+    endHour: 18,
+    weekDays: [1, 2, 3, 4, 5], // Segunda a sexta
+    rateLimit: 2
   });
 
-  // Form data
-  const [formData, setFormData] = useState<CreateCampaignData>({
-    name: '',
-    message_text: '',
-    media_type: 'text',
-    media_url: '',
-    target: {
-      type: 'all',
-      config: {}
-    },
-    schedule_type: 'immediate',
-    scheduled_at: '',
-    rate_limit_per_minute: 2,
-    business_hours_only: false,
+  const [target, setTarget] = useState({
+    type: 'all' as const,
+    config: {}
   });
 
-  // Load options
   useEffect(() => {
-    const loadOptions = async () => {
-      try {
-        const [funnelsData, tagsData] = await Promise.all([
-          BroadcastService.getFunnels(),
-          BroadcastService.getTags()
-        ]);
-        setFunnels(funnelsData);
-        setTags(tagsData);
-      } catch (error) {
-        console.error('Error loading options:', error);
-      }
-    };
-    loadOptions();
-  }, []);
+    loadPreview();
+  }, [target]);
 
-  // Load stages when funnel changes
-  useEffect(() => {
-    if (formData.target.type === 'funnel' && formData.target.config.funnel_id) {
-      BroadcastService.getStagesByFunnel(formData.target.config.funnel_id)
-        .then(setStages)
-        .catch(console.error);
+  const loadPreview = async () => {
+    try {
+      const preview = await BroadcastService.getLeadsPreview(target);
+      setPreviewData(preview);
+    } catch (error) {
+      console.error('Error loading preview:', error);
     }
-  }, [formData.target.config.funnel_id]);
-
-  // Update preview when target changes
-  useEffect(() => {
-    const updatePreview = async () => {
-      try {
-        const previewData = await BroadcastService.getLeadsPreview(formData.target);
-        setPreview(previewData);
-      } catch (error) {
-        console.error('Error loading preview:', error);
-        setPreview({ leads: [], totalCount: 0 });
-      }
-    };
-
-    // Only update preview if we have enough info
-    const shouldPreview = 
-      formData.target.type === 'all' ||
-      (formData.target.type === 'funnel' && formData.target.config.funnel_id) ||
-      (formData.target.type === 'stage' && formData.target.config.stage_id) ||
-      (formData.target.type === 'tags' && formData.target.config.tag_ids?.length > 0);
-
-    if (shouldPreview) {
-      updatePreview();
-    }
-  }, [formData.target]);
-
-  const updateFormData = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const updateTargetConfig = (config: any) => {
-    setFormData(prev => ({
-      ...prev,
-      target: { ...prev.target, config }
-    }));
+  const handleMediaSelect = (file: File | null, type: 'text' | 'image' | 'video' | 'audio' | 'document') => {
+    setSelectedFile(file);
+    setMediaType(file ? type : 'text');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.name.trim()) {
+  const handleSubmit = async () => {
+    if (!campaignName.trim()) {
       toast.error('Nome da campanha é obrigatório');
       return;
     }
+
+    if (!messageText.trim() && !selectedFile) {
+      toast.error('Mensagem ou mídia é obrigatória');
+      return;
+    }
+
+    if (!selectedInstanceId) {
+      toast.error('Selecione uma instância WhatsApp');
+      return;
+    }
+
+    setIsLoading(true);
     
-    if (!formData.message_text.trim()) {
-      toast.error('Mensagem é obrigatória');
-      return;
-    }
-
-    if (preview.totalCount === 0) {
-      toast.error('Nenhum destinatário encontrado para os critérios selecionados');
-      return;
-    }
-
-    setLoading(true);
     try {
-      const campaign = await createCampaign(formData);
-      if (campaign) {
+      // Preparar dados da campanha
+      const campaignData = {
+        name: campaignName,
+        message_text: fragments.length > 0 
+          ? fragments.map(f => f.text).join('\n---\n')
+          : messageText,
+        media_type: mediaType,
+        media_url: selectedFile ? URL.createObjectURL(selectedFile) : undefined,
+        target,
+        schedule_type: scheduleConfig.type,
+        scheduled_at: scheduleConfig.type === 'scheduled' 
+          ? `${scheduleConfig.scheduledDate}T${scheduleConfig.scheduledTime}:00`
+          : undefined,
+        rate_limit_per_minute: scheduleConfig.rateLimit,
+        business_hours_only: scheduleConfig.businessHoursOnly
+      };
+
+      const result = await BroadcastService.createCampaign(campaignData);
+      
+      if (result) {
+        toast.success('Campanha criada com sucesso!');
+        
         // Reset form
-        setFormData({
-          name: '',
-          message_text: '',
-          media_type: 'text',
-          media_url: '',
-          target: { type: 'all', config: {} },
-          schedule_type: 'immediate',
-          scheduled_at: '',
-          rate_limit_per_minute: 2,
-          business_hours_only: false,
-        });
+        setCampaignName('');
+        setMessageText('');
+        setSelectedFile(null);
+        setMediaType('text');
+        setFragments([]);
+        setSelectedInstanceId('');
+        
         onSuccess?.();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating campaign:', error);
+      toast.error(`Erro ao criar campanha: ${error.message}`);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Basic Info */}
+    <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5" />
-            Informações da Campanha
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="name">Nome da Campanha</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => updateFormData('name', e.target.value)}
-              placeholder="Digite um nome para sua campanha"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="message">Mensagem</Label>
-            <Textarea
-              id="message"
-              value={formData.message_text}
-              onChange={(e) => updateFormData('message_text', e.target.value)}
-              placeholder="Digite a mensagem que será enviada para os leads"
-              rows={4}
-              required
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Target Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
-            Público Alvo
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Tipo de Público</Label>
-            <Select
-              value={formData.target.type}
-              onValueChange={(value: any) => {
-                setFormData(prev => ({
-                  ...prev,
-                  target: { type: value, config: {} }
-                }));
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os leads</SelectItem>
-                <SelectItem value="funnel">Por funil</SelectItem>
-                <SelectItem value="stage">Por etapa</SelectItem>
-                <SelectItem value="tags">Por tags</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {formData.target.type === 'funnel' && (
-            <div>
-              <Label>Funil</Label>
-              <Select
-                value={formData.target.config.funnel_id || ''}
-                onValueChange={(value) => updateTargetConfig({ funnel_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um funil" />
-                </SelectTrigger>
-                <SelectContent>
-                  {funnels.map((funnel) => (
-                    <SelectItem key={funnel.id} value={funnel.id}>
-                      {funnel.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {formData.target.type === 'stage' && (
-            <>
-              <div>
-                <Label>Funil</Label>
-                <Select
-                  value={formData.target.config.funnel_id || ''}
-                  onValueChange={(value) => updateTargetConfig({ funnel_id: value, stage_id: '' })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um funil" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {funnels.map((funnel) => (
-                      <SelectItem key={funnel.id} value={funnel.id}>
-                        {funnel.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {formData.target.config.funnel_id && (
-                <div>
-                  <Label>Etapa</Label>
-                  <Select
-                    value={formData.target.config.stage_id || ''}
-                    onValueChange={(value) => updateTargetConfig({ ...formData.target.config, stage_id: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma etapa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {stages.map((stage) => (
-                        <SelectItem key={stage.id} value={stage.id}>
-                          {stage.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Preview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Preview dos Destinatários
-          </CardTitle>
+          <CardTitle>Nova Campanha de Disparo</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 mb-4">
-            <Badge variant="secondary" className="text-lg px-3 py-1">
-              {preview.totalCount} lead{preview.totalCount !== 1 ? 's' : ''}
-            </Badge>
-            <span className="text-muted-foreground">
-              serão incluídos nesta campanha
-            </span>
-          </div>
+          <Tabs defaultValue="basic" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="basic">Básico</TabsTrigger>
+              <TabsTrigger value="message">Mensagem</TabsTrigger>
+              <TabsTrigger value="audience">Público-alvo</TabsTrigger>
+              <TabsTrigger value="schedule">Agendamento</TabsTrigger>
+              <TabsTrigger value="review">Revisar</TabsTrigger>
+            </TabsList>
 
-          {preview.leads.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-sm">Exemplo de destinatários:</Label>
-              <div className="bg-muted/50 p-3 rounded-lg max-h-32 overflow-y-auto">
-                {preview.leads.slice(0, 10).map((lead) => (
-                  <div key={lead.id} className="text-sm flex justify-between py-1">
-                    <span>{lead.name || 'Sem nome'}</span>
-                    <span className="text-muted-foreground">{lead.phone}</span>
-                  </div>
-                ))}
-                {preview.totalCount > 10 && (
-                  <div className="text-sm text-muted-foreground pt-1">
-                    ... e mais {preview.totalCount - 10} leads
-                  </div>
+            <TabsContent value="basic" className="space-y-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nome da Campanha</Label>
+                  <Input
+                    value={campaignName}
+                    onChange={(e) => setCampaignName(e.target.value)}
+                    placeholder="Ex: Promoção de fim de semana"
+                  />
+                </div>
+
+                <InstanceSelector
+                  selectedInstanceId={selectedInstanceId}
+                  onInstanceSelect={setSelectedInstanceId}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="message" className="space-y-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Texto da Mensagem</Label>
+                  <Textarea
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    placeholder="Digite sua mensagem..."
+                    className="min-h-[120px]"
+                  />
+                </div>
+
+                <MediaUploader
+                  onMediaSelect={handleMediaSelect}
+                  selectedFile={selectedFile}
+                  mediaType={mediaType}
+                />
+
+                {messageText && (
+                  <MessageFragmenter
+                    initialMessage={messageText}
+                    onFragmentsChange={setFragments}
+                  />
                 )}
               </div>
-            </div>
-          )}
+            </TabsContent>
+
+            <TabsContent value="audience" className="space-y-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Sistema de filtros por etiquetas será implementado em breve. 
+                  Atualmente enviando para todos os leads.
+                </AlertDescription>
+              </Alert>
+              
+              {previewData && (
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Destinatários:</span>
+                      <span className="font-medium">{previewData.totalCount} leads</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="schedule" className="space-y-4">
+              <AdvancedScheduler
+                config={scheduleConfig}
+                onConfigChange={setScheduleConfig}
+              />
+            </TabsContent>
+
+            <TabsContent value="review" className="space-y-4">
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Eye className="w-5 h-5" />
+                      Revisão da Campanha
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-sm text-gray-600">Nome:</span>
+                        <p className="font-medium">{campaignName || 'Não definido'}</p>
+                      </div>
+                      
+                      <div>
+                        <span className="text-sm text-gray-600">Tipo de mídia:</span>
+                        <p className="font-medium capitalize">{mediaType}</p>
+                      </div>
+
+                      <div>
+                        <span className="text-sm text-gray-600">Fragmentos:</span>
+                        <p className="font-medium">
+                          {fragments.length > 0 ? `${fragments.length} parte(s)` : '1 parte'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-sm text-gray-600">Destinatários:</span>
+                        <p className="font-medium">{previewData?.totalCount || 0} leads</p>
+                      </div>
+
+                      <div>
+                        <span className="text-sm text-gray-600">Agendamento:</span>
+                        <p className="font-medium">
+                          {scheduleConfig.type === 'immediate' ? 'Imediato' : 'Agendado'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-sm text-gray-600">Taxa de envio:</span>
+                        <p className="font-medium">{scheduleConfig.rateLimit} msg/min</p>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <span className="text-sm text-gray-600">Prévia da mensagem:</span>
+                      <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm">{messageText || 'Mensagem não definida'}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={isLoading || !campaignName || !selectedInstanceId}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Criando campanha...
+                    </div>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Criar Campanha
+                    </>
+                  )}
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
-
-      {/* Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Configurações de Envio
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Respeitar Horário Comercial</Label>
-              <p className="text-sm text-muted-foreground">
-                Enviar apenas das 8h às 18h
-              </p>
-            </div>
-            <Switch
-              checked={formData.business_hours_only}
-              onCheckedChange={(checked) => updateFormData('business_hours_only', checked)}
-            />
-          </div>
-
-          <div>
-            <Label>Limite de Mensagens por Minuto</Label>
-            <Select
-              value={String(formData.rate_limit_per_minute)}
-              onValueChange={(value) => updateFormData('rate_limit_per_minute', parseInt(value))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">1 mensagem/minuto</SelectItem>
-                <SelectItem value="2">2 mensagens/minuto</SelectItem>
-                <SelectItem value="3">3 mensagens/minuto</SelectItem>
-                <SelectItem value="4">4 mensagens/minuto</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Submit */}
-      <div className="flex justify-end">
-        <Button 
-          type="submit" 
-          disabled={loading || preview.totalCount === 0}
-          className="min-w-32"
-        >
-          {loading ? 'Criando...' : 'Criar Campanha'}
-        </Button>
-      </div>
-    </form>
+    </div>
   );
 };
