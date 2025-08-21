@@ -1,111 +1,173 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
-import { Calendar, Clock, Users, Send, FileText } from 'lucide-react';
-import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { BroadcastService, BroadcastTarget, CreateCampaignData } from '@/services/broadcast/broadcastService';
 import { useBroadcastCampaigns } from '@/hooks/broadcast/useBroadcastCampaigns';
-import { BroadcastTarget, CreateCampaignData } from '@/types/broadcast';
-import { LeadsPreview } from '@/components/broadcast/LeadsPreview';
+import { toast } from 'sonner';
+import { Users, MessageSquare, Settings, Target, Clock } from 'lucide-react';
 
 interface NewBroadcastListFormProps {
   onSuccess?: () => void;
 }
 
-export const NewBroadcastListForm: React.FC<NewBroadcastListFormProps> = ({ onSuccess }) => {
-  const [name, setName] = useState('');
-  const [messageText, setMessageText] = useState('');
-  const [mediaType, setMediaType] = useState<string>('');
-  const [mediaUrl, setMediaUrl] = useState('');
-  const [target, setTarget] = useState<BroadcastTarget>({
-    type: 'all',
-    config: {}
-  });
-  const [scheduleType, setScheduleType] = useState<'immediate' | 'scheduled' | 'recurring'>('immediate');
-  const [scheduledAt, setScheduledAt] = useState<string>('');
-  const [rateLimitPerMinute, setRateLimitPerMinute] = useState(3);
-  const [businessHoursOnly, setBusinessHoursOnly] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-
+export const NewBroadcastListForm: React.FC<NewBroadcastListFormProps> = ({
+  onSuccess
+}) => {
   const { createCampaign } = useBroadcastCampaigns();
+  const [loading, setLoading] = useState(false);
+  const [funnels, setFunnels] = useState<any[]>([]);
+  const [stages, setStages] = useState<any[]>([]);
+  const [tags, setTags] = useState<any[]>([]);
+  const [preview, setPreview] = useState<{ leads: any[]; totalCount: number }>({
+    leads: [],
+    totalCount: 0
+  });
+
+  // Form data
+  const [formData, setFormData] = useState<CreateCampaignData>({
+    name: '',
+    message_text: '',
+    media_type: 'text',
+    media_url: '',
+    target: {
+      type: 'all',
+      config: {}
+    },
+    schedule_type: 'immediate',
+    scheduled_at: '',
+    rate_limit_per_minute: 2,
+    business_hours_only: false,
+  });
+
+  // Load options
+  useEffect(() => {
+    const loadOptions = async () => {
+      try {
+        const [funnelsData, tagsData] = await Promise.all([
+          BroadcastService.getFunnels(),
+          BroadcastService.getTags()
+        ]);
+        setFunnels(funnelsData);
+        setTags(tagsData);
+      } catch (error) {
+        console.error('Error loading options:', error);
+      }
+    };
+    loadOptions();
+  }, []);
+
+  // Load stages when funnel changes
+  useEffect(() => {
+    if (formData.target.type === 'funnel' && formData.target.config.funnel_id) {
+      BroadcastService.getStagesByFunnel(formData.target.config.funnel_id)
+        .then(setStages)
+        .catch(console.error);
+    }
+  }, [formData.target.config.funnel_id]);
+
+  // Update preview when target changes
+  useEffect(() => {
+    const updatePreview = async () => {
+      try {
+        const previewData = await BroadcastService.getLeadsPreview(formData.target);
+        setPreview(previewData);
+      } catch (error) {
+        console.error('Error loading preview:', error);
+        setPreview({ leads: [], totalCount: 0 });
+      }
+    };
+
+    // Only update preview if we have enough info
+    const shouldPreview = 
+      formData.target.type === 'all' ||
+      (formData.target.type === 'funnel' && formData.target.config.funnel_id) ||
+      (formData.target.type === 'stage' && formData.target.config.stage_id) ||
+      (formData.target.type === 'tags' && formData.target.config.tag_ids?.length > 0);
+
+    if (shouldPreview) {
+      updatePreview();
+    }
+  }, [formData.target]);
+
+  const updateFormData = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const updateTargetConfig = (config: any) => {
+    setFormData(prev => ({
+      ...prev,
+      target: { ...prev.target, config }
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    
+    if (!formData.name.trim()) {
+      toast.error('Nome da campanha é obrigatório');
+      return;
+    }
+    
+    if (!formData.message_text.trim()) {
+      toast.error('Mensagem é obrigatória');
+      return;
+    }
 
+    if (preview.totalCount === 0) {
+      toast.error('Nenhum destinatário encontrado para os critérios selecionados');
+      return;
+    }
+
+    setLoading(true);
     try {
-      if (!name.trim() || !messageText.trim()) {
-        toast.error('Por favor, preencha o nome e a mensagem da campanha');
-        return;
-      }
-
-      if (!target.type) {
-        toast.error('Por favor, selecione o tipo de destinatário');
-        return;
-      }
-
-      const campaignData: CreateCampaignData = {
-        name: name.trim(),
-        message_text: messageText.trim(),
-        media_type: mediaType || undefined,
-        media_url: mediaUrl || undefined,
-        target,
-        schedule_type: scheduleType,
-        scheduled_at: scheduledAt || undefined,
-        rate_limit_per_minute: rateLimitPerMinute,
-        business_hours_only: businessHoursOnly,
-      };
-
-      const result = await createCampaign(campaignData);
-      
-      if (result) {
-        toast.success('Campanha criada com sucesso!');
+      const campaign = await createCampaign(formData);
+      if (campaign) {
         // Reset form
-        setName('');
-        setMessageText('');
-        setMediaType('');
-        setMediaUrl('');
-        setTarget({ type: 'all', config: {} });
-        setScheduleType('immediate');
-        setScheduledAt('');
-        setRateLimitPerMinute(3);
-        setBusinessHoursOnly(true);
+        setFormData({
+          name: '',
+          message_text: '',
+          media_type: 'text',
+          media_url: '',
+          target: { type: 'all', config: {} },
+          schedule_type: 'immediate',
+          scheduled_at: '',
+          rate_limit_per_minute: 2,
+          business_hours_only: false,
+        });
         onSuccess?.();
       }
     } catch (error) {
       console.error('Error creating campaign:', error);
-      toast.error('Erro ao criar campanha');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Basic Info */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+            <MessageSquare className="w-5 h-5" />
             Informações da Campanha
           </CardTitle>
-          <CardDescription>
-            Configure as informações básicas da sua campanha de disparo
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="name">Nome da Campanha</Label>
             <Input
               id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Promoção Black Friday 2024"
+              value={formData.name}
+              onChange={(e) => updateFormData('name', e.target.value)}
+              placeholder="Digite um nome para sua campanha"
               required
             />
           </div>
@@ -114,179 +176,204 @@ export const NewBroadcastListForm: React.FC<NewBroadcastListFormProps> = ({ onSu
             <Label htmlFor="message">Mensagem</Label>
             <Textarea
               id="message"
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              placeholder="Digite sua mensagem aqui..."
+              value={formData.message_text}
+              onChange={(e) => updateFormData('message_text', e.target.value)}
+              placeholder="Digite a mensagem que será enviada para os leads"
               rows={4}
               required
             />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="mediaType">Tipo de Mídia (Opcional)</Label>
-              <Select value={mediaType} onValueChange={setMediaType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Nenhuma</SelectItem>
-                  <SelectItem value="image">Imagem</SelectItem>
-                  <SelectItem value="video">Vídeo</SelectItem>
-                  <SelectItem value="audio">Áudio</SelectItem>
-                  <SelectItem value="document">Documento</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {mediaType && (
-              <div>
-                <Label htmlFor="mediaUrl">URL da Mídia</Label>
-                <Input
-                  id="mediaUrl"
-                  value={mediaUrl}
-                  onChange={(e) => setMediaUrl(e.target.value)}
-                  placeholder="https://exemplo.com/arquivo.jpg"
-                />
-              </div>
-            )}
-          </div>
         </CardContent>
       </Card>
 
+      {/* Target Selection */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Destinatários
+            <Target className="w-5 h-5" />
+            Público Alvo
           </CardTitle>
-          <CardDescription>
-            Escolha quem receberá esta campanha
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="targetType">Tipo de Destinatário</Label>
-            <Select 
-              value={target.type} 
-              onValueChange={(value: 'all' | 'funnel' | 'stage' | 'tags' | 'custom') => 
-                setTarget({ ...target, type: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os contatos</SelectItem>
-                <SelectItem value="funnel">Por funil</SelectItem>
-                <SelectItem value="stage">Por etapa do funil</SelectItem>
-                <SelectItem value="tags">Por tags</SelectItem>
-                <SelectItem value="custom">Lista personalizada</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {target.type === 'custom' && (
-            <div>
-              <Label htmlFor="phoneNumbers">Números de Telefone</Label>
-              <Textarea
-                id="phoneNumbers"
-                value={target.config?.phone_numbers?.join('\n') || ''}
-                onChange={(e) => setTarget({
-                  ...target,
-                  config: {
-                    ...target.config,
-                    phone_numbers: e.target.value.split('\n').filter(n => n.trim())
-                  }
-                })}
-                placeholder="Digite um número por linha&#10;5511999999999&#10;5511888888888"
-                rows={4}
-              />
-            </div>
-          )}
-
-          <LeadsPreview 
-            leads={[]}
-            totalCount={0}
-            isLoading={false}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Agendamento
-          </CardTitle>
-          <CardDescription>
-            Configure quando a campanha deve ser enviada
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="scheduleType">Tipo de Envio</Label>
-            <Select value={scheduleType} onValueChange={(value: 'immediate' | 'scheduled' | 'recurring') => setScheduleType(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione quando enviar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="immediate">Enviar agora</SelectItem>
-                <SelectItem value="scheduled">Agendar para data específica</SelectItem>
-                <SelectItem value="recurring">Campanha recorrente</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {scheduleType === 'scheduled' && (
-            <div>
-              <Label htmlFor="scheduledAt">Data e Hora do Envio</Label>
-              <Input
-                id="scheduledAt"
-                type="datetime-local"
-                value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
-              />
-            </div>
-          )}
-
-          <div>
-            <Label htmlFor="rateLimit">Limite de Envios por Minuto</Label>
-            <Select 
-              value={rateLimitPerMinute.toString()} 
-              onValueChange={(value) => setRateLimitPerMinute(parseInt(value))}
+            <Label>Tipo de Público</Label>
+            <Select
+              value={formData.target.type}
+              onValueChange={(value: any) => {
+                setFormData(prev => ({
+                  ...prev,
+                  target: { type: value, config: {} }
+                }));
+              }}
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2">2 mensagens/minuto (mais seguro)</SelectItem>
-                <SelectItem value="3">3 mensagens/minuto (recomendado)</SelectItem>
-                <SelectItem value="4">4 mensagens/minuto (moderado)</SelectItem>
-                <SelectItem value="5">5 mensagens/minuto (arriscado)</SelectItem>
+                <SelectItem value="all">Todos os leads</SelectItem>
+                <SelectItem value="funnel">Por funil</SelectItem>
+                <SelectItem value="stage">Por etapa</SelectItem>
+                <SelectItem value="tags">Por tags</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="flex items-center space-x-2">
+          {formData.target.type === 'funnel' && (
+            <div>
+              <Label>Funil</Label>
+              <Select
+                value={formData.target.config.funnel_id || ''}
+                onValueChange={(value) => updateTargetConfig({ funnel_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um funil" />
+                </SelectTrigger>
+                <SelectContent>
+                  {funnels.map((funnel) => (
+                    <SelectItem key={funnel.id} value={funnel.id}>
+                      {funnel.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {formData.target.type === 'stage' && (
+            <>
+              <div>
+                <Label>Funil</Label>
+                <Select
+                  value={formData.target.config.funnel_id || ''}
+                  onValueChange={(value) => updateTargetConfig({ funnel_id: value, stage_id: '' })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um funil" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {funnels.map((funnel) => (
+                      <SelectItem key={funnel.id} value={funnel.id}>
+                        {funnel.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {formData.target.config.funnel_id && (
+                <div>
+                  <Label>Etapa</Label>
+                  <Select
+                    value={formData.target.config.stage_id || ''}
+                    onValueChange={(value) => updateTargetConfig({ ...formData.target.config, stage_id: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma etapa" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stages.map((stage) => (
+                        <SelectItem key={stage.id} value={stage.id}>
+                          {stage.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Preview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Preview dos Destinatários
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4 mb-4">
+            <Badge variant="secondary" className="text-lg px-3 py-1">
+              {preview.totalCount} lead{preview.totalCount !== 1 ? 's' : ''}
+            </Badge>
+            <span className="text-muted-foreground">
+              serão incluídos nesta campanha
+            </span>
+          </div>
+
+          {preview.leads.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-sm">Exemplo de destinatários:</Label>
+              <div className="bg-muted/50 p-3 rounded-lg max-h-32 overflow-y-auto">
+                {preview.leads.slice(0, 10).map((lead) => (
+                  <div key={lead.id} className="text-sm flex justify-between py-1">
+                    <span>{lead.name || 'Sem nome'}</span>
+                    <span className="text-muted-foreground">{lead.phone}</span>
+                  </div>
+                ))}
+                {preview.totalCount > 10 && (
+                  <div className="text-sm text-muted-foreground pt-1">
+                    ... e mais {preview.totalCount - 10} leads
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            Configurações de Envio
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Respeitar Horário Comercial</Label>
+              <p className="text-sm text-muted-foreground">
+                Enviar apenas das 8h às 18h
+              </p>
+            </div>
             <Switch
-              id="businessHours"
-              checked={businessHoursOnly}
-              onCheckedChange={setBusinessHoursOnly}
+              checked={formData.business_hours_only}
+              onCheckedChange={(checked) => updateFormData('business_hours_only', checked)}
             />
-            <Label htmlFor="businessHours">Enviar apenas em horário comercial (8h às 18h)</Label>
+          </div>
+
+          <div>
+            <Label>Limite de Mensagens por Minuto</Label>
+            <Select
+              value={String(formData.rate_limit_per_minute)}
+              onValueChange={(value) => updateFormData('rate_limit_per_minute', parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1 mensagem/minuto</SelectItem>
+                <SelectItem value="2">2 mensagens/minuto</SelectItem>
+                <SelectItem value="3">3 mensagens/minuto</SelectItem>
+                <SelectItem value="4">4 mensagens/minuto</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex justify-end gap-4">
-        <Button type="button" variant="outline">
-          Salvar Rascunho
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-          <Send className="h-4 w-4 mr-2" />
-          {isLoading ? 'Criando...' : 'Criar Campanha'}
+      {/* Submit */}
+      <div className="flex justify-end">
+        <Button 
+          type="submit" 
+          disabled={loading || preview.totalCount === 0}
+          className="min-w-32"
+        >
+          {loading ? 'Criando...' : 'Criar Campanha'}
         </Button>
       </div>
     </form>

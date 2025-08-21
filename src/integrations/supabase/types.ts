@@ -190,254 +190,6 @@ export type Database = {
         }
         Relationships: []
       }
-      broadcast_campaigns: {
-        Row: {
-          business_hours_only: boolean | null
-          created_at: string | null
-          created_by_user_id: string
-          failed_count: number | null
-          id: string
-          media_type: string | null
-          media_url: string | null
-          message_text: string
-          name: string
-          rate_limit_per_minute: number | null
-          schedule_type: string | null
-          scheduled_at: string | null
-          sent_count: number | null
-          status: string | null
-          target_config: Json | null
-          target_type: string
-          timezone: string | null
-          total_recipients: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          business_hours_only?: boolean | null
-          created_at?: string | null
-          created_by_user_id: string
-          failed_count?: number | null
-          id?: string
-          media_type?: string | null
-          media_url?: string | null
-          message_text: string
-          name: string
-          rate_limit_per_minute?: number | null
-          schedule_type?: string | null
-          scheduled_at?: string | null
-          sent_count?: number | null
-          status?: string | null
-          target_config?: Json | null
-          target_type: string
-          timezone?: string | null
-          total_recipients?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          business_hours_only?: boolean | null
-          created_at?: string | null
-          created_by_user_id?: string
-          failed_count?: number | null
-          id?: string
-          media_type?: string | null
-          media_url?: string | null
-          message_text?: string
-          name?: string
-          rate_limit_per_minute?: number | null
-          schedule_type?: string | null
-          scheduled_at?: string | null
-          sent_count?: number | null
-          status?: string | null
-          target_config?: Json | null
-          target_type?: string
-          timezone?: string | null
-          total_recipients?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      broadcast_history: {
-        Row: {
-          campaign_id: string
-          created_at: string | null
-          error_message: string | null
-          external_message_id: string | null
-          id: string
-          lead_id: string | null
-          phone: string
-          queue_id: string | null
-          sent_at: string | null
-          status: string
-        }
-        Insert: {
-          campaign_id: string
-          created_at?: string | null
-          error_message?: string | null
-          external_message_id?: string | null
-          id?: string
-          lead_id?: string | null
-          phone: string
-          queue_id?: string | null
-          sent_at?: string | null
-          status: string
-        }
-        Update: {
-          campaign_id?: string
-          created_at?: string | null
-          error_message?: string | null
-          external_message_id?: string | null
-          id?: string
-          lead_id?: string | null
-          phone?: string
-          queue_id?: string | null
-          sent_at?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "broadcast_history_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "broadcast_campaigns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "broadcast_history_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "broadcast_history_queue_id_fkey"
-            columns: ["queue_id"]
-            isOneToOne: false
-            referencedRelation: "broadcast_queue"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      broadcast_queue: {
-        Row: {
-          campaign_id: string
-          contact_name: string | null
-          created_at: string | null
-          external_message_id: string | null
-          id: string
-          last_error: string | null
-          lead_id: string | null
-          max_retries: number | null
-          media_type: string | null
-          media_url: string | null
-          message_text: string
-          phone: string
-          priority: number | null
-          retry_count: number | null
-          scheduled_for: string | null
-          sent_at: string | null
-          status: string | null
-          updated_at: string | null
-          whatsapp_instance_id: string
-        }
-        Insert: {
-          campaign_id: string
-          contact_name?: string | null
-          created_at?: string | null
-          external_message_id?: string | null
-          id?: string
-          last_error?: string | null
-          lead_id?: string | null
-          max_retries?: number | null
-          media_type?: string | null
-          media_url?: string | null
-          message_text: string
-          phone: string
-          priority?: number | null
-          retry_count?: number | null
-          scheduled_for?: string | null
-          sent_at?: string | null
-          status?: string | null
-          updated_at?: string | null
-          whatsapp_instance_id: string
-        }
-        Update: {
-          campaign_id?: string
-          contact_name?: string | null
-          created_at?: string | null
-          external_message_id?: string | null
-          id?: string
-          last_error?: string | null
-          lead_id?: string | null
-          max_retries?: number | null
-          media_type?: string | null
-          media_url?: string | null
-          message_text?: string
-          phone?: string
-          priority?: number | null
-          retry_count?: number | null
-          scheduled_for?: string | null
-          sent_at?: string | null
-          status?: string | null
-          updated_at?: string | null
-          whatsapp_instance_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "broadcast_queue_campaign_id_fkey"
-            columns: ["campaign_id"]
-            isOneToOne: false
-            referencedRelation: "broadcast_campaigns"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "broadcast_queue_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "broadcast_queue_whatsapp_instance_id_fkey"
-            columns: ["whatsapp_instance_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_instances"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      broadcast_rate_limits: {
-        Row: {
-          created_at: string | null
-          current_date_value: string | null
-          current_minute: string | null
-          id: string
-          messages_sent_current_minute: number | null
-          total_messages_today: number | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          current_date_value?: string | null
-          current_minute?: string | null
-          id?: string
-          messages_sent_current_minute?: number | null
-          total_messages_today?: number | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          current_date_value?: string | null
-          current_minute?: string | null
-          id?: string
-          messages_sent_current_minute?: number | null
-          total_messages_today?: number | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       dashboard_configs: {
         Row: {
           created_by_user_id: string
@@ -1461,10 +1213,6 @@ export type Database = {
         Args: { data: string }
         Returns: string
       }
-      check_rate_limit: {
-        Args: { p_user_id: string }
-        Returns: boolean
-      }
       cleanup_orphan_references: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1473,10 +1221,6 @@ export type Database = {
         Args: { cache_entry_id: string }
         Returns: boolean
       }
-      create_broadcast_queue: {
-        Args: { p_campaign_id: string; p_user_id: string }
-        Returns: number
-      }
       debug_context_full: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -1484,29 +1228,6 @@ export type Database = {
       diagnose_permissions: {
         Args: Record<PropertyKey, never>
         Returns: Json
-      }
-      get_user_broadcast_campaigns: {
-        Args: { p_user_id: string }
-        Returns: {
-          business_hours_only: boolean
-          created_at: string
-          failed_count: number
-          id: string
-          media_type: string
-          media_url: string
-          message_text: string
-          name: string
-          rate_limit_per_minute: number
-          schedule_type: string
-          scheduled_at: string
-          sent_count: number
-          status: string
-          target_config: Json
-          target_type: string
-          timezone: string
-          total_recipients: number
-          updated_at: string
-        }[]
       }
       gtrgm_compress: {
         Args: { "": unknown }
@@ -1578,10 +1299,6 @@ export type Database = {
       http_set_curlopt: {
         Args: { curlopt: string; value: string }
         Returns: boolean
-      }
-      increment_rate_limit: {
-        Args: { p_user_id: string }
-        Returns: undefined
       }
       increment_unread_count: {
         Args: { p_lead_id: string }

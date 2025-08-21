@@ -1,68 +1,80 @@
-import React, { useState, useCallback } from 'react';
-import { WhatsAppChatLayout } from './WhatsAppChatLayout';
-import { useContacts } from '@/hooks/whatsapp/useContacts';
-import { useMessages } from '@/hooks/whatsapp/useMessages';
-import { useWhatsAppConnection } from '@/hooks/whatsapp/useWhatsAppConnection';
-import { Contact, Message } from '@/types';
 
-interface WhatsAppChatContainerProps {
-  // Add any props if needed
-}
+import { WhatsAppChatLayout } from "./WhatsAppChatLayout";
+import { useWhatsAppChat } from "@/hooks/whatsapp/useWhatsAppChat";
+import { useSendMessage } from "@/hooks/whatsapp/messaging/useSendMessage";
 
-const WhatsAppChatContainer: React.FC<WhatsAppChatContainerProps> = () => {
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+export function WhatsAppChatContainer() {
+  console.log('[WhatsAppChatContainer] 🏗️ Componente renderizado - iniciando hooks isolados');
+  
+  // ✅ HOOK PRINCIPAL (sem envio)
   const {
+    selectedContact,
+    setSelectedContact,
+    activeInstance,
+    refreshMessages,
+    refreshContacts,
+    searchContacts,
     contacts,
-    isLoading,
-    refreshContacts: handleRefreshContacts,
-    deleteChat: handleDeleteChat,
-    markAsRead: handleMarkAsRead,
-    totalContactsAvailable
-  } = useContacts();
-  const {
+    isLoadingContacts,
+    isLoadingMoreContacts,
+    hasMoreContacts,
+    loadMoreContacts,
+    totalContactsAvailable,
     messages,
-    sendMessage,
-    loadMoreMessages,
-    hasMoreMessages
-  } = useMessages(selectedContact?.phone || '');
-  const {
-    isConnected,
-    connectionStatus,
-    connectWhatsApp,
-    disconnectWhatsApp
-  } = useWhatsAppConnection();
+    isLoadingMessages,
+    isLoadingMoreMessages,
+    hasMoreMessages,
+    loadMoreMessages
+  } = useWhatsAppChat();
 
-  const handleSelectContact = useCallback((contact: Contact) => {
-    setSelectedContact(contact);
-  }, []);
+  // ✅ HOOK ISOLADO PARA ENVIO
+  const { sendMessage, isSending: isSendingMessage } = useSendMessage({
+    selectedContact,
+    activeInstance
+  });
 
-  const handleSendMessage = useCallback(
-    async (messageText: string, mediaUrl?: string, mediaType?: string) => {
-      if (selectedContact) {
-        await sendMessage(selectedContact.phone, messageText, mediaUrl, mediaType);
-      }
-    },
-    [selectedContact, sendMessage]
-  );
+  console.log('[WhatsAppChatContainer] 📊 Dados do hook recebidos:', {
+    contactsCount: contacts.length,
+    messagesCount: messages.length,
+    selectedContactId: selectedContact?.id,
+    selectedContactName: selectedContact?.name,
+    isLoadingContacts,
+    isLoadingMessages
+  });
+
+  const onSendMessageWrapper = async (message: string, mediaType?: string, mediaUrl?: string) => {
+    console.log('[WhatsAppChatContainer] ▶️ onSendMessage chamado', {
+      hasContact: !!selectedContact,
+      contactId: selectedContact?.id,
+      messagePreview: message?.substring(0, 50),
+      mediaType,
+      hasMediaUrl: !!mediaUrl
+    });
+    const result = await sendMessage(message, mediaType, mediaUrl);
+    console.log('[WhatsAppChatContainer] ✅ Resultado de sendMessage:', result);
+    return result;
+  };
 
   return (
     <WhatsAppChatLayout
       contacts={contacts}
       selectedContact={selectedContact}
-      onSelectContact={handleSelectContact}
+      onSelectContact={setSelectedContact}
       messages={messages}
-      onSendMessage={handleSendMessage}
-      isConnected={isConnected}
-      connectionStatus={connectionStatus}
-      isLoading={isLoading}
-      onRefreshContacts={handleRefreshContacts}
-      onDeleteChat={handleDeleteChat}
-      onMarkAsRead={handleMarkAsRead}
-      onLoadMoreMessages={loadMoreMessages}
+        onSendMessage={onSendMessageWrapper}
+      isLoadingContacts={isLoadingContacts}
+      isLoadingMoreContacts={isLoadingMoreContacts}
+      hasMoreContacts={hasMoreContacts}
+      onLoadMoreContacts={loadMoreContacts}
+      isLoadingMessages={isLoadingMessages}
+      isLoadingMore={isLoadingMoreMessages}
       hasMoreMessages={hasMoreMessages}
+      onLoadMoreMessages={loadMoreMessages}
+      isSending={isSendingMessage}
+      onRefreshMessages={refreshMessages}
+      onRefreshContacts={refreshContacts}
+      onSearch={searchContacts}
       totalContactsAvailable={totalContactsAvailable}
     />
   );
-};
-
-export default WhatsAppChatContainer;
+}
