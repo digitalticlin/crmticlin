@@ -1,71 +1,52 @@
 
 import { useState } from "react";
-import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
-import { Button } from "@/components/ui/button";
+import { PageLayout } from "@/components/layout/PageLayout";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, BarChart3, Settings, Radio } from "lucide-react";
-import { CampaignsDashboard } from "@/components/automation/campaigns/CampaignsDashboard";
-import { CreateCampaignWizard } from "@/components/automation/campaigns/CreateCampaignWizard";
-import { CampaignsReports } from "@/components/automation/campaigns/CampaignsReports";
-import { CampaignsSettings } from "@/components/automation/campaigns/CampaignsSettings";
+import { Info } from "lucide-react";
+import { NewBroadcastListForm } from "@/components/automation/NewBroadcastListForm";
+import { BroadcastLists } from "@/components/automation/BroadcastLists";
+import { toast } from "sonner";
 
 export default function Automation() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("lists");
+  
+  const handleCampaignSuccess = () => {
+    setActiveTab("lists");
+    toast.success("Campanha criada com sucesso!", {
+      description: "Sua campanha foi configurada e está pronta para ser iniciada."
+    });
+  };
   
   return (
-    <div className="min-h-screen bg-background">
-      <ModernPageHeader 
-        title="Automação de Campanhas" 
-        description="Gerencie e execute suas campanhas de disparo em massa no WhatsApp"
-        action={
-          <Button 
-            onClick={() => setActiveTab("create")}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Nova Campanha
-          </Button>
-        }
+    <PageLayout>
+      <PageHeader 
+        title="Automação" 
+        description="Configure e gerencie suas campanhas de disparo em massa"
       />
       
-      <div className="container mx-auto px-6 pb-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="dashboard" className="gap-2">
-              <Radio className="h-4 w-4" />
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="create" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Criar Campanha
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Relatórios
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2">
-              <Settings className="h-4 w-4" />
-              Configurações
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="dashboard">
-            <CampaignsDashboard />
-          </TabsContent>
-          
-          <TabsContent value="create">
-            <CreateCampaignWizard onSuccess={() => setActiveTab("dashboard")} />
-          </TabsContent>
-          
-          <TabsContent value="reports">
-            <CampaignsReports />
-          </TabsContent>
-          
-          <TabsContent value="settings">
-            <CampaignsSettings />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
+      <Alert className="border border-amber-200 bg-amber-50/50 dark:bg-amber-900/20 dark:border-amber-800">
+        <Info className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+        <AlertDescription className="text-amber-800 dark:text-amber-300">
+          Para evitar bloqueio pelo WhatsApp, seus disparos são limitados automaticamente a 2-4 mensagens por minuto, respeitando pausas e variações naturais.
+        </AlertDescription>
+      </Alert>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="lists">Campanhas</TabsTrigger>
+          <TabsTrigger value="new">Nova Campanha</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="lists" className="space-y-4">
+          <BroadcastLists />
+        </TabsContent>
+        
+        <TabsContent value="new">
+          <NewBroadcastListForm onSuccess={handleCampaignSuccess} />
+        </TabsContent>
+      </Tabs>
+    </PageLayout>
   );
 }
