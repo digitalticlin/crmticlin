@@ -18,3 +18,12 @@ verify_jwt = true
 
 [functions.ai_messaging_service]
 verify_jwt = false
+
+[functions.broadcast_campaign_manager]
+verify_jwt = true
+
+[functions.broadcast_scheduler]
+verify_jwt = false
+
+[functions.broadcast_sender]
+verify_jwt = false
