@@ -1,217 +1,283 @@
-import React, { useMemo, useRef } from "react";
-import { KanbanColumn, KanbanLead } from "@/types/kanban";
-import { KanbanColumnMemo } from "../KanbanColumnMemo";
-import { MassSelectionReturn } from "@/hooks/useMassSelection";
+import React, { useRef, useState, useEffect } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { StageCard } from './StageCard';
+import { KanbanStage } from '@/types';
+import { useKanbanStore } from '@/store/kanbanStore';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { useUpdateKanbanStageMutation } from '@/hooks/sales/useKanbanStages';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface BoardContentOptimizedProps {
-  columns: KanbanColumn[];
-  onOpenLeadDetail: (lead: KanbanLead) => void;
-  onColumnUpdate?: (updatedColumn: KanbanColumn) => void;
-  onColumnDelete?: (columnId: string) => void;
-  onOpenChat?: (lead: KanbanLead) => void;
-  onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
-  onReturnToFunnel?: (lead: KanbanLead) => void;
-  isWonLostView?: boolean;
-  wonStageId?: string;
-  lostStageId?: string;
-  massSelection?: MassSelectionReturn;
+interface BoardContentProps {
+  stage: KanbanStage;
+  index: number;
 }
 
-export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
-  columns,
-  onOpenLeadDetail,
-  onColumnUpdate,
-  onColumnDelete,
-  onOpenChat,
-  onMoveToWonLost,
-  onReturnToFunnel,
-  isWonLostView = false,
-  wonStageId,
-  lostStageId,
-  massSelection
-}) => {
-  console.log('[BoardContentOptimized] 🎯 FASES 2+3 - Renderizando com arquitetura refinada:', {
-    columnsCount: columns?.length || 0,
-    isWonLostView,
-    hasMassSelection: !!massSelection,
-    massSelectionMode: massSelection?.isSelectionMode
+export function BoardContentOptimized({ stage, index }: BoardContentProps) {
+  const { user } = useAuth();
+  const { items, setItemStage } = useKanbanStore();
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [scrollSpeed, setScrollSpeed] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
+  const { mutate: updateStage, isLoading: isUpdating } = useUpdateKanbanStageMutation();
+
+  const {
+    setNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition,
+  } = useSortable({
+    id: stage.id,
+    data: {
+      stage
+    },
+    disabled: isScrolling
   });
 
-  // Ref para container principal
-  const mainScrollRef = useRef<HTMLDivElement>(null);
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
-  // Memoizar colunas validadas para evitar recálculos
-  const validatedColumns = useMemo(() => {
-    if (!Array.isArray(columns)) return [];
-    return columns.filter(col => col && col.id && col.title && Array.isArray(col.leads));
-  }, [columns]);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
-  // Memoizar estilos para evitar recriações
-  const containerStyles = useMemo(() => ({
-    height: '100%',
-    minWidth: 'max-content',
-    overscrollBehaviorX: 'contain'
-  }), []);
+  useEffect(() => {
+    if (!isMounted) return;
 
-  // Removido useEffect problemático - scroll funciona naturalmente
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const container = containerRef.current;
+      if (!container) return;
 
-  if (!validatedColumns.length) {
+      const scrollAmount = e.deltaY * 0.5; // Adjust scroll speed here
+      container.scrollLeft += scrollAmount;
+      setScrollLeft(container.scrollLeft);
+    };
+
+    const container = containerRef.current;
+    container?.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      container?.removeEventListener('wheel', handleWheel);
+    };
+  }, [isMounted]);
+
+  const handleScroll = () => {
+    const container = containerRef.current;
+    if (!container) return;
+    setScrollLeft(container.scrollLeft);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Fix: Use React.PointerEvent instead of native PointerEvent
+    e.preventDefault();
+    setIsDragging(true);
+    
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect) {
+      setDragStart({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+    setIsScrolling(false);
+    setScrollSpeed(0);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    e.preventDefault();
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const dx = x - dragStart.x;
+    const dy = y - dragStart.y;
+
+    // Adjust sensitivity and activation threshold as needed
+    const speedX = dx * 0.1; // Reduced sensitivity
+    const speedY = dy * 0.1; // Reduced sensitivity
+
+    // Check if the drag is primarily horizontal
+    if (Math.abs(dx) > 5 && Math.abs(dx) > Math.abs(dy)) {
+      setIsScrolling(true);
+      setScrollSpeed(speedX);
+      container.scrollLeft -= speedX;
+    } else {
+      setIsScrolling(false);
+      setScrollSpeed(0);
+    }
+  };
+
+  const stageItems = items.filter((item) => item.kanban_stage_id === stage.id);
+
+  const updateStageTitle = async (newTitle: string) => {
+    if (!user?.id) {
+      toast.error('Usuário não autenticado');
+      return;
+    }
+
+    updateStage({
+      id: stage.id,
+      title: newTitle,
+      created_by_user_id: user.id,
+      funnel_id: stage.funnel_id,
+      order_position: stage.order_position
+    });
+  };
+
+  return (
+    <div
+      ref={(node) => {
+        setNodeRef(node);
+        containerRef.current = node;
+      }}
+      style={style}
+      className="kanban-column"
+      {...attributes}
+    >
+      <StageCard
+        stage={stage}
+        listeners={listeners}
+        isUpdating={isUpdating}
+        updateStageTitle={updateStageTitle}
+      />
+      <div
+        className="board-content"
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerMove={handlePointerMove}
+        onScroll={handleScroll}
+      >
+        {stageItems.length === 0 && !isDragging ? (
+          <p className="text-center text-gray-500 p-4">
+            Arraste os cards para cá
+          </p>
+        ) : (
+          stageItems.map((item) => (
+            <div key={item.id}>
+              <KanbanItem id={item.id} item={item} />
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface KanbanItemProps {
+  id: string;
+  item: any;
+}
+
+import { useSortable as useDndKitSortable } from '@dnd-kit/sortable';
+import { CSS as DndKitCSS } from '@dnd-kit/utilities';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Eye, MessageSquare, PhoneCall, User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Skeleton as ItemSkeleton } from '@/components/ui/skeleton';
+import { useLead } from '@/hooks/leads/useLead';
+import { useNavigate } from 'react-router-dom';
+
+function KanbanItem({ id, item }: KanbanItemProps) {
+  const navigate = useNavigate();
+  const { lead, isLoading } = useLead(item.id);
+  const { setDraggingItem } = useKanbanStore();
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useDndKitSortable({
+    id: id,
+    data: {
+      item
+    }
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const handleItemClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    navigate(`/clients/${item.id}`);
+  };
+
+  if (isLoading || !lead) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
-        <p>Nenhuma etapa encontrada</p>
+      <div className="kanban-item" style={style} ref={setNodeRef} {...attributes} {...listeners}>
+        <ItemSkeleton />
       </div>
     );
   }
 
   return (
-    // VERSÃO FUNCIONAL - Copiando EXATAMENTE o teste que funcionou
-    <div style={{ height: '100%', width: '100%', position: 'relative' }}>
-      <div
-        ref={mainScrollRef}
-        data-kanban-board
-        style={{
-          display: 'flex',
-          height: '100%',
-          width: '100%',
-          overflowX: 'auto',
-          overflowY: 'hidden',
-          gap: '24px',
-          padding: '24px',
-          cursor: 'grab',
-          // Estilização da barra de scroll inline - padrão branco glassmorphism
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(255,255,255,0.8) transparent'
-        }}
-        // className="kanban-scrollbar" // TEMPORARIAMENTE REMOVIDO
-        onWheel={(e) => {
-          // Shift+scroll
-          if (!e.shiftKey) return;
-          e.currentTarget.scrollLeft += e.deltaY;
-          e.preventDefault();
-        }}
-        onPointerDown={(e) => {
-          const el = e.currentTarget as HTMLDivElement;
-          const target = e.target as HTMLElement;
-          
-          // Bloquear em elementos interativos
-          if (target.closest('button, input, select, textarea, [role="button"], [data-rbd-draggable-id]')) return;
-          
-          e.preventDefault(); // Prevenir seleção de texto
-          
-          let startX = e.clientX;
-          let startScroll = el.scrollLeft;
-          let isScrolling = false;
-          let moved = false;
-          
-          const threshold = 5; // Pixels mínimos para considerar movimento
-          
-          const onMove = (ev: PointerEvent) => {
-            const dx = ev.clientX - startX;
-            
-            // Só inicia o scroll após threshold para evitar cliques acidentais
-            if (!moved && Math.abs(dx) < threshold) return;
-            
-            if (!moved) {
-              moved = true;
-              isScrolling = true;
-              el.style.cursor = 'grabbing';
-              el.style.userSelect = 'none';
-            }
-            
-            // Scroll apenas se estivermos em modo scrolling
-            if (isScrolling) {
-              el.scrollLeft = startScroll - dx;
-            }
-          };
-          
-          const onUp = (ev: PointerEvent) => {
-            // IMPORTANTE: Limpar TUDO ao soltar
-            isScrolling = false;
-            moved = false;
-            
-            // Restaurar cursor e comportamento
-            el.style.cursor = 'grab';
-            el.style.userSelect = '';
-            
-            // Limpar capture e listeners
-            el.releasePointerCapture(e.pointerId);
-            document.removeEventListener('pointermove', onMove);
-            document.removeEventListener('pointerup', onUp);
-            document.removeEventListener('pointercancel', onCancel);
-            
-          };
-          
-          const onCancel = () => {
-            // Mesmo cleanup para cancel
-            onUp(e);
-          };
-          
-          // Usar document em vez de element para captura global
-          el.setPointerCapture(e.pointerId);
-          document.addEventListener('pointermove', onMove);
-          document.addEventListener('pointerup', onUp);
-          document.addEventListener('pointercancel', onCancel);
-          
-        }}
-        onPointerLeave={() => {
-          // Garantir limpeza se cursor sair da área durante drag
-          const el = mainScrollRef.current;
-          if (el) {
-            el.style.cursor = 'grab';
-            el.style.userSelect = '';
-          }
-        }}
-      >
-        {validatedColumns.map((column, index) => (
-          <KanbanColumnMemo
-            key={column.id}
-            column={column}
-            index={index}
-            onOpenLeadDetail={onOpenLeadDetail}
-            onUpdateColumn={onColumnUpdate}
-            onDeleteColumn={onColumnDelete}
-            onOpenChat={onOpenChat}
-            onMoveToWonLost={onMoveToWonLost}
-            onReturnToFunnel={onReturnToFunnel}
-            isWonLostView={isWonLostView}
-            wonStageId={wonStageId}
-            lostStageId={lostStageId}
-            massSelection={massSelection}
-          />
-        ))}
+    <div
+      className="kanban-item"
+      style={style}
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      onClick={handleItemClick}
+    >
+      <div className="flex items-center space-x-2">
+        <Avatar>
+          <AvatarImage src={lead?.avatar_url} />
+          <AvatarFallback>{lead?.name?.substring(0, 2).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div className="space-y-1">
+          <p className="text-sm font-medium leading-none">{lead?.name}</p>
+          <p className="text-sm text-muted-foreground">
+            {lead?.phone}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center justify-between space-x-2">
+        <div className="flex items-center space-x-1">
+          {lead?.funnel?.name && (
+            <Badge variant="secondary">
+              {lead?.funnel?.name}
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center space-x-2">
+          <Eye className="h-4 w-4 text-gray-500" />
+          <MessageSquare className="h-4 w-4 text-gray-500" />
+          <PhoneCall className="h-4 w-4 text-gray-500" />
+        </div>
+      </div>
+      <div className="text-xs text-muted-foreground">
+        {lead?.last_message && (
+          <p className="truncate">
+            {lead?.last_message}
+          </p>
+        )}
+        <p>
+          {lead?.last_message_time && format(new Date(lead?.last_message_time), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+        </p>
       </div>
     </div>
   );
-}, (prevProps, nextProps) => {
-  // Comparação otimizada do BoardContent (mantida da Fase 1)
-  const columnsChanged = 
-    prevProps.columns.length !== nextProps.columns.length ||
-    prevProps.columns.some((col, index) => {
-      const nextCol = nextProps.columns[index];
-      return !nextCol || 
-        col.id !== nextCol.id || 
-        col.title !== nextCol.title ||
-        col.leads.length !== nextCol.leads.length;
-    });
-
-  const stateChanged = 
-    prevProps.isWonLostView !== nextProps.isWonLostView ||
-    prevProps.wonStageId !== nextProps.wonStageId ||
-    prevProps.lostStageId !== nextProps.lostStageId;
-
-  // 🚀 CORREÇÃO CRÍTICA: Verificar mudanças no massSelection
-  const massSelectionChanged = 
-    prevProps.massSelection?.isSelectionMode !== nextProps.massSelection?.isSelectionMode ||
-    prevProps.massSelection?.selectedCount !== nextProps.massSelection?.selectedCount;
-
-  console.log('🐛 [DEBUG] BoardContentOptimized memo check:', {
-    columnsChanged,
-    stateChanged,
-    massSelectionChanged,
-    shouldRerender: !!(columnsChanged || stateChanged || massSelectionChanged)
-  });
-
-  return !(columnsChanged || stateChanged || massSelectionChanged);
-});
-
-BoardContentOptimized.displayName = 'BoardContentOptimized';
+}

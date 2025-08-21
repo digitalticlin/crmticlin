@@ -14,6 +14,8 @@ import { FilterByUser } from './FilterByUser';
 import { FilterByFunnelStage } from './FilterByFunnelStage';
 import { FilterByDate } from './FilterByDate';
 import { useAdvancedFilters } from '@/hooks/clients/useAdvancedFilters';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 
 interface AdvancedFiltersPopoverProps {
   children?: React.ReactNode;
@@ -31,6 +33,26 @@ export const AdvancedFiltersPopover = ({ children }: AdvancedFiltersPopoverProps
     filterOptions,
     isLoadingOptions
   } = useAdvancedFilters();
+
+  const { data: salesPersons = [] } = useQuery({
+    queryKey: ['sales-persons'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('role', 'admin');
+
+      if (error) {
+        console.error('Error fetching sales persons:', error);
+        return [];
+      }
+
+      return (data || []).map(person => ({
+        id: person.id,
+        name: person.full_name || 'Sem nome'
+      }));
+    }
+  });
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
