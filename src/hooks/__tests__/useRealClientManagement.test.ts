@@ -1,3 +1,4 @@
+
 import { render, screen, waitFor } from '@testing-library/react';
 import { useRealClientManagement } from '@/hooks/useRealClientManagement';
 import { useAdvancedFilters } from '@/hooks/clients/useAdvancedFilters';
@@ -66,6 +67,17 @@ const mockUseAdvancedFilters = {
   },
   hasActiveFilters: false,
   filteredClients: mockClients
+};
+
+// Helper para renderizar hooks em testes
+const renderHook = <T>(callback: () => T) => {
+  let result: T;
+  const TestComponent = () => {
+    result = callback();
+    return null;
+  };
+  render(<TestComponent />);
+  return { result: result! };
 };
 
 describe('Integração do Sistema de Filtros', () => {
@@ -149,14 +161,3 @@ describe('Integração do Sistema de Filtros', () => {
     });
   });
 });
-
-// Helper para renderizar hooks em testes
-const renderHook = (callback: () => any) => {
-  let result: any;
-  const TestComponent = () => {
-    result = callback();
-    return null;
-  };
-  render(<TestComponent />);
-  return { result };
-};
