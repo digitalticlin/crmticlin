@@ -1,276 +1,297 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { BroadcastService } from '@/services/broadcast/broadcastService';
+import { MediaUploader } from './MediaUploader';
+import { MessageFragmenter } from './MessageFragmenter';
+import { InstanceSelector } from './InstanceSelector';
+import { AdvancedScheduler, ScheduleConfig } from './AdvancedScheduler';
+import { AlertCircle, Send, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { TimePickerInput } from "@/components/automation/TimePickerInput";
-import { Upload, Download, Play, Phone, Clock, Info, ListPlus } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
+interface MessageFragment {
+  id: string;
+  text: string;
+  order: number;
+}
 
 interface NewBroadcastListFormProps {
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
-export function NewBroadcastListForm({ onSuccess }: NewBroadcastListFormProps) {
-  const { toast } = useToast();
-  const [name, setName] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [phoneId, setPhoneId] = useState("");
-  const [messages, setMessages] = useState(["", "", ""]);
-  const [startTime, setStartTime] = useState("08:00");
-  const [endTime, setEndTime] = useState("18:00");
-  const [previewNumbers, setPreviewNumbers] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
+export const NewBroadcastListForm: React.FC<NewBroadcastListFormProps> = ({ onSuccess }) => {
+  const [campaignName, setCampaignName] = useState('');
+  const [messageText, setMessageText] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [mediaType, setMediaType] = useState<'text' | 'image' | 'video' | 'audio' | 'document'>('text');
+  const [fragments, setFragments] = useState<MessageFragment[]>([]);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
   
-  // Mock phone numbers already connected
-  const connectedPhones = [
-    { id: "1", name: "Atendimento Principal", number: "+55 11 9999-8888", status: "active" },
-    { id: "2", name: "Vendas", number: "+55 11 9999-7777", status: "inactive" },
-  ];
-  
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0] || null;
-    setFile(selectedFile);
-    
-    if (selectedFile) {
-      // In a real app, parse the Excel file here
-      setPreviewNumbers([
-        "+5562999991111",
-        "+5562999992222",
-        "+5562999993333",
-        "+5562999994444",
-        "+5562999995555",
-      ]);
-      
-      toast({
-        title: "Arquivo carregado",
-        description: `${selectedFile.name} - ${previewNumbers.length} números detectados`
-      });
+  const [scheduleConfig, setScheduleConfig] = useState<ScheduleConfig>({
+    type: 'immediate',
+    businessHoursOnly: false,
+    startHour: 8,
+    endHour: 18,
+    weekDays: [1, 2, 3, 4, 5], // Segunda a sexta
+    rateLimit: 2
+  });
+
+  const [target, setTarget] = useState({
+    type: 'all' as const,
+    config: {}
+  });
+
+  useEffect(() => {
+    loadPreview();
+  }, [target]);
+
+  const loadPreview = async () => {
+    try {
+      const preview = await BroadcastService.getLeadsPreview(target);
+      setPreviewData(preview);
+    } catch (error) {
+      console.error('Error loading preview:', error);
     }
   };
-  
-  const handleMessageChange = (index: number, value: string) => {
-    const newMessages = [...messages];
-    newMessages[index] = value;
-    setMessages(newMessages);
+
+  const handleMediaSelect = (file: File | null, type: 'text' | 'image' | 'video' | 'audio' | 'document') => {
+    setSelectedFile(file);
+    setMediaType(file ? type : 'text');
   };
-  
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsUploading(true);
+
+  const handleSubmit = async () => {
+    if (!campaignName.trim()) {
+      toast.error('Nome da campanha é obrigatório');
+      return;
+    }
+
+    if (!messageText.trim() && !selectedFile) {
+      toast.error('Mensagem ou mídia é obrigatória');
+      return;
+    }
+
+    if (!selectedInstanceId) {
+      toast.error('Selecione uma instância WhatsApp');
+      return;
+    }
+
+    setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsUploading(false);
-      onSuccess();
-    }, 1500);
+    try {
+      // Preparar dados da campanha
+      const campaignData = {
+        name: campaignName,
+        message_text: fragments.length > 0 
+          ? fragments.map(f => f.text).join('\n---\n')
+          : messageText,
+        media_type: mediaType,
+        media_url: selectedFile ? URL.createObjectURL(selectedFile) : undefined,
+        target,
+        schedule_type: scheduleConfig.type,
+        scheduled_at: scheduleConfig.type === 'scheduled' 
+          ? `${scheduleConfig.scheduledDate}T${scheduleConfig.scheduledTime}:00`
+          : undefined,
+        rate_limit_per_minute: scheduleConfig.rateLimit,
+        business_hours_only: scheduleConfig.businessHoursOnly
+      };
+
+      const result = await BroadcastService.createCampaign(campaignData);
+      
+      if (result) {
+        toast.success('Campanha criada com sucesso!');
+        
+        // Reset form
+        setCampaignName('');
+        setMessageText('');
+        setSelectedFile(null);
+        setMediaType('text');
+        setFragments([]);
+        setSelectedInstanceId('');
+        
+        onSuccess?.();
+      }
+    } catch (error: any) {
+      console.error('Error creating campaign:', error);
+      toast.error(`Erro ao criar campanha: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
-  const handleDownloadTemplate = () => {
-    toast({
-      title: "Modelo baixado",
-      description: "O modelo de planilha foi baixado com sucesso."
-    });
-  };
-  
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <ListPlus className="h-5 w-5 text-ticlin mr-2" />
-            Nova Lista de Transmissão
-          </CardTitle>
-          <CardDescription>
-            Configure sua lista de contatos e mensagens para disparo
-          </CardDescription>
+          <CardTitle>Nova Campanha de Disparo</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* List Name */}
-          <div className="grid gap-2">
-            <Label htmlFor="list-name">Nome da lista</Label>
-            <Input 
-              id="list-name"
-              placeholder="Ex: Promoção de Maio" 
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-          
-          {/* Contact Upload */}
-          <div className="grid gap-3">
-            <div className="flex justify-between items-center">
-              <Label>Contatos (Upload)</Label>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleDownloadTemplate}
-                className="text-xs"
-              >
-                <Download className="h-3 w-3 mr-1" />
-                Baixar modelo
-              </Button>
-            </div>
-            
-            <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center bg-white/50 dark:bg-black/20 backdrop-blur-sm">
-              <Input 
-                id="contact-file"
-                type="file" 
-                accept=".xlsx,.xls,.csv" 
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              <label 
-                htmlFor="contact-file" 
-                className="cursor-pointer flex flex-col items-center justify-center w-full h-full"
-              >
-                <Upload className="h-10 w-10 text-muted-foreground mb-2" />
-                <p className="text-sm font-medium">
-                  {file ? file.name : "Arraste ou clique para selecionar"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Formato .xlsx com coluna de número no formato internacional (556299999999)
-                </p>
-              </label>
-            </div>
-            
-            {previewNumbers.length > 0 && (
-              <div className="border rounded-lg p-3 bg-muted/30">
-                <p className="text-sm font-medium mb-2">Pré-visualização ({previewNumbers.length} números):</p>
-                <div className="flex flex-wrap gap-2">
-                  {previewNumbers.slice(0, 5).map((number, index) => (
-                    <Badge key={index} variant="outline" className="bg-background/80">{number}</Badge>
-                  ))}
-                  {previewNumbers.length > 5 && (
-                    <Badge variant="outline" className="bg-background/80">+{previewNumbers.length - 5}</Badge>
-                  )}
+        <CardContent>
+          <Tabs defaultValue="basic" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="basic">Básico</TabsTrigger>
+              <TabsTrigger value="message">Mensagem</TabsTrigger>
+              <TabsTrigger value="audience">Público-alvo</TabsTrigger>
+              <TabsTrigger value="schedule">Agendamento</TabsTrigger>
+              <TabsTrigger value="review">Revisar</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="basic" className="space-y-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nome da Campanha</Label>
+                  <Input
+                    value={campaignName}
+                    onChange={(e) => setCampaignName(e.target.value)}
+                    placeholder="Ex: Promoção de fim de semana"
+                  />
                 </div>
+
+                <InstanceSelector
+                  selectedInstanceId={selectedInstanceId}
+                  onInstanceSelect={setSelectedInstanceId}
+                />
               </div>
-            )}
-          </div>
-          
-          {/* Sender Phone Selection */}
-          <div className="grid gap-2">
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-ticlin" />
-              <Label htmlFor="sender-phone">Telefone Remetente</Label>
-            </div>
-            <Select value={phoneId} onValueChange={setPhoneId} required>
-              <SelectTrigger id="sender-phone" className="w-full">
-                <SelectValue placeholder="Selecione um número" />
-              </SelectTrigger>
-              <SelectContent>
-                {connectedPhones.map((phone) => (
-                  <SelectItem key={phone.id} value={phone.id}>
-                    <div className="flex items-center justify-between w-full">
-                      <span>{phone.name} ({phone.number})</span>
-                      <Badge 
-                        className={phone.status === 'active' ? 'bg-green-500' : 'bg-red-500'}
-                      >
-                        {phone.status === 'active' ? 'Conectado' : 'Desconectado'}
-                      </Badge>
+            </TabsContent>
+
+            <TabsContent value="message" className="space-y-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Texto da Mensagem</Label>
+                  <Textarea
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                    placeholder="Digite sua mensagem..."
+                    className="min-h-[120px]"
+                  />
+                </div>
+
+                <MediaUploader
+                  onMediaSelect={handleMediaSelect}
+                  selectedFile={selectedFile}
+                  mediaType={mediaType}
+                />
+
+                {messageText && (
+                  <MessageFragmenter
+                    initialMessage={messageText}
+                    onFragmentsChange={setFragments}
+                  />
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="audience" className="space-y-4">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Sistema de filtros por etiquetas será implementado em breve. 
+                  Atualmente enviando para todos os leads.
+                </AlertDescription>
+              </Alert>
+              
+              {previewData && (
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Destinatários:</span>
+                      <span className="font-medium">{previewData.totalCount} leads</span>
                     </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <Separator />
-          
-          {/* Message Configuration */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label>Variações de Mensagens</Label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-sm">
-                    Para evitar bloqueios, o sistema irá alternar entre estas mensagens durante o envio.
-                    Evite conteúdo promocional explícito ou links suspeitos.
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-            
-            {[0, 1, 2].map((index) => (
-              <div key={index} className="space-y-2">
-                <Label htmlFor={`message-${index}`}>Mensagem {index + 1}{index === 0 ? " (obrigatória)" : " (opcional)"}</Label>
-                <Textarea 
-                  id={`message-${index}`}
-                  placeholder={`Digite a variação ${index + 1} da mensagem`}
-                  value={messages[index]}
-                  onChange={(e) => handleMessageChange(index, e.target.value)}
-                  required={index === 0}
-                  className="min-h-[100px]"
-                />
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="schedule" className="space-y-4">
+              <AdvancedScheduler
+                config={scheduleConfig}
+                onConfigChange={setScheduleConfig}
+              />
+            </TabsContent>
+
+            <TabsContent value="review" className="space-y-4">
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Eye className="w-5 h-5" />
+                      Revisão da Campanha
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <span className="text-sm text-gray-600">Nome:</span>
+                        <p className="font-medium">{campaignName || 'Não definido'}</p>
+                      </div>
+                      
+                      <div>
+                        <span className="text-sm text-gray-600">Tipo de mídia:</span>
+                        <p className="font-medium capitalize">{mediaType}</p>
+                      </div>
+
+                      <div>
+                        <span className="text-sm text-gray-600">Fragmentos:</span>
+                        <p className="font-medium">
+                          {fragments.length > 0 ? `${fragments.length} parte(s)` : '1 parte'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-sm text-gray-600">Destinatários:</span>
+                        <p className="font-medium">{previewData?.totalCount || 0} leads</p>
+                      </div>
+
+                      <div>
+                        <span className="text-sm text-gray-600">Agendamento:</span>
+                        <p className="font-medium">
+                          {scheduleConfig.type === 'immediate' ? 'Imediato' : 'Agendado'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-sm text-gray-600">Taxa de envio:</span>
+                        <p className="font-medium">{scheduleConfig.rateLimit} msg/min</p>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <span className="text-sm text-gray-600">Prévia da mensagem:</span>
+                      <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-sm">{messageText || 'Mensagem não definida'}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={isLoading || !campaignName || !selectedInstanceId}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Criando campanha...
+                    </div>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Criar Campanha
+                    </>
+                  )}
+                </Button>
               </div>
-            ))}
-          </div>
-          
-          <Separator />
-          
-          {/* Time Configuration */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-ticlin" />
-              <Label>Intervalo de Horário para Envios</Label>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="start-time">Horário de Início</Label>
-                <TimePickerInput 
-                  id="start-time"
-                  value={startTime}
-                  onChange={setStartTime}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="end-time">Horário de Término</Label>
-                <TimePickerInput 
-                  id="end-time"
-                  value={endTime}
-                  onChange={setEndTime}
-                />
-              </div>
-            </div>
-            
-            <p className="text-sm text-muted-foreground italic">
-              Recomendamos utilizar horário comercial (8h às 18h) para melhores resultados.
-            </p>
-          </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" type="button" onClick={() => onSuccess()}>
-            Cancelar
-          </Button>
-          <Button 
-            type="submit" 
-            className="bg-ticlin hover:bg-ticlin/90 text-black"
-            disabled={isUploading || !name || !phoneId || !messages[0] || !file}
-          >
-            {isUploading ? (
-              <>Criando lista...</>
-            ) : (
-              <>
-                <Play className="h-4 w-4 mr-2" />
-                Iniciar Disparo
-              </>
-            )}
-          </Button>
-        </CardFooter>
       </Card>
-    </form>
+    </div>
   );
-}
+};
