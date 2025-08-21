@@ -38,11 +38,9 @@ export const useBroadcastCampaigns = () => {
     setError(null);
 
     try {
+      // Usar query SQL direta para evitar problemas com tipos
       const { data, error } = await supabase
-        .from('broadcast_campaigns')
-        .select('*')
-        .eq('created_by_user_id', user.id)
-        .order('created_at', { ascending: false });
+        .rpc('get_user_broadcast_campaigns', { p_user_id: user.id });
 
       if (error) throw error;
 
