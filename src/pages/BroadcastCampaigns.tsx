@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CreateCampaignForm } from '@/components/broadcast/CreateCampaignForm';
 import { CampaignsList } from '@/components/broadcast/CampaignsList';
 import { CampaignStats } from '@/components/broadcast/CampaignStats';
-import { BroadcastIcon, PlusCircle, BarChart3 } from 'lucide-react';
+import { Radio, PlusCircle, BarChart3 } from 'lucide-react';
 
 const BroadcastCampaigns = () => {
   return (
@@ -13,7 +13,7 @@ const BroadcastCampaigns = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <BroadcastIcon className="h-8 w-8 text-primary" />
+            <Radio className="h-8 w-8 text-primary" />
             Disparos em Massa
           </h1>
           <p className="text-gray-600 mt-1">
@@ -25,7 +25,7 @@ const BroadcastCampaigns = () => {
       <Tabs defaultValue="campaigns" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="campaigns" className="flex items-center gap-2">
-            <BroadcastIcon className="h-4 w-4" />
+            <Radio className="h-4 w-4" />
             Campanhas
           </TabsTrigger>
           <TabsTrigger value="create" className="flex items-center gap-2">
