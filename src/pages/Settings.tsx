@@ -10,8 +10,8 @@ import TeamSettings from "@/components/settings/TeamSettings";
 export default function Settings() {
   return (
     <PageLayout>
-      {/* Container principal com largura limitada a 1200px */}
-      <div className="max-w-6xl mx-auto px-4 md:px-6">
+      {/* Container principal já limitado pelo PageLayout */}
+      <div className="w-full px-4 md:px-6">
         <ModernPageHeader 
           title="Configurações" 
           description="Gerencie as configurações da sua conta e preferências do sistema"

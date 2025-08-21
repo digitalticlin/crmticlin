@@ -27,34 +27,34 @@ export function PageLayout({ children, className }: PageLayoutProps) {
       
       {/* Main container SEM scroll geral */}
       <main className={cn(
-        "fixed top-0 right-0 bottom-0 z-30 transition-all duration-300",
+        "min-h-screen w-full z-30 transition-all duration-300",
         className?.includes("kanban") ? "h-full" : "overflow-hidden h-full",
         isMobile 
-          ? "left-0 pt-14" 
+          ? "pt-14" 
           : isCollapsed 
-            ? "left-[64px]" 
-            : "left-[200px]",
+            ? "ml-[64px]" 
+            : "ml-[200px]",
         className
-      )}>
+      )} style={className?.includes("kanban") ? {} : { transform: 'scale(0.8)', transformOrigin: 'top left', width: '125%', height: '125%' }}>
         {/* Container com tratamento especial para páginas Kanban (full-bleed) */}
-        <div className={cn(
-          "w-full h-full",
-          className?.includes("kanban") ? "max-w-none" : "max-w-[1200px] mx-auto"
-        )}>
-          {className?.includes("kanban") ? (
-            // SPECIAL layout for Kanban - optimized for drag and drop
+        {className?.includes("kanban") ? (
+          <div className="w-full h-full max-w-none">
+            {/* SPECIAL layout for Kanban - optimized for drag and drop */}
             <div className="main-content-scale h-full p-4 md:p-6 flex flex-col" style={{ position: 'relative', zIndex: 1 }}>
               <div className="flex-1 min-h-0" style={{ position: 'relative' }}>
                 {children}
               </div>
             </div>
-          ) : (
-            // Layout padrão SEM scroll geral
-            <div className="main-content-scale h-full p-4 md:p-6 flex flex-col">
-              {children}
+          </div>
+        ) : (
+          <div className="w-full h-full flex justify-center px-4 md:px-6">
+            <div className="w-full max-w-[1200px] h-full">
+              <div className="main-content-scale h-full py-4 md:py-6 flex flex-col">
+                {children}
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );
