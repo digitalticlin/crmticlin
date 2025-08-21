@@ -7,8 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Info, Plus, Zap } from "lucide-react";
 import { ModernCampaignCreator } from "@/components/automation/ModernCampaignCreator";
-import { ModernCampaignDashboard } from "@/components/automation/ModernCampaignDashboard";
-import { ModernCampaignSimulation } from "@/components/automation/ModernCampaignSimulation";
+import { CampaignListTable } from "@/components/automation/CampaignListTable";
 import { toast } from "sonner";
 
 export default function Automation() {
@@ -47,28 +46,21 @@ export default function Automation() {
       
       <div className="bg-white/30 backdrop-blur-lg border border-white/30 shadow-glass rounded-2xl p-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-white/20 backdrop-blur-sm border border-white/20">
+          <TabsList className="grid w-full grid-cols-2 bg-white/20 backdrop-blur-sm border border-white/20">
             <TabsTrigger value="dashboard" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-sm">
               Campanhas
             </TabsTrigger>
             <TabsTrigger value="create" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-sm">
               Nova Campanha
             </TabsTrigger>
-            <TabsTrigger value="simulation" className="data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-sm">
-              Simulação
-            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="dashboard" className="space-y-6">
-            <ModernCampaignDashboard />
+            <CampaignListTable />
           </TabsContent>
           
           <TabsContent value="create" className="space-y-6">
             <ModernCampaignCreator onSuccess={handleCampaignSuccess} />
-          </TabsContent>
-
-          <TabsContent value="simulation" className="space-y-6">
-            <ModernCampaignSimulation />
           </TabsContent>
         </Tabs>
       </div>
