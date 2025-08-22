@@ -25,7 +25,7 @@ interface SalesFunnelTabsProps {
   onMoveToWonLost: (lead: KanbanLead, status: 'won' | 'lost') => Promise<void>;
 }
 
-// Mock mass selection hook
+// Mock mass selection hook with complete interface
 const useMassSelection = (): MassSelectionReturn => ({
   selectedLeads: [],
   isSelected: () => false,

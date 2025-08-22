@@ -1,28 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
-export interface ClientData {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  company: string;
-  document: string;
-  created_at: string;
-  updated_at: string;
-  created_by_user_id: string;
-  notes: string;
-  purchase_value: number;
-  createdAt: string;
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    zipcode: string;
-    country: string;
-  };
-}
+import { ClientData } from './types';
 
 export const useClients = () => {
   return useQuery({
@@ -35,27 +14,29 @@ export const useClients = () => {
 
       if (error) throw error;
       
-      // Transform leads to ClientData format
+      // Transform leads to ClientData format matching the types.ts interface
       return (data || []).map(lead => ({
         id: lead.id,
         name: lead.name || '',
-        email: lead.email || '',
         phone: lead.phone || '',
-        company: lead.company || '',
-        document: lead.document_id || '',
+        email: lead.email || undefined,
+        address: lead.address || undefined, // Keep as string to match interface
+        bairro: lead.bairro || undefined,
+        city: lead.city || undefined,
+        state: lead.state || undefined,
+        country: lead.country || undefined,
+        zip_code: lead.zip_code || undefined,
+        company: lead.company || undefined,
+        notes: lead.notes || undefined,
+        purchase_value: lead.purchase_value || 0,
+        document_type: lead.document_type as 'cpf' | 'cnpj' | undefined,
+        document_id: lead.document_id || undefined,
         created_at: lead.created_at,
         updated_at: lead.updated_at,
         created_by_user_id: lead.created_by_user_id,
-        notes: lead.notes || '',
-        purchase_value: 0,
-        createdAt: lead.created_at,
-        address: {
-          street: lead.address || '',
-          city: lead.city || '',
-          state: lead.state || '',
-          zipcode: lead.zip_code || '',
-          country: lead.country || 'Brasil'
-        }
+        contacts: [],
+        tags: [],
+        createdAt: lead.created_at // Add required createdAt property
       })) as ClientData[];
     }
   });
@@ -86,7 +67,9 @@ export const useFilterOptions = () => {
     queryFn: async () => ({
       tags: [],
       users: [],
-      stages: []
+      stages: [],
+      funnelStages: [],
+      responsibleUsers: []
     })
   });
 };

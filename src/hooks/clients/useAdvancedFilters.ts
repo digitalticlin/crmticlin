@@ -1,216 +1,228 @@
+import { useState, useEffect, useMemo } from 'react';
+import { ClientFilters, FilterStats } from '@/types/filters';
+import { ClientData } from './types';
 
-import { useState, useCallback, useMemo } from 'react';
-import { useFilterOptions } from './queries';
-
-export interface FilterState {
-  tags: string[];
-  funnelStage: string;
-  funnelStages: string[];
-  funnelIds: string[];
-  dateRange: { from?: Date; to?: Date };
-  source: string;
-  value: { min?: number; max?: number };
-  companies: string[];
-  responsibleUsers: string[];
-  states: string[];
-  cities: string[];
-  countries: string[];
-}
-
-const initialFilters: FilterState = {
+// Mock filter options to match expected structure
+const mockFilterOptions = {
   tags: [],
-  funnelStage: '',
-  funnelStages: [],
-  funnelIds: [],
-  dateRange: { from: undefined, to: undefined },
-  source: '',
-  value: { min: undefined, max: undefined },
-  companies: [],
-  responsibleUsers: [],
-  states: [],
-  cities: [],
-  countries: []
+  users: [],
+  stages: [],
+  funnelStages: [], // Added missing property
+  responsibleUsers: [] // Added missing property
 };
 
-export const useAdvancedFilters = () => {
-  const [filters, setFilters] = useState<FilterState>(initialFilters);
-  const { data: filterOptions } = useFilterOptions();
+export interface FilterState extends ClientFilters {
+  searchQuery: string;
+}
 
-  const updateFilters = useCallback((newFilters: Partial<FilterState>) => {
+export const useAdvancedFilters = (clients: ClientData[]) => {
+  const [filters, setFilters] = useState<FilterState>({
+    tags: [],
+    companies: [],
+    responsibleUsers: [],
+    funnelStages: [],
+    funnelIds: [],
+    states: [],
+    cities: [],
+    countries: [],
+    searchQuery: '',
+  });
+
+  const [filterOptions] = useState(mockFilterOptions);
+
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+    
+    return clients.filter(client => {
+      // Search query filter
+      if (filters.searchQuery) {
+        const searchLower = filters.searchQuery.toLowerCase();
+        const matchesSearch = 
+          client.name.toLowerCase().includes(searchLower) ||
+          client.phone.includes(searchLower) ||
+          (client.email && client.email.toLowerCase().includes(searchLower)) ||
+          (client.company && client.company.toLowerCase().includes(searchLower));
+        
+        if (!matchesSearch) return false;
+      }
+
+      // Tags filter
+      if (filters.tags.length > 0) {
+        const clientTags = client.tags?.map(tag => tag.id) || [];
+        if (!filters.tags.some(tagId => clientTags.includes(tagId))) {
+          return false;
+        }
+      }
+
+      // Companies filter
+      if (filters.companies.length > 0) {
+        if (!client.company || !filters.companies.includes(client.company)) {
+          return false;
+        }
+      }
+
+      // States filter
+      if (filters.states.length > 0) {
+        if (!client.state || !filters.states.includes(client.state)) {
+          return false;
+        }
+      }
+
+      // Cities filter
+      if (filters.cities.length > 0) {
+        if (!client.city || !filters.cities.includes(client.city)) {
+          return false;
+        }
+      }
+
+      // Countries filter
+      if (filters.countries.length > 0) {
+        if (!client.country || !filters.countries.includes(client.country)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [clients, filters]);
+
+  const hasActiveFilters = useMemo(() => {
+    return (
+      filters.searchQuery.length > 0 ||
+      filters.tags.length > 0 ||
+      filters.companies.length > 0 ||
+      filters.responsibleUsers.length > 0 ||
+      filters.funnelStages.length > 0 ||
+      filters.funnelIds.length > 0 ||
+      filters.states.length > 0 ||
+      filters.cities.length > 0 ||
+      filters.countries.length > 0
+    );
+  }, [filters]);
+
+  const updateFilters = (newFilters: Partial<FilterState>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
-  }, []);
+  };
 
-  const updateFilter = useCallback((key: keyof FilterState, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-  }, []);
+  const clearAllFilters = () => {
+    setFilters({
+      tags: [],
+      companies: [],
+      responsibleUsers: [],
+      funnelStages: [],
+      funnelIds: [],
+      states: [],
+      cities: [],
+      countries: [],
+      searchQuery: '',
+    });
+  };
 
-  const resetFilters = useCallback(() => {
-    setFilters(initialFilters);
-  }, []);
-
-  // Tag filter methods
-  const addTagFilter = useCallback((tagId: string) => {
+  const addTagFilter = (tagId: string) => {
     setFilters(prev => ({
       ...prev,
       tags: [...prev.tags, tagId]
     }));
-  }, []);
+  };
 
-  const removeTagFilter = useCallback((tagId: string) => {
+  const removeTagFilter = (tagId: string) => {
     setFilters(prev => ({
       ...prev,
       tags: prev.tags.filter(id => id !== tagId)
     }));
-  }, []);
+  };
 
-  // User filter methods
-  const addUserFilter = useCallback((userId: string) => {
+  const addCompanyFilter = (company: string) => {
+    setFilters(prev => ({
+      ...prev,
+      companies: [...prev.companies, company]
+    }));
+  };
+
+  const removeCompanyFilter = (company: string) => {
+    setFilters(prev => ({
+      ...prev,
+      companies: prev.companies.filter(c => c !== company)
+    }));
+  };
+
+  const addUserFilter = (userId: string) => {
     setFilters(prev => ({
       ...prev,
       responsibleUsers: [...prev.responsibleUsers, userId]
     }));
-  }, []);
+  };
 
-  const removeUserFilter = useCallback((userId: string) => {
+  const removeUserFilter = (userId: string) => {
     setFilters(prev => ({
       ...prev,
       responsibleUsers: prev.responsibleUsers.filter(id => id !== userId)
     }));
-  }, []);
+  };
 
-  // Funnel filter methods
-  const addFunnelFilter = useCallback((funnelId: string) => {
+  const addFunnelFilter = (funnelId: string) => {
     setFilters(prev => ({
       ...prev,
       funnelIds: [...prev.funnelIds, funnelId]
     }));
-  }, []);
+  };
 
-  const removeFunnelFilter = useCallback((funnelId: string) => {
+  const removeFunnelFilter = (funnelId: string) => {
     setFilters(prev => ({
       ...prev,
       funnelIds: prev.funnelIds.filter(id => id !== funnelId)
     }));
-  }, []);
+  };
 
-  // Stage filter methods
-  const addStageFilter = useCallback((stageId: string) => {
+  const addStageFilter = (stageId: string) => {
     setFilters(prev => ({
       ...prev,
       funnelStages: [...prev.funnelStages, stageId]
     }));
-  }, []);
+  };
 
-  const removeStageFilter = useCallback((stageId: string) => {
+  const removeStageFilter = (stageId: string) => {
     setFilters(prev => ({
       ...prev,
       funnelStages: prev.funnelStages.filter(id => id !== stageId)
     }));
-  }, []);
+  };
 
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (filters.tags.length > 0) count++;
-    if (filters.funnelStage) count++;
-    if (filters.funnelStages.length > 0) count++;
-    if (filters.funnelIds.length > 0) count++;
-    if (filters.dateRange.from || filters.dateRange.to) count++;
-    if (filters.source) count++;
-    if (filters.value.min !== undefined || filters.value.max !== undefined) count++;
-    if (filters.companies.length > 0) count++;
-    if (filters.responsibleUsers.length > 0) count++;
-    if (filters.states.length > 0) count++;
-    if (filters.cities.length > 0) count++;
-    if (filters.countries.length > 0) count++;
-    return count;
-  }, [filters]);
-
-  const buildQueryFilters = useCallback(() => {
-    const queryFilters: any = {};
-
-    if (filters.tags.length > 0) {
-      queryFilters.tags = filters.tags;
-    }
-
-    if (filters.funnelStage) {
-      queryFilters.funnelStage = filters.funnelStage;
-    }
-
-    if (filters.funnelStages.length > 0) {
-      queryFilters.funnelStages = filters.funnelStages;
-    }
-
-    if (filters.funnelIds.length > 0) {
-      queryFilters.funnelIds = filters.funnelIds;
-    }
-
-    if (filters.dateRange.from) {
-      queryFilters.createdAfter = filters.dateRange.from.toISOString();
-    }
-
-    if (filters.dateRange.to) {
-      queryFilters.createdBefore = filters.dateRange.to.toISOString();
-    }
-
-    if (filters.source) {
-      queryFilters.source = filters.source;
-    }
-
-    if (filters.value.min !== undefined) {
-      queryFilters.minValue = filters.value.min;
-    }
-
-    if (filters.value.max !== undefined) {
-      queryFilters.maxValue = filters.value.max;
-    }
-
-    if (filters.companies.length > 0) {
-      queryFilters.companies = filters.companies;
-    }
-
-    if (filters.responsibleUsers.length > 0) {
-      queryFilters.responsibleUsers = filters.responsibleUsers;
-    }
-
-    if (filters.states.length > 0) {
-      queryFilters.states = filters.states;
-    }
-
-    if (filters.cities.length > 0) {
-      queryFilters.cities = filters.cities;
-    }
-
-    if (filters.countries.length > 0) {
-      queryFilters.countries = filters.countries;
-    }
-
-    return queryFilters;
-  }, [filters]);
-
-  // Mock filter options to prevent errors
-  const mockFilterOptions = useMemo(() => ({
-    tags: filterOptions?.tags || [],
-    funnelStages: filterOptions?.funnelStages || [],
-    responsibleUsers: filterOptions?.responsibleUsers || []
-  }), [filterOptions]);
+  // Available filter options based on current data
+  const availableOptions = useMemo(() => {
+    const uniqueCompanies = [...new Set(clients.map(client => client.company).filter(Boolean))];
+    const uniqueStates = [...new Set(clients.map(client => client.state).filter(Boolean))];
+    const uniqueCities = [...new Set(clients.map(client => client.city).filter(Boolean))];
+    const uniqueCountries = [...new Set(clients.map(client => client.country).filter(Boolean))];
+    
+    return {
+      funnelStages: filterOptions.funnelStages,
+      responsibleUsers: filterOptions.responsibleUsers,
+      tags: filterOptions.tags,
+      companies: uniqueCompanies.map(company => ({ value: company, label: company })),
+      states: uniqueStates.map(state => ({ value: state, label: state })),
+      cities: uniqueCities.map(city => ({ value: city, label: city })),
+      countries: uniqueCountries.map(country => ({ value: country, label: country }))
+    };
+  }, [filterOptions, clients]);
 
   return {
     filters,
     setFilters,
     updateFilters,
-    updateFilter,
-    resetFilters,
-    activeFilterCount,
-    buildQueryFilters,
-    filterOptions: mockFilterOptions,
-    // Individual filter methods
+    clearAllFilters,
+    hasActiveFilters,
+    filteredClients,
     addTagFilter,
     removeTagFilter,
+    addCompanyFilter,
+    removeCompanyFilter,
     addUserFilter,
     removeUserFilter,
     addFunnelFilter,
     removeFunnelFilter,
     addStageFilter,
-    removeStageFilter
+    removeStageFilter,
+    availableOptions
   };
 };
