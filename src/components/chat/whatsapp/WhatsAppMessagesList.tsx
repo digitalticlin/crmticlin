@@ -97,7 +97,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
       ref={containerRef}
       className="pb-4 px-4 glass-scrollbar"
       style={{ 
-        height: 'calc(100vh - 280px)',
+        flex: 1,
         overflowY: 'auto',
         scrollBehavior: 'auto', // PRE-POSITIONED: sem animação
         overflowAnchor: 'auto', // PRE-POSITIONED: permitir ancoragem para estabilidade

@@ -35,7 +35,7 @@ export function PageLayout({ children, className }: PageLayoutProps) {
             ? "ml-[64px]" 
             : "ml-[200px]",
         className
-      )} style={className?.includes("kanban") ? {} : { transform: 'scale(0.8)', transformOrigin: 'top left', width: '125%', height: '125%' }}>
+      )} style={className?.includes("kanban") ? {} : { transform: 'scale(0.8)', transformOrigin: 'top left' }}>
         {/* Container com tratamento especial para páginas Kanban (full-bleed) */}
         {className?.includes("kanban") ? (
           <div className="w-full h-full max-w-none">
@@ -49,7 +49,7 @@ export function PageLayout({ children, className }: PageLayoutProps) {
         ) : (
           <div className="w-full h-full flex justify-center px-4 md:px-6">
             <div className="w-full max-w-[1200px] h-full">
-              <div className="main-content-scale h-full py-4 md:py-6 flex flex-col">
+              <div className="main-content-scale h-full p-4 md:p-6 pb-0 flex flex-col">
                 {children}
               </div>
             </div>

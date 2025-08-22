@@ -143,8 +143,7 @@ export const WhatsAppContactsList = React.memo(({
       <div 
         className="flex-1 min-h-0 glass-scrollbar"
         style={{ 
-          overflowY: 'auto',
-          maxHeight: 'calc(100vh - 200px)' 
+          overflowY: 'auto'
         }}
       >
         <ContactsList
