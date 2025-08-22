@@ -14,6 +14,8 @@ import { FilterByUser } from './FilterByUser';
 import { FilterByFunnelStage } from './FilterByFunnelStage';
 import { FilterByDate } from './FilterByDate';
 import { useAdvancedFilters } from '@/hooks/clients/useAdvancedFilters';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 
 interface AdvancedFiltersPopoverProps {
   children?: React.ReactNode;
@@ -31,6 +33,28 @@ export const AdvancedFiltersPopover = ({ children }: AdvancedFiltersPopoverProps
     filterOptions,
     isLoadingOptions
   } = useAdvancedFilters();
+
+  const { data: assignedUsers = [], isLoading: usersLoading } = useQuery({
+    queryKey: ['assigned-users'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .order('full_name');
+      
+      if (error) {
+        console.error('Erro ao carregar usuários:', error);
+        return [];
+      }
+      
+      // Corrigido: mapear corretamente os dados
+      return data?.map(user => ({
+        id: user.id,
+        name: user.full_name || 'Usuário sem nome'
+      })) || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
