@@ -1,284 +1,112 @@
-import { useState, useCallback, useMemo } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useFilterOptions, useFilteredClientsQuery } from './queries';
-import { ClientFilters, FilterSummary } from '@/types/filters';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabaseClient';
+import { useToast } from "@/components/ui/use-toast"
 
-const initialFilters: ClientFilters = {
-  tags: [],
-  companies: [],
-  responsibleUsers: [],
-  funnelStages: [],
-  dateRange: undefined,
-  funnelIds: [],
-  states: [],
-  cities: [],
-  countries: [],
-};
+interface FilterOption {
+  id: string;
+  name: string;
+}
 
-export const useAdvancedFilters = () => {
-  const [filters, setFilters] = useState<ClientFilters>(initialFilters);
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const { user } = useAuth();
+interface UseAdvancedFiltersProps {
+  initialFunnelId?: string | null;
+  initialTeamMemberIds?: string[];
+}
 
-  // Buscar opções disponíveis para filtros
-  const filterOptionsQuery = useFilterOptions(user?.id || null);
-  
-  // Buscar clientes filtrados
-  const filteredClientsQuery = useFilteredClientsQuery(
-    user?.id || null,
-    searchQuery,
-    filters
+export const useAdvancedFilters = ({ initialFunnelId, initialTeamMemberIds }: UseAdvancedFiltersProps = {}) => {
+  const [funnelId, setFunnelId] = useState<string | null>(initialFunnelId || null);
+  const [teamMemberIds, setTeamMemberIds] = useState<string[]>(initialTeamMemberIds || []);
+  const [funnels, setFunnels] = useState<FilterOption[]>([]);
+  const [teamMembers, setTeamMembers] = useState<FilterOption[]>([]);
+  const { toast } = useToast()
+
+  // Fetch funnels
+  const { data: funnelsData, error: funnelsError, isLoading: isLoadingFunnels } = useQuery(
+    'funnels',
+    async () => {
+      const { data, error } = await supabase
+        .from('funnels')
+        .select('id, name');
+
+      if (error) {
+        console.error("Funnels error", error)
+        toast({
+          title: "Houve um problema ao carregar os funis.",
+          description: "Tente novamente mais tarde.",
+          variant: "destructive",
+        })
+        throw error;
+      }
+
+      return data;
+    }
   );
 
-  // Verificar se há filtros ativos
-  const hasActiveFilters = useMemo(() => {
-    return (
-      filters.tags.length > 0 ||
-      filters.companies.length > 0 ||
-      filters.responsibleUsers.length > 0 ||
-      filters.funnelStages.length > 0 ||
-      filters.dateRange !== undefined ||
-      // Filtros antigos para compatibilidade
-      filters.funnelIds.length > 0 ||
-      filters.states.length > 0 ||
-      filters.cities.length > 0 ||
-      filters.countries.length > 0
-    );
-  }, [filters]);
+  // Fetch team members
+  const { data: teamMembersData, error: teamMembersError, isLoading: isLoadingTeamMembers } = useQuery(
+    'teamMembers',
+    async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name');
 
-  // Contar filtros ativos
-  const activeFiltersCount = useMemo(() => {
-    let count = 0;
-    
-    if (filters.tags.length > 0) count++;
-    if (filters.companies.length > 0) count++;
-    if (filters.responsibleUsers.length > 0) count++;
-    if (filters.funnelStages.length > 0) count++;
-    if (filters.dateRange) count++;
-    // Filtros antigos para compatibilidade
-    if (filters.funnelIds.length > 0) count++;
-    if (filters.states.length > 0) count++;
-    if (filters.cities.length > 0) count++;
-    if (filters.countries.length > 0) count++;
-    
-    return count;
-  }, [filters]);
-
-  // Gerar resumo dos filtros
-  const filterSummary = useMemo((): FilterSummary => {
-    const activeFilters: FilterSummary['activeFilters'] = [];
-
-    if (filters.tags.length > 0) {
-      const tagNames = filters.tags.map(tagId => {
-        const tag = filterOptionsQuery.data?.tags.find(t => t.id === tagId);
-        return tag?.name || tagId;
-      }).join(', ');
-      activeFilters.push({
-        type: 'tags',
-        label: 'Tags',
-        value: tagNames
-      });
-    }
-
-    if (filters.companies.length > 0) {
-      activeFilters.push({
-        type: 'companies',
-        label: 'Empresa',
-        value: filters.companies.join(', ')
-      });
-    }
-
-    if (filters.responsibleUsers.length > 0) {
-      const userNames = filters.responsibleUsers.map(userId => {
-        const user = filterOptionsQuery.data?.responsibleUsers.find(u => u.id === userId);
-        return user?.name || userId;
-      }).join(', ');
-      activeFilters.push({
-        type: 'responsibleUsers',
-        label: 'Responsáveis',
-        value: userNames
-      });
-    }
-
-    if (filters.funnelIds.length > 0) {
-      const funnelNames = filters.funnelIds.map(funnelId => {
-        const funnel = filterOptionsQuery.data?.funnelIds.find(f => f.id === funnelId);
-        return funnel?.name || funnelId;
-      }).join(', ');
-      activeFilters.push({
-        type: 'funnelIds',
-        label: 'Funis',
-        value: funnelNames
-      });
-    }
-
-    if (filters.funnelStages.length > 0) {
-      const stageNames = filters.funnelStages.map(stageId => {
-        const stage = filterOptionsQuery.data?.funnelStages.find(s => s.id === stageId);
-        return stage?.name || stageId;
-      }).join(', ');
-      activeFilters.push({
-        type: 'funnelStages',
-        label: 'Etapas',
-        value: stageNames
-      });
-    }
-
-    if (filters.states.length > 0) {
-      activeFilters.push({
-        type: 'states',
-        label: 'Estados',
-        value: filters.states.join(', ')
-      });
-    }
-
-    if (filters.cities.length > 0) {
-      activeFilters.push({
-        type: 'cities',
-        label: 'Cidades',
-        value: filters.cities.join(', ')
-      });
-    }
-
-    if (filters.countries.length > 0) {
-      activeFilters.push({
-        type: 'countries',
-        label: 'Países',
-        value: filters.countries.join(', ')
-      });
-    }
-
-    if (filters.dateRange) {
-      let value = '';
-      if (filters.dateRange.from && filters.dateRange.to) {
-        value = `${filters.dateRange.from.toLocaleDateString('pt-BR')} - ${filters.dateRange.to.toLocaleDateString('pt-BR')}`;
-      } else if (filters.dateRange.from) {
-        value = `A partir de ${filters.dateRange.from.toLocaleDateString('pt-BR')}`;
-      } else if (filters.dateRange.to) {
-        value = `Até ${filters.dateRange.to.toLocaleDateString('pt-BR')}`;
+      if (error) {
+        console.error("teamMembers error", error)
+        toast({
+          title: "Houve um problema ao carregar os membros do time.",
+          description: "Tente novamente mais tarde.",
+          variant: "destructive",
+        })
+        throw error;
       }
-      activeFilters.push({
-        type: 'dateRange',
-        label: 'Data de Criação',
-        value
-      });
+
+      return data;
     }
+  );
 
-    return {
-      totalFilters: activeFiltersCount,
-      activeFilters
-    };
-  }, [filters, filterOptionsQuery.data, activeFiltersCount]);
+  useEffect(() => {
+    if (funnelsData) {
+      setFunnels(
+        funnelsData.map((funnel: any) => ({
+          id: funnel.id,
+          name: funnel.name,
+        }))
+      );
+    }
+  }, [funnelsData]);
 
-  // Funções para atualizar filtros
-  const updateFilter = useCallback(<K extends keyof ClientFilters>(
-    key: K,
-    value: ClientFilters[K]
-  ) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value
-    }));
-  }, []);
+  useEffect(() => {
+    if (teamMembersData) {
+      setTeamMembers(
+        teamMembersData
+.map((member: any) => ({
+  id: member?.id || '',
+  name: member?.name || member?.title || 'Unknown'
+}))
+      );
+    }
+  }, [teamMembersData]);
 
-  const addTagFilter = useCallback((tagId: string) => {
-    setFilters(prev => ({
-      ...prev,
-      tags: [...prev.tags, tagId]
-    }));
-  }, []);
+  const handleFunnelChange = (newFunnelId: string | null) => {
+    setFunnelId(newFunnelId);
+  };
 
-  const removeTagFilter = useCallback((tagId: string) => {
-    setFilters(prev => ({
-      ...prev,
-      tags: prev.tags.filter(id => id !== tagId)
-    }));
-  }, []);
+  const handleTeamMembersChange = (newTeamMemberIds: string[]) => {
+    setTeamMemberIds(newTeamMemberIds);
+  };
 
-  const addUserFilter = useCallback((userId: string) => {
-    setFilters(prev => ({
-      ...prev,
-      responsibleUsers: [...prev.responsibleUsers, userId]
-    }));
-  }, []);
-
-  const removeUserFilter = useCallback((userId: string) => {
-    setFilters(prev => ({
-      ...prev,
-      responsibleUsers: prev.responsibleUsers.filter(id => id !== userId)
-    }));
-  }, []);
-
-  const addFunnelFilter = useCallback((funnelId: string) => {
-    setFilters(prev => ({
-      ...prev,
-      funnelIds: [...prev.funnelIds, funnelId]
-    }));
-  }, []);
-
-  const removeFunnelFilter = useCallback((funnelId: string) => {
-    setFilters(prev => ({
-      ...prev,
-      funnelIds: prev.funnelIds.filter(id => id !== funnelId)
-    }));
-  }, []);
-
-  const addStageFilter = useCallback((stageId: string) => {
-    setFilters(prev => ({
-      ...prev,
-      funnelStages: [...prev.funnelStages, stageId]
-    }));
-  }, []);
-
-  const removeStageFilter = useCallback((stageId: string) => {
-    setFilters(prev => ({
-      ...prev,
-      funnelStages: prev.funnelStages.filter(id => id !== stageId)
-    }));
-  }, []);
-
-  const clearFilters = useCallback(() => {
-    setFilters(initialFilters);
-  }, []);
-
-  const removeFilter = useCallback((type: keyof ClientFilters) => {
-    setFilters(prev => ({
-      ...prev,
-      [type]: type === 'tags' || type === 'companies' || type === 'responsibleUsers' || type === 'funnelIds' || type === 'funnelStages' || type === 'states' || type === 'cities' || type === 'countries' 
-        ? [] 
-        : undefined
-    }));
-  }, []);
+  const availableFunnels = funnels.map((funnel: any) => ({
+  id: funnel.id,
+  name: funnel.name || funnel.title || 'Unknown'
+}));
 
   return {
-    // Estado
-    filters,
-    isOpen,
-    setIsOpen,
-    searchQuery,
-    setSearchQuery,
-    hasActiveFilters,
-    activeFiltersCount,
-    filterSummary,
-
-    // Dados
-    filterOptions: filterOptionsQuery.data,
-    filteredClients: filteredClientsQuery.data || [],
-    isLoadingOptions: filterOptionsQuery.isLoading,
-    isLoadingClients: filteredClientsQuery.isLoading,
-
-    // Ações
-    updateFilter,
-    addTagFilter,
-    removeTagFilter,
-    addUserFilter,
-    removeUserFilter,
-    addFunnelFilter,
-    removeFunnelFilter,
-    addStageFilter,
-    removeStageFilter,
-    clearFilters,
-    removeFilter,
+    funnelId,
+    teamMemberIds,
+    funnels: availableFunnels,
+    teamMembers,
+    handleFunnelChange,
+    handleTeamMembersChange,
+    isLoading: isLoadingFunnels || isLoadingTeamMembers,
   };
 };

@@ -1,157 +1,115 @@
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { AIAgent } from "@/types/aiAgent";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AIAgent } from "@/types/aiAgent";
 
-interface AIAgentFormProps {
-  onSuccess?: () => void;
+export interface AIAgentFormProps {
+  agent?: AIAgent;
+  onSave: (savedAgent: AIAgent) => void;
+  onCancel: () => void;
+  onFormChange: (hasChanges: boolean) => void;
 }
 
-export function AIAgentForm({ onSuccess }: AIAgentFormProps) {
-  const { user } = useAuth();
+export function AIAgentForm({ agent, onSave, onCancel, onFormChange }: AIAgentFormProps) {
   const [formData, setFormData] = useState({
-    name: "",
-    funnel_id: "",
-    whatsapp_number_id: "",
+    name: agent?.name || "",
+    type: agent?.type || "customer_service",
+    status: agent?.status || "active",
+    funnel_id: agent?.funnel_id || "",
+    whatsapp_number_id: agent?.whatsapp_number_id || "",
   });
-  const [funnels, setFunnels] = useState<any[]>([]);
-  const [whatsappInstances, setWhatsappInstances] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+
+  const [hasChanges, setHasChanges] = useState(false);
+  const [availableFunnels, setAvailableFunnels] = useState<any[]>([]);
+  const [availableInstances, setAvailableInstances] = useState<any[]>([]);
 
   useEffect(() => {
-    loadFunnels();
-    loadWhatsAppInstances();
-  }, []);
+    onFormChange(hasChanges);
+  }, [hasChanges, onFormChange]);
 
-  const loadFunnels = async () => {
-    if (!user?.id) return;
-    
-    const { data, error } = await supabase
-      .from('funnels')
-      .select('id, name')
-      .eq('created_by_user_id', user.id);
-
-    if (error) {
-      console.error('Erro ao carregar funis:', error);
-      return;
-    }
-
-    setFunnels(data || []);
-  };
-
-  const loadWhatsAppInstances = async () => {
-    if (!user?.id) return;
-    
-    const { data, error } = await supabase
-      .from('whatsapp_instances')
-      .select('id, instance_name')
-      .eq('created_by_user_id', user.id)
-      .eq('connection_status', 'connected');
-
-    if (error) {
-      console.error('Erro ao carregar instâncias WhatsApp:', error);
-      return;
-    }
-
-    // Criar agentes completos com propriedades obrigatórias
-    const completeAgents: AIAgent[] = (data || []).map(item => ({
-      id: item.id,
-      name: item.instance_name,
-      funnel_id: '',
-      whatsapp_number_id: item.id,
-      type: 'assistant',
-      status: 'active',
-      messages_count: 0,
-      created_by_user_id: user?.id || '',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
     }));
-
-    setWhatsappInstances(completeAgents);
+    setHasChanges(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.id) return;
+  const handleSave = () => {
+    const savedAgent: AIAgent = {
+      id: agent?.id || crypto.randomUUID(),
+      name: formData.name,
+      funnel_id: formData.funnel_id,
+      whatsapp_number_id: formData.whatsapp_number_id,
+      type: formData.type,
+      status: formData.status,
+      messages_count: agent?.messages_count || 0,
+      created_by_user_id: agent?.created_by_user_id || "user-1",
+      created_at: agent?.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('ai_agents')
-        .insert({
-          ...formData,
-          type: 'assistant',
-          status: 'active',
-          created_by_user_id: user.id,
-        });
-
-      if (error) throw error;
-
-      toast.success('Agente IA criado com sucesso!');
-      setFormData({ name: "", funnel_id: "", whatsapp_number_id: "" });
-      onSuccess?.();
-    } catch (error) {
-      console.error('Erro ao criar agente:', error);
-      toast.error('Erro ao criar agente IA');
-    } finally {
-      setIsLoading(false);
-    }
+    onSave(savedAgent);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Nome do Agente</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          placeholder="Digite o nome do agente"
-          required
-        />
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Informações do Agente</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label htmlFor="name">Nome do Agente</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => handleInputChange("name", e.target.value)}
+            placeholder="Ex: Atendente Virtual"
+          />
+        </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="funnel">Funil</Label>
-        <Select value={formData.funnel_id} onValueChange={(value) => setFormData(prev => ({ ...prev, funnel_id: value }))}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione um funil" />
-          </SelectTrigger>
-          <SelectContent>
-            {funnels.map((funnel) => (
-              <SelectItem key={funnel.id} value={funnel.id}>
-                {funnel.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+        <div>
+          <Label htmlFor="type">Tipo</Label>
+          <Select value={formData.type} onValueChange={(value) => handleInputChange("type", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="customer_service">Atendimento ao Cliente</SelectItem>
+              <SelectItem value="sales">Vendas</SelectItem>
+              <SelectItem value="support">Suporte</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="whatsapp">Instância WhatsApp</Label>
-        <Select value={formData.whatsapp_number_id} onValueChange={(value) => setFormData(prev => ({ ...prev, whatsapp_number_id: value }))}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione uma instância" />
-          </SelectTrigger>
-          <SelectContent>
-            {whatsappInstances.map((instance) => (
-              <SelectItem key={instance.id} value={instance.id}>
-                {instance.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+        <div>
+          <Label htmlFor="status">Status</Label>
+          <Select value={formData.status} onValueChange={(value) => handleInputChange("status", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Ativo</SelectItem>
+              <SelectItem value="inactive">Inativo</SelectItem>
+              <SelectItem value="testing">Em Teste</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-      <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? 'Criando...' : 'Criar Agente IA'}
-      </Button>
-    </form>
+        <div className="flex gap-2 justify-end">
+          <Button variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave} disabled={!formData.name.trim()}>
+            Salvar
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

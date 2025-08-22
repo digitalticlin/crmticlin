@@ -3,6 +3,9 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { BroadcastCampaign } from "@/types/broadcast";
 
+// Export the type for other components to use
+export { BroadcastCampaign } from "@/types/broadcast";
+
 export function useBroadcastCampaigns() {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<BroadcastCampaign[]>([]);
@@ -38,6 +41,15 @@ export function useBroadcastCampaigns() {
     }
   };
 
+  const startCampaign = async (campaignId: string) => {
+    console.log('Starting campaign:', campaignId);
+    // Implementar lógica de início de campanha
+  };
+
+  const fetchCampaigns = async () => {
+    await loadCampaigns();
+  };
+
   useEffect(() => {
     loadCampaigns();
   }, [user?.id]);
@@ -45,6 +57,9 @@ export function useBroadcastCampaigns() {
   return {
     campaigns,
     isLoading,
+    loading: isLoading, // Alias for compatibility
     refetch: loadCampaigns,
+    startCampaign,
+    fetchCampaigns,
   };
 }

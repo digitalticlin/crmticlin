@@ -14,4 +14,6 @@ export interface BroadcastCampaign {
   business_hours_only: boolean;
   media_type?: string;
   media_url?: string;
+  sent_count?: number;
+  total_recipients?: number;
 }
