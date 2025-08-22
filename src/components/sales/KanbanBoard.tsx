@@ -14,6 +14,7 @@ interface KanbanBoardProps {
   onOpenChat?: (lead: KanbanLead) => void;
   onReturnToFunnel?: (lead: KanbanLead) => void;
   onMoveToWonLost?: (lead: KanbanLead, status: 'won' | 'lost') => Promise<void>;
+  onColumnsChange?: (newColumns: KanbanColumn[]) => void;
   isWonLostView?: boolean;
   wonStageId?: string;
   lostStageId?: string;
@@ -29,6 +30,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onOpenChat,
   onReturnToFunnel,
   onMoveToWonLost,
+  onColumnsChange = () => {},
   isWonLostView = false,
   wonStageId,
   lostStageId

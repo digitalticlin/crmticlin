@@ -1,3 +1,4 @@
+
 /**
  * 🎯 HOOK ISOLADO APENAS PARA ENVIO DE MENSAGENS
  * 
@@ -30,6 +31,8 @@ interface UseSendMessageReturn {
   isSending: boolean;
   sendMessage: (text: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
 }
+
+type MediaType = 'audio' | 'video' | 'image' | 'text' | 'document';
 
 export const useSendMessage = ({
   selectedContact,
@@ -84,12 +87,18 @@ export const useSendMessage = ({
 
       console.log('[useSendMessage] 📤 Chamando MessagingService...');
       
+      // ✅ VALIDAR MEDIA TYPE
+      const validMediaType: MediaType = (mediaType === 'audio' || mediaType === 'video' || 
+                                        mediaType === 'image' || mediaType === 'document') 
+                                       ? mediaType as MediaType 
+                                       : 'text';
+      
       // ✅ ENVIO DIRETO - SEM OTIMISMO
       const result = await MessagingService.sendMessage({
         instanceId: instanceIdToUse,
         phone: selectedContact.phone,
         message: text.trim(),
-        mediaType: mediaType || 'text',
+        mediaType: validMediaType,
         mediaUrl
       });
 
