@@ -6,7 +6,7 @@ import { Mic, StopCircle } from 'lucide-react';
 interface AudioRecorderProps {
   onStartRecording: () => void;
   onStopRecording: () => void;
-  onSend: (mediaUrl: string) => Promise<void>;
+  onSend: (audioBlob: Blob) => Promise<void>;
   isRecording: boolean;
 }
 
@@ -34,8 +34,7 @@ export const AudioRecorder = ({
 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        await onSend(audioUrl);
+        await onSend(audioBlob);
         stream.getTracks().forEach(track => track.stop());
       };
 

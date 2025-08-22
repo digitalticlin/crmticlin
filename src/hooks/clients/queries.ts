@@ -1,7 +1,8 @@
 
 import { useQuery } from '@tanstack/react-query';
-// Mock implementation for missing queries
+import { ClientData } from './types';
 
+// Mock implementation for missing queries
 export const useFilteredClientsQuery = (filters: any) => {
   return useQuery({
     queryKey: ['filtered-clients', filters],
@@ -18,6 +19,14 @@ export const useFilterOptions = () => {
       funnelStages: [],
       responsibleUsers: []
     }),
+    enabled: false
+  });
+};
+
+export const useClients = () => {
+  return useQuery({
+    queryKey: ['clients'],
+    queryFn: (): Promise<ClientData[]> => Promise.resolve([]),
     enabled: false
   });
 };

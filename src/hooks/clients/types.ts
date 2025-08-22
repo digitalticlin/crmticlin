@@ -33,6 +33,8 @@ export interface ClientData {
   created_by_user_id: string;
   contacts?: LeadContact[];
   tags?: ClientTag[];
+  // Add missing createdAt property for compatibility
+  createdAt: string;
 }
 
 export interface ClientFormData {
