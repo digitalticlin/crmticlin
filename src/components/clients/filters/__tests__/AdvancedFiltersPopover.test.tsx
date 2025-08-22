@@ -3,9 +3,17 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { AdvancedFiltersPopover } from '../AdvancedFiltersPopover';
 
+const mockCurrentFilters = {
+  tags: [],
+  funnelStage: '',
+  dateRange: { from: undefined, to: undefined },
+  source: '',
+  value: { min: 0, max: 0 }
+};
+
 const mockProps = {
   onFiltersChange: vi.fn(),
-  currentFilters: {}
+  currentFilters: mockCurrentFilters
 };
 
 describe('AdvancedFiltersPopover', () => {
@@ -45,11 +53,15 @@ describe('AdvancedFiltersPopover', () => {
     fireEvent.click(trigger);
     const clearButton = screen.getByRole('button', { name: /clear/i });
     fireEvent.click(clearButton);
-    expect(mockProps.onFiltersChange).toHaveBeenCalledWith({});
+    expect(mockProps.onFiltersChange).toHaveBeenCalledWith(mockCurrentFilters);
   });
 
   it('should show active filter count when filters are applied', () => {
-    const filtersWithData = { name: 'test', status: 'active' };
+    const filtersWithData = {
+      ...mockCurrentFilters,
+      tags: ['test'],
+      funnelStage: 'active'
+    };
     render(<AdvancedFiltersPopover {...mockProps} currentFilters={filtersWithData} />);
     expect(screen.getByText('2')).toBeInTheDocument();
   });

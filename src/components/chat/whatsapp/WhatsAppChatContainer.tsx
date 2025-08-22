@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Contact, Message } from "@/types/chat";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,7 @@ interface WhatsAppChatLayoutProps {
   onSendMessage: (message: string, mediaType?: string, mediaUrl?: string) => Promise<void>;
   onTyping: (isTyping: boolean) => void;
   isTyping: boolean;
-  onSearch: (term: string) => void; // Adicionado propriedade faltante
+  onSearch: (term: string) => void;
   searchTerm: string;
   onMediaUpload: (file: File) => Promise<void>;
   selectedContactId: string;
@@ -51,6 +52,7 @@ export const WhatsAppChatContainer = ({
 }: WhatsAppChatLayoutProps) => {
   const [input, setInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [isDetailsSidebarOpen, setIsDetailsSidebarOpen] = useState(false);
   const { toast } = useToast();
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { setOptimisticMessage } = useChatContext();
@@ -117,9 +119,10 @@ export const WhatsAppChatContainer = ({
     }
   };
 
-  const handleAudioSend = async (mediaUrl: string) => {
+  const handleAudioSend = async (audioBlob: Blob) => {
     try {
-      await onSendMessage('', 'audio', mediaUrl);
+      const audioUrl = URL.createObjectURL(audioBlob);
+      await onSendMessage('', 'audio', audioUrl);
     } catch (error: any) {
       console.error("Erro ao enviar áudio:", error);
       toast({
@@ -139,7 +142,7 @@ export const WhatsAppChatContainer = ({
         <aside className="w-80 border-r flex-shrink-0 h-full">
           <ChatContacts
             contacts={contacts}
-            selectedContactId={selectedContactId}
+            selectedContact={selectedContact}
             onSelectContact={onSelectContact}
             searchTerm={searchTerm}
             onSearch={onSearch}
@@ -159,7 +162,7 @@ export const WhatsAppChatContainer = ({
         {/* Messages Area */}
         <div className="flex-grow overflow-hidden relative">
           {selectedContact ? (
-            <ChatMessages messages={messages} selectedContact={selectedContact} />
+            <ChatMessages messages={messages} />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-gray-500">
               Selecione um contato para iniciar a conversa
@@ -205,9 +208,12 @@ export const WhatsAppChatContainer = ({
 
       {/* Lead Details Sidebar (hidden on small screens) */}
       {!isMobile && selectedContact && (
-        <aside className="w-80 border-l flex-shrink-0 h-full">
-          <LeadDetailsSidebar contact={selectedContact} onContactUpdate={onContactUpdate} onLeadDetail={onLeadDetail} />
-        </aside>
+        <LeadDetailsSidebar 
+          contact={selectedContact} 
+          isOpen={isDetailsSidebarOpen}
+          onClose={() => setIsDetailsSidebarOpen(false)}
+          onUpdateContact={onContactUpdate}
+        />
       )}
     </div>
   );

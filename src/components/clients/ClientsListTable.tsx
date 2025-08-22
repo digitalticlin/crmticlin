@@ -1,177 +1,172 @@
+import React, { useState, useMemo } from 'react';
+import { ClientsSearchBar } from './ClientsSearchBar';
+import {
+  ColumnDef,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { MoreHorizontal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { ClientData } from "@/hooks/clients/types";
-import { ClientsSearchBar } from "./ClientsSearchBar";
-import { ClientsTable } from "./ClientsTable";
-
-interface ClientsListTableProps {
-  clients: ClientData[];
-  onSelectClient: (client: ClientData) => void;
-  onEditClient: (client: ClientData) => void;
-  onDeleteClient: (clientId: string) => void;
-  isLoading?: boolean;
-  isLoadingMore?: boolean;
-  hasMoreClients?: boolean;
-  onLoadMoreClients?: () => Promise<void>;
-  totalClientsCount?: number;
-  onServerSearch?: (query: string) => void;
+// Assuming you have these types defined elsewhere
+interface ClientData {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  tags: string[];
+  createdAt: string;
 }
 
-export const ClientsListTable = ({ 
-  clients, 
-  onSelectClient, 
-  onEditClient, 
-  onDeleteClient,
-  isLoading,
-  isLoadingMore = false,
-  hasMoreClients = false,
-  onLoadMoreClients,
-  totalClientsCount = 0,
-  onServerSearch
+const columns: ColumnDef<ClientData>[] = [
+  {
+    accessorKey: "name",
+    header: "Name",
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+  },
+  {
+    accessorKey: "phone",
+    header: "Phone",
+  },
+  {
+    accessorKey: "company",
+    header: "Company",
+  },
+  {
+    accessorKey: "createdAt",
+    header: "Created At",
+  },
+  {
+    id: "actions",
+    cell: ({ row }) => {
+      const client = row.original
+
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => navigator.clipboard.writeText(client.email)}
+            >
+              Copy email
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>View Client</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    },
+  },
+]
+
+interface ClientsListTableProps {
+  searchQuery: string;
+  onSearchChange: (q: any) => void;
+  clients: ClientData[];
+  filteredClients: ClientData[];
+  totalClientsCount: number;
+  hasMoreClients: boolean;
+}
+
+export const ClientsListTable = ({
+  searchQuery,
+  onSearchChange,
+  clients,
+  filteredClients,
+  totalClientsCount,
+  hasMoreClients
 }: ClientsListTableProps) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const loadingTriggerRef = useRef<HTMLDivElement>(null);
-  const isLoadingRef = useRef(false);
-  
-  // Filter clients based on search query
-  const filteredClients = clients.filter(client => 
-    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (client.company && client.company.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const [sorting, setSorting] = useState([])
+  const table = useReactTable({
+    data: filteredClients,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    onSortingChange: setSorting,
+    state: {
+      sorting,
+    },
+  })
 
-  // 🚀 SCROLL INFINITO: Detectar quando usuário chega próximo ao fim
-  const handleScroll = useCallback(() => {
-    if (!scrollContainerRef.current || !onLoadMoreClients || isLoadingRef.current || !hasMoreClients) {
-      return;
-    }
-
-    const container = scrollContainerRef.current;
-    const scrollTop = container.scrollTop;
-    const scrollHeight = container.scrollHeight;
-    const clientHeight = container.clientHeight;
-
-    // Carregar mais quando estiver a 200px do final
-    const threshold = 200;
-    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-
-    if (distanceFromBottom < threshold) {
-      console.log('[ClientsListTable] 📄 Trigger de carregamento ativado:', {
-        distanceFromBottom,
-        threshold,
-        hasMore: hasMoreClients,
-        isLoading: isLoadingRef.current
-      });
-
-      isLoadingRef.current = true;
-      onLoadMoreClients().finally(() => {
-        isLoadingRef.current = false;
-      });
-    }
-  }, [onLoadMoreClients, hasMoreClients]);
-
-  // 🚀 ADICIONAR LISTENER DE SCROLL
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
-
-  // 🚀 INTERSECTION OBSERVER PARA BACKUP (quando scroll não funciona)
-  useEffect(() => {
-    if (!loadingTriggerRef.current || !onLoadMoreClients || !hasMoreClients) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const target = entries[0];
-        if (target.isIntersecting && !isLoadingRef.current && hasMoreClients) {
-          console.log('[ClientsListTable] 👁️ Intersection Observer ativado');
-          isLoadingRef.current = true;
-          onLoadMoreClients().finally(() => {
-            isLoadingRef.current = false;
-          });
-        }
-      },
-      {
-        root: scrollContainerRef.current,
-        rootMargin: '100px',
-        threshold: 0.1
-      }
-    );
-
-    observer.observe(loadingTriggerRef.current);
-    return () => observer.disconnect();
-  }, [onLoadMoreClients, hasMoreClients]);
-  
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d3d800]"></div>
-          <p className="text-sm text-gray-600">Carregando clientes...</p>
-        </div>
-      </div>
-    );
-  }
-  
   return (
-    <div className="space-y-6">
-      <ClientsSearchBar
-        searchQuery={searchQuery}
-        onSearchChange={(q) => {
-          setSearchQuery(q);
-          if (onServerSearch) onServerSearch(q);
+    <div className="space-y-4">
+      <ClientsSearchBar 
+        onSearch={onSearchChange}
+        onFiltersChange={(filters) => {
+          // Handle filters change
+          console.log('Filters changed:', filters);
         }}
-        clients={clients}
-        filteredClients={filteredClients}
-        totalClientsCount={totalClientsCount}
-        hasMoreClients={hasMoreClients}
       />
-
-      <div 
-        ref={scrollContainerRef}
-        className="max-h-[600px] overflow-y-auto"
-        style={{ scrollBehavior: 'smooth' }}
-      >
-        <ClientsTable
-          filteredClients={filteredClients}
-          searchQuery={searchQuery}
-          onSelectClient={onSelectClient}
-          onEditClient={onEditClient}
-          onDeleteClient={onDeleteClient}
-        />
-        
-        {/* 🚀 INDICADOR DE CARREGAMENTO */}
-        {isLoadingMore && (
-          <div className="flex items-center justify-center py-6">
-            <div className="flex items-center gap-3">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#d3d800]"></div>
-              <span className="text-sm text-gray-600">Carregando mais clientes...</span>
-            </div>
-          </div>
-        )}
-        
-        {/* 🚀 TRIGGER INVISÍVEL PARA INTERSECTION OBSERVER */}
-        {hasMoreClients && !isLoadingMore && (
-          <div 
-            ref={loadingTriggerRef}
-            className="h-10 w-full"
-            aria-hidden="true"
-          />
-        )}
-        
-        {/* 🚀 INDICADOR DE FIM DOS DADOS */}
-        {!hasMoreClients && clients.length > 0 && (
-          <div className="text-center py-6">
-            <p className="text-sm text-gray-500">
-              Todos os {totalClientsCount} clientes foram carregados
-            </p>
-          </div>
-        )}
+      
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  )
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <tr>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No results.
+                </TableCell>
+              </tr>
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
