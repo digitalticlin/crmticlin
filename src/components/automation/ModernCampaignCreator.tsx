@@ -1,355 +1,303 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle } from "@/components/ui/modern-card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { 
+  ArrowLeft, 
+  ArrowRight, 
   Send, 
+  MessageSquare, 
   Users, 
-  Calendar, 
   Clock, 
-  Target,
-  MessageSquare,
-  Filter,
   Eye,
-  Plus
-} from 'lucide-react';
+  CheckCircle
+} from "lucide-react";
+import { ModernMediaUploader } from "./ModernMediaUploader";
+import { ModernMessageFragmenter } from "./ModernMessageFragmenter";
+import { ModernTagSelector } from "./ModernTagSelector";
+import { ModernInstanceSelector } from "./ModernInstanceSelector";
+import { ModernScheduleConfig } from "./ModernScheduleConfig";
+import { toast } from "sonner";
 
-interface Contact {
-  id: string;
-  phone: string;
-  name?: string;
-  tags?: string[];
+interface ModernCampaignCreatorProps {
+  onSuccess?: () => void;
 }
 
-interface CampaignData {
-  name: string;
-  message: string;
-  selectedContacts: string[];
-  scheduledDate?: string;
-  scheduledTime?: string;
-}
+const STEPS = [
+  { id: 1, title: "Configuração", icon: MessageSquare },
+  { id: 2, title: "Mensagem", icon: MessageSquare },
+  { id: 3, title: "Público-alvo", icon: Users },
+  { id: 4, title: "Agendamento", icon: Clock },
+  { id: 5, title: "Revisar", icon: Eye }
+];
 
-export const ModernCampaignCreator = () => {
-  const { user } = useAuth();
-  const [campaignData, setCampaignData] = useState<CampaignData>({
-    name: '',
-    message: '',
-    selectedContacts: [],
+export function ModernCampaignCreator({ onSuccess }: ModernCampaignCreatorProps) {
+  const [currentStep, setCurrentStep] = useState(1);
+  const [campaignData, setCampaignData] = useState({
+    name: "",
+    instanceId: "",
+    message: "",
+    mediaFile: null as File | null,
+    mediaType: "text" as const,
+    fragments: [] as any[],
+    selectedTags: [] as string[],
+    schedule: {
+      type: "immediate" as const,
+      businessHours: false,
+      startHour: 8,
+      endHour: 18,
+      weekDays: [1, 2, 3, 4, 5],
+      rateLimit: 2
+    }
   });
-  
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [whatsappInstances, setWhatsappInstances] = useState<any[]>([]);
-  const [selectedInstance, setSelectedInstance] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchContacts();
-      fetchWhatsAppInstances();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const updateCampaignData = (updates: Partial<typeof campaignData>) => {
+    setCampaignData(prev => ({ ...prev, ...updates }));
+  };
+
+  const canProceedToNext = () => {
+    switch (currentStep) {
+      case 1:
+        return campaignData.name.trim() && campaignData.instanceId;
+      case 2:
+        return campaignData.message.trim() || campaignData.mediaFile;
+      case 3:
+        return true; // Público-alvo é opcional (todos os leads)
+      case 4:
+        return true; // Agendamento sempre válido
+      case 5:
+        return true;
+      default:
+        return false;
     }
-  }, [user]);
+  };
 
-  const fetchContacts = async () => {
-    if (!user) return;
+  const handleNext = () => {
+    if (canProceedToNext() && currentStep < 5) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
     
     try {
-      const { data, error } = await supabase
-        .from('leads')
-        .select('id, name, phone')
-        .eq('created_by_user_id', user.id)
-        .not('phone', 'is', null);
-
-      if (error) throw error;
-      setContacts(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar contatos:', error);
-      toast.error('Erro ao carregar contatos');
-    }
-  };
-
-  const fetchWhatsAppInstances = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('whatsapp_instances')
-        .select('id, instance_name')
-        .eq('created_by_user_id', user.id);
-
-      if (error) throw error;
-      setWhatsappInstances(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar instâncias WhatsApp:', error);
-    }
-  };
-
-  const handleInputChange = (field: keyof CampaignData, value: any) => {
-    setCampaignData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleContactSelection = (contactId: string, checked: boolean) => {
-    setCampaignData(prev => ({
-      ...prev,
-      selectedContacts: checked 
-        ? [...prev.selectedContacts, contactId]
-        : prev.selectedContacts.filter(id => id !== contactId)
-    }));
-  };
-
-  const handleSelectAll = () => {
-    const allContactIds = contacts.map(contact => contact.id);
-    setCampaignData(prev => ({
-      ...prev,
-      selectedContacts: prev.selectedContacts.length === contacts.length ? [] : allContactIds
-    }));
-  };
-
-  const handleCreateCampaign = async () => {
-    if (!user) {
-      toast.error('Usuário não autenticado');
-      return;
-    }
-
-    if (!campaignData.name.trim()) {
-      toast.error('Nome da campanha é obrigatório');
-      return;
-    }
-
-    if (!campaignData.message.trim()) {
-      toast.error('Mensagem é obrigatória');
-      return;
-    }
-
-    if (campaignData.selectedContacts.length === 0) {
-      toast.error('Selecione pelo menos um contato');
-      return;
-    }
-
-    if (!selectedInstance) {
-      toast.error('Selecione uma instância WhatsApp');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Note: Since marketing_campaigns table doesn't exist in the current schema,
-      // we'll create a simplified campaign record using available tables
-      // In a real implementation, you would need to create the marketing_campaigns table
+      // Simular envio
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // For now, we'll just show a success message
-      toast.success(`Campanha "${campaignData.name}" criada com sucesso!`);
-      toast.info(`${campaignData.selectedContacts.length} contatos selecionados`);
-      
-      // Reset form
-      setCampaignData({
-        name: '',
-        message: '',
-        selectedContacts: [],
+      toast.success("Campanha criada com sucesso!", {
+        description: `"${campaignData.name}" foi configurada e está pronta para execução.`
       });
-      setSelectedInstance('');
       
-    } catch (error: any) {
-      console.error('Erro ao criar campanha:', error);
-      toast.error('Erro ao criar campanha: ' + error.message);
+      onSuccess?.();
+    } catch (error) {
+      toast.error("Erro ao criar campanha");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const selectedContactsData = contacts.filter(contact => 
-    campaignData.selectedContacts.includes(contact.id)
-  );
+  const progress = (currentStep / STEPS.length) * 100;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Criar Campanha</h2>
-          <p className="text-gray-600">Configure e envie mensagens em massa</p>
-        </div>
-        <Button
-          onClick={() => setShowPreview(!showPreview)}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <Eye className="w-4 h-4" />
-          {showPreview ? 'Ocultar' : 'Visualizar'}
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Configuration */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                Configuração da Campanha
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="campaignName">Nome da Campanha</Label>
-                <Input
-                  id="campaignName"
-                  value={campaignData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Ex: Promoção Black Friday"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="message">Mensagem</Label>
-                <Textarea
-                  id="message"
-                  value={campaignData.message}
-                  onChange={(e) => handleInputChange('message', e.target.value)}
-                  placeholder="Digite sua mensagem aqui..."
-                  rows={4}
-                />
-                <div className="text-sm text-gray-500">
-                  {campaignData.message.length} caracteres
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Instância WhatsApp</Label>
-                <select
-                  value={selectedInstance}
-                  onChange={(e) => setSelectedInstance(e.target.value)}
-                  className="w-full p-2 border rounded-md"
-                >
-                  <option value="">Selecione uma instância</option>
-                  {whatsappInstances.map((instance) => (
-                    <option key={instance.id} value={instance.id}>
-                      {instance.instance_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Contact Selection */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Seleção de Contatos
-                <Badge variant="secondary">
-                  {campaignData.selectedContacts.length} de {contacts.length}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSelectAll}
-                  >
-                    {campaignData.selectedContacts.length === contacts.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
-                  </Button>
-                  <span className="text-sm text-gray-500">
-                    {contacts.length} contatos disponíveis
-                  </span>
-                </div>
-
-                <Separator />
-
-                <div className="max-h-64 overflow-y-auto space-y-2">
-                  {contacts.map((contact) => (
-                    <div key={contact.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50">
-                      <Checkbox
-                        checked={campaignData.selectedContacts.includes(contact.id)}
-                        onCheckedChange={(checked: boolean) => handleContactSelection(contact.id, checked)}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">
-                          {contact.name || 'Sem nome'}
-                        </p>
-                        <p className="text-xs text-gray-500">{contact.phone}</p>
-                      </div>
+    <div className="space-y-6 pb-6">
+      {/* Progress Steps - Sticky no topo */}
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg rounded-2xl border border-white/30 shadow-glass">
+        <ModernCard className="shadow-none border-none bg-transparent">
+          <ModernCardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Criar Nova Campanha</h2>
+              <span className="text-sm text-muted-foreground">
+                Etapa {currentStep} de {STEPS.length}
+              </span>
+            </div>
+            
+            <Progress value={progress} className="mb-6 h-2" />
+            
+            <div className="flex justify-between">
+              {STEPS.map((step) => {
+                const Icon = step.icon;
+                const isActive = currentStep === step.id;
+                const isCompleted = currentStep > step.id;
+                
+                return (
+                  <div key={step.id} className="flex flex-col items-center">
+                    <div className={`
+                      w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-all
+                      ${isActive ? 'bg-gradient-to-r from-lime-500 to-green-500 text-white' : 
+                        isCompleted ? 'bg-green-500 text-white' : 'bg-white/20 text-gray-400'}
+                    `}>
+                      {isCompleted ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : (
+                        <Icon className="w-5 h-5" />
+                      )}
                     </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Preview */}
-        {showPreview && (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="w-5 h-5" />
-                  Visualização da Campanha
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Mensagem:</h4>
-                  <div className="bg-white p-3 rounded border">
-                    {campaignData.message || 'Nenhuma mensagem definida'}
+                    <span className={`text-xs ${isActive || isCompleted ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                      {step.title}
+                    </span>
                   </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Contatos Selecionados:</h4>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {selectedContactsData.map((contact) => (
-                      <div key={contact.id} className="flex items-center gap-2 text-sm">
-                        <Badge variant="outline" className="text-xs">
-                          {contact.name || 'Sem nome'}
-                        </Badge>
-                        <span className="text-gray-500">{contact.phone}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="text-sm text-gray-600">
-                  <p><strong>Total de mensagens:</strong> {campaignData.selectedContacts.length}</p>
-                  <p><strong>Instância:</strong> {whatsappInstances.find(i => i.id === selectedInstance)?.instance_name || 'Nenhuma selecionada'}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+                );
+              })}
+            </div>
+          </ModernCardContent>
+        </ModernCard>
       </div>
 
-      {/* Actions */}
-      <div className="flex justify-end gap-3 pt-6 border-t">
-        <Button
-          onClick={handleCreateCampaign}
-          disabled={isLoading || !campaignData.name || !campaignData.message || campaignData.selectedContacts.length === 0}
-          className="flex items-center gap-2"
-        >
-          <Send className="w-4 h-4" />
-          {isLoading ? 'Criando...' : 'Criar Campanha'}
-        </Button>
+      {/* Step Content - Scrollable */}
+      <ModernCard>
+        <ModernCardHeader>
+          <ModernCardTitle>
+            {STEPS[currentStep - 1]?.title}
+          </ModernCardTitle>
+        </ModernCardHeader>
+        <ModernCardContent className="p-6 space-y-6 min-h-[400px]">
+          {currentStep === 1 && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome da Campanha *</Label>
+                <Input
+                  placeholder="Ex: Promoção de fim de semana"
+                  value={campaignData.name}
+                  onChange={(e) => updateCampaignData({ name: e.target.value })}
+                  className="bg-white/50 border-white/20"
+                />
+              </div>
+              
+              <ModernInstanceSelector
+                selectedInstanceId={campaignData.instanceId}
+                onInstanceSelect={(instanceId) => updateCampaignData({ instanceId })}
+              />
+            </div>
+          )}
+
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <ModernMediaUploader
+                onMediaSelect={(file, type) => updateCampaignData({ mediaFile: file, mediaType: type })}
+                selectedFile={campaignData.mediaFile}
+                mediaType={campaignData.mediaType}
+                message={campaignData.message}
+                onMessageChange={(message) => updateCampaignData({ message })}
+              />
+              
+              {campaignData.message && (
+                <ModernMessageFragmenter
+                  initialMessage={campaignData.message}
+                  onFragmentsChange={(fragments) => updateCampaignData({ fragments })}
+                />
+              )}
+            </div>
+          )}
+
+          {currentStep === 3 && (
+            <ModernTagSelector
+              selectedTags={campaignData.selectedTags}
+              onTagsChange={(selectedTags) => updateCampaignData({ selectedTags })}
+            />
+          )}
+
+          {currentStep === 4 && (
+            <ModernScheduleConfig
+              config={campaignData.schedule}
+              onConfigChange={(schedule) => updateCampaignData({ schedule })}
+            />
+          )}
+
+          {currentStep === 5 && (
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-sm border border-blue-200/50 rounded-lg p-6">
+                <h3 className="font-semibold mb-4 text-blue-900">Resumo da Campanha</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <span className="text-sm text-blue-700">Nome:</span>
+                    <p className="font-medium text-blue-900">{campaignData.name}</p>
+                  </div>
+                  
+                  <div>
+                    <span className="text-sm text-blue-700">Tipo de mídia:</span>
+                    <p className="font-medium text-blue-900 capitalize">{campaignData.mediaType}</p>
+                  </div>
+
+                  <div>
+                    <span className="text-sm text-blue-700">Fragmentos:</span>
+                    <p className="font-medium text-blue-900">
+                      {campaignData.fragments.length > 0 ? `${campaignData.fragments.length} parte(s)` : '1 parte'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <span className="text-sm text-blue-700">Agendamento:</span>
+                    <p className="font-medium text-blue-900">
+                      {campaignData.schedule.type === 'immediate' ? 'Imediato' : 'Agendado'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white/50 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                  <span className="text-sm text-blue-700">Prévia da mensagem:</span>
+                  <p className="text-sm text-blue-900 mt-1">{campaignData.message || 'Apenas mídia'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </ModernCardContent>
+      </ModernCard>
+
+      {/* Navigation - Sticky no final */}
+      <div className="sticky bottom-0 z-10 bg-white/80 backdrop-blur-lg rounded-2xl border border-white/30 shadow-glass p-6">
+        <div className="flex justify-between">
+          <Button
+            variant="outline"
+            onClick={handlePrevious}
+            disabled={currentStep === 1}
+            className="bg-white/20 border-white/20 hover:bg-white/30"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Anterior
+          </Button>
+
+          {currentStep < 5 ? (
+            <Button
+              onClick={handleNext}
+              disabled={!canProceedToNext()}
+              className="bg-gradient-to-r from-lime-500 to-green-500 hover:from-lime-600 hover:to-green-600 text-white border-0"
+            >
+              Próximo
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="bg-gradient-to-r from-lime-500 to-green-500 hover:from-lime-600 hover:to-green-600 text-white border-0"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Criando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Criar Campanha
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
-};
+}

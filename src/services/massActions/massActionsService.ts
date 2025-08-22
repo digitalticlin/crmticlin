@@ -102,22 +102,22 @@ export class MassActionsService {
    */
   static async getUsers(): Promise<UserOption[]> {
     try {
-      // Mock implementation since email column doesn't exist
-      return [
-        {
-          id: '1',
-          email: 'admin@example.com',
-          full_name: 'Administrador',
-          avatar_url: null
-        }
-      ];
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, avatar_url')
+        .order('full_name');
+
+      if (error) throw error;
+      return data || [];
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
       throw new Error('Erro ao carregar usuários da equipe');
     }
   }
 
-  
+  /**
+   * Excluir leads em massa
+   */
   static async deleteLeads(leadIds: string[]): Promise<MassActionResult> {
     if (!leadIds.length) {
       return { success: false, message: 'Nenhum lead selecionado' };
@@ -145,6 +145,9 @@ export class MassActionsService {
     }
   }
 
+  /**
+   * Mover leads para nova etapa/funil
+   */
   static async moveLeads(
     leadIds: string[], 
     newStageId: string, 
@@ -179,6 +182,9 @@ export class MassActionsService {
     }
   }
 
+  /**
+   * Adicionar tags aos leads
+   */
   static async addTagsToLeads(leadIds: string[], tagIds: string[]): Promise<MassActionResult> {
     if (!leadIds.length || !tagIds.length) {
       return { success: false, message: 'Nenhum lead ou tag selecionada' };
@@ -220,6 +226,9 @@ export class MassActionsService {
     }
   }
 
+  /**
+   * Remover tags dos leads
+   */
   static async removeTagsFromLeads(leadIds: string[], tagIds: string[]): Promise<MassActionResult> {
     if (!leadIds.length || !tagIds.length) {
       return { success: false, message: 'Nenhum lead ou tag selecionada' };
@@ -248,6 +257,9 @@ export class MassActionsService {
     }
   }
 
+  /**
+   * Atribuir responsável aos leads
+   */
   static async assignUserToLeads(leadIds: string[], userId: string): Promise<MassActionResult> {
     if (!leadIds.length || !userId) {
       return { success: false, message: 'Parâmetros inválidos para atribuição' };

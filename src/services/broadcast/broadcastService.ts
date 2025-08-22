@@ -78,8 +78,12 @@ export class BroadcastService {
       
       case 'tags':
         if (target.config.tag_ids && target.config.tag_ids.length > 0) {
-          // Mock implementation - in real app you'd use a join or subquery
-          query = query.limit(100);
+          query = query.in('id', 
+            supabase
+              .from('lead_tags')
+              .select('lead_id')
+              .in('tag_id', target.config.tag_ids)
+          );
         }
         break;
       
@@ -104,31 +108,57 @@ export class BroadcastService {
   }
 
   static async createCampaign(campaignData: CreateCampaignData) {
-    // Mock implementation since broadcast tables don't exist
-    console.log('Creating campaign:', campaignData);
-    return {
-      success: true,
-      campaign_id: 'mock-campaign-id',
-      message: 'Campaign created successfully'
-    };
+    const { data, error } = await supabase.functions.invoke('broadcast_campaign_manager', {
+      body: {
+        action: 'create_campaign',
+        name: campaignData.name,
+        message_text: campaignData.message_text,
+        media_type: campaignData.media_type || 'text',
+        media_url: campaignData.media_url,
+        target_type: campaignData.target.type,
+        target_config: campaignData.target.config,
+        schedule_type: campaignData.schedule_type || 'immediate',
+        scheduled_at: campaignData.scheduled_at,
+        rate_limit_per_minute: campaignData.rate_limit_per_minute || 2,
+        business_hours_only: campaignData.business_hours_only || false,
+      }
+    });
+
+    if (error) throw error;
+    return data;
   }
 
   static async startCampaign(campaignId: string) {
-    // Mock implementation
-    console.log('Starting campaign:', campaignId);
-    return {
-      success: true,
-      message: 'Campaign started successfully'
-    };
+    const { data, error } = await supabase.functions.invoke('broadcast_campaign_manager', {
+      body: {
+        action: 'start_campaign',
+        campaign_id: campaignId,
+      }
+    });
+
+    if (error) throw error;
+    return data;
   }
 
   static async getCampaignHistory(campaignId: string) {
-    // Mock implementation since tables don't exist
-    return [];
+    const { data, error } = await supabase
+      .from('broadcast_history')
+      .select('*')
+      .eq('campaign_id', campaignId)
+      .order('sent_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   }
 
   static async getCampaignQueue(campaignId: string) {
-    // Mock implementation since tables don't exist
-    return [];
+    const { data, error } = await supabase
+      .from('broadcast_queue')
+      .select('*')
+      .eq('campaign_id', campaignId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   }
 }

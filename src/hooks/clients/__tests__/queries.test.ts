@@ -1,50 +1,265 @@
-
+import { useFilteredClientsQuery } from '@/hooks/clients/queries';
 import { renderHook } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { useClients } from '@/hooks/clients/queries';
 
-// Mock the queries module
-vi.mock('@/hooks/clients/queries', () => ({
-  useClients: vi.fn()
+// Mock do Supabase
+const mockFrom = jest.fn();
+const mockSelect = jest.fn();
+const mockEq = jest.fn();
+const mockOrder = jest.fn();
+const mockIn = jest.fn();
+const mockGte = jest.fn();
+const mockLte = jest.fn();
+const mockOr = jest.fn();
+const mockLimit = jest.fn();
+
+// Mock do módulo Supabase
+jest.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: mockFrom
+  }
 }));
 
-const mockUseClients = useClients as any;
-
-describe('useClients', () => {
+describe('useFilteredClientsQuery', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
+    
+    // Configurar os mocks em cadeia
+    mockFrom.mockReturnValue({
+      select: mockSelect
+    });
+    
+    mockSelect.mockReturnValue({
+      eq: mockEq
+    });
+    
+    mockEq.mockReturnValue({
+      order: mockOrder
+    });
+    
+    mockOrder.mockReturnValue({
+      or: mockOr
+    });
+    
+    mockOr.mockReturnValue({
+      in: mockIn
+    });
+    
+    mockIn.mockReturnValue({
+      gte: mockGte
+    });
+    
+    mockGte.mockReturnValue({
+      lte: mockLte
+    });
+    
+    mockLte.mockReturnValue({
+      limit: mockLimit
+    });
+    
+    mockLimit.mockResolvedValue({
+      data: [],
+      error: null
+    });
   });
 
-  it('should handle client queries correctly', () => {
+  it('deve aplicar filtro por estados', async () => {
+    const filters = {
+      states: ['SP', 'RJ']
+    };
+
+    mockLimit.mockResolvedValue({
+      data: [],
+      error: null
+    });
+
+    const { result } = renderHook(() => 
+      useFilteredClientsQuery('user123', '', filters)
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockIn).toHaveBeenCalledWith('state', ['SP', 'RJ']);
+  });
+
+  it('deve aplicar filtro por cidades', async () => {
+    const filters = {
+      cities: ['São Paulo', 'Rio de Janeiro']
+    };
+
+    const { result } = renderHook(() => 
+      useFilteredClientsQuery('user123', '', filters)
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockIn).toHaveBeenCalledWith('city', ['São Paulo', 'Rio de Janeiro']);
+  });
+
+  it('deve aplicar filtro por países', async () => {
+    const filters = {
+      countries: ['Brasil', 'Portugal']
+    };
+
+    const { result } = renderHook(() => 
+      useFilteredClientsQuery('user123', '', filters)
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockIn).toHaveBeenCalledWith('country', ['Brasil', 'Portugal']);
+  });
+
+  it('deve aplicar filtro por data', async () => {
+    const from = new Date('2023-01-01');
+    const to = new Date('2023-12-31');
+    
+    const filters = {
+      dateRange: { from, to }
+    };
+
+    const { result } = renderHook(() => 
+      useFilteredClientsQuery('user123', '', filters)
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockGte).toHaveBeenCalledWith('created_at', from.toISOString());
+    expect(mockLte).toHaveBeenCalledWith('created_at', to.toISOString());
+  });
+
+  it('deve aplicar filtro por usuários responsáveis', async () => {
+    const filters = {
+      responsibleUsers: ['user1', 'user2']
+    };
+
+    const { result } = renderHook(() => 
+      useFilteredClientsQuery('user123', '', filters)
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockIn).toHaveBeenCalledWith('owner_id', ['user1', 'user2']);
+  });
+
+  it('deve aplicar filtro por funis', async () => {
+    const filters = {
+      funnelIds: ['funil1', 'funil2']
+    };
+
+    const { result } = renderHook(() => 
+      useFilteredClientsQuery('user123', '', filters)
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockIn).toHaveBeenCalledWith('funnel_id', ['funil1', 'funil2']);
+  });
+
+  it('deve aplicar filtro por etapas do funil', async () => {
+    const filters = {
+      funnelStages: ['stage1', 'stage2']
+    };
+
+    const { result } = renderHook(() => 
+      useFilteredClientsQuery('user123', '', filters)
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    expect(mockIn).toHaveBeenCalledWith('kanban_stage_id', ['stage1', 'stage2']);
+  });
+
+  it('deve aplicar filtro por tags', async () => {
     const mockData = [
-      { id: '1', name: 'Client 1', phone: '+1234567890', createdAt: '2023-01-01' },
-      { id: '2', name: 'Client 2', phone: '+0987654321', createdAt: '2023-01-02' }
+      {
+        id: '1',
+        name: 'Cliente Teste',
+        lead_tags: [
+          {
+            tags: {
+              id: 'tag1',
+              name: 'Importante'
+            }
+          }
+        ]
+      }
     ];
 
-    mockUseClients.mockReturnValue({
+    mockLimit.mockResolvedValue({
       data: mockData,
-      isLoading: false,
-      error: null,
-      refetch: vi.fn()
+      error: null
     });
 
-    const { result } = renderHook(() => useClients());
+    const filters = {
+      tags: ['tag1']
+    };
 
-    expect(result.current.data).toEqual(mockData);
-    expect(result.current.isLoading).toBe(false);
+    const { result } = renderHook(() => 
+      useFilteredClientsQuery('user123', '', filters)
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+
+    // Verificar que os dados foram filtrados corretamente
+    expect(result.current.data).toHaveLength(1);
+    expect(result.current.data?.[0].id).toBe('1');
   });
 
-  it('should handle loading state', () => {
-    mockUseClients.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      error: null,
-      refetch: vi.fn()
+  it('deve aplicar múltiplos filtros simultaneamente', async () => {
+    const filters = {
+      states: ['SP'],
+      cities: ['São Paulo'],
+      dateRange: { 
+        from: new Date('2023-01-01'),
+        to: new Date('2023-12-31')
+      },
+      responsibleUsers: ['user1']
+    };
+
+    const { result } = renderHook(() => 
+      useFilteredClientsQuery('user123', '', filters)
+    );
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
     });
 
-    const { result } = renderHook(() => useClients());
-
-    expect(result.current.isLoading).toBe(true);
-    expect(result.current.data).toBeUndefined();
+    // Verificar que todos os filtros foram aplicados
+    expect(mockIn).toHaveBeenCalledWith('state', ['SP']);
+    expect(mockIn).toHaveBeenCalledWith('city', ['São Paulo']);
+    expect(mockIn).toHaveBeenCalledWith('owner_id', ['user1']);
+    expect(mockGte).toHaveBeenCalled();
+    expect(mockLte).toHaveBeenCalled();
   });
 });
+
+// Helper para waitFor
+const waitFor = (callback: () => void) => {
+  return new Promise<void>((resolve) => {
+    const check = () => {
+      try {
+        callback();
+        resolve();
+      } catch (error) {
+        setTimeout(check, 10);
+      }
+    };
+    check();
+  });
+};

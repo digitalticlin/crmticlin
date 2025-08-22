@@ -16,7 +16,7 @@ export interface ClientData {
   id: string;
   name: string;
   phone: string;
-  email?: string; // Made optional to match interface requirements
+  email?: string;
   address?: string;
   bairro?: string;
   city?: string;
@@ -33,8 +33,6 @@ export interface ClientData {
   created_by_user_id: string;
   contacts?: LeadContact[];
   tags?: ClientTag[];
-  // Add missing createdAt property for compatibility
-  createdAt: string;
 }
 
 export interface ClientFormData {

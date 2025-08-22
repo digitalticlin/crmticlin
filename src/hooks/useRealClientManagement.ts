@@ -1,156 +1,234 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { toast } from 'sonner';
-import { useClients, useDefaultWhatsAppInstance } from './clients/queries';
-import { ClientData, ClientFormData } from './clients/types';
-import { useAdvancedFilters } from './clients/useAdvancedFilters';
+import { useState, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { ClientData, ClientFormData } from "./clients/types";
+import { useDefaultWhatsAppInstance, useClientsQuery } from "./clients/queries";
+import { useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation } from "./clients/mutations";
+import { useAdvancedFilters } from "@/hooks/clients/useAdvancedFilters";
+import { toast } from "sonner";
 
-export const useRealClientManagement = () => {
+export function useRealClientManagement() {
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isCreateMode, setIsCreateMode] = useState(false);
-  
-  const { data: clients = [], isLoading, refetch } = useClients();
-  const { data: defaultInstance } = useDefaultWhatsAppInstance();
-  
-  const filterHook = useAdvancedFilters(clients);
-  
-  // Mock additional properties to match expected interface
-  const isLoadingMore = false;
-  const hasMoreClients = false;
-  const totalClientsCount = clients.length;
+  const { user } = useAuth();
+  const userId = user?.id;
 
-  const loadMoreClients = useCallback(() => {
-    // Mock implementation
-    console.log('Loading more clients...');
-  }, []);
+  // Filtros avançados
+  const { filters, hasActiveFilters, filteredClients: advancedFilteredClients } = useAdvancedFilters();
 
-  const handleSelectClient = useCallback((client: ClientData) => {
+  // Queries
+  const defaultWhatsAppQuery = useDefaultWhatsAppInstance(userId || null);
+  const clientsQuery = useClientsQuery(userId || null, searchQuery);
+
+  // Mutations
+  const createClientMutation = useCreateClientMutation(userId || '');
+  const updateClientMutation = useUpdateClientMutation(userId || '');
+  const deleteClientMutation = useDeleteClientMutation(userId || '');
+
+  // 🚀 FLATTEN DOS DADOS PAGINADOS
+  const clients = useMemo(() => {
+    if (!clientsQuery.data?.pages) return [];
+    
+    return clientsQuery.data.pages.flatMap(page => page.data);
+  }, [clientsQuery.data?.pages]);
+
+  // 🚀 CLIENTES FILTRADOS - Combinar filtros avançados com dados existentes
+  const filteredClients = useMemo(() => {
+    // Se houver filtros avançados ativos, usar os clientes filtrados
+    if (hasActiveFilters) {
+      return advancedFilteredClients || [];
+    }
+    
+    // Caso contrário, usar a filtragem local existente
+    return clients.filter(client => 
+      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      client.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (client.company && client.company.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }, [clients, advancedFilteredClients, hasActiveFilters, searchQuery]);
+
+  // 🚀 VERIFICAR SE HÁ MAIS PÁGINAS
+  const hasMoreClients = useMemo(() => {
+    // Quando há filtros ativos, não há paginação
+    if (hasActiveFilters) {
+      return false;
+    }
+    
+    const lastPage = clientsQuery.data?.pages?.[clientsQuery.data.pages.length - 1];
+    return lastPage?.hasMore ?? false;
+  }, [clientsQuery.data?.pages, hasActiveFilters]);
+
+  // 🚀 TOTAL DE CLIENTES
+  const totalClientsCount = useMemo(() => {
+    if (hasActiveFilters) {
+      return filteredClients.length;
+    }
+    
+    const firstPage = clientsQuery.data?.pages?.[0];
+    return firstPage?.totalCount || clients.length;
+  }, [clientsQuery.data?.pages, clients.length, filteredClients.length, hasActiveFilters]);
+
+  // 🚀 FUNÇÃO PARA CARREGAR MAIS CLIENTES
+  const loadMoreClients = async () => {
+    // Quando há filtros ativos, não há paginação
+    if (hasActiveFilters) {
+      return;
+    }
+    
+    if (!clientsQuery.isFetchingNextPage && hasMoreClients) {
+      console.log('[RealClientManagement] 📄 Carregando próxima página...');
+      await clientsQuery.fetchNextPage();
+    }
+  };
+
+  const handleSelectClient = (client: ClientData) => {
     setSelectedClient(client);
-    setIsDetailsOpen(true);
     setIsCreateMode(false);
-  }, []);
-
-  const handleCreateClient = useCallback(() => {
-    setSelectedClient(null);
     setIsDetailsOpen(true);
-    setIsCreateMode(true);
-  }, []);
+  };
 
-  const handleSaveNewClient = useCallback(async (formData: ClientFormData): Promise<void> => {
+  const handleCreateClient = () => {
+    setSelectedClient(null);
+    setIsCreateMode(true);
+    setIsDetailsOpen(true);
+  };
+
+  const handleSaveNewClient = async (data: Partial<ClientData>) => {
     try {
-      console.log('Saving new client:', formData);
-      // Mock save implementation
-      toast.success('Cliente criado com sucesso!');
+      await createClientMutation.mutateAsync(data as ClientFormData);
       setIsDetailsOpen(false);
       setIsCreateMode(false);
-      await refetch();
+      clientsQuery.refetch();
     } catch (error) {
-      console.error('Error saving client:', error);
-      toast.error('Erro ao salvar cliente');
+      console.error("Erro ao criar cliente:", error);
     }
-  }, [refetch]);
+  };
 
-  const handleDeleteClient = useCallback(async (clientId: string): Promise<void> => {
-    try {
-      console.log('Deleting client:', clientId);
-      // Mock delete implementation
-      toast.success('Cliente removido com sucesso!');
-      setIsDetailsOpen(false);
-      setSelectedClient(null);
-      await refetch();
-    } catch (error) {
-      console.error('Error deleting client:', error);
-      toast.error('Erro ao remover cliente');
-    }
-  }, [refetch]);
+  const handleDeleteClient = (clientId: string) => {
+    deleteClientMutation.mutate(clientId);
+    setIsDetailsOpen(false);
+    setSelectedClient(null);
+  };
 
-  const handleUpdateNotes = useCallback(async (notes: string): Promise<void> => {
+  const handleUpdateNotes = async (notes: string) => {
     if (!selectedClient) return;
     
     try {
-      console.log('Updating notes for client:', selectedClient.id, notes);
-      // Mock update implementation
-      toast.success('Notas atualizadas com sucesso!');
-      await refetch();
+      await updateClientMutation.mutateAsync({ 
+        id: selectedClient.id, 
+        data: { notes } 
+      });
+      
+      const updatedClient = { ...selectedClient, notes };
+      setSelectedClient(updatedClient);
+      clientsQuery.refetch();
     } catch (error) {
-      console.error('Error updating notes:', error);
-      toast.error('Erro ao atualizar notas');
+      console.error("Erro ao atualizar notes:", error);
     }
-  }, [selectedClient, refetch]);
+  };
 
-  const handleUpdatePurchaseValue = useCallback(async (value: number): Promise<void> => {
+  const handleUpdatePurchaseValue = async (purchase_value: number | undefined) => {
     if (!selectedClient) return;
     
     try {
-      console.log('Updating purchase value for client:', selectedClient.id, value);
-      // Mock update implementation
-      toast.success('Valor de compra atualizado com sucesso!');
-      await refetch();
+      await updateClientMutation.mutateAsync({ 
+        id: selectedClient.id, 
+        data: { purchase_value } 
+      });
+      
+      const updatedClient = { ...selectedClient, purchase_value };
+      setSelectedClient(updatedClient);
+      clientsQuery.refetch();
     } catch (error) {
-      console.error('Error updating purchase value:', error);
-      toast.error('Erro ao atualizar valor de compra');
+      console.error("Erro ao atualizar purchase_value:", error);
     }
-  }, [selectedClient, refetch]);
+  };
 
-  const handleUpdateBasicInfo = useCallback(async (data: { name: string; email: string; company: string; }): Promise<void> => {
+  const handleUpdateBasicInfo = async (data: { name: string; email: string; company: string }) => {
     if (!selectedClient) return;
     
     try {
-      console.log('Updating basic info for client:', selectedClient.id, data);
-      // Mock update implementation
-      toast.success('Informações atualizadas com sucesso!');
-      await refetch();
+      await updateClientMutation.mutateAsync({
+        id: selectedClient.id,
+        data
+      });
+      
+      const updatedClient = { ...selectedClient, ...data };
+      setSelectedClient(updatedClient);
+      clientsQuery.refetch();
+      toast.success("Informações básicas atualizadas com sucesso!");
     } catch (error) {
-      console.error('Error updating basic info:', error);
-      toast.error('Erro ao atualizar informações');
+      console.error("Erro ao atualizar informações básicas:", error);
+      toast.error("Erro ao atualizar informações básicas");
     }
-  }, [selectedClient, refetch]);
+  };
 
-  const handleUpdateDocument = useCallback(async (data: { document_type: "cpf" | "cnpj"; document_id: string; }): Promise<void> => {
+  const handleUpdateDocument = async (data: { document_type: 'cpf' | 'cnpj'; document_id: string }) => {
     if (!selectedClient) return;
     
     try {
-      console.log('Updating document for client:', selectedClient.id, data);
-      // Mock update implementation
-      toast.success('Documento atualizado com sucesso!');
-      await refetch();
+      await updateClientMutation.mutateAsync({
+        id: selectedClient.id,
+        data
+      });
+      
+      const updatedClient = { ...selectedClient, ...data };
+      setSelectedClient(updatedClient);
+      clientsQuery.refetch();
+      toast.success("Informações do documento atualizadas com sucesso!");
     } catch (error) {
-      console.error('Error updating document:', error);
-      toast.error('Erro ao atualizar documento');
+      console.error("Erro ao atualizar documento:", error);
+      toast.error("Erro ao atualizar informações do documento");
     }
-  }, [selectedClient, refetch]);
+  };
 
-  const handleUpdateAddress = useCallback(async (data: { address: string; bairro: string; city: string; state: string; country: string; zip_code: string; }): Promise<void> => {
+  const handleUpdateAddress = async (data: { 
+    address: string; 
+    bairro: string;
+    city: string; 
+    state: string; 
+    country: string; 
+    zip_code: string 
+  }) => {
     if (!selectedClient) return;
     
     try {
-      console.log('Updating address for client:', selectedClient.id, data);
-      // Mock update implementation
-      toast.success('Endereço atualizado com sucesso!');
-      await refetch();
+      await updateClientMutation.mutateAsync({
+        id: selectedClient.id,
+        data
+      });
+      
+      const updatedClient = { ...selectedClient, ...data };
+      setSelectedClient(updatedClient);
+      clientsQuery.refetch();
+      toast.success("Endereço atualizado com sucesso!");
     } catch (error) {
-      console.error('Error updating address:', error);
-      toast.error('Erro ao atualizar endereço');
+      console.error("Erro ao atualizar endereço:", error);
+      toast.error("Erro ao atualizar endereço");
     }
-  }, [selectedClient, refetch]);
-
-  const setSearchQuery = useCallback((query: string) => {
-    filterHook.updateFilters({ searchQuery: query });
-  }, [filterHook]);
+  };
 
   return {
-    clients: filterHook.filteredClients,
+    clients: filteredClients, // Usar clientes filtrados em vez dos brutos
     setSearchQuery,
     selectedClient,
     isDetailsOpen,
     isCreateMode,
-    isLoading,
-    isLoadingMore,
+    isLoading: clientsQuery.isLoading || updateClientMutation.isPending || createClientMutation.isPending,
+    isLoadingMore: clientsQuery.isFetchingNextPage,
     hasMoreClients,
-    totalClientsCount,
     loadMoreClients,
-    setIsDetailsOpen,
+    totalClientsCount,
+    setIsDetailsOpen: (open: boolean) => {
+      setIsDetailsOpen(open);
+      if (!open) {
+        setSelectedClient(null);
+        setIsCreateMode(false);
+      }
+    },
     handleSelectClient,
     handleCreateClient,
     handleSaveNewClient,
@@ -160,8 +238,9 @@ export const useRealClientManagement = () => {
     handleUpdateBasicInfo,
     handleUpdateDocument,
     handleUpdateAddress,
-    refetch: async () => {
-      await refetch();
-    },
+    refetch: clientsQuery.refetch,
   };
 };
+
+// Re-export types for backward compatibility
+export type { ClientData, ClientFormData } from "./clients/types";

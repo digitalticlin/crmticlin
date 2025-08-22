@@ -1,46 +1,44 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { DashboardConfig as LayoutConfig } from "../types/dashboardConfigTypes";
 
-import { supabase } from '@/integrations/supabase/client';
-import { DashboardConfig } from '../types/dashboardConfigTypes';
+export interface DashboardConfigRow {
+  user_id: string; // legacy compatibility (equals created_by_user_id)
+  created_by_user_id: string;
+  layout_config: LayoutConfig;
+  updated_at: string;
+}
 
 export const dashboardConfigService = {
-  async getDashboardConfig(userId: string): Promise<DashboardConfig | null> {
-    try {
-      // Mock implementation since the table might not exist
-      return {
-        kpis: {
-          novos_leads: true,
-          total_leads: true,
-          taxa_conversao: true,
-          taxa_perda: true,
-          valor_pipeline: false,
-          ticket_medio: false
-        },
-        charts: {
-          funil_conversao: true,
-          performance_vendedores: true,
-          evolucao_temporal: true,
-          leads_etiquetas: false
-        },
-        layout: {
-          kpi_order: ["novos_leads", "total_leads", "taxa_conversao", "taxa_perda", "valor_pipeline", "ticket_medio"],
-          chart_order: ["funil_conversao", "performance_vendedores", "evolucao_temporal", "leads_etiquetas"]
-        },
-        period_filter: "30"
-      };
-    } catch (error) {
-      console.error('Erro ao buscar configuração do dashboard:', error);
+  async getConfig(userId: string): Promise<{ layoutConfig: LayoutConfig } | null> {
+    const { data, error } = await supabase
+      .from<DashboardConfigRow>('dashboard_configs')
+      .select('layout_config, updated_at, created_by_user_id')
+      .eq('created_by_user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('[dashboardConfigService] getConfig error:', error.message);
       return null;
     }
+
+    if (!data) return null;
+
+    return { layoutConfig: data.layout_config };
   },
 
-  async saveDashboardConfig(userId: string, config: DashboardConfig): Promise<boolean> {
-    try {
-      // Mock implementation since the table might not exist
-      console.log('Salvando configuração do dashboard:', { userId, config });
-      return true;
-    } catch (error) {
-      console.error('Erro ao salvar configuração do dashboard:', error);
-      return false;
+  async saveConfig(userId: string, config: LayoutConfig): Promise<void> {
+    const { error } = await supabase
+      .from<DashboardConfigRow>('dashboard_configs')
+      .upsert({
+        user_id: userId,
+        created_by_user_id: userId,
+        layout_config: config,
+        updated_at: new Date().toISOString(),
+      } as any, { onConflict: 'user_id' });
+
+    if (error) {
+      console.error('[dashboardConfigService] saveConfig error:', error.message);
+      throw error;
     }
   }
 };

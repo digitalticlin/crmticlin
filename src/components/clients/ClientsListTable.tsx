@@ -1,20 +1,8 @@
-import React, { useMemo } from "react";
-import { 
-  useReactTable,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  flexRender,
-  ColumnDef,
-} from "@tanstack/react-table";
+
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ClientData } from "@/hooks/clients/types";
 import { ClientsSearchBar } from "./ClientsSearchBar";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ClientsTable } from "./ClientsTable";
 
 interface ClientsListTableProps {
   clients: ClientData[];
@@ -29,183 +17,162 @@ interface ClientsListTableProps {
   onServerSearch?: (query: string) => void;
 }
 
-export function ClientsListTable({
-  clients,
-  onSelectClient,
-  onEditClient,
+export const ClientsListTable = ({ 
+  clients, 
+  onSelectClient, 
+  onEditClient, 
   onDeleteClient,
   isLoading,
-  isLoadingMore,
-  hasMoreClients,
+  isLoadingMore = false,
+  hasMoreClients = false,
   onLoadMoreClients,
-  totalClientsCount,
+  totalClientsCount = 0,
   onServerSearch
-}: ClientsListTableProps) {
+}: ClientsListTableProps) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const loadingTriggerRef = useRef<HTMLDivElement>(null);
+  const isLoadingRef = useRef(false);
   
-  const columns: ColumnDef<ClientData>[] = useMemo(
-    () => [
-      {
-        accessorKey: "name",
-        header: "Nome",
-        cell: ({ row }) => (
-          <div className="font-medium">{row.getValue("name")}</div>
-        ),
-      },
-      {
-        accessorKey: "phone",
-        header: "Telefone",
-        cell: ({ row }) => <div>{row.getValue("phone")}</div>,
-      },
-      {
-        accessorKey: "email",
-        header: "Email",
-        cell: ({ row }) => <div>{row.getValue("email") || "-"}</div>,
-      },
-      {
-        accessorKey: "company",
-        header: "Empresa",
-        cell: ({ row }) => <div>{row.getValue("company") || "-"}</div>,
-      },
-      {
-        accessorKey: "createdAt",
-        header: "Criado em",
-        cell: ({ row }) => {
-          const date = row.getValue("createdAt") as string;
-          return (
-            <div className="text-sm text-gray-500">
-              {formatDistanceToNow(new Date(date), { 
-                addSuffix: true, 
-                locale: ptBR 
-              })}
-            </div>
-          );
-        },
-      },
-      {
-        id: "actions",
-        header: "Ações",
-        cell: ({ row }) => (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onSelectClient(row.original)}
-            >
-              Ver
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEditClient(row.original)}
-            >
-              Editar
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => onDeleteClient(row.original.id)}
-            >
-              Excluir
-            </Button>
-          </div>
-        ),
-      },
-    ],
-    [onSelectClient, onEditClient, onDeleteClient]
+  // Filter clients based on search query
+  const filteredClients = clients.filter(client => 
+    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    client.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (client.company && client.company.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const table = useReactTable({
-    data: clients,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-  });
+  // 🚀 SCROLL INFINITO: Detectar quando usuário chega próximo ao fim
+  const handleScroll = useCallback(() => {
+    if (!scrollContainerRef.current || !onLoadMoreClients || isLoadingRef.current || !hasMoreClients) {
+      return;
+    }
 
+    const container = scrollContainerRef.current;
+    const scrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight;
+    const clientHeight = container.clientHeight;
+
+    // Carregar mais quando estiver a 200px do final
+    const threshold = 200;
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+    if (distanceFromBottom < threshold) {
+      console.log('[ClientsListTable] 📄 Trigger de carregamento ativado:', {
+        distanceFromBottom,
+        threshold,
+        hasMore: hasMoreClients,
+        isLoading: isLoadingRef.current
+      });
+
+      isLoadingRef.current = true;
+      onLoadMoreClients().finally(() => {
+        isLoadingRef.current = false;
+      });
+    }
+  }, [onLoadMoreClients, hasMoreClients]);
+
+  // 🚀 ADICIONAR LISTENER DE SCROLL
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
+
+  // 🚀 INTERSECTION OBSERVER PARA BACKUP (quando scroll não funciona)
+  useEffect(() => {
+    if (!loadingTriggerRef.current || !onLoadMoreClients || !hasMoreClients) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0];
+        if (target.isIntersecting && !isLoadingRef.current && hasMoreClients) {
+          console.log('[ClientsListTable] 👁️ Intersection Observer ativado');
+          isLoadingRef.current = true;
+          onLoadMoreClients().finally(() => {
+            isLoadingRef.current = false;
+          });
+        }
+      },
+      {
+        root: scrollContainerRef.current,
+        rootMargin: '100px',
+        threshold: 0.1
+      }
+    );
+
+    observer.observe(loadingTriggerRef.current);
+    return () => observer.disconnect();
+  }, [onLoadMoreClients, hasMoreClients]);
+  
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <div className="space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
+      <div className="flex items-center justify-center py-12">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d3d800]"></div>
+          <p className="text-sm text-gray-600">Carregando clientes...</p>
         </div>
       </div>
     );
   }
-
+  
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <ClientsSearchBar
-        searchTerm=""
-        onSearchChange={onServerSearch || (() => {})}
+        searchQuery={searchQuery}
+        onSearchChange={(q) => {
+          setSearchQuery(q);
+          if (onServerSearch) onServerSearch(q);
+        }}
         clients={clients}
-        filteredClients={clients}
-        totalClientsCount={totalClientsCount || 0}
-        hasMoreClients={hasMoreClients || false}
+        filteredClients={filteredClients}
+        totalClientsCount={totalClientsCount}
+        hasMoreClients={hasMoreClients}
       />
-      
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  Nenhum cliente encontrado.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
 
-      {hasMoreClients && (
-        <div className="flex justify-center">
-          <Button
-            variant="outline"
-            onClick={onLoadMoreClients}
-            disabled={isLoadingMore}
-          >
-            {isLoadingMore ? "Carregando..." : "Carregar mais"}
-          </Button>
-        </div>
-      )}
+      <div 
+        ref={scrollContainerRef}
+        className="max-h-[600px] overflow-y-auto"
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        <ClientsTable
+          filteredClients={filteredClients}
+          searchQuery={searchQuery}
+          onSelectClient={onSelectClient}
+          onEditClient={onEditClient}
+          onDeleteClient={onDeleteClient}
+        />
+        
+        {/* 🚀 INDICADOR DE CARREGAMENTO */}
+        {isLoadingMore && (
+          <div className="flex items-center justify-center py-6">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#d3d800]"></div>
+              <span className="text-sm text-gray-600">Carregando mais clientes...</span>
+            </div>
+          </div>
+        )}
+        
+        {/* 🚀 TRIGGER INVISÍVEL PARA INTERSECTION OBSERVER */}
+        {hasMoreClients && !isLoadingMore && (
+          <div 
+            ref={loadingTriggerRef}
+            className="h-10 w-full"
+            aria-hidden="true"
+          />
+        )}
+        
+        {/* 🚀 INDICADOR DE FIM DOS DADOS */}
+        {!hasMoreClients && clients.length > 0 && (
+          <div className="text-center py-6">
+            <p className="text-sm text-gray-500">
+              Todos os {totalClientsCount} clientes foram carregados
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+};

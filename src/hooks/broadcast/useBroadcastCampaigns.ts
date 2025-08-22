@@ -1,131 +1,119 @@
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export interface BroadcastCampaign {
   id: string;
   name: string;
   message_text: string;
-  media_type?: 'text' | 'image' | 'video' | 'audio' | 'document';
+  media_type?: string;
   media_url?: string;
-  target_type: 'all' | 'segment' | 'custom';
-  target_config: Record<string, any>;
-  status: 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed' | 'paused' | 'running';
+  target_type: 'all' | 'funnel' | 'stage' | 'tags' | 'custom';
+  target_config: any;
+  schedule_type: 'immediate' | 'scheduled' | 'recurring';
   scheduled_at?: string;
-  sent_at?: string;
+  status: 'draft' | 'running' | 'paused' | 'completed' | 'failed';
   total_recipients: number;
-  successful_sends: number;
-  failed_sends: number;
   sent_count: number;
   failed_count: number;
   rate_limit_per_minute: number;
   business_hours_only: boolean;
   timezone: string;
-  whatsapp_number_id: string;
-  created_by_user_id: string;
   created_at: string;
   updated_at: string;
 }
 
 export const useBroadcastCampaigns = () => {
   const [campaigns, setCampaigns] = useState<BroadcastCampaign[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchCampaigns();
-  }, []);
+  const { user } = useAuth();
 
   const fetchCampaigns = async () => {
+    if (!user?.id) return;
+
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
-      
-      // Mock data since broadcast_campaigns table doesn't exist yet
-      const mockCampaigns: BroadcastCampaign[] = [
-        {
-          id: '1',
-          name: 'Campanha de Teste',
-          message_text: 'Olá! Esta é uma mensagem de teste.',
-          media_type: 'text',
-          target_type: 'all',
-          target_config: {},
-          status: 'draft',
-          total_recipients: 100,
-          successful_sends: 0,
-          failed_sends: 0,
-          sent_count: 0,
-          failed_count: 0,
-          rate_limit_per_minute: 2,
-          business_hours_only: false,
-          timezone: 'America/Sao_Paulo',
-          whatsapp_number_id: '',
-          created_by_user_id: '',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ];
-      
-      setCampaigns(mockCampaigns);
-    } catch (err) {
-      console.error('Erro ao buscar campanhas:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      const { data, error } = await supabase
+        .from('broadcast_campaigns')
+        .select('*')
+        .eq('created_by_user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setCampaigns(data || []);
+    } catch (err: any) {
+      console.error('Error fetching campaigns:', err);
+      setError(err.message);
+      toast.error('Erro ao carregar campanhas');
     } finally {
       setLoading(false);
     }
   };
 
-  const createCampaign = async (campaignData: Omit<BroadcastCampaign, 'id' | 'created_at' | 'updated_at'>) => {
+  const createCampaign = async (campaignData: Omit<BroadcastCampaign, 'id' | 'created_at' | 'updated_at' | 'total_recipients' | 'sent_count' | 'failed_count'>) => {
+    if (!user?.id) {
+      toast.error('Usuário não autenticado');
+      return null;
+    }
+
     try {
-      // Mock creation since table doesn't exist yet
-      const newCampaign: BroadcastCampaign = {
-        ...campaignData,
-        id: Date.now().toString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      setCampaigns(prev => [...prev, newCampaign]);
-      return newCampaign;
-    } catch (err) {
-      console.error('Erro ao criar campanha:', err);
-      throw err;
+      const { data, error } = await supabase.functions.invoke('broadcast_campaign_manager', {
+        body: {
+          action: 'create_campaign',
+          ...campaignData,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success('Campanha criada com sucesso!');
+        await fetchCampaigns(); // Refresh list
+        return data.campaign;
+      } else {
+        throw new Error(data.error || 'Erro ao criar campanha');
+      }
+    } catch (err: any) {
+      console.error('Error creating campaign:', err);
+      toast.error(err.message || 'Erro ao criar campanha');
+      return null;
     }
   };
 
-  const updateCampaign = async (id: string, updates: Partial<BroadcastCampaign>) => {
+  const startCampaign = async (campaignId: string) => {
     try {
-      setCampaigns(prev => 
-        prev.map(campaign => 
-          campaign.id === id 
-            ? { ...campaign, ...updates, updated_at: new Date().toISOString() }
-            : campaign
-        )
-      );
-    } catch (err) {
-      console.error('Erro ao atualizar campanha:', err);
-      throw err;
-    }
-  };
+      const { data, error } = await supabase.functions.invoke('broadcast_campaign_manager', {
+        body: {
+          action: 'start_campaign',
+          campaign_id: campaignId,
+        }
+      });
 
-  const deleteCampaign = async (id: string) => {
-    try {
-      setCampaigns(prev => prev.filter(campaign => campaign.id !== id));
-    } catch (err) {
-      console.error('Erro ao deletar campanha:', err);
-      throw err;
-    }
-  };
+      if (error) throw error;
 
-  const startCampaign = async (id: string) => {
-    try {
-      await updateCampaign(id, { status: 'running' });
-      return true;
-    } catch (err) {
-      console.error('Erro ao iniciar campanha:', err);
+      if (data.success) {
+        toast.success(`Campanha iniciada com ${data.recipients_count} destinatários!`);
+        await fetchCampaigns(); // Refresh list
+        return true;
+      } else {
+        throw new Error(data.error || 'Erro ao iniciar campanha');
+      }
+    } catch (err: any) {
+      console.error('Error starting campaign:', err);
+      toast.error(err.message || 'Erro ao iniciar campanha');
       return false;
     }
   };
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, [user?.id]);
 
   return {
     campaigns,
@@ -133,8 +121,6 @@ export const useBroadcastCampaigns = () => {
     error,
     fetchCampaigns,
     createCampaign,
-    updateCampaign,
-    deleteCampaign,
-    startCampaign
+    startCampaign,
   };
 };

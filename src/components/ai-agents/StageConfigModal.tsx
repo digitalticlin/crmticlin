@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -53,62 +52,23 @@ export const StageConfigModal = ({
   }, [stage]);
 
   const formatPhoneNumber = (value: string) => {
-    // Remove todos os caracteres não numéricos
-    let numbers = value.replace(/\D/g, '');
+    // Remove tudo que não é número
+    const numbers = value.replace(/\D/g, '');
     
-    // Se está vazio, adiciona o prefixo brasileiro como padrão
-    if (numbers === '') {
-      return '55 ';
+    // Formata para +55 11 99999-9999
+    if (numbers.length >= 11) {
+      const formatted = numbers.substring(0, 13);
+      return `+${formatted.substring(0, 2)} ${formatted.substring(2, 4)} ${formatted.substring(4, 9)}-${formatted.substring(9, 13)}`;
+    } else if (numbers.length >= 2) {
+      return `+${numbers}`;
     }
     
-    // Se tem menos de 2 dígitos, garante que comece com 55
-    if (numbers.length < 2) {
-      numbers = '55';
-    }
-    
-    // Se começa com apenas 5, completa para 55
-    if (numbers.length === 1 && numbers === '5') {
-      numbers = '55';
-    }
-    
-    // Formatação baseada no tamanho
-    if (numbers.length <= 2) {
-      return numbers;
-    } else if (numbers.length <= 4) {
-      // 55 (XX
-      return `${numbers.substring(0, 2)} (${numbers.substring(2)}`;
-    } else if (numbers.length <= 8) {
-      // 55 (XX) XXXX
-      return `${numbers.substring(0, 2)} (${numbers.substring(2, 4)}) ${numbers.substring(4)}`;
-    } else if (numbers.length <= 9) {
-      // 55 (XX) XXXX-X
-      return `${numbers.substring(0, 2)} (${numbers.substring(2, 4)}) ${numbers.substring(4, 8)}-${numbers.substring(8)}`;
-    } else if (numbers.length <= 10) {
-      // 55 (XX) XXXX-XX ou 55 (XX) XXXXX (dependendo se é celular com 9 dígitos)
-      const areaCode = numbers.substring(2, 4);
-      const restNumber = numbers.substring(4);
-      
-      if (restNumber.length === 6) {
-        // Número fixo: 55 (XX) XXXX-XX
-        return `${numbers.substring(0, 2)} (${areaCode}) ${restNumber.substring(0, 4)}-${restNumber.substring(4)}`;
-      } else {
-        // Celular sem 9: 55 (XX) XXXXX
-        return `${numbers.substring(0, 2)} (${areaCode}) ${restNumber}`;
-      }
-    } else if (numbers.length <= 11) {
-      // 55 (XX) XXXXX-X
-      return `${numbers.substring(0, 2)} (${numbers.substring(2, 4)}) ${numbers.substring(4, 9)}-${numbers.substring(9)}`;
-    } else {
-      // 55 (XX) XXXXX-XXXX (máximo)
-      return `${numbers.substring(0, 2)} (${numbers.substring(2, 4)}) ${numbers.substring(4, 9)}-${numbers.substring(9, 13)}`;
-    }
+    return value;
   };
 
   const validatePhone = (phone: string) => {
     const numbers = phone.replace(/\D/g, '');
-    // Validar se tem pelo menos 10 dígitos (55 + DDD + número mínimo)
-    // e no máximo 13 dígitos (55 + DDD + celular com 9 dígitos)
-    return numbers.length >= 10 && numbers.length <= 13;
+    return numbers.length >= 11; // Mínimo: +55 11 99999999
   };
 
   const handlePhoneChange = (value: string) => {
@@ -129,7 +89,7 @@ export const StageConfigModal = ({
 
     if (formData.ai_notify_enabled && !validatePhone(formData.notify_phone)) {
       toast.error('Telefone inválido', {
-        description: 'Digite um telefone válido no formato 55 (XX) XXXXX-XXXX',
+        description: 'Digite um telefone válido no formato +55 11 99999-9999',
       });
       return;
     }
@@ -299,13 +259,13 @@ export const StageConfigModal = ({
                     id="notify_phone"
                     value={formData.notify_phone}
                     onChange={(e) => handlePhoneChange(e.target.value)}
-                    placeholder="55 (62) 99999-9999"
+                    placeholder="+55 11 99999-9999"
                     className="bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-lg"
                   />
                   {formData.notify_phone && !validatePhone(formData.notify_phone) && (
                     <div className="flex items-center gap-2 text-xs text-red-600">
                       <AlertCircle className="h-3 w-3" />
-                      Digite um telefone válido (formato: 55 XX XXXXX-XXXX)
+                      Digite um telefone válido (mínimo 11 dígitos)
                     </div>
                   )}
                   

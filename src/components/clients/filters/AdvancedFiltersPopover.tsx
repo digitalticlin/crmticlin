@@ -1,226 +1,154 @@
-
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
-import { X, Filter, Calendar } from "lucide-react";
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-
-interface FilterState {
-  tags: string[];
-  funnelStage: string;
-  dateRange: {
-    from?: Date;
-    to?: Date;
-  };
-  source: string;
-  value: {
-    min?: number;
-    max?: number;
-  };
-}
+import { useState } from 'react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Filter, X, RotateCcw } from 'lucide-react';
+import { FilterByTags } from './FilterByTags';
+import { FilterByCompany } from './FilterByCompany';
+import { FilterByUser } from './FilterByUser';
+import { FilterByFunnelStage } from './FilterByFunnelStage';
+import { FilterByDate } from './FilterByDate';
+import { useAdvancedFilters } from '@/hooks/clients/useAdvancedFilters';
 
 interface AdvancedFiltersPopoverProps {
-  onFiltersChange: (filters: FilterState) => void;
-  currentFilters: FilterState;
+  children?: React.ReactNode;
 }
 
-export const AdvancedFiltersPopover = ({
-  onFiltersChange,
-  currentFilters
-}: AdvancedFiltersPopoverProps) => {
-  const { user } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
-  const [localFilters, setLocalFilters] = useState<FilterState>(currentFilters);
-
-  const updateFilter = (key: keyof FilterState, value: any) => {
-    const newFilters = { ...localFilters, [key]: value };
-    setLocalFilters(newFilters);
-  };
-
-  const applyFilters = () => {
-    onFiltersChange(localFilters);
-    setIsOpen(false);
-  };
-
-  const clearFilters = () => {
-    const emptyFilters: FilterState = {
-      tags: [],
-      funnelStage: '',
-      dateRange: {},
-      source: '',
-      value: {}
-    };
-    setLocalFilters(emptyFilters);
-    onFiltersChange(emptyFilters);
-    setIsOpen(false);
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    const newTags = localFilters.tags.filter(tag => tag !== tagToRemove);
-    updateFilter('tags', newTags);
-  };
-
-  const hasActiveFilters = () => {
-    return localFilters.tags.length > 0 ||
-           localFilters.funnelStage ||
-           localFilters.source ||
-           localFilters.value.min !== undefined ||
-           localFilters.value.max !== undefined ||
-           localFilters.dateRange.from ||
-           localFilters.dateRange.to;
-  };
+export const AdvancedFiltersPopover = ({ children }: AdvancedFiltersPopoverProps) => {
+  const {
+    isOpen,
+    setIsOpen,
+    hasActiveFilters,
+    activeFiltersCount,
+    filterSummary,
+    clearFilters,
+    removeFilter,
+    filterOptions,
+    isLoadingOptions
+  } = useAdvancedFilters();
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm"
-          className={`gap-2 ${hasActiveFilters() ? 'border-blue-500 bg-blue-50' : ''}`}
-        >
-          <Filter className="h-4 w-4" />
-          Filtros Avançados
-          {hasActiveFilters() && (
-            <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
-              {localFilters.tags.length + 
-               (localFilters.funnelStage ? 1 : 0) + 
-               (localFilters.source ? 1 : 0) +
-               (localFilters.value.min !== undefined || localFilters.value.max !== undefined ? 1 : 0) +
-               (localFilters.dateRange.from || localFilters.dateRange.to ? 1 : 0)}
-            </Badge>
-          )}
-        </Button>
+        {children || (
+          <Button 
+            variant="outline" 
+            size="sm"
+            className={`
+              flex items-center gap-2 rounded-xl backdrop-blur-sm border-white/40 hover:bg-white/30
+              ${hasActiveFilters 
+                ? 'bg-blue-100/50 text-blue-800 border-blue-400/40' 
+                : 'bg-white/20 text-gray-800'
+              }
+            `}
+          >
+            <Filter className="h-4 w-4" />
+            Filtros
+            {activeFiltersCount > 0 && (
+              <Badge variant="secondary" className="h-5 w-5 p-0 text-xs">
+                {activeFiltersCount}
+              </Badge>
+            )}
+          </Button>
+        )}
       </PopoverTrigger>
-
-      <PopoverContent className="w-80 p-4" align="end">
-        <div className="space-y-4">
+      
+      <PopoverContent 
+        className="w-96 p-0 max-h-[80vh] flex flex-col overflow-hidden" 
+        align="start"
+        side="bottom"
+        sideOffset={8}
+      >
+        {/* Header Simplificado */}
+        <div className="p-4 border-b bg-gray-50">
           <div className="flex items-center justify-between">
-            <h4 className="font-medium">Filtros Avançados</h4>
-            {hasActiveFilters() && (
+            <h3 className="font-semibold text-gray-900">Filtros</h3>
+            {hasActiveFilters && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="text-xs"
+                className="h-8 px-2 text-gray-500 hover:text-gray-700"
               >
-                Limpar todos
+                <RotateCcw className="h-4 w-4 mr-1" />
+                Limpar
               </Button>
             )}
           </div>
 
-          {/* Tags Filter */}
-          <div className="space-y-2">
-            <Label>Tags</Label>
-            <div className="flex flex-wrap gap-1">
-              {localFilters.tags.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="secondary"
-                  className="text-xs cursor-pointer hover:bg-red-100"
-                  onClick={() => removeTag(tag)}
-                >
-                  {tag}
-                  <X className="h-3 w-3 ml-1" />
-                </Badge>
-              ))}
+          {/* Resumo dos Filtros Ativos - Mais Compacto */}
+          {hasActiveFilters && (
+            <div className="mt-3">
+              <div className="flex flex-wrap gap-1">
+                {filterSummary.activeFilters.map((filter, index) => (
+                  <Badge 
+                    key={index}
+                    variant="secondary" 
+                    className="text-xs flex items-center gap-1"
+                  >
+                    <span className="truncate max-w-24">{filter.label}: {filter.value}</span>
+                    <button
+                      onClick={() => removeFilter(filter.type)}
+                      className="hover:bg-gray-200 rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
             </div>
-            <Input
-              placeholder="Adicionar tag..."
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  const value = (e.target as HTMLInputElement).value.trim();
-                  if (value && !localFilters.tags.includes(value)) {
-                    updateFilter('tags', [...localFilters.tags, value]);
-                    (e.target as HTMLInputElement).value = '';
-                  }
-                }
-              }}
+          )}
+        </div>
+
+        {/* Filtros Simplificados */}
+        <div className="overflow-y-auto flex-grow p-4">
+          <div className="space-y-6">
+            {/* 1. Tags */}
+            <FilterByTags 
+              tags={filterOptions?.tags || []}
+              isLoading={isLoadingOptions}
+            />
+
+            {/* 2. Empresa */}
+            <FilterByCompany 
+              companies={filterOptions?.companies || []}
+              isLoading={isLoadingOptions}
+            />
+
+            {/* 3. Data de Criação */}
+            <FilterByDate />
+
+            {/* 4. Usuário Responsável */}
+            <FilterByUser 
+              users={filterOptions?.responsibleUsers || []}
+              isLoading={isLoadingOptions}
+            />
+
+            {/* 5. Etapas de Funil */}
+            <FilterByFunnelStage 
+              stages={filterOptions?.funnelStages || []}
+              isLoading={isLoadingOptions}
             />
           </div>
+        </div>
 
-          {/* Funnel Stage Filter */}
-          <div className="space-y-2">
-            <Label>Etapa do Funil</Label>
-            <Select
-              value={localFilters.funnelStage}
-              onValueChange={(value) => updateFilter('funnelStage', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar etapa" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Todas as etapas</SelectItem>
-                <SelectItem value="lead">Lead</SelectItem>
-                <SelectItem value="qualified">Qualificado</SelectItem>
-                <SelectItem value="proposal">Proposta</SelectItem>
-                <SelectItem value="negotiation">Negociação</SelectItem>
-                <SelectItem value="won">Ganho</SelectItem>
-                <SelectItem value="lost">Perdido</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Source Filter */}
-          <div className="space-y-2">
-            <Label>Origem</Label>
-            <Select
-              value={localFilters.source}
-              onValueChange={(value) => updateFilter('source', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar origem" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Todas as origens</SelectItem>
-                <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                <SelectItem value="website">Site</SelectItem>
-                <SelectItem value="social">Redes Sociais</SelectItem>
-                <SelectItem value="referral">Indicação</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Value Range Filter */}
-          <div className="space-y-2">
-            <Label>Valor do Negócio</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="number"
-                placeholder="Mín"
-                value={localFilters.value.min || ''}
-                onChange={(e) => updateFilter('value', {
-                  ...localFilters.value,
-                  min: e.target.value ? Number(e.target.value) : undefined
-                })}
-              />
-              <Input
-                type="number"
-                placeholder="Máx"
-                value={localFilters.value.max || ''}
-                onChange={(e) => updateFilter('value', {
-                  ...localFilters.value,
-                  max: e.target.value ? Number(e.target.value) : undefined
-                })}
-              />
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-2">
-            <Button onClick={applyFilters} className="flex-1">
-              Aplicar Filtros
-            </Button>
+        {/* Footer Simplificado */}
+        <div className="p-4 border-t bg-gray-50">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">
+              {activeFiltersCount} {activeFiltersCount === 1 ? 'filtro ativo' : 'filtros ativos'}
+            </span>
             <Button
-              variant="outline"
+              size="sm"
               onClick={() => setIsOpen(false)}
-              className="flex-1"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              Cancelar
+              Aplicar Filtros
             </Button>
           </div>
         </div>

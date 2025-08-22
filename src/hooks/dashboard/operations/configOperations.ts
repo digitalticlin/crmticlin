@@ -7,11 +7,11 @@ export const configOperations = {
   async loadConfig(userId: string, companyId: string): Promise<DashboardConfig | null> {
     console.log("=== LOADING CONFIG ===");
     
-    const loadedConfig = await dashboardConfigService.getDashboardConfig(userId);
+    const loadedConfig = await dashboardConfigService.getConfig(userId);
     
-    if (loadedConfig && validateConfig(loadedConfig)) {
+    if (loadedConfig && validateConfig(loadedConfig.layoutConfig)) {
       console.log("✅ Config loaded:", loadedConfig);
-      return loadedConfig;
+      return loadedConfig.layoutConfig;
     }
     
     console.log("ℹ️ No valid config found");
@@ -20,7 +20,7 @@ export const configOperations = {
 
   async createInitialConfig(userId: string, companyId: string): Promise<DashboardConfig> {
     console.log("🔨 Creating initial config");
-    await dashboardConfigService.saveDashboardConfig(userId, defaultConfig);
+    await dashboardConfigService.saveConfig(userId, defaultConfig);
     console.log("✅ Initial config created");
     return defaultConfig;
   },
@@ -40,7 +40,7 @@ export const configOperations = {
         setSaving(true);
         try {
           console.log("💾 Saving config");
-          await dashboardConfigService.saveDashboardConfig(userId, configToSave);
+          await dashboardConfigService.saveConfig(userId, configToSave);
           console.log("✅ Config saved");
           if (lastSaveAtRef) {
             lastSaveAtRef.current = Date.now();
@@ -48,7 +48,7 @@ export const configOperations = {
         } catch (error) {
           console.error("❌ Save error:", error);
         } finally {
-          setSaving(false);  
+          setSaving(false);
         }
       }, 500);
     };
