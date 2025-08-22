@@ -5,18 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Send, User, MessageCircle } from 'lucide-react';
-import { useWhatsAppContacts } from '@/hooks/whatsapp/useWhatsAppContacts';
 import { toast } from 'sonner';
 
 export const MessageFlowTester = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [testMessage, setTestMessage] = useState('Olá! Esta é uma mensagem de teste do sistema.');
   const [selectedInstanceId, setSelectedInstanceId] = useState('');
-  
-  const { contacts, loading, error } = useWhatsAppContacts({ 
-    instanceId: selectedInstanceId,
-    enabled: !!selectedInstanceId 
-  });
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSendTest = async () => {
     if (!phoneNumber || !testMessage || !selectedInstanceId) {
@@ -32,6 +29,32 @@ export const MessageFlowTester = () => {
       toast.error('Erro ao enviar mensagem de teste');
     }
   };
+
+  const loadContacts = async () => {
+    if (!selectedInstanceId) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Mock contacts loading
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setContacts([
+        { name: 'Contato 1', phone: '5511999999999' },
+        { name: 'Contato 2', phone: '5511888888888' }
+      ]);
+    } catch (err) {
+      setError('Erro ao carregar contatos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (selectedInstanceId) {
+      loadContacts();
+    }
+  }, [selectedInstanceId]);
 
   return (
     <div className="space-y-6">

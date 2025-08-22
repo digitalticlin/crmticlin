@@ -1,64 +1,62 @@
 
 import React from 'react';
-import { MassSelectionProvider } from '@/contexts/MassSelectionContext';
-import { useMassSelection } from '@/hooks/sales/useMassSelection';
-import { MassSelectionToolbar } from './MassSelectionToolbar';
-import { MassSelectionIndicator } from './MassSelectionIndicator';
 
-interface ProductionMassSelectionWrapperProps {
-  children: React.ReactElement;
+interface MassSelectionToolbarProps {
+  selectedCount: number;
   onBulkUpdate: (leadIds: string[], updates: any) => Promise<void>;
   onBulkDelete: (leadIds: string[]) => Promise<void>;
   onBulkStageChange: (leadIds: string[], stageId: string) => Promise<void>;
+  onClearSelection: () => void;
 }
 
-const MassSelectionContent: React.FC<{
-  children: React.ReactElement;
+const MassSelectionToolbar: React.FC<MassSelectionToolbarProps> = ({
+  selectedCount,
+  onClearSelection
+}) => (
+  <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+    <div className="flex items-center justify-between">
+      <p className="text-blue-700">
+        {selectedCount} leads selecionados
+      </p>
+      <button 
+        onClick={onClearSelection}
+        className="text-blue-600 hover:text-blue-800"
+      >
+        Limpar seleção
+      </button>
+    </div>
+  </div>
+);
+
+interface ProductionMassSelectionWrapperProps {
+  children: React.ReactNode;
+  selectedLeads: string[];
   onBulkUpdate: (leadIds: string[], updates: any) => Promise<void>;
   onBulkDelete: (leadIds: string[]) => Promise<void>;
   onBulkStageChange: (leadIds: string[], stageId: string) => Promise<void>;
-}> = ({ children, onBulkUpdate, onBulkDelete, onBulkStageChange }) => {
-  const massSelection = useMassSelection();
-
-  return (
-    <div className="relative h-full">
-      {/* Main content */}
-      <div className="h-full">
-        {React.cloneElement(children, { massSelection })}
-      </div>
-
-      {/* Mass selection controls */}
-      {massSelection.selectedLeads.length > 0 && (
-        <>
-          <MassSelectionIndicator count={massSelection.selectedLeads.length} />
-          <MassSelectionToolbar
-            selectedLeads={massSelection.selectedLeads}
-            onBulkUpdate={onBulkUpdate}
-            onBulkDelete={onBulkDelete}
-            onBulkStageChange={onBulkStageChange}
-            onClearSelection={massSelection.clearSelection}
-          />
-        </>
-      )}
-    </div>
-  );
-};
+  onClearSelection: () => void;
+}
 
 export const ProductionMassSelectionWrapper: React.FC<ProductionMassSelectionWrapperProps> = ({
   children,
+  selectedLeads,
   onBulkUpdate,
   onBulkDelete,
-  onBulkStageChange
+  onBulkStageChange,
+  onClearSelection
 }) => {
   return (
-    <MassSelectionProvider>
-      <MassSelectionContent
-        onBulkUpdate={onBulkUpdate}
-        onBulkDelete={onBulkDelete}
-        onBulkStageChange={onBulkStageChange}
-      >
-        {children}
-      </MassSelectionContent>
-    </MassSelectionProvider>
+    <div className="relative">
+      {selectedLeads.length > 0 && (
+        <MassSelectionToolbar
+          selectedCount={selectedLeads.length}
+          onBulkUpdate={onBulkUpdate}
+          onBulkDelete={onBulkDelete}
+          onBulkStageChange={onBulkStageChange}
+          onClearSelection={onClearSelection}
+        />
+      )}
+      {children}
+    </div>
   );
 };

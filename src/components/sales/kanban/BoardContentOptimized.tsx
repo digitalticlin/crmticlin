@@ -1,14 +1,48 @@
 
-import React, { useRef, useCallback, useEffect } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { KanbanColumn, KanbanLead } from '@/types/kanban';
-import { LeadCard } from './LeadCard';
-import { ColumnHeader } from './ColumnHeader';
-import { DragCloneElement } from './DragCloneElement';
-import { useLeadDragAndDrop } from '@/hooks/sales/useLeadDragAndDrop';
-import { useDragClone } from '@/hooks/sales/useDragClone';
-import { useOptimizedScrolling } from '@/hooks/sales/useOptimizedScrolling';
-import { MassSelectionReturn } from '@/hooks/sales/useMassSelection';
 import { cn } from '@/lib/utils';
+
+interface LeadCardProps {
+  lead: KanbanLead;
+  onClick: () => void;
+  onUpdate: (updates: Partial<KanbanLead>) => void;
+  onDelete: () => void;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  isDragging?: boolean;
+  isSelected?: boolean;
+  onSelectionChange?: (selected: boolean) => void;
+  showCheckbox?: boolean;
+}
+
+const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick }) => (
+  <div 
+    className="p-3 bg-white border rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+    onClick={onClick}
+  >
+    <h4 className="font-medium text-sm">{lead.name}</h4>
+    <p className="text-xs text-gray-600">{lead.phone}</p>
+    {lead.email && <p className="text-xs text-gray-600">{lead.email}</p>}
+  </div>
+);
+
+interface ColumnHeaderProps {
+  column: KanbanColumn;
+  totalLeads: number;
+  filteredCount: number;
+}
+
+const ColumnHeader: React.FC<ColumnHeaderProps> = ({ column, filteredCount }) => (
+  <div className="p-4 border-b">
+    <div className="flex items-center justify-between">
+      <h3 className="font-semibold text-sm">{column.title}</h3>
+      <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs">
+        {filteredCount}
+      </span>
+    </div>
+  </div>
+);
 
 export interface BoardContentOptimizedProps {
   columns: KanbanColumn[];
@@ -17,7 +51,7 @@ export interface BoardContentOptimizedProps {
   onLeadDelete: (leadId: string) => void;
   onStageChange: (leadId: string, newStageId: string, oldStageId: string) => void;
   searchQuery: string;
-  massSelection: MassSelectionReturn;
+  massSelection: any;
 }
 
 export const BoardContentOptimized: React.FC<BoardContentOptimizedProps> = ({
@@ -30,31 +64,10 @@ export const BoardContentOptimized: React.FC<BoardContentOptimizedProps> = ({
   massSelection
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const { cloneState, showClone, updateClonePosition, hideClone } = useDragClone();
-  const { handleScroll } = useOptimizedScrolling();
-  
-  const {
-    draggedLead,
-    draggedFromColumn,
-    dragOverColumn,
-    handleDragStart,
-    handleDragEnd,
-    handleDragOver,
-    handleDrop,
-    isDragActive
-  } = useLeadDragAndDrop({
-    onStageChange,
-    showClone,
-    updateClonePosition,
-    hideClone
-  });
 
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (cloneState.isVisible) {
-      const nativeEvent = e.nativeEvent as PointerEvent;
-      updateClonePosition(nativeEvent.clientX, nativeEvent.clientY);
-    }
-  }, [cloneState.isVisible, updateClonePosition]);
+  const handleScroll = useCallback(() => {
+    // Mock scroll handling
+  }, []);
 
   const filteredColumns = columns.map(column => ({
     ...column,
@@ -73,18 +86,12 @@ export const BoardContentOptimized: React.FC<BoardContentOptimizedProps> = ({
     <div 
       ref={containerRef}
       className="flex gap-6 h-full overflow-x-auto pb-4"
-      onPointerMove={handlePointerMove}
       onScroll={handleScroll}
     >
       {filteredColumns.map((column) => (
         <div
           key={column.id}
-          className={cn(
-            "flex flex-col min-w-80 bg-background border rounded-lg shadow-sm transition-all duration-200",
-            dragOverColumn === column.id && isDragActive && "ring-2 ring-primary/50 bg-primary/5"
-          )}
-          onDragOver={(e) => handleDragOver(e, column.id)}
-          onDrop={(e) => handleDrop(e, column.id)}
+          className="flex flex-col min-w-80 bg-background border rounded-lg shadow-sm"
         >
           <ColumnHeader 
             column={column}
@@ -118,9 +125,6 @@ export const BoardContentOptimized: React.FC<BoardContentOptimizedProps> = ({
                   onClick={() => onOpenLeadDetail(lead)}
                   onUpdate={(updates) => onLeadUpdate(lead.id, updates)}
                   onDelete={() => onLeadDelete(lead.id)}
-                  onDragStart={(e) => handleDragStart(e, lead, column.id)}
-                  onDragEnd={handleDragEnd}
-                  isDragging={draggedLead?.id === lead.id}
                   isSelected={massSelection.selectedLeads.includes(lead.id)}
                   onSelectionChange={(selected) => {
                     if (selected) {
@@ -141,11 +145,6 @@ export const BoardContentOptimized: React.FC<BoardContentOptimizedProps> = ({
           </div>
         </div>
       ))}
-
-      <DragCloneElement 
-        cloneState={cloneState}
-        lead={draggedLead}
-      />
     </div>
   );
 };

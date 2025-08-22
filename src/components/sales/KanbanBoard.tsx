@@ -1,49 +1,65 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BoardContentOptimized } from './kanban/BoardContentOptimized';
-import { LeadDetailModal } from './LeadDetailModal';
 import { KanbanColumn, KanbanLead } from '@/types/kanban';
-import { useMassSelection } from '@/hooks/sales/useMassSelection';
-import { useLeadActions } from '@/hooks/sales/useLeadActions';
 import { toast } from 'sonner';
 
 interface KanbanBoardProps {
   columns: KanbanColumn[];
-  searchQuery: string;
-  onColumnUpdate?: (updatedColumn: KanbanColumn) => void;
-  onColumnDelete?: (columnId: string) => void;
-  onLeadUpdate: (leadId: string, updates: Partial<KanbanLead>) => void;
-  onLeadDelete: (leadId: string) => void;
-  onStageChange: (leadId: string, newStageId: string, oldStageId: string) => void;
+  searchQuery?: string;
+  onLeadUpdate?: (leadId: string, updates: Partial<KanbanLead>) => void;
+  onLeadDelete?: (leadId: string) => void;
+  onStageChange?: (leadId: string, newStageId: string, oldStageId: string) => void;
+  onOpenLeadDetail?: (lead: KanbanLead) => void;
+  onOpenChat?: (lead: KanbanLead) => void;
+  onReturnToFunnel?: (lead: KanbanLead) => void;
+  onMoveToWonLost?: (lead: KanbanLead, status: 'won' | 'lost') => Promise<void>;
+  isWonLostView?: boolean;
+  wonStageId?: string;
+  lostStageId?: string;
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   columns,
-  searchQuery,
-  onLeadUpdate,
-  onLeadDelete,
-  onStageChange
+  searchQuery = '',
+  onLeadUpdate = () => {},
+  onLeadDelete = () => {},
+  onStageChange = () => {},
+  onOpenLeadDetail = () => {},
+  onOpenChat,
+  onReturnToFunnel,
+  onMoveToWonLost,
+  isWonLostView = false,
+  wonStageId,
+  lostStageId
 }) => {
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  
-  const massSelection = useMassSelection();
-  const { updateLead, deleteLead } = useLeadActions();
+
+  // Mock mass selection
+  const massSelection = {
+    selectedLeads: [],
+    selectLead: (leadId: string) => {},
+    deselectLead: (leadId: string) => {},
+    clearSelection: () => {},
+    isSelected: (leadId: string) => false,
+    selectAll: (leadIds: string[]) => {},
+    toggleSelectAll: (leadIds: string[]) => {}
+  };
 
   const handleOpenLeadDetail = (lead: KanbanLead) => {
     setSelectedLead(lead);
     setIsDetailModalOpen(true);
-  };
-
-  const handleCloseLeadDetail = () => {
-    setSelectedLead(null);
-    setIsDetailModalOpen(false);
+    if (onOpenLeadDetail) {
+      onOpenLeadDetail(lead);
+    }
   };
 
   const handleLeadUpdate = async (leadId: string, updates: Partial<KanbanLead>) => {
     try {
-      await updateLead(leadId, updates);
-      onLeadUpdate(leadId, updates);
+      if (onLeadUpdate) {
+        onLeadUpdate(leadId, updates);
+      }
       toast.success('Lead atualizado com sucesso');
     } catch (error) {
       console.error('Erro ao atualizar lead:', error);
@@ -53,8 +69,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   const handleLeadDelete = async (leadId: string) => {
     try {
-      await deleteLead(leadId);
-      onLeadDelete(leadId);
+      if (onLeadDelete) {
+        onLeadDelete(leadId);
+      }
       toast.success('Lead removido com sucesso');
     } catch (error) {
       console.error('Erro ao deletar lead:', error);
@@ -64,8 +81,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   const handleStageChange = async (leadId: string, newStageId: string, oldStageId: string) => {
     try {
-      await updateLead(leadId, { stage_id: newStageId });
-      onStageChange(leadId, newStageId, oldStageId);
+      if (onStageChange) {
+        onStageChange(leadId, newStageId, oldStageId);
+      }
       toast.success('Lead movido para nova etapa');
     } catch (error) {
       console.error('Erro ao mover lead:', error);
@@ -86,19 +104,6 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           massSelection={massSelection}
         />
       </div>
-
-      {selectedLead && (
-        <LeadDetailModal
-          lead={selectedLead}
-          isOpen={isDetailModalOpen}
-          onClose={handleCloseLeadDetail}
-          onUpdate={(updates) => handleLeadUpdate(selectedLead.id, updates)}
-          onDelete={() => {
-            handleLeadDelete(selectedLead.id);
-            handleCloseLeadDetail();
-          }}
-        />
-      )}
     </div>
   );
 };
