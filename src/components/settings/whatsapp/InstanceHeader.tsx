@@ -1,63 +1,38 @@
 
-import { Phone, RefreshCcw } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { WhatsAppInstance } from "@/hooks/whatsapp/whatsappInstanceStore";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Smartphone, Wifi, WifiOff } from "lucide-react";
 
 interface InstanceHeaderProps {
-  instance: WhatsAppInstance;
-  onRefreshStatus?: () => Promise<void>;
-  isStatusLoading?: boolean;
+  instanceName: string;
+  connectionStatus: string;
+  phoneNumber?: string;
 }
 
-const InstanceHeader = ({ 
-  instance, 
-  onRefreshStatus,
-  isStatusLoading = false
-}: InstanceHeaderProps) => {
+const InstanceHeader = ({ instanceName, connectionStatus, phoneNumber }: InstanceHeaderProps) => {
+  const isConnected = connectionStatus === 'connected' || connectionStatus === 'open';
+
   return (
-    <div className="flex justify-between items-center mb-3">
-      <div>
-        <h4 className="font-medium">WhatsApp</h4>
-        <p className="text-sm text-muted-foreground">Instance: {instance.instanceName}</p>
-        {instance.connected && instance.phoneNumber && (
-          <div className="flex items-center mt-1 gap-1 text-green-600 dark:text-green-400">
-            <Phone className="w-3 h-3" />
-            <p className="text-xs font-medium">{instance.phoneNumber}</p>
-          </div>
-        )}
+    <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-blue-100 rounded-lg">
+          <Smartphone className="h-5 w-5 text-blue-600" />
+        </div>
+        <div>
+          <h3 className="font-semibold">{instanceName}</h3>
+          {phoneNumber && (
+            <p className="text-sm text-muted-foreground">{phoneNumber}</p>
+          )}
+        </div>
       </div>
+      
       <div className="flex items-center gap-2">
-        <Badge variant="outline" className={instance.connected ? 
-          "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400" : 
-          "bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400"}>
-          {instance.connected ? "Connected" : "Disconnected"}
-        </Badge>
-        
-        {onRefreshStatus && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6" 
-                  onClick={onRefreshStatus}
-                  disabled={isStatusLoading}
-                >
-                  <RefreshCcw 
-                    className={`h-3 w-3 ${isStatusLoading ? 'animate-spin' : ''}`} 
-                  />
-                  <span className="sr-only">Refresh Status</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Refresh connection status</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        {isConnected ? (
+          <Wifi className="h-5 w-5 text-green-500" />
+        ) : (
+          <WifiOff className="h-5 w-5 text-red-500" />
         )}
+        <span className={`text-sm font-medium ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
+          {isConnected ? 'Conectado' : 'Desconectado'}
+        </span>
       </div>
     </div>
   );
