@@ -1,343 +1,355 @@
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Contact } from '@/types/chat';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Contact } from '@/types/chat';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { X, Edit, Save, User, Phone, Mail, MapPin, Building, FileText, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
-import { 
-  User, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Building, 
-  FileText, 
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  Edit3,
-  Save,
-  X
-} from 'lucide-react';
 
 export interface LeadDetailsSidebarProps {
-  contact: Contact;
+  selectedContact?: Contact | null;
+  contact?: Contact;
   isOpen: boolean;
   onClose: () => void;
   onUpdateContact: (updatedContact: Contact) => void;
+  onContactUpdate?: (updatedContact: Contact) => void;
+  onLeadDetail?: (contact: Contact) => void;
 }
 
-export const LeadDetailsSidebar = ({ 
-  contact, 
-  isOpen, 
-  onClose, 
-  onUpdateContact 
+export const LeadDetailsSidebar = ({
+  selectedContact,
+  contact,
+  isOpen,
+  onClose,
+  onUpdateContact,
+  onContactUpdate,
+  onLeadDetail
 }: LeadDetailsSidebarProps) => {
-  const { user } = useAuth();
+  const currentContact = selectedContact || contact;
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [editData, setEditData] = useState({
-    name: contact.name || '',
-    email: contact.email || '',
-    address: contact.address || '',
-    company: contact.company || '',
-    notes: contact.notes || '',
-    purchaseValue: contact.purchaseValue || 0
-  });
+  const [editedContact, setEditedContact] = useState<Contact | null>(null);
 
   useEffect(() => {
-    setEditData({
-      name: contact.name || '',
-      email: contact.email || '',
-      address: contact.address || '',
-      company: contact.company || '',
-      notes: contact.notes || '',
-      purchaseValue: contact.purchaseValue || 0
-    });
-  }, [contact]);
+    if (currentContact) {
+      setEditedContact({ ...currentContact });
+    }
+  }, [currentContact]);
+
+  if (!currentContact) return null;
 
   const handleSave = async () => {
-    if (!user || !contact.id) return;
+    if (!editedContact) return;
 
-    setIsLoading(true);
     try {
-      const { error } = await supabase
-        .from('leads')
-        .update({
-          name: editData.name,
-          email: editData.email,
-          address: editData.address,
-          company: editData.company,
-          notes: editData.notes,
-          purchase_value: editData.purchaseValue,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', contact.id)
-        .eq('created_by_user_id', user.id);
-
-      if (error) throw error;
-
-      const updatedContact = {
-        ...contact,
-        name: editData.name,
-        email: editData.email,
-        address: editData.address,
-        company: editData.company,
-        notes: editData.notes,
-        purchaseValue: editData.purchaseValue
-      };
-
-      onUpdateContact(updatedContact);
+      // Call the appropriate update handler
+      if (onUpdateContact) {
+        onUpdateContact(editedContact);
+      }
+      if (onContactUpdate) {
+        onContactUpdate(editedContact);
+      }
+      
       setIsEditing(false);
       toast.success('Contato atualizado com sucesso!');
-    } catch (error: any) {
-      console.error('Erro ao atualizar contato:', error);
-      toast.error('Erro ao atualizar contato: ' + error.message);
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error('Error updating contact:', error);
+      toast.error('Erro ao atualizar contato');
     }
   };
 
   const handleCancel = () => {
-    setEditData({
-      name: contact.name || '',
-      email: contact.email || '',
-      address: contact.address || '',
-      company: contact.company || '',
-      notes: contact.notes || '',
-      purchaseValue: contact.purchaseValue || 0
-    });
+    setEditedContact(currentContact ? { ...currentContact } : null);
     setIsEditing(false);
   };
 
-  if (!isOpen) return null;
+  const handleInputChange = (field: keyof Contact, value: any) => {
+    if (!editedContact) return;
+    
+    setEditedContact({
+      ...editedContact,
+      [field]: value
+    });
+  };
 
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-gray-200 shadow-lg z-50 overflow-y-auto">
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Detalhes do Lead</h2>
+    <div className={`fixed right-0 top-0 h-full w-80 bg-white border-l shadow-lg transform transition-transform duration-300 ease-in-out z-50 ${
+      isOpen ? 'translate-x-0' : 'translate-x-full'
+    }`}>
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-lg font-semibold">Detalhes do Lead</h2>
           <div className="flex items-center gap-2">
             {!isEditing ? (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => setIsEditing(true)}
               >
-                <Edit3 className="w-4 h-4" />
+                <Edit className="h-4 w-4" />
               </Button>
             ) : (
-              <div className="flex gap-2">
+              <>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={handleCancel}
-                  disabled={isLoading}
                 >
-                  <X className="w-4 h-4" />
+                  Cancelar
                 </Button>
                 <Button
+                  variant="default"
                   size="sm"
                   onClick={handleSave}
-                  disabled={isLoading}
                 >
-                  <Save className="w-4 h-4" />
+                  <Save className="h-4 w-4 mr-1" />
+                  Salvar
                 </Button>
-              </div>
+              </>
             )}
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="w-4 h-4" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+            >
+              <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
-      </div>
 
-      <div className="p-4 space-y-6">
-        {/* Informações Básicas */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              Informações Básicas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome</Label>
-              {isEditing ? (
-                <Input
-                  id="name"
-                  value={editData.name}
-                  onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Nome do contato"
-                />
-              ) : (
-                <p className="text-sm text-gray-600">{contact.name || 'Não informado'}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Telefone</Label>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-gray-400" />
-                <p className="text-sm text-gray-600">{contact.phone}</p>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Profile Section */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center space-x-3">
+                <Avatar className="w-12 h-12">
+                  <AvatarImage src={currentContact.avatar || currentContact.profilePicUrl} />
+                  <AvatarFallback>
+                    {currentContact.name ? currentContact.name.charAt(0).toUpperCase() : currentContact.phone.slice(-2)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  {isEditing ? (
+                    <Input
+                      value={editedContact?.name || ''}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      placeholder="Nome do contato"
+                      className="font-medium"
+                    />
+                  ) : (
+                    <h3 className="font-medium text-lg">
+                      {currentContact.name || 'Sem nome'}
+                    </h3>
+                  )}
+                  <p className="text-sm text-gray-500">{currentContact.phone}</p>
+                </div>
               </div>
-            </div>
+            </CardHeader>
+          </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              {isEditing ? (
-                <Input
-                  id="email"
-                  type="email"
-                  value={editData.email}
-                  onChange={(e) => setEditData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="email@exemplo.com"
-                />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-gray-400" />
-                  <p className="text-sm text-gray-600">{contact.email || 'Não informado'}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Endereço</Label>
-              {isEditing ? (
-                <Input
-                  id="address"
-                  value={editData.address}
-                  onChange={(e) => setEditData(prev => ({ ...prev, address: e.target.value }))}
-                  placeholder="Endereço completo"
-                />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-gray-400" />
-                  <p className="text-sm text-gray-600">{contact.address || 'Não informado'}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="company">Empresa</Label>
-              {isEditing ? (
-                <Input
-                  id="company"
-                  value={editData.company}
-                  onChange={(e) => setEditData(prev => ({ ...prev, company: e.target.value }))}
-                  placeholder="Nome da empresa"
-                />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Building className="w-4 h-4 text-gray-400" />
-                  <p className="text-sm text-gray-600">{contact.company || 'Não informado'}</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Informações de Vendas */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              Informações de Vendas
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="purchaseValue">Valor Potencial</Label>
-              {isEditing ? (
-                <Input
-                  id="purchaseValue"
-                  type="number"
-                  value={editData.purchaseValue}
-                  onChange={(e) => setEditData(prev => ({ ...prev, purchaseValue: Number(e.target.value) }))}
-                  placeholder="0"
-                />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-gray-400" />
-                  <p className="text-sm text-gray-600">
-                    {contact.purchaseValue ? `R$ ${contact.purchaseValue.toLocaleString()}` : 'Não informado'}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {contact.funnelStage && (
-              <div className="space-y-2">
-                <Label>Estágio do Funil</Label>
-                <Badge variant="outline">{contact.funnelStage}</Badge>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Notas */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Observações
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isEditing ? (
-              <Textarea
-                value={editData.notes}
-                onChange={(e) => setEditData(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Adicione observações sobre este contato..."
-                rows={4}
-              />
-            ) : (
-              <p className="text-sm text-gray-600">
-                {contact.notes || 'Nenhuma observação adicionada'}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Informações de Atividade */}
-        {(contact.lastMessage || contact.createdAt) && (
+          {/* Contact Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Atividade
+              <CardTitle className="text-sm flex items-center">
+                <User className="h-4 w-4 mr-2" />
+                Informações de Contato
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {contact.lastMessage && (
-                <div>
-                  <Label className="text-xs text-gray-500">Última Mensagem</Label>
-                  <p className="text-sm text-gray-600 mt-1">{contact.lastMessage}</p>
-                  {contact.lastMessageTime && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      {new Date(contact.lastMessageTime).toLocaleString()}
-                    </p>
+              <div>
+                <Label className="text-xs text-gray-500">Telefone</Label>
+                <div className="flex items-center mt-1">
+                  <Phone className="h-4 w-4 mr-2 text-gray-400" />
+                  {isEditing ? (
+                    <Input
+                      value={editedContact?.phone || ''}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      placeholder="Telefone"
+                    />
+                  ) : (
+                    <span className="text-sm">{currentContact.phone}</span>
                   )}
                 </div>
-              )}
-              
-              {contact.createdAt && (
-                <div>
-                  <Label className="text-xs text-gray-500">Primeiro Contato</Label>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {new Date(contact.createdAt).toLocaleString()}
-                  </p>
+              </div>
+
+              <div>
+                <Label className="text-xs text-gray-500">Email</Label>
+                <div className="flex items-center mt-1">
+                  <Mail className="h-4 w-4 mr-2 text-gray-400" />
+                  {isEditing ? (
+                    <Input
+                      value={editedContact?.email || ''}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      placeholder="Email"
+                      type="email"
+                    />
+                  ) : (
+                    <span className="text-sm">{currentContact.email || 'Não informado'}</span>
+                  )}
                 </div>
+              </div>
+
+              <div>
+                <Label className="text-xs text-gray-500">Endereço</Label>
+                <div className="flex items-center mt-1">
+                  <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                  {isEditing ? (
+                    <Input
+                      value={editedContact?.address || ''}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      placeholder="Endereço"
+                    />
+                  ) : (
+                    <span className="text-sm">{currentContact.address || 'Não informado'}</span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs text-gray-500">Empresa</Label>
+                <div className="flex items-center mt-1">
+                  <Building className="h-4 w-4 mr-2 text-gray-400" />
+                  {isEditing ? (
+                    <Input
+                      value={editedContact?.company || ''}
+                      onChange={(e) => handleInputChange('company', e.target.value)}
+                      placeholder="Empresa"
+                    />
+                  ) : (
+                    <span className="text-sm">{currentContact.company || 'Não informado'}</span>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Business Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Informações Comerciais
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label className="text-xs text-gray-500">Valor de Compra</Label>
+                <div className="flex items-center mt-1">
+                  {isEditing ? (
+                    <Input
+                      value={editedContact?.purchaseValue || ''}
+                      onChange={(e) => handleInputChange('purchaseValue', parseFloat(e.target.value) || 0)}
+                      placeholder="0.00"
+                      type="number"
+                      step="0.01"
+                    />
+                  ) : (
+                    <span className="text-sm">
+                      {currentContact.purchaseValue 
+                        ? `R$ ${currentContact.purchaseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
+                        : 'Não informado'
+                      }
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs text-gray-500">Responsável</Label>
+                <div className="flex items-center mt-1">
+                  <User className="h-4 w-4 mr-2 text-gray-400" />
+                  {isEditing ? (
+                    <Input
+                      value={editedContact?.assignedUser || ''}
+                      onChange={(e) => handleInputChange('assignedUser', e.target.value)}
+                      placeholder="Responsável"
+                    />
+                  ) : (
+                    <span className="text-sm">{currentContact.assignedUser || 'Não atribuído'}</span>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Notes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center">
+                <FileText className="h-4 w-4 mr-2" />
+                Observações
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isEditing ? (
+                <Textarea
+                  value={editedContact?.notes || ''}
+                  onChange={(e) => handleInputChange('notes', e.target.value)}
+                  placeholder="Adicione observações sobre este lead..."
+                  rows={4}
+                />
+              ) : (
+                <p className="text-sm text-gray-600">
+                  {currentContact.notes || 'Nenhuma observação adicionada'}
+                </p>
               )}
             </CardContent>
           </Card>
-        )}
+
+          {/* Tags */}
+          {currentContact.tags && currentContact.tags.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Tags</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {currentContact.tags.map((tag, index) => (
+                    <Badge key={index} variant="secondary">
+                      {tag.name}
+                    </Badge>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Activity Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Resumo de Atividade</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Última mensagem:</span>
+                <span>
+                  {currentContact.lastMessageTime 
+                    ? new Date(currentContact.lastMessageTime).toLocaleDateString('pt-BR')
+                    : 'Nunca'
+                  }
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Mensagens não lidas:</span>
+                <span>{currentContact.unreadCount || 0}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Criado em:</span>
+                <span>
+                  {currentContact.createdAt 
+                    ? new Date(currentContact.createdAt).toLocaleDateString('pt-BR')
+                    : 'Não informado'
+                  }
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

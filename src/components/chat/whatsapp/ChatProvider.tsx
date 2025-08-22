@@ -11,6 +11,7 @@ interface ChatContextType {
   setSelectedContact: (contact: Contact | null) => void;
   refreshContacts: () => Promise<void>;
   refreshMessages: () => Promise<void>;
+  setOptimisticMessage: (message: Message) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -35,7 +36,6 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const refreshContacts = async () => {
-    // Implementation would fetch contacts from your API/database
     setIsLoading(true);
     try {
       // Your contacts fetching logic here
@@ -59,6 +59,10 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     }
   };
 
+  const setOptimisticMessage = (message: Message) => {
+    setMessages(prevMessages => [...prevMessages, message]);
+  };
+
   useEffect(() => {
     if (user) {
       refreshContacts();
@@ -78,7 +82,8 @@ export const ChatProvider = ({ children }: ChatProviderProps) => {
     isLoading,
     setSelectedContact,
     refreshContacts,
-    refreshMessages
+    refreshMessages,
+    setOptimisticMessage
   };
 
   return (

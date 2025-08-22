@@ -17,24 +17,37 @@ export const WhatsAppChatPage = () => {
     instanceHealth
   } = useWhatsAppChat();
 
+  const handleSendMessage = async (message: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
+    try {
+      // Implementation would handle message sending
+      console.log('Sending message:', { message, mediaType, mediaUrl });
+      return true;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      return false;
+    }
+  };
+
   return (
     <WhatsAppChatLayout
       contacts={contacts}
       selectedContact={selectedContact}
       onSelectContact={setSelectedContact}
       messages={messages}
+      onSendMessage={handleSendMessage}
       isLoadingContacts={isLoadingContacts}
-      isLoadingMessages={isLoadingMessages}
-      onRefreshContacts={refreshContacts}
-      onRefreshMessages={refreshMessages}
-      onMarkAsRead={markAsRead}
-      instanceHealth={instanceHealth}
-      searchTerm=""
-      onSearchChange={() => {}}
+      isLoadingMoreContacts={false}
       hasMoreContacts={false}
+      onLoadMoreContacts={async () => {}},
+      isLoadingMessages={isLoadingMessages}
+      isLoadingMore={false}
       hasMoreMessages={false}
-      onLoadMoreContacts={async () => {}}
-      onLoadMoreMessages={async () => {}}
+      onLoadMoreMessages={async () => {}},
+      isSending={false}
+      onRefreshMessages={refreshMessages}
+      onRefreshContacts={refreshContacts}
+      totalContactsAvailable={contacts.length}
+      onSearchContacts={async () => {}}
     />
   );
 };

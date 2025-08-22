@@ -9,13 +9,27 @@ export interface WhatsAppContactsListProps {
   selectedContact: Contact | null;
   onSelectContact: (contact: Contact) => void;
   isLoading?: boolean;
+  isLoadingMore?: boolean;
+  hasMoreContacts?: boolean;
+  onLoadMoreContacts?: () => Promise<void>;
+  onRefreshContacts?: () => void;
+  totalContactsAvailable?: number;
+  onSearch?: (query: string) => Promise<void>;
+  onEditLead?: () => void;
 }
 
 export const WhatsAppContactsList = ({
   contacts,
   selectedContact,
   onSelectContact,
-  isLoading = false
+  isLoading = false,
+  isLoadingMore = false,
+  hasMoreContacts = false,
+  onLoadMoreContacts,
+  onRefreshContacts,
+  totalContactsAvailable = 0,
+  onSearch,
+  onEditLead
 }: WhatsAppContactsListProps) => {
   if (isLoading) {
     return (

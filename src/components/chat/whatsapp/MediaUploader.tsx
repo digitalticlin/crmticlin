@@ -13,13 +13,13 @@ import {
 } from 'lucide-react';
 
 interface MediaUploaderProps {
-  onMediaSelect: (file: File, type: 'image' | 'video' | 'document') => void;
+  onMediaUpload: (file: File) => Promise<void>;
   disabled?: boolean;
   maxFileSize?: number; // in MB
 }
 
 export const MediaUploader = ({ 
-  onMediaSelect, 
+  onMediaUpload, 
   disabled = false,
   maxFileSize = 10 
 }: MediaUploaderProps) => {
@@ -27,7 +27,7 @@ export const MediaUploader = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -35,14 +35,6 @@ export const MediaUploader = ({
     if (file.size > maxFileSize * 1024 * 1024) {
       toast.error(`Arquivo muito grande. Máximo ${maxFileSize}MB`);
       return;
-    }
-
-    // Determine file type
-    let mediaType: 'image' | 'video' | 'document' = 'document';
-    if (file.type.startsWith('image/')) {
-      mediaType = 'image';
-    } else if (file.type.startsWith('video/')) {
-      mediaType = 'video';
     }
 
     // Simulate upload progress
@@ -54,7 +46,7 @@ export const MediaUploader = ({
         if (prev >= 100) {
           clearInterval(interval);
           setIsUploading(false);
-          onMediaSelect(file, mediaType);
+          onMediaUpload(file);
           return 100;
         }
         return prev + 10;
