@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,7 @@ export const AIAgentForm = ({ agent, onSubmit, onCancel }: AIAgentFormProps) => 
     whatsapp_number_id: agent?.whatsapp_number_id || null,
   });
   const [funnels, setFunnels] = useState<Funnel[]>([]);
-  const [instances, setInstances] = useState<AIAgent[]>([]);
+  const [instances, setInstances] = useState<Array<{id: string; instance_name: string}>>([]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -42,8 +43,8 @@ export const AIAgentForm = ({ agent, onSubmit, onCancel }: AIAgentFormProps) => 
     const fetchData = async () => {
       try {
         const [funnelsData, instancesData] = await Promise.all([
-          supabase.from('funnels').select('id, name'),
-          supabase.from('whatsapp_instances').select('id, name, phone_number, status')
+          supabase.from('funnels').select('*'),
+          supabase.from('whatsapp_instances').select('id, instance_name')
         ]);
 
         if (funnelsData.data) {
@@ -51,20 +52,7 @@ export const AIAgentForm = ({ agent, onSubmit, onCancel }: AIAgentFormProps) => 
         }
 
         if (instancesData.data) {
-          // Corrigido: mapear para o formato correto de AIAgent
-          const mappedInstances = instancesData.data.map(instance => ({
-            id: instance.id,
-            name: instance.name,
-            type: 'attendance' as const,
-            status: 'active' as const,
-            funnel_id: null,
-            whatsapp_number_id: instance.id,
-            messages_count: 0,
-            created_by_user_id: '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }));
-          setInstances(mappedInstances);
+          setInstances(instancesData.data);
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -129,7 +117,7 @@ export const AIAgentForm = ({ agent, onSubmit, onCancel }: AIAgentFormProps) => 
             <SelectItem value="null">Nenhuma</SelectItem>
             {instances.map((instance) => (
               <SelectItem key={instance.id} value={instance.id}>
-                {instance.name} ({instance.whatsapp_number_id})
+                {instance.instance_name}
               </SelectItem>
             ))}
           </SelectContent>

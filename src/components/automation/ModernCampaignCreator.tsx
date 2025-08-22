@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@/hooks/auth/useUser';
 import { supabase } from '@/integrations/supabase/client';
-import { Contact } from '@/types/chat';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +19,12 @@ import {
 import { CalendarIcon } from "lucide-react";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+interface Lead {
+  id: string;
+  name: string;
+  phone: string;
+}
 
 interface CampaignData {
   name: string;
@@ -48,7 +52,6 @@ interface CampaignData {
 
 export const ModernCampaignCreator = () => {
   const navigate = useNavigate();
-  const { user } = useUser();
   const [campaignData, setCampaignData] = useState<CampaignData>({
     name: '',
     message: {
@@ -70,21 +73,21 @@ export const ModernCampaignCreator = () => {
     targets: [],
   });
 
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [instances, setInstances] = useState<{ id: string; name: string }[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [instances, setInstances] = useState<{ id: string; instance_name: string }[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [date, setDate] = React.useState<Date | undefined>(new Date())
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [contactsData, instancesData] = await Promise.all([
-          supabase.from('contacts').select('id, name, phone'),
-          supabase.from('whatsapp_instances').select('id, name')
+        const [leadsData, instancesData] = await Promise.all([
+          supabase.from('leads').select('id, name, phone'),
+          supabase.from('whatsapp_instances').select('id, instance_name')
         ]);
 
-        if (contactsData.data) {
-          setContacts(contactsData.data);
+        if (leadsData.data) {
+          setLeads(leadsData.data);
         }
 
         if (instancesData.data) {
@@ -181,18 +184,18 @@ export const ModernCampaignCreator = () => {
     }));
   };
 
-  const handleContactSelect = (contactId: string) => {
+  const handleLeadSelect = (leadId: string) => {
     setCampaignData(prev => {
       const targets = [...prev.targets];
-      if (targets.includes(contactId)) {
+      if (targets.includes(leadId)) {
         return {
           ...prev,
-          targets: targets.filter(id => id !== contactId),
+          targets: targets.filter(id => id !== leadId),
         };
       } else {
         return {
           ...prev,
-          targets: [...targets, contactId],
+          targets: [...targets, leadId],
         };
       }
     });
@@ -205,23 +208,25 @@ export const ModernCampaignCreator = () => {
     }
 
     if (campaignData.targets.length === 0) {
-      toast.error('Selecione pelo menos um contato');
+      toast.error('Selecione pelo menos um lead');
       return;
     }
 
     setIsSending(true);
     
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      
       const campaignPayload = {
         name: campaignData.name,
         message_text: campaignData.message.text,
         message_media_url: campaignData.message.mediaUrl,
-        message_media_type: campaignData.message.mediaType as "text", // Corrigido: forçar tipo text
+        message_media_type: campaignData.message.mediaType as "text",
         target_type: campaignData.targetType,
         target_config: campaignData.targetConfig,
         whatsapp_instance_id: campaignData.whatsappInstanceId,
         schedule_config: {
-          type: "immediate" as const, // Corrigido: forçar tipo immediate
+          type: "immediate" as const,
           businessHours: campaignData.scheduleConfig.businessHours,
           startHour: campaignData.scheduleConfig.startHour,
           endHour: campaignData.scheduleConfig.endHour,
@@ -229,7 +234,7 @@ export const ModernCampaignCreator = () => {
           rateLimit: campaignData.scheduleConfig.rateLimit
         },
         status: 'draft' as const,
-        created_by_user_id: user?.id || '',
+        created_by_user_id: userData?.user?.id || '',
         targets: campaignData.targets
       };
 
@@ -291,7 +296,7 @@ export const ModernCampaignCreator = () => {
               </SelectTrigger>
               <SelectContent>
                 {instances.map(instance => (
-                  <SelectItem key={instance.id} value={instance.id}>{instance.name}</SelectItem>
+                  <SelectItem key={instance.id} value={instance.id}>{instance.instance_name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -307,29 +312,29 @@ export const ModernCampaignCreator = () => {
                 variant={campaignData.targetType === 'all' ? 'default' : 'outline'}
                 onClick={() => handleTargetTypeChange('all')}
               >
-                Todos os Contatos
+                Todos os Leads
               </Button>
               <Button
                 variant={campaignData.targetType === 'contacts' ? 'default' : 'outline'}
                 onClick={() => handleTargetTypeChange('contacts')}
               >
-                Selecionar Contatos
+                Selecionar Leads
               </Button>
             </div>
           </div>
 
           {campaignData.targetType === 'contacts' && (
             <div className="border rounded-md p-2">
-              <Label>Selecionar Contatos</Label>
+              <Label>Selecionar Leads</Label>
               <div className="max-h-40 overflow-y-auto">
-                {contacts.map(contact => (
-                  <div key={contact.id} className="flex items-center space-x-2">
+                {leads.map(lead => (
+                  <div key={lead.id} className="flex items-center space-x-2">
                     <Checkbox
-                      id={`contact-${contact.id}`}
-                      checked={campaignData.targets.includes(contact.id)}
-                      onCheckedChange={() => handleContactSelect(contact.id)}
+                      id={`lead-${lead.id}`}
+                      checked={campaignData.targets.includes(lead.id)}
+                      onCheckedChange={() => handleLeadSelect(lead.id)}
                     />
-                    <Label htmlFor={`contact-${contact.id}`}>{contact.name} ({contact.phone})</Label>
+                    <Label htmlFor={`lead-${lead.id}`}>{lead.name} ({lead.phone})</Label>
                   </div>
                 ))}
               </div>
@@ -424,7 +429,7 @@ export const ModernCampaignCreator = () => {
 
       <div className="mt-8">
         <Button
-          variant="primary"
+          variant="default"
           onClick={handleSendCampaign}
           disabled={isSending}
         >
