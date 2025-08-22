@@ -1,244 +1,338 @@
-import React, { useState, useEffect } from 'react';
-import { Contact, Deal, DealHistoryItem } from "@/types/chat";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+import React, { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon, Check, ChevronDown, ChevronUp, Copy, Edit, Mail, MessageSquare, Phone, Plus, Trash2, User, X } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn, formatCurrency } from "@/lib/utils";
-import { format } from "date-fns";
-import { ptBR } from 'date-fns/locale';
-import { DocumentSelector } from "@/components/clients/DocumentSelector";
-import { DealHistory } from "@/components/clients/DealHistory";
+import {
+  User,
+  Phone,
+  Mail,
+  Calendar,
+  DollarSign,
+  Tag,
+  MessageCircle,
+  Clock,
+  TrendingUp,
+  MapPin,
+  Building,
+  Edit3,
+  X,
+  Trash2
+} from "lucide-react";
+import { Contact } from "@/types/chat";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface LeadDetailsSidebarProps {
-  contact: Contact | null;
+  contact: Contact;
   isOpen: boolean;
   onClose: () => void;
-  onUpdateNotes: (notes: string) => void;
-  onUpdateAssignedUser: (user: string) => void;
-  onUpdatePurchaseValue: (value: number | undefined) => void;
+  onLeadDetail: (contact: Contact) => void;
+}
+
+interface DealHistoryItem {
+  id: string;
+  value: number;
+  note?: string;
+  created_at: string;
+  stage_name?: string;
+}
+
+interface LeadTag {
+  id: string;
+  name: string;
+  color: string;
 }
 
 export const LeadDetailsSidebar = ({
   contact,
   isOpen,
   onClose,
-  onUpdateNotes,
-  onUpdateAssignedUser,
-  onUpdatePurchaseValue
+  onLeadDetail
 }: LeadDetailsSidebarProps) => {
-  const [notes, setNotes] = useState(contact?.notes || "");
-  const [assignedUser, setAssignedUser] = useState(contact?.assignedUser || "");
-  const [purchaseValue, setPurchaseValue] = useState<number | undefined>(contact?.purchaseValue);
-  const [isEditingValue, setIsEditingValue] = useState(false);
-  const [tempValue, setTempValue] = useState<string>('');
-  const [documentType, setDocumentType] = useState<'cpf' | 'cnpj' | undefined>(undefined);
-  const [documentId, setDocumentId] = useState<string>('');
+  const { user } = useAuth();
+  const [dealHistory, setDealHistory] = useState<DealHistoryItem[]>([]);
+  const [leadTags, setLeadTags] = useState<LeadTag[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (contact) {
-      setNotes(contact.notes || "");
-      setAssignedUser(contact.assignedUser || "");
-      setPurchaseValue(contact.purchaseValue);
+    if (isOpen && contact.leadId) {
+      fetchDealHistory();
+      fetchLeadTags();
     }
-  }, [contact]);
+  }, [isOpen, contact.leadId]);
 
-  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setNotes(e.target.value);
-  };
+  const fetchDealHistory = async () => {
+    if (!contact.leadId || !user) return;
 
-  const handleAssignedUserChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setAssignedUser(e.target.value);
-  };
+    try {
+      const { data, error } = await supabase
+        .from('deals')
+        .select(`
+          id,
+          value,
+          note,
+          created_at,
+          kanban_stages(name)
+        `)
+        .eq('lead_id', contact.leadId)
+        .order('created_at', { ascending: false });
 
-  const handleSaveNotes = () => {
-    onUpdateNotes(notes);
-  };
+      if (error) throw error;
 
-  const handleSaveAssignedUser = () => {
-    onUpdateAssignedUser(assignedUser);
-  };
+      const formattedHistory = data?.map(deal => ({
+        id: deal.id,
+        value: deal.value || 0,
+        note: deal.note,
+        created_at: deal.created_at,
+        stage_name: deal.kanban_stages?.name
+      })) || [];
 
-  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTempValue(e.target.value);
-  };
-
-  const handleEditValue = () => {
-    setIsEditingValue(true);
-    setTempValue(purchaseValue?.toString() || '');
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditingValue(false);
-    setTempValue('');
-  };
-
-  const handleSaveValue = () => {
-    const parsedValue = parseFloat(tempValue);
-    if (!isNaN(parsedValue)) {
-      setPurchaseValue(parsedValue);
-      onUpdatePurchaseValue(parsedValue);
-    } else {
-      // Lidar com valor inválido (opcional)
-      alert('Valor inválido. Digite um número.');
+      setDealHistory(formattedHistory);
+    } catch (error) {
+      console.error('Erro ao buscar histórico de negócios:', error);
     }
-    setIsEditingValue(false);
-    setTempValue('');
   };
 
-  const mockDeals: DealHistoryItem[] = [
-    {
-      id: '1',
-      type: 'win', // Corrigido: usar 'win' em vez de 'won'
-      value: 5000,
-      date: '2024-01-15',
-      stage: 'Fechado',
-      notes: 'Cliente fechou contrato anual'
-    },
-    {
-      id: '2',
-      type: 'loss', // Corrigido: usar 'loss' em vez de 'lost'
-      value: 3000,
-      date: '2024-01-10',
-      stage: 'Negociação',
-      notes: 'Cliente desistiu por questões de orçamento'
-    }
-  ] as DealHistoryItem[]; // Corrigido: cast explícito
+  const fetchLeadTags = async () => {
+    if (!contact.leadId || !user) return;
 
-  if (!contact) {
-    return (
-      <div className={cn(
-        "fixed top-0 right-0 h-full w-80 bg-gray-50 border-l shadow-md z-50 transform transition-transform duration-300 ease-in-out",
-        isOpen ? "translate-x-0" : "translate-x-full"
-      )}>
-        <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Detalhes do Lead</h2>
-          <p className="text-gray-500">Nenhum lead selecionado.</p>
-        </div>
-      </div>
-    );
-  }
+    try {
+      const { data, error } = await supabase
+        .from('lead_tags')
+        .select(`
+          tag_id,
+          tags(
+            id,
+            name,
+            color
+          )
+        `)
+        .eq('lead_id', contact.leadId);
+
+      if (error) throw error;
+
+      const tags = data?.map(item => ({
+        id: item.tags.id,
+        name: item.tags.name,
+        color: item.tags.color
+      })) || [];
+
+      setLeadTags(tags);
+    } catch (error) {
+      console.error('Erro ao buscar tags do lead:', error);
+    }
+  };
+
+  const handleRemoveTag = async (tagId: string) => {
+    if (!contact.leadId) return;
+
+    try {
+      const { error } = await supabase
+        .from('lead_tags')
+        .delete()
+        .eq('lead_id', contact.leadId)
+        .eq('tag_id', tagId);
+
+      if (error) throw error;
+
+      setLeadTags(prev => prev.filter(tag => tag.id !== tagId));
+      toast.success('Tag removida com sucesso');
+    } catch (error) {
+      console.error('Erro ao remover tag:', error);
+      toast.error('Erro ao remover tag');
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  const formatDate = (dateString: string) => {
+    return formatDistanceToNow(new Date(dateString), {
+      addSuffix: true,
+      locale: ptBR
+    });
+  };
+
+  if (!isOpen) return null;
 
   return (
-    <div className={cn(
-      "fixed top-0 right-0 h-full w-96 bg-white border-l shadow-md z-50 transform transition-transform duration-300 ease-in-out",
-      isOpen ? "translate-x-0" : "translate-x-full"
-    )}>
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <h2 className="text-lg font-semibold">Detalhes do Lead</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+    <div className="fixed inset-y-0 right-0 w-96 bg-white/95 backdrop-blur-lg border-l border-white/20 shadow-2xl z-50 flex flex-col">
+      {/* Header */}
+      <div className="p-6 border-b border-white/20 bg-gradient-to-r from-blue-50/50 to-purple-50/50">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900">Detalhes do Lead</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-8 w-8 p-0"
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
+      </div>
 
-        <div className="flex items-center space-x-4 mb-6">
-          <Avatar>
-            <AvatarImage src={contact.profilePicUrl} />
-            <AvatarFallback>{contact.name?.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h3 className="text-xl font-semibold">{contact.name}</h3>
-            <p className="text-gray-500">{contact.phone}</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {/* Informações de Contato */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Informações de Contato</h4>
-            <div className="flex items-center space-x-2">
-              <Phone className="h-4 w-4 text-gray-500" />
-              <span>{contact.phone}</span>
-            </div>
-            {contact.email && (
-              <div className="flex items-center space-x-2">
-                <Mail className="h-4 w-4 text-gray-500" />
-                <span>{contact.email}</span>
-              </div>
-            )}
-          </div>
-
-          {/* Documento */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Documento</h4>
-            <DocumentSelector
-              documentType={documentType}
-              documentId={documentId}
-              onDocumentTypeChange={(type) => setDocumentType(type)}
-              onDocumentIdChange={(id) => setDocumentId(id)}
-            />
-          </div>
-
-          {/* Valor da Negociação */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Valor da Negociação</h4>
-            {isEditingValue ? (
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="number"
-                  value={tempValue}
-                  onChange={handleValueChange}
-                  placeholder="Valor"
-                />
-                <Button size="sm" onClick={handleSaveValue}>Salvar</Button>
-                <Button size="sm" variant="ghost" onClick={handleCancelEdit}>Cancelar</Button>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <span>{purchaseValue ? formatCurrency(purchaseValue) : 'Nenhum valor definido'}</span>
-                <Button size="sm" variant="ghost" onClick={handleEditValue}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar
+      <ScrollArea className="flex-1 p-6">
+        <div className="space-y-6">
+          {/* Contact Info */}
+          <Card className="bg-white/50 backdrop-blur-sm border border-white/30">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={contact.avatar} />
+                  <AvatarFallback>
+                    {contact.name?.charAt(0) || contact.phone.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-gray-900">
+                    {contact.name || 'Sem nome'}
+                  </h3>
+                  <p className="text-sm text-gray-600">{contact.phone}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onLeadDetail(contact)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit3 className="h-4 w-4" />
                 </Button>
               </div>
-            )}
-          </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {contact.email && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="h-4 w-4 text-gray-500" />
+                  <span className="text-gray-600">{contact.email}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2 text-sm">
+                <Phone className="h-4 w-4 text-gray-500" />
+                <span className="text-gray-600">{contact.phone}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <MessageCircle className="h-4 w-4 text-gray-500" />
+                <span className="text-gray-600">
+                  {contact.isOnline ? 'Online' : 'Offline'}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Responsável */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Responsável</h4>
-            <Select value={assignedUser} onValueChange={(value) => {
-              setAssignedUser(value);
-              handleSaveAssignedUser();
-            }}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecionar responsável" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="user1">Usuário 1</SelectItem>
-                <SelectItem value="user2">Usuário 2</SelectItem>
-                {/* Adicione mais usuários conforme necessário */}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Tags */}
+          {leadTags.length > 0 && (
+            <Card className="bg-white/50 backdrop-blur-sm border border-white/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Tag className="h-4 w-4" />
+                  Etiquetas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2">
+                  {leadTags.map((tag) => (
+                    <div key={tag.id} className="flex items-center gap-1">
+                      <Badge
+                        variant="secondary"
+                        className="text-xs"
+                        style={{ backgroundColor: tag.color + '20', color: tag.color }}
+                      >
+                        {tag.name}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveTag(tag.id)}
+                        className="h-5 w-5 p-0 text-gray-400 hover:text-red-500"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Observações */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Observações</h4>
-            <Textarea
-              value={notes}
-              onChange={handleNotesChange}
-              placeholder="Adicione observações sobre o lead"
-              className="min-h-[80px]"
-            />
-            <Button size="sm" onClick={handleSaveNotes}>Salvar Observações</Button>
-          </div>
+          {/* Deal History */}
+          {dealHistory.length > 0 && (
+            <Card className="bg-white/50 backdrop-blur-sm border border-white/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <TrendingUp className="h-4 w-4" />
+                  Histórico de Negócios
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {dealHistory.map((deal) => (
+                    <div key={deal.id} className="border-l-2 border-blue-200 pl-3 pb-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">
+                          {formatCurrency(deal.value)}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {formatDate(deal.created_at)}
+                        </span>
+                      </div>
+                      {deal.stage_name && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          {deal.stage_name}
+                        </p>
+                      )}
+                      {deal.note && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          {deal.note}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Histórico de Negociações */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Histórico de Negociações</h4>
-            <DealHistory deals={mockDeals as Deal[]} />
-          </div>
+          {/* Lead Stats */}
+          <Card className="bg-white/50 backdrop-blur-sm border border-white/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <User className="h-4 w-4" />
+                Estatísticas
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Total em negócios:</span>
+                <span className="font-medium">
+                  {formatCurrency(dealHistory.reduce((sum, deal) => sum + deal.value, 0))}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Número de negócios:</span>
+                <span className="font-medium">{dealHistory.length}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Último contato:</span>
+                <span className="font-medium">
+                  {contact.lastMessageAt ? formatDate(contact.lastMessageAt) : 'Nunca'}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
+      </ScrollArea>
     </div>
   );
 };
