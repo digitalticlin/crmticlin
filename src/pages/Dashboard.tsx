@@ -33,7 +33,7 @@ export default function Dashboard() {
           : isCollapsed 
             ? "ml-[64px]" 
             : "ml-[200px]"
-      )} style={{ transform: 'scale(0.8)', transformOrigin: 'top left' }}>
+      )} style={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: '125%', height: '125%' }}>
         {/* Container centralizado com padding */}
         <div className="w-full h-full flex justify-center px-4 md:px-6">
           <div className="w-full max-w-[1200px] h-full">

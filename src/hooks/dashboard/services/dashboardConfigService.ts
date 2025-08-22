@@ -1,45 +1,44 @@
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
+import type { DashboardConfig as LayoutConfig } from "../types/dashboardConfigTypes";
 
-export interface DashboardConfig {
-  id: string;
+export interface DashboardConfigRow {
+  user_id: string; // legacy compatibility (equals created_by_user_id)
   created_by_user_id: string;
-  period_filter: string;
-  ai_agent_prompts: any;
-  created_at: string;
+  layout_config: LayoutConfig;
   updated_at: string;
 }
 
-// Fix the generic type arguments:
-export const getDashboardConfig = async (userId: string): Promise<DashboardConfig | null> => {
-  const { data, error } = await supabase
-    .from('dashboard_configs')
-    .select('*')
-    .eq('created_by_user_id', userId)
-    .single();
+export const dashboardConfigService = {
+  async getConfig(userId: string): Promise<{ layoutConfig: LayoutConfig } | null> {
+    const { data, error } = await supabase
+      .from<DashboardConfigRow>('dashboard_configs')
+      .select('layout_config, updated_at, created_by_user_id')
+      .eq('created_by_user_id', userId)
+      .maybeSingle();
 
-  if (error) {
-    console.error('Error fetching dashboard config:', error);
-    return null;
+    if (error) {
+      console.warn('[dashboardConfigService] getConfig error:', error.message);
+      return null;
+    }
+
+    if (!data) return null;
+
+    return { layoutConfig: data.layout_config };
+  },
+
+  async saveConfig(userId: string, config: LayoutConfig): Promise<void> {
+    const { error } = await supabase
+      .from<DashboardConfigRow>('dashboard_configs')
+      .upsert({
+        user_id: userId,
+        created_by_user_id: userId,
+        layout_config: config,
+        updated_at: new Date().toISOString(),
+      } as any, { onConflict: 'user_id' });
+
+    if (error) {
+      console.error('[dashboardConfigService] saveConfig error:', error.message);
+      throw error;
+    }
   }
-
-  return data;
-};
-
-export const updateDashboardConfig = async (
-  userId: string,
-  updates: Partial<DashboardConfig>
-): Promise<DashboardConfig | null> => {
-  const { data, error } = await supabase
-    .from('dashboard_configs')
-    .update(updates)
-    .eq('created_by_user_id', userId)
-    .select('*')
-    .single();
-
-  if (error) {
-    console.error('Error updating dashboard config:', error);
-    return null;
-  }
-
-  return data;
 };

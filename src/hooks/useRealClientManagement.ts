@@ -15,26 +15,33 @@ export function useRealClientManagement() {
   const { user } = useAuth();
   const userId = user?.id;
 
+  // Filtros avançados
   const { filters, hasActiveFilters, filteredClients: advancedFilteredClients } = useAdvancedFilters();
 
+  // Queries
   const defaultWhatsAppQuery = useDefaultWhatsAppInstance(userId || null);
   const clientsQuery = useClientsQuery(userId || null, searchQuery);
 
+  // Mutations
   const createClientMutation = useCreateClientMutation(userId || '');
   const updateClientMutation = useUpdateClientMutation(userId || '');
   const deleteClientMutation = useDeleteClientMutation(userId || '');
 
+  // 🚀 FLATTEN DOS DADOS PAGINADOS
   const clients = useMemo(() => {
     if (!clientsQuery.data?.pages) return [];
     
     return clientsQuery.data.pages.flatMap(page => page.data);
   }, [clientsQuery.data?.pages]);
 
+  // 🚀 CLIENTES FILTRADOS - Combinar filtros avançados com dados existentes
   const filteredClients = useMemo(() => {
+    // Se houver filtros avançados ativos, usar os clientes filtrados
     if (hasActiveFilters) {
       return advancedFilteredClients || [];
     }
     
+    // Caso contrário, usar a filtragem local existente
     return clients.filter(client => 
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -43,7 +50,9 @@ export function useRealClientManagement() {
     );
   }, [clients, advancedFilteredClients, hasActiveFilters, searchQuery]);
 
+  // 🚀 VERIFICAR SE HÁ MAIS PÁGINAS
   const hasMoreClients = useMemo(() => {
+    // Quando há filtros ativos, não há paginação
     if (hasActiveFilters) {
       return false;
     }
@@ -52,6 +61,7 @@ export function useRealClientManagement() {
     return lastPage?.hasMore ?? false;
   }, [clientsQuery.data?.pages, hasActiveFilters]);
 
+  // 🚀 TOTAL DE CLIENTES
   const totalClientsCount = useMemo(() => {
     if (hasActiveFilters) {
       return filteredClients.length;
@@ -61,7 +71,9 @@ export function useRealClientManagement() {
     return firstPage?.totalCount || clients.length;
   }, [clientsQuery.data?.pages, clients.length, filteredClients.length, hasActiveFilters]);
 
+  // 🚀 FUNÇÃO PARA CARREGAR MAIS CLIENTES
   const loadMoreClients = async () => {
+    // Quando há filtros ativos, não há paginação
     if (hasActiveFilters) {
       return;
     }
@@ -199,12 +211,8 @@ export function useRealClientManagement() {
     }
   };
 
-  const refetch = async () => {
-    await clientsQuery.refetch();
-  };
-
   return {
-    clients: filteredClients,
+    clients: filteredClients, // Usar clientes filtrados em vez dos brutos
     setSearchQuery,
     selectedClient,
     isDetailsOpen,
@@ -230,8 +238,9 @@ export function useRealClientManagement() {
     handleUpdateBasicInfo,
     handleUpdateDocument,
     handleUpdateAddress,
-    refetch,
+    refetch: clientsQuery.refetch,
   };
 };
 
+// Re-export types for backward compatibility
 export type { ClientData, ClientFormData } from "./clients/types";

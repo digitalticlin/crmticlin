@@ -1,65 +1,126 @@
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { BroadcastCampaign } from "@/types/broadcast";
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-// Export the type for other components to use
-export { BroadcastCampaign } from "@/types/broadcast";
+export interface BroadcastCampaign {
+  id: string;
+  name: string;
+  message_text: string;
+  media_type?: string;
+  media_url?: string;
+  target_type: 'all' | 'funnel' | 'stage' | 'tags' | 'custom';
+  target_config: any;
+  schedule_type: 'immediate' | 'scheduled' | 'recurring';
+  scheduled_at?: string;
+  status: 'draft' | 'running' | 'paused' | 'completed' | 'failed';
+  total_recipients: number;
+  sent_count: number;
+  failed_count: number;
+  rate_limit_per_minute: number;
+  business_hours_only: boolean;
+  timezone: string;
+  created_at: string;
+  updated_at: string;
+}
 
-export function useBroadcastCampaigns() {
-  const { user } = useAuth();
+export const useBroadcastCampaigns = () => {
   const [campaigns, setCampaigns] = useState<BroadcastCampaign[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  const loadCampaigns = async () => {
+  const fetchCampaigns = async () => {
     if (!user?.id) return;
-    
-    setIsLoading(true);
+
+    setLoading(true);
+    setError(null);
+
     try {
-      // Simular carregamento de campanhas
-      const mockCampaigns: BroadcastCampaign[] = [
-        {
-          id: '1',
-          name: 'Campanha Exemplo',
-          message_text: 'Mensagem de exemplo',
-          target_type: 'all',
-          target_config: {},
-          status: 'active',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          created_by_user_id: user.id,
-          rate_limit_per_minute: 2,
-          business_hours_only: false,
-        }
-      ];
-      
-      setCampaigns(mockCampaigns);
-    } catch (error) {
-      console.error('Erro ao carregar campanhas:', error);
+      const { data, error } = await supabase
+        .from('broadcast_campaigns')
+        .select('*')
+        .eq('created_by_user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setCampaigns(data || []);
+    } catch (err: any) {
+      console.error('Error fetching campaigns:', err);
+      setError(err.message);
+      toast.error('Erro ao carregar campanhas');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const createCampaign = async (campaignData: Omit<BroadcastCampaign, 'id' | 'created_at' | 'updated_at' | 'total_recipients' | 'sent_count' | 'failed_count'>) => {
+    if (!user?.id) {
+      toast.error('Usuário não autenticado');
+      return null;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('broadcast_campaign_manager', {
+        body: {
+          action: 'create_campaign',
+          ...campaignData,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success('Campanha criada com sucesso!');
+        await fetchCampaigns(); // Refresh list
+        return data.campaign;
+      } else {
+        throw new Error(data.error || 'Erro ao criar campanha');
+      }
+    } catch (err: any) {
+      console.error('Error creating campaign:', err);
+      toast.error(err.message || 'Erro ao criar campanha');
+      return null;
     }
   };
 
   const startCampaign = async (campaignId: string) => {
-    console.log('Starting campaign:', campaignId);
-    // Implementar lógica de início de campanha
-  };
+    try {
+      const { data, error } = await supabase.functions.invoke('broadcast_campaign_manager', {
+        body: {
+          action: 'start_campaign',
+          campaign_id: campaignId,
+        }
+      });
 
-  const fetchCampaigns = async () => {
-    await loadCampaigns();
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success(`Campanha iniciada com ${data.recipients_count} destinatários!`);
+        await fetchCampaigns(); // Refresh list
+        return true;
+      } else {
+        throw new Error(data.error || 'Erro ao iniciar campanha');
+      }
+    } catch (err: any) {
+      console.error('Error starting campaign:', err);
+      toast.error(err.message || 'Erro ao iniciar campanha');
+      return false;
+    }
   };
 
   useEffect(() => {
-    loadCampaigns();
+    fetchCampaigns();
   }, [user?.id]);
 
   return {
     campaigns,
-    isLoading,
-    loading: isLoading, // Alias for compatibility
-    refetch: loadCampaigns,
-    startCampaign,
+    loading,
+    error,
     fetchCampaigns,
+    createCampaign,
+    startCampaign,
   };
-}
+};

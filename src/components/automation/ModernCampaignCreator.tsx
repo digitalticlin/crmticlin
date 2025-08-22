@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle } from "@/components/ui/modern-card";
 import { Button } from "@/components/ui/button";
@@ -15,19 +14,12 @@ import {
   Eye,
   CheckCircle
 } from "lucide-react";
+import { ModernMediaUploader } from "./ModernMediaUploader";
+import { ModernMessageFragmenter } from "./ModernMessageFragmenter";
+import { ModernTagSelector } from "./ModernTagSelector";
+import { ModernInstanceSelector } from "./ModernInstanceSelector";
+import { ModernScheduleConfig } from "./ModernScheduleConfig";
 import { toast } from "sonner";
-
-type MediaType = "text" | "image" | "video" | "audio" | "document";
-type ScheduleType = "immediate" | "scheduled";
-
-interface ScheduleConfig {
-  type: ScheduleType;
-  businessHours: boolean;
-  startHour: number;
-  endHour: number;
-  weekDays: number[];
-  rateLimit: number;
-}
 
 interface ModernCampaignCreatorProps {
   onSuccess?: () => void;
@@ -48,17 +40,17 @@ export function ModernCampaignCreator({ onSuccess }: ModernCampaignCreatorProps)
     instanceId: "",
     message: "",
     mediaFile: null as File | null,
-    mediaType: "text" as MediaType,
+    mediaType: "text" as const,
     fragments: [] as any[],
     selectedTags: [] as string[],
     schedule: {
-      type: "immediate" as ScheduleType,
+      type: "immediate" as const,
       businessHours: false,
       startHour: 8,
       endHour: 18,
       weekDays: [1, 2, 3, 4, 5],
       rateLimit: 2
-    } as ScheduleConfig
+    }
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,9 +66,9 @@ export function ModernCampaignCreator({ onSuccess }: ModernCampaignCreatorProps)
       case 2:
         return campaignData.message.trim() || campaignData.mediaFile;
       case 3:
-        return true;
+        return true; // Público-alvo é opcional (todos os leads)
       case 4:
-        return true;
+        return true; // Agendamento sempre válido
       case 5:
         return true;
       default:
@@ -100,6 +92,7 @@ export function ModernCampaignCreator({ onSuccess }: ModernCampaignCreatorProps)
     setIsSubmitting(true);
     
     try {
+      // Simular envio
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       toast.success("Campanha criada com sucesso!", {
@@ -118,6 +111,7 @@ export function ModernCampaignCreator({ onSuccess }: ModernCampaignCreatorProps)
 
   return (
     <div className="space-y-6 pb-6">
+      {/* Progress Steps - Sticky no topo */}
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg rounded-2xl border border-white/30 shadow-glass">
         <ModernCard className="shadow-none border-none bg-transparent">
           <ModernCardContent className="p-6">
@@ -160,6 +154,7 @@ export function ModernCampaignCreator({ onSuccess }: ModernCampaignCreatorProps)
         </ModernCard>
       </div>
 
+      {/* Step Content - Scrollable */}
       <ModernCard>
         <ModernCardHeader>
           <ModernCardTitle>
@@ -179,71 +174,44 @@ export function ModernCampaignCreator({ onSuccess }: ModernCampaignCreatorProps)
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label>Instância WhatsApp *</Label>
-                <Input
-                  placeholder="Selecione uma instância"
-                  value={campaignData.instanceId}
-                  onChange={(e) => updateCampaignData({ instanceId: e.target.value })}
-                  className="bg-white/50 border-white/20"
-                />
-              </div>
+              <ModernInstanceSelector
+                selectedInstanceId={campaignData.instanceId}
+                onInstanceSelect={(instanceId) => updateCampaignData({ instanceId })}
+              />
             </div>
           )}
 
           {currentStep === 2 && (
             <div className="space-y-6">
-              <div className="space-y-2">
-                <Label>Mensagem</Label>
-                <textarea
-                  className="w-full p-3 border rounded-lg bg-white/50 border-white/20"
-                  rows={6}
-                  placeholder="Digite sua mensagem..."
-                  value={campaignData.message}
-                  onChange={(e) => updateCampaignData({ message: e.target.value })}
+              <ModernMediaUploader
+                onMediaSelect={(file, type) => updateCampaignData({ mediaFile: file, mediaType: type })}
+                selectedFile={campaignData.mediaFile}
+                mediaType={campaignData.mediaType}
+                message={campaignData.message}
+                onMessageChange={(message) => updateCampaignData({ message })}
+              />
+              
+              {campaignData.message && (
+                <ModernMessageFragmenter
+                  initialMessage={campaignData.message}
+                  onFragmentsChange={(fragments) => updateCampaignData({ fragments })}
                 />
-              </div>
+              )}
             </div>
           )}
 
           {currentStep === 3 && (
-            <div className="space-y-4">
-              <p className="text-muted-foreground">
-                Configure o público-alvo da sua campanha
-              </p>
-            </div>
+            <ModernTagSelector
+              selectedTags={campaignData.selectedTags}
+              onTagsChange={(selectedTags) => updateCampaignData({ selectedTags })}
+            />
           )}
 
           {currentStep === 4 && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Tipo de Agendamento</Label>
-                <div className="flex gap-4">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      value="immediate"
-                      checked={campaignData.schedule.type === "immediate"}
-                      onChange={(e) => updateCampaignData({ 
-                        schedule: { ...campaignData.schedule, type: e.target.value as ScheduleType }
-                      })}
-                    />
-                    <span>Imediato</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      value="scheduled"
-                      checked={campaignData.schedule.type === "scheduled"}
-                      onChange={(e) => updateCampaignData({ 
-                        schedule: { ...campaignData.schedule, type: e.target.value as ScheduleType }
-                      })}
-                    />
-                    <span>Agendado</span>
-                  </label>
-                </div>
-              </div>
-            </div>
+            <ModernScheduleConfig
+              config={campaignData.schedule}
+              onConfigChange={(schedule) => updateCampaignData({ schedule })}
+            />
           )}
 
           {currentStep === 5 && (
@@ -260,6 +228,13 @@ export function ModernCampaignCreator({ onSuccess }: ModernCampaignCreatorProps)
                   <div>
                     <span className="text-sm text-blue-700">Tipo de mídia:</span>
                     <p className="font-medium text-blue-900 capitalize">{campaignData.mediaType}</p>
+                  </div>
+
+                  <div>
+                    <span className="text-sm text-blue-700">Fragmentos:</span>
+                    <p className="font-medium text-blue-900">
+                      {campaignData.fragments.length > 0 ? `${campaignData.fragments.length} parte(s)` : '1 parte'}
+                    </p>
                   </div>
 
                   <div>
@@ -280,6 +255,7 @@ export function ModernCampaignCreator({ onSuccess }: ModernCampaignCreatorProps)
         </ModernCardContent>
       </ModernCard>
 
+      {/* Navigation - Sticky no final */}
       <div className="sticky bottom-0 z-10 bg-white/80 backdrop-blur-lg rounded-2xl border border-white/30 shadow-glass p-6">
         <div className="flex justify-between">
           <Button

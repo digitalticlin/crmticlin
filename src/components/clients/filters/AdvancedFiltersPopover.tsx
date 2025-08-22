@@ -1,169 +1,156 @@
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { useToast } from "@/components/ui/use-toast";
-import { useTeamMembers } from "@/hooks/useTeamMembers";
-import { useFunnel } from "@/hooks/useFunnel";
-import { useState } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useState } from 'react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Filter, X, RotateCcw } from 'lucide-react';
+import { FilterByTags } from './FilterByTags';
+import { FilterByCompany } from './FilterByCompany';
+import { FilterByUser } from './FilterByUser';
+import { FilterByFunnelStage } from './FilterByFunnelStage';
+import { FilterByDate } from './FilterByDate';
+import { useAdvancedFilters } from '@/hooks/clients/useAdvancedFilters';
 
 interface AdvancedFiltersPopoverProps {
-  onApplyFilters: (filters: any) => void;
-  onClearFilters: () => void;
+  children?: React.ReactNode;
 }
 
-export const AdvancedFiltersPopover = ({ onApplyFilters, onClearFilters }: AdvancedFiltersPopoverProps) => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
-  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
-  const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
-  const [selectedFunnels, setSelectedFunnels] = useState<string[]>([]);
-  const [includeArchived, setIncludeArchived] = useState(false);
-  const { toast } = useToast();
-
-  const { data: teamMembersData, isLoading: isLoadingTeamMembers } = useTeamMembers();
-  const { data: funnelsData, isLoading: isLoadingFunnels } = useFunnel();
-
-  const handleApplyFilters = () => {
-    const filters = {
-      name,
-      email,
-      phone,
-      dateFrom,
-      dateTo,
-      teamMembers: selectedTeamMembers,
-      funnels: selectedFunnels,
-      includeArchived,
-    };
-    onApplyFilters(filters);
-    toast({
-      title: "Filtros aplicados com sucesso!",
-    });
-  };
-
-  const handleClearFilters = () => {
-    setName("");
-    setEmail("");
-    setPhone("");
-    setDateFrom(undefined);
-    setDateTo(undefined);
-    setSelectedTeamMembers([]);
-    setSelectedFunnels([]);
-    setIncludeArchived(false);
-    onClearFilters();
-    toast({
-      title: "Filtros removidos com sucesso!",
-    });
-  };
-
-  const handleTeamMemberSelect = (teamMemberId: string) => {
-    setSelectedTeamMembers((prevSelected) =>
-      prevSelected.includes(teamMemberId)
-        ? prevSelected.filter((id) => id !== teamMemberId)
-        : [...prevSelected, teamMemberId]
-    );
-  };
-
-  const handleFunnelSelect = (funnelId: string) => {
-    setSelectedFunnels((prevSelected) =>
-      prevSelected.includes(funnelId)
-        ? prevSelected.filter((id) => id !== funnelId)
-        : [...prevSelected, funnelId]
-    );
-  };
-
-  const teamMembers = Array.isArray(teamMembersData) 
-  ? teamMembersData.filter((member): member is { id: string; name: string } => 
-      typeof member === 'object' && member !== null && 'id' in member && 'name' in member
-    )
-  : [];
+export const AdvancedFiltersPopover = ({ children }: AdvancedFiltersPopoverProps) => {
+  const {
+    isOpen,
+    setIsOpen,
+    hasActiveFilters,
+    activeFiltersCount,
+    filterSummary,
+    clearFilters,
+    removeFilter,
+    filterOptions,
+    isLoadingOptions
+  } = useAdvancedFilters();
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline">Filtros Avançados</Button>
+        {children || (
+          <Button 
+            variant="outline" 
+            size="sm"
+            className={`
+              flex items-center gap-2 rounded-xl backdrop-blur-sm border-white/40 hover:bg-white/30
+              ${hasActiveFilters 
+                ? 'bg-blue-100/50 text-blue-800 border-blue-400/40' 
+                : 'bg-white/20 text-gray-800'
+              }
+            `}
+          >
+            <Filter className="h-4 w-4" />
+            Filtros
+            {activeFiltersCount > 0 && (
+              <Badge variant="secondary" className="h-5 w-5 p-0 text-xs">
+                {activeFiltersCount}
+              </Badge>
+            )}
+          </Button>
+        )}
       </PopoverTrigger>
-      <PopoverContent className="w-80">
-        <div className="grid gap-4 py-4">
-          <div>
-            <Label htmlFor="name">Nome</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome" />
+      
+      <PopoverContent 
+        className="w-96 p-0 max-h-[80vh] flex flex-col overflow-hidden" 
+        align="start"
+        side="bottom"
+        sideOffset={8}
+      >
+        {/* Header Simplificado */}
+        <div className="p-4 border-b bg-gray-50">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">Filtros</h3>
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-8 px-2 text-gray-500 hover:text-gray-700"
+              >
+                <RotateCcw className="h-4 w-4 mr-1" />
+                Limpar
+              </Button>
+            )}
           </div>
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
-          </div>
-          <div>
-            <Label htmlFor="phone">Telefone</Label>
-            <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telefone" />
-          </div>
-          <div className="space-y-2">
-            <Label>Data de Criação</Label>
-            <div className="flex space-x-2">
-              <Calendar
-                mode="single"
-                selected={dateFrom}
-                onSelect={setDateFrom}
-                className="rounded-md border"
-              />
-              <Calendar
-                mode="single"
-                selected={dateTo}
-                onSelect={setDateTo}
-                className="rounded-md border"
-              />
+
+          {/* Resumo dos Filtros Ativos - Mais Compacto */}
+          {hasActiveFilters && (
+            <div className="mt-3">
+              <div className="flex flex-wrap gap-1">
+                {filterSummary.activeFilters.map((filter, index) => (
+                  <Badge 
+                    key={index}
+                    variant="secondary" 
+                    className="text-xs flex items-center gap-1"
+                  >
+                    <span className="truncate max-w-24">{filter.label}: {filter.value}</span>
+                    <button
+                      onClick={() => removeFilter(filter.type)}
+                      className="hover:bg-gray-200 rounded-full p-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
             </div>
-          </div>
-          <div>
-            <Label>Membros do Time</Label>
-            <div className="flex flex-col space-y-1">
-              {teamMembers.map((member) => (
-                <div key={member.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`team-member-${member.id}`}
-                    checked={selectedTeamMembers.includes(member.id)}
-                    onCheckedChange={() => handleTeamMemberSelect(member.id)}
-                  />
-                  <Label htmlFor={`team-member-${member.id}`}>{member.name}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <Label>Funis</Label>
-            <div className="flex flex-col space-y-1">
-              {funnelsData?.map((funnel) => (
-                <div key={funnel.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`funnel-${funnel.id}`}
-                    checked={selectedFunnels.includes(funnel.id)}
-                    onCheckedChange={() => handleFunnelSelect(funnel.id)}
-                  />
-                  <Label htmlFor={`funnel-${funnel.id}`}>{funnel.name}</Label>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="include-archived"
-              checked={includeArchived}
-              onCheckedChange={() => setIncludeArchived((prev) => !prev)}
+          )}
+        </div>
+
+        {/* Filtros Simplificados */}
+        <div className="overflow-y-auto flex-grow p-4">
+          <div className="space-y-6">
+            {/* 1. Tags */}
+            <FilterByTags 
+              tags={filterOptions?.tags || []}
+              isLoading={isLoadingOptions}
             />
-            <Label htmlFor="include-archived">Incluir Arquivados</Label>
+
+            {/* 2. Empresa */}
+            <FilterByCompany 
+              companies={filterOptions?.companies || []}
+              isLoading={isLoadingOptions}
+            />
+
+            {/* 3. Data de Criação */}
+            <FilterByDate />
+
+            {/* 4. Usuário Responsável */}
+            <FilterByUser 
+              users={filterOptions?.responsibleUsers || []}
+              isLoading={isLoadingOptions}
+            />
+
+            {/* 5. Etapas de Funil */}
+            <FilterByFunnelStage 
+              stages={filterOptions?.funnelStages || []}
+              isLoading={isLoadingOptions}
+            />
           </div>
         </div>
-        <div className="flex justify-end space-x-2">
-          <Button variant="secondary" size="sm" onClick={handleClearFilters}>
-            Limpar
-          </Button>
-          <Button size="sm" onClick={handleApplyFilters}>
-            Aplicar
-          </Button>
+
+        {/* Footer Simplificado */}
+        <div className="p-4 border-t bg-gray-50">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">
+              {activeFiltersCount} {activeFiltersCount === 1 ? 'filtro ativo' : 'filtros ativos'}
+            </span>
+            <Button
+              size="sm"
+              onClick={() => setIsOpen(false)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Aplicar Filtros
+            </Button>
+          </div>
         </div>
       </PopoverContent>
     </Popover>
