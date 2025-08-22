@@ -163,7 +163,15 @@ export const AIAgentForm = ({ agent, onSave, onCancel, onFormChange }: AIAgentFo
           .single();
 
         if (error) throw error;
-        onSave(data);
+        
+        // Cast the returned data to AIAgent type
+        const savedAgent: AIAgent = {
+          ...data,
+          type: data.type as 'attendance' | 'sales' | 'support' | 'custom',
+          status: data.status as 'active' | 'inactive'
+        };
+        
+        onSave(savedAgent);
       } else {
         // Criar novo agente
         const { data, error } = await supabase
@@ -178,7 +186,15 @@ export const AIAgentForm = ({ agent, onSave, onCancel, onFormChange }: AIAgentFo
           .single();
 
         if (error) throw error;
-        onSave(data);
+        
+        // Cast the returned data to AIAgent type
+        const savedAgent: AIAgent = {
+          ...data,
+          type: data.type as 'attendance' | 'sales' | 'support' | 'custom',
+          status: data.status as 'active' | 'inactive'
+        };
+        
+        onSave(savedAgent);
       }
       
       toast.success(agent ? 'Agente atualizado com sucesso!' : 'Agente criado com sucesso!');

@@ -1,165 +1,76 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { AdvancedFiltersPopover } from '../AdvancedFiltersPopover';
-import { useAdvancedFilters } from '@/hooks/clients/useAdvancedFilters';
 
-// Mock do hook useAdvancedFilters
-jest.mock('@/hooks/clients/useAdvancedFilters', () => ({
-  useAdvancedFilters: jest.fn()
-}));
-
-// Mock data
-const mockFilterOptions = {
-  tags: [
-    { id: '1', name: 'Importante', color: '#ff0000' },
-    { id: '2', name: 'Cliente', color: '#00ff00' }
-  ],
-  responsibleUsers: [
-    { id: '1', name: 'João Silva' },
-    { id: '2', name: 'Maria Santos' }
-  ],
-  funnelIds: [
-    { id: '1', name: 'Funil Principal' },
-    { id: '2', name: 'Funil Secundário' }
-  ],
-  funnelStages: [
-    { id: '1', title: 'Entrada de Leads' },
-    { id: '2', title: 'Em atendimento' }
-  ],
-  states: ['SP', 'RJ', 'MG'],
-  cities: ['São Paulo', 'Rio de Janeiro', 'Belo Horizonte'],
-  countries: ['Brasil', 'Portugal']
-};
-
-const mockUseAdvancedFilters = {
-  isOpen: false,
-  setIsOpen: jest.fn(),
-  hasActiveFilters: false,
-  activeFiltersCount: 0,
-  filterSummary: {
-    totalFilters: 0,
-    activeFilters: []
-  },
-  clearFilters: jest.fn(),
-  removeFilter: jest.fn(),
-  filterOptions: mockFilterOptions,
-  isLoadingOptions: false,
-  updateFilter: jest.fn(),
-  addTagFilter: jest.fn(),
-  removeTagFilter: jest.fn(),
-  addUserFilter: jest.fn(),
-  removeUserFilter: jest.fn(),
-  addFunnelFilter: jest.fn(),
-  removeFunnelFilter: jest.fn(),
-  addStageFilter: jest.fn(),
-  removeStageFilter: jest.fn()
+const mockProps = {
+  onFiltersChange: vi.fn(),
+  currentFilters: {}
 };
 
 describe('AdvancedFiltersPopover', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (useAdvancedFilters as jest.Mock).mockReturnValue(mockUseAdvancedFilters);
+  it('should render the filter trigger button', () => {
+    render(<AdvancedFiltersPopover {...mockProps} />);
+    expect(screen.getByRole('button')).toBeInTheDocument();
   });
 
-  it('deve renderizar o botão de filtros', () => {
-    render(<AdvancedFiltersPopover />);
-    
-    expect(screen.getByText('Filtros')).toBeInTheDocument();
+  it('should open popover when trigger is clicked', () => {
+    render(<AdvancedFiltersPopover {...mockProps} />);
+    const trigger = screen.getByRole('button');
+    fireEvent.click(trigger);
+    expect(screen.getByText('Advanced Filters')).toBeInTheDocument();
   });
 
-  it('deve abrir o popover quando o botão é clicado', () => {
-    (useAdvancedFilters as jest.Mock).mockReturnValue({
-      ...mockUseAdvancedFilters,
-      isOpen: true
-    });
-
-    render(<AdvancedFiltersPopover />);
-    
-    expect(screen.getByText('Filtros Avançados')).toBeInTheDocument();
+  it('should close popover when close button is clicked', () => {
+    render(<AdvancedFiltersPopover {...mockProps} />);
+    const trigger = screen.getByRole('button');
+    fireEvent.click(trigger);
+    const closeButton = screen.getByRole('button', { name: /close/i });
+    fireEvent.click(closeButton);
+    expect(screen.queryByText('Advanced Filters')).not.toBeInTheDocument();
   });
 
-  it('deve mostrar contagem de filtros ativos', () => {
-    (useAdvancedFilters as jest.Mock).mockReturnValue({
-      ...mockUseAdvancedFilters,
-      activeFiltersCount: 2,
-      hasActiveFilters: true
-    });
+  it('should apply filters when apply button is clicked', () => {
+    render(<AdvancedFiltersPopover {...mockProps} />);
+    const trigger = screen.getByRole('button');
+    fireEvent.click(trigger);
+    const applyButton = screen.getByRole('button', { name: /apply/i });
+    fireEvent.click(applyButton);
+    expect(mockProps.onFiltersChange).toHaveBeenCalled();
+  });
 
-    render(<AdvancedFiltersPopover />);
-    
+  it('should clear all filters when clear button is clicked', () => {
+    render(<AdvancedFiltersPopover {...mockProps} />);
+    const trigger = screen.getByRole('button');
+    fireEvent.click(trigger);
+    const clearButton = screen.getByRole('button', { name: /clear/i });
+    fireEvent.click(clearButton);
+    expect(mockProps.onFiltersChange).toHaveBeenCalledWith({});
+  });
+
+  it('should show active filter count when filters are applied', () => {
+    const filtersWithData = { name: 'test', status: 'active' };
+    render(<AdvancedFiltersPopover {...mockProps} currentFilters={filtersWithData} />);
     expect(screen.getByText('2')).toBeInTheDocument();
   });
 
-  it('deve mostrar resumo de filtros ativos', () => {
-    const mockFilterSummary = {
-      totalFilters: 1,
-      activeFilters: [
-        { type: 'tags', label: 'Tags', value: 'Importante' }
-      ]
-    };
-
-    (useAdvancedFilters as jest.Mock).mockReturnValue({
-      ...mockUseAdvancedFilters,
-      isOpen: true,
-      hasActiveFilters: true,
-      activeFiltersCount: 1,
-      filterSummary: mockFilterSummary
-    });
-
-    render(<AdvancedFiltersPopover />);
-    
-    expect(screen.getByText('Filtros Ativos:')).toBeInTheDocument();
-    expect(screen.getByText('Tags: Importante')).toBeInTheDocument();
+  it('should update filter when input value changes', () => {
+    render(<AdvancedFiltersPopover {...mockProps} />);
+    const trigger = screen.getByRole('button');
+    fireEvent.click(trigger);
+    const nameInput = screen.getByPlaceholderText(/filter by name/i);
+    fireEvent.change(nameInput, { target: { value: 'John' } });
+    expect(nameInput).toHaveValue('John');
   });
 
-  it('deve renderizar todos os componentes de filtro', () => {
-    (useAdvancedFilters as jest.Mock).mockReturnValue({
-      ...mockUseAdvancedFilters,
-      isOpen: true
-    });
-
-    render(<AdvancedFiltersPopover />);
-    
-    // Verificar se todos os componentes estão presentes
-    expect(screen.getByText('Tags')).toBeInTheDocument();
-    expect(screen.getByText('Responsáveis')).toBeInTheDocument();
-    expect(screen.getByText('Funis')).toBeInTheDocument();
-    expect(screen.getByText('Etapas do Funil')).toBeInTheDocument();
-    expect(screen.getByText('Localização')).toBeInTheDocument();
-    expect(screen.getByText('Data de Criação')).toBeInTheDocument();
-    expect(screen.getByText('Aplicar')).toBeInTheDocument();
-  });
-
-  it('deve chamar setIsOpen quando o botão Aplicar é clicado', () => {
-    const mockSetIsOpen = jest.fn();
-    (useAdvancedFilters as jest.Mock).mockReturnValue({
-      ...mockUseAdvancedFilters,
-      isOpen: true,
-      setIsOpen: mockSetIsOpen
-    });
-
-    render(<AdvancedFiltersPopover />);
-    
-    const applyButton = screen.getByText('Aplicar');
-    fireEvent.click(applyButton);
-    
-    expect(mockSetIsOpen).toHaveBeenCalledWith(false);
-  });
-
-  it('deve chamar clearFilters quando o botão de limpar é clicado', () => {
-    const mockClearFilters = jest.fn();
-    (useAdvancedFilters as jest.Mock).mockReturnValue({
-      ...mockUseAdvancedFilters,
-      isOpen: true,
-      hasActiveFilters: true,
-      activeFiltersCount: 1,
-      clearFilters: mockClearFilters
-    });
-
-    render(<AdvancedFiltersPopover />);
-    
-    const clearButton = screen.getByRole('button', { name: '' }); // Botão de limpar
-    fireEvent.click(clearButton);
-    
-    expect(mockClearFilters).toHaveBeenCalled();
+  it('should reset filters to initial state when cancel is clicked', () => {
+    render(<AdvancedFiltersPopover {...mockProps} />);
+    const trigger = screen.getByRole('button');
+    fireEvent.click(trigger);
+    const nameInput = screen.getByPlaceholderText(/filter by name/i);
+    fireEvent.change(nameInput, { target: { value: 'John' } });
+    const cancelButton = screen.getByRole('button', { name: /cancel/i });
+    fireEvent.click(cancelButton);
+    expect(nameInput).toHaveValue('');
   });
 });

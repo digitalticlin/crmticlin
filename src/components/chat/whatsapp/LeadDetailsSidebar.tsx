@@ -1,338 +1,344 @@
 
-import React, { useState, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  User,
-  Phone,
-  Mail,
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Contact } from '@/types/chat';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { 
+  User, 
+  Phone, 
+  Mail, 
+  MapPin, 
+  Building, 
+  FileText, 
   Calendar,
   DollarSign,
-  Tag,
-  MessageCircle,
-  Clock,
   TrendingUp,
-  MapPin,
-  Building,
   Edit3,
-  X,
-  Trash2
-} from "lucide-react";
-import { Contact } from "@/types/chat";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+  Save,
+  X
+} from 'lucide-react';
 
-interface LeadDetailsSidebarProps {
+export interface LeadDetailsSidebarProps {
   contact: Contact;
   isOpen: boolean;
   onClose: () => void;
-  onLeadDetail: (contact: Contact) => void;
+  onUpdateContact: (updatedContact: Contact) => void;
 }
 
-interface DealHistoryItem {
-  id: string;
-  value: number;
-  note?: string;
-  created_at: string;
-  stage_name?: string;
-}
-
-interface LeadTag {
-  id: string;
-  name: string;
-  color: string;
-}
-
-export const LeadDetailsSidebar = ({
-  contact,
-  isOpen,
-  onClose,
-  onLeadDetail
+export const LeadDetailsSidebar = ({ 
+  contact, 
+  isOpen, 
+  onClose, 
+  onUpdateContact 
 }: LeadDetailsSidebarProps) => {
   const { user } = useAuth();
-  const [dealHistory, setDealHistory] = useState<DealHistoryItem[]>([]);
-  const [leadTags, setLeadTags] = useState<LeadTag[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [editData, setEditData] = useState({
+    name: contact.name || '',
+    email: contact.email || '',
+    address: contact.address || '',
+    company: contact.company || '',
+    notes: contact.notes || '',
+    purchaseValue: contact.purchaseValue || 0
+  });
 
   useEffect(() => {
-    if (isOpen && contact.leadId) {
-      fetchDealHistory();
-      fetchLeadTags();
-    }
-  }, [isOpen, contact.leadId]);
+    setEditData({
+      name: contact.name || '',
+      email: contact.email || '',
+      address: contact.address || '',
+      company: contact.company || '',
+      notes: contact.notes || '',
+      purchaseValue: contact.purchaseValue || 0
+    });
+  }, [contact]);
 
-  const fetchDealHistory = async () => {
-    if (!contact.leadId || !user) return;
+  const handleSave = async () => {
+    if (!user || !contact.id) return;
 
-    try {
-      const { data, error } = await supabase
-        .from('deals')
-        .select(`
-          id,
-          value,
-          note,
-          created_at,
-          kanban_stages(name)
-        `)
-        .eq('lead_id', contact.leadId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedHistory = data?.map(deal => ({
-        id: deal.id,
-        value: deal.value || 0,
-        note: deal.note,
-        created_at: deal.created_at,
-        stage_name: deal.kanban_stages?.name
-      })) || [];
-
-      setDealHistory(formattedHistory);
-    } catch (error) {
-      console.error('Erro ao buscar histórico de negócios:', error);
-    }
-  };
-
-  const fetchLeadTags = async () => {
-    if (!contact.leadId || !user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('lead_tags')
-        .select(`
-          tag_id,
-          tags(
-            id,
-            name,
-            color
-          )
-        `)
-        .eq('lead_id', contact.leadId);
-
-      if (error) throw error;
-
-      const tags = data?.map(item => ({
-        id: item.tags.id,
-        name: item.tags.name,
-        color: item.tags.color
-      })) || [];
-
-      setLeadTags(tags);
-    } catch (error) {
-      console.error('Erro ao buscar tags do lead:', error);
-    }
-  };
-
-  const handleRemoveTag = async (tagId: string) => {
-    if (!contact.leadId) return;
-
+    setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('lead_tags')
-        .delete()
-        .eq('lead_id', contact.leadId)
-        .eq('tag_id', tagId);
+        .from('leads')
+        .update({
+          name: editData.name,
+          email: editData.email,
+          address: editData.address,
+          company: editData.company,
+          notes: editData.notes,
+          purchase_value: editData.purchaseValue,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', contact.id)
+        .eq('created_by_user_id', user.id);
 
       if (error) throw error;
 
-      setLeadTags(prev => prev.filter(tag => tag.id !== tagId));
-      toast.success('Tag removida com sucesso');
-    } catch (error) {
-      console.error('Erro ao remover tag:', error);
-      toast.error('Erro ao remover tag');
+      const updatedContact = {
+        ...contact,
+        name: editData.name,
+        email: editData.email,
+        address: editData.address,
+        company: editData.company,
+        notes: editData.notes,
+        purchaseValue: editData.purchaseValue
+      };
+
+      onUpdateContact(updatedContact);
+      setIsEditing(false);
+      toast.success('Contato atualizado com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao atualizar contato:', error);
+      toast.error('Erro ao atualizar contato: ' + error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
-  };
-
-  const formatDate = (dateString: string) => {
-    return formatDistanceToNow(new Date(dateString), {
-      addSuffix: true,
-      locale: ptBR
+  const handleCancel = () => {
+    setEditData({
+      name: contact.name || '',
+      email: contact.email || '',
+      address: contact.address || '',
+      company: contact.company || '',
+      notes: contact.notes || '',
+      purchaseValue: contact.purchaseValue || 0
     });
+    setIsEditing(false);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-white/95 backdrop-blur-lg border-l border-white/20 shadow-2xl z-50 flex flex-col">
-      {/* Header */}
-      <div className="p-6 border-b border-white/20 bg-gradient-to-r from-blue-50/50 to-purple-50/50">
+    <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-gray-200 shadow-lg z-50 overflow-y-auto">
+      <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">Detalhes do Lead</h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="h-8 w-8 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          <h2 className="text-lg font-semibold text-gray-900">Detalhes do Lead</h2>
+          <div className="flex items-center gap-2">
+            {!isEditing ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit3 className="w-4 h-4" />
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancel}
+                  disabled={isLoading}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={isLoading}
+                >
+                  <Save className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
-      <ScrollArea className="flex-1 p-6">
-        <div className="space-y-6">
-          {/* Contact Info */}
-          <Card className="bg-white/50 backdrop-blur-sm border border-white/30">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={contact.avatar} />
-                  <AvatarFallback>
-                    {contact.name?.charAt(0) || contact.phone.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">
-                    {contact.name || 'Sem nome'}
-                  </h3>
-                  <p className="text-sm text-gray-600">{contact.phone}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onLeadDetail(contact)}
-                  className="h-8 w-8 p-0"
-                >
-                  <Edit3 className="h-4 w-4" />
-                </Button>
+      <div className="p-4 space-y-6">
+        {/* Informações Básicas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Informações Básicas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome</Label>
+              {isEditing ? (
+                <Input
+                  id="name"
+                  value={editData.name}
+                  onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Nome do contato"
+                />
+              ) : (
+                <p className="text-sm text-gray-600">{contact.name || 'Não informado'}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Telefone</Label>
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-gray-400" />
+                <p className="text-sm text-gray-600">{contact.phone}</p>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {contact.email && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-gray-500" />
-                  <span className="text-gray-600">{contact.email}</span>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              {isEditing ? (
+                <Input
+                  id="email"
+                  type="email"
+                  value={editData.email}
+                  onChange={(e) => setEditData(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="email@exemplo.com"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-gray-400" />
+                  <p className="text-sm text-gray-600">{contact.email || 'Não informado'}</p>
                 </div>
               )}
-              <div className="flex items-center gap-2 text-sm">
-                <Phone className="h-4 w-4 text-gray-500" />
-                <span className="text-gray-600">{contact.phone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <MessageCircle className="h-4 w-4 text-gray-500" />
-                <span className="text-gray-600">
-                  {contact.isOnline ? 'Online' : 'Offline'}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Tags */}
-          {leadTags.length > 0 && (
-            <Card className="bg-white/50 backdrop-blur-sm border border-white/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Tag className="h-4 w-4" />
-                  Etiquetas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {leadTags.map((tag) => (
-                    <div key={tag.id} className="flex items-center gap-1">
-                      <Badge
-                        variant="secondary"
-                        className="text-xs"
-                        style={{ backgroundColor: tag.color + '20', color: tag.color }}
-                      >
-                        {tag.name}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveTag(tag.id)}
-                        className="h-5 w-5 p-0 text-gray-400 hover:text-red-500"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
+            <div className="space-y-2">
+              <Label htmlFor="address">Endereço</Label>
+              {isEditing ? (
+                <Input
+                  id="address"
+                  value={editData.address}
+                  onChange={(e) => setEditData(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="Endereço completo"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-gray-400" />
+                  <p className="text-sm text-gray-600">{contact.address || 'Não informado'}</p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </div>
 
-          {/* Deal History */}
-          {dealHistory.length > 0 && (
-            <Card className="bg-white/50 backdrop-blur-sm border border-white/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <TrendingUp className="h-4 w-4" />
-                  Histórico de Negócios
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {dealHistory.map((deal) => (
-                    <div key={deal.id} className="border-l-2 border-blue-200 pl-3 pb-3">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-sm">
-                          {formatCurrency(deal.value)}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {formatDate(deal.created_at)}
-                        </span>
-                      </div>
-                      {deal.stage_name && (
-                        <p className="text-xs text-gray-600 mt-1">
-                          {deal.stage_name}
-                        </p>
-                      )}
-                      {deal.note && (
-                        <p className="text-xs text-gray-600 mt-1">
-                          {deal.note}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+            <div className="space-y-2">
+              <Label htmlFor="company">Empresa</Label>
+              {isEditing ? (
+                <Input
+                  id="company"
+                  value={editData.company}
+                  onChange={(e) => setEditData(prev => ({ ...prev, company: e.target.value }))}
+                  placeholder="Nome da empresa"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Building className="w-4 h-4 text-gray-400" />
+                  <p className="text-sm text-gray-600">{contact.company || 'Não informado'}</p>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Lead Stats */}
-          <Card className="bg-white/50 backdrop-blur-sm border border-white/30">
+        {/* Informações de Vendas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Informações de Vendas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="purchaseValue">Valor Potencial</Label>
+              {isEditing ? (
+                <Input
+                  id="purchaseValue"
+                  type="number"
+                  value={editData.purchaseValue}
+                  onChange={(e) => setEditData(prev => ({ ...prev, purchaseValue: Number(e.target.value) }))}
+                  placeholder="0"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-gray-400" />
+                  <p className="text-sm text-gray-600">
+                    {contact.purchaseValue ? `R$ ${contact.purchaseValue.toLocaleString()}` : 'Não informado'}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {contact.funnelStage && (
+              <div className="space-y-2">
+                <Label>Estágio do Funil</Label>
+                <Badge variant="outline">{contact.funnelStage}</Badge>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Notas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Observações
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isEditing ? (
+              <Textarea
+                value={editData.notes}
+                onChange={(e) => setEditData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Adicione observações sobre este contato..."
+                rows={4}
+              />
+            ) : (
+              <p className="text-sm text-gray-600">
+                {contact.notes || 'Nenhuma observação adicionada'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Informações de Atividade */}
+        {(contact.lastMessage || contact.createdAt) && (
+          <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-sm">
-                <User className="h-4 w-4" />
-                Estatísticas
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Atividade
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Total em negócios:</span>
-                <span className="font-medium">
-                  {formatCurrency(dealHistory.reduce((sum, deal) => sum + deal.value, 0))}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Número de negócios:</span>
-                <span className="font-medium">{dealHistory.length}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Último contato:</span>
-                <span className="font-medium">
-                  {contact.lastMessageAt ? formatDate(contact.lastMessageAt) : 'Nunca'}
-                </span>
-              </div>
+              {contact.lastMessage && (
+                <div>
+                  <Label className="text-xs text-gray-500">Última Mensagem</Label>
+                  <p className="text-sm text-gray-600 mt-1">{contact.lastMessage}</p>
+                  {contact.lastMessageTime && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(contact.lastMessageTime).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {contact.createdAt && (
+                <div>
+                  <Label className="text-xs text-gray-500">Primeiro Contato</Label>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {new Date(contact.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
-        </div>
-      </ScrollArea>
+        )}
+      </div>
     </div>
   );
 };

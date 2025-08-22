@@ -26,8 +26,6 @@ export const ChatContacts = ({
       selectedContact={selectedContact}
       onSelectContact={onSelectContact}
       isLoading={isLoading}
-      searchTerm={searchTerm}
-      onSearchChange={onSearchChange}
     />
   );
 };
