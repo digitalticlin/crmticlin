@@ -1,50 +1,38 @@
+
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useAdvancedFilters } from '@/hooks/clients/useAdvancedFilters';
+import { useAdvancedFilters } from '../useAdvancedFilters';
 
-// Mock do contexto de autenticação
-jest.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({
-    user: { id: 'user123' }
-  })
-}));
-
-// Mock das queries
-jest.mock('@/hooks/clients/queries', () => ({
+// Mock the queries module
+vi.mock('../queries', () => ({
   useFilterOptions: () => ({
     data: {
       tags: [],
-      responsibleUsers: [],
-      funnelIds: [],
       funnelStages: [],
-      states: [],
-      cities: [],
-      countries: []
-    },
-    isLoading: false
-  }),
-  useFilteredClientsQuery: () => ({
-    data: [],
-    isLoading: false
+      responsibleUsers: []
+    }
   })
 }));
 
 describe('useAdvancedFilters', () => {
-  it('deve inicializar com filtros vazios', () => {
+  it('should initialize with empty filters', () => {
     const { result } = renderHook(() => useAdvancedFilters());
     
-    expect(result.current.filters).toEqual({
-      tags: [],
-      responsibleUsers: [],
-      funnelIds: [],
-      funnelStages: [],
-      states: [],
-      cities: [],
-      countries: [],
-      dateRange: undefined
-    });
+    expect(result.current.filters.tags).toEqual([]);
+    expect(result.current.filters.funnelStage).toBe('');
+    expect(result.current.filters.funnelStages).toEqual([]);
+    expect(result.current.filters.funnelIds).toEqual([]);
+    expect(result.current.filters.dateRange).toEqual({ from: undefined, to: undefined });
+    expect(result.current.filters.source).toBe('');
+    expect(result.current.filters.value).toEqual({ min: undefined, max: undefined });
+    expect(result.current.filters.companies).toEqual([]);
+    expect(result.current.filters.responsibleUsers).toEqual([]);
+    expect(result.current.filters.states).toEqual([]);
+    expect(result.current.filters.cities).toEqual([]);
+    expect(result.current.filters.countries).toEqual([]);
   });
 
-  it('deve adicionar tag ao filtro', () => {
+  it('should add and remove tag filters', () => {
     const { result } = renderHook(() => useAdvancedFilters());
     
     act(() => {
@@ -52,20 +40,15 @@ describe('useAdvancedFilters', () => {
     });
     
     expect(result.current.filters.tags).toContain('tag1');
-  });
-
-  it('deve remover tag do filtro', () => {
-    const { result } = renderHook(() => useAdvancedFilters());
     
     act(() => {
-      result.current.addTagFilter('tag1');
       result.current.removeTagFilter('tag1');
     });
     
     expect(result.current.filters.tags).not.toContain('tag1');
   });
 
-  it('deve adicionar usuário ao filtro', () => {
+  it('should add and remove user filters', () => {
     const { result } = renderHook(() => useAdvancedFilters());
     
     act(() => {
@@ -73,41 +56,31 @@ describe('useAdvancedFilters', () => {
     });
     
     expect(result.current.filters.responsibleUsers).toContain('user1');
-  });
-
-  it('deve remover usuário do filtro', () => {
-    const { result } = renderHook(() => useAdvancedFilters());
     
     act(() => {
-      result.current.addUserFilter('user1');
       result.current.removeUserFilter('user1');
     });
     
     expect(result.current.filters.responsibleUsers).not.toContain('user1');
   });
 
-  it('deve adicionar funil ao filtro', () => {
+  it('should add and remove funnel filters', () => {
     const { result } = renderHook(() => useAdvancedFilters());
     
     act(() => {
-      result.current.addFunnelFilter('funil1');
+      result.current.addFunnelFilter('funnel1');
     });
     
-    expect(result.current.filters.funnelIds).toContain('funil1');
-  });
-
-  it('deve remover funil do filtro', () => {
-    const { result } = renderHook(() => useAdvancedFilters());
+    expect(result.current.filters.funnelIds).toContain('funnel1');
     
     act(() => {
-      result.current.addFunnelFilter('funil1');
-      result.current.removeFunnelFilter('funil1');
+      result.current.removeFunnelFilter('funnel1');
     });
     
-    expect(result.current.filters.funnelIds).not.toContain('funil1');
+    expect(result.current.filters.funnelIds).not.toContain('funnel1');
   });
 
-  it('deve adicionar etapa do funil ao filtro', () => {
+  it('should add and remove stage filters', () => {
     const { result } = renderHook(() => useAdvancedFilters());
     
     act(() => {
@@ -115,69 +88,91 @@ describe('useAdvancedFilters', () => {
     });
     
     expect(result.current.filters.funnelStages).toContain('stage1');
-  });
-
-  it('deve remover etapa do funil do filtro', () => {
-    const { result } = renderHook(() => useAdvancedFilters());
     
     act(() => {
-      result.current.addStageFilter('stage1');
       result.current.removeStageFilter('stage1');
     });
     
     expect(result.current.filters.funnelStages).not.toContain('stage1');
   });
 
-  it('deve atualizar filtro genérico', () => {
+  it('should update filters using updateFilters', () => {
     const { result } = renderHook(() => useAdvancedFilters());
     
     act(() => {
-      result.current.updateFilter('states', ['SP', 'RJ']);
+      result.current.updateFilters({ 
+        tags: ['tag1', 'tag2'],
+        source: 'website'
+      });
     });
     
-    expect(result.current.filters.states).toEqual(['SP', 'RJ']);
+    expect(result.current.filters.tags).toEqual(['tag1', 'tag2']);
+    expect(result.current.filters.source).toBe('website');
   });
 
-  it('deve limpar todos os filtros', () => {
+  it('should update individual filter using updateFilter', () => {
     const { result } = renderHook(() => useAdvancedFilters());
     
     act(() => {
-      result.current.addTagFilter('tag1');
-      result.current.addUserFilter('user1');
-      result.current.clearFilters();
+      result.current.updateFilter('source', 'social');
     });
     
-    expect(result.current.filters.tags).toHaveLength(0);
-    expect(result.current.filters.responsibleUsers).toHaveLength(0);
+    expect(result.current.filters.source).toBe('social');
   });
 
-  it('deve remover filtro específico', () => {
+  it('should reset all filters', () => {
+    const { result } = renderHook(() => useAdvancedFilters());
+    
+    // Add some filters first
+    act(() => {
+      result.current.updateFilters({ 
+        tags: ['tag1'],
+        source: 'website',
+        companies: ['company1']
+      });
+    });
+    
+    // Reset filters
+    act(() => {
+      result.current.resetFilters();
+    });
+    
+    expect(result.current.filters.tags).toEqual([]);
+    expect(result.current.filters.source).toBe('');
+    expect(result.current.filters.companies).toEqual([]);
+  });
+
+  it('should count active filters correctly', () => {
+    const { result } = renderHook(() => useAdvancedFilters());
+    
+    expect(result.current.activeFilterCount).toBe(0);
+    
+    act(() => {
+      result.current.updateFilters({ 
+        tags: ['tag1'],
+        source: 'website'
+      });
+    });
+    
+    expect(result.current.activeFilterCount).toBe(2);
+  });
+
+  it('should build query filters correctly', () => {
     const { result } = renderHook(() => useAdvancedFilters());
     
     act(() => {
-      result.current.addTagFilter('tag1');
-      result.current.addTagFilter('tag2');
-      result.current.removeFilter('tags');
+      result.current.updateFilters({ 
+        tags: ['tag1', 'tag2'],
+        source: 'website',
+        value: { min: 100, max: 500 }
+      });
     });
     
-    expect(result.current.filters.tags).toHaveLength(0);
-  });
-
-  it('deve detectar quando há filtros ativos', () => {
-    const { result } = renderHook(() => useAdvancedFilters());
+    const queryFilters = result.current.buildQueryFilters();
     
-    act(() => {
-      result.current.addTagFilter('tag1');
-    });
-    
-    expect(result.current.hasActiveFilters).toBe(true);
-    expect(result.current.activeFiltersCount).toBe(1);
-  });
-
-  it('deve retornar 0 quando não há filtros ativos', () => {
-    const { result } = renderHook(() => useAdvancedFilters());
-    
-    expect(result.current.hasActiveFilters).toBe(false);
-    expect(result.current.activeFiltersCount).toBe(0);
+    expect(queryFilters.tags).toEqual(['tag1', 'tag2']);
+    expect(queryFilters.source).toBe('website');
+    expect(queryFilters.minValue).toBe(100);
+    expect(queryFilters.maxValue).toBe(500);
   });
 });

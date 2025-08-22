@@ -1,127 +1,149 @@
-import React, { useState, useMemo } from 'react';
-import { ClientsSearchBar } from './ClientsSearchBar';
-import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
+import React, { useMemo } from "react";
+import { 
   useReactTable,
-} from "@tanstack/react-table"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { MoreHorizontal } from "lucide-react";
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender,
+  ColumnDef,
+} from "@tanstack/react-table";
+import { ClientData } from "@/hooks/clients/types";
+import { ClientsSearchBar } from "./ClientsSearchBar";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-
-// Assuming you have these types defined elsewhere
-interface ClientData {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  company: string;
-  tags: string[];
-  createdAt: string;
-}
-
-const columns: ColumnDef<ClientData>[] = [
-  {
-    accessorKey: "name",
-    header: "Name",
-  },
-  {
-    accessorKey: "email",
-    header: "Email",
-  },
-  {
-    accessorKey: "phone",
-    header: "Phone",
-  },
-  {
-    accessorKey: "company",
-    header: "Company",
-  },
-  {
-    accessorKey: "createdAt",
-    header: "Created At",
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => {
-      const client = row.original
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(client.email)}
-            >
-              Copy email
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>View Client</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    },
-  },
-]
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface ClientsListTableProps {
-  searchQuery: string;
-  onSearchChange: (q: any) => void;
   clients: ClientData[];
-  filteredClients: ClientData[];
-  totalClientsCount: number;
-  hasMoreClients: boolean;
+  onSelectClient: (client: ClientData) => void;
+  onEditClient: (client: ClientData) => void;
+  onDeleteClient: (clientId: string) => void;
+  isLoading?: boolean;
+  isLoadingMore?: boolean;
+  hasMoreClients?: boolean;
+  onLoadMoreClients?: () => Promise<void>;
+  totalClientsCount?: number;
+  onServerSearch?: (query: string) => void;
 }
 
-export const ClientsListTable = ({
-  searchQuery,
-  onSearchChange,
+export function ClientsListTable({
   clients,
-  filteredClients,
+  onSelectClient,
+  onEditClient,
+  onDeleteClient,
+  isLoading,
+  isLoadingMore,
+  hasMoreClients,
+  onLoadMoreClients,
   totalClientsCount,
-  hasMoreClients
-}: ClientsListTableProps) => {
-  const [sorting, setSorting] = useState([])
+  onServerSearch
+}: ClientsListTableProps) {
+  
+  const columns: ColumnDef<ClientData>[] = useMemo(
+    () => [
+      {
+        accessorKey: "name",
+        header: "Nome",
+        cell: ({ row }) => (
+          <div className="font-medium">{row.getValue("name")}</div>
+        ),
+      },
+      {
+        accessorKey: "phone",
+        header: "Telefone",
+        cell: ({ row }) => <div>{row.getValue("phone")}</div>,
+      },
+      {
+        accessorKey: "email",
+        header: "Email",
+        cell: ({ row }) => <div>{row.getValue("email") || "-"}</div>,
+      },
+      {
+        accessorKey: "company",
+        header: "Empresa",
+        cell: ({ row }) => <div>{row.getValue("company") || "-"}</div>,
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Criado em",
+        cell: ({ row }) => {
+          const date = row.getValue("createdAt") as string;
+          return (
+            <div className="text-sm text-gray-500">
+              {formatDistanceToNow(new Date(date), { 
+                addSuffix: true, 
+                locale: ptBR 
+              })}
+            </div>
+          );
+        },
+      },
+      {
+        id: "actions",
+        header: "Ações",
+        cell: ({ row }) => (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onSelectClient(row.original)}
+            >
+              Ver
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEditClient(row.original)}
+            >
+              Editar
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => onDeleteClient(row.original.id)}
+            >
+              Excluir
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [onSelectClient, onEditClient, onDeleteClient]
+  );
+
   const table = useReactTable({
-    data: filteredClients,
+    data: clients,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    onSortingChange: setSorting,
-    state: {
-      sorting,
-    },
-  })
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <div className="space-y-2">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <ClientsSearchBar 
-        onSearch={onSearchChange}
-        onFiltersChange={(filters) => {
-          // Handle filters change
-          console.log('Filters changed:', filters);
-        }}
+      <ClientsSearchBar
+        searchTerm=""
+        onSearchChange={onServerSearch || (() => {})}
+        clients={clients}
+        filteredClients={clients}
+        totalClientsCount={totalClientsCount || 0}
+        hasMoreClients={hasMoreClients || false}
       />
       
       <div className="rounded-md border">
@@ -129,18 +151,16 @@ export const ClientsListTable = ({
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  )
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
@@ -153,21 +173,39 @@ export const ClientsListTable = ({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
-              <tr>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results.
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  Nenhum cliente encontrado.
                 </TableCell>
-              </tr>
+              </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
+
+      {hasMoreClients && (
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            onClick={onLoadMoreClients}
+            disabled={isLoadingMore}
+          >
+            {isLoadingMore ? "Carregando..." : "Carregar mais"}
+          </Button>
+        </div>
+      )}
     </div>
   );
-};
+}
