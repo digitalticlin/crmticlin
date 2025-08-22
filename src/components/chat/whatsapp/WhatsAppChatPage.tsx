@@ -38,11 +38,11 @@ export const WhatsAppChatPage = () => {
       isLoadingContacts={isLoadingContacts}
       isLoadingMoreContacts={false}
       hasMoreContacts={false}
-      onLoadMoreContacts={async () => {}},
+      onLoadMoreContacts={async () => {}}
       isLoadingMessages={isLoadingMessages}
       isLoadingMore={false}
       hasMoreMessages={false}
-      onLoadMoreMessages={async () => {}},
+      onLoadMoreMessages={async () => {}}
       isSending={false}
       onRefreshMessages={refreshMessages}
       onRefreshContacts={refreshContacts}
