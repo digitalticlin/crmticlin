@@ -25,7 +25,7 @@ export function PageLayout({ children, className }: PageLayoutProps) {
       
       <ResponsiveSidebar />
       
-      {/* Main container SEM scroll geral */}
+      {/* Main container responsivo e centralizado */}
       <main className={cn(
         "min-h-screen w-full z-30 transition-all duration-300",
         className?.includes("kanban") ? "h-full" : "overflow-hidden h-full",
