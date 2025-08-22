@@ -16,7 +16,7 @@ export interface ClientData {
   id: string;
   name: string;
   phone: string;
-  email?: string;
+  email?: string; // Made optional to match interface requirements
   address?: string;
   bairro?: string;
   city?: string;
