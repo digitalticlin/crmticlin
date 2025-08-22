@@ -1,107 +1,35 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { MessageCircle, Send, Bot, User, Clock, CheckCircle, AlertCircle } from 'lucide-react';
-import { useWhatsAppContacts, UseWhatsAppContactsParams } from '@/hooks/whatsapp/useWhatsAppContacts';
+import { Loader2, Send, User, MessageCircle } from 'lucide-react';
+import { useWhatsAppContacts } from '@/hooks/whatsapp/useWhatsAppContacts';
+import { toast } from 'sonner';
 
-interface MessageFlowTesterProps {
-  instanceId?: string;
-}
-
-interface TestMessage {
-  id: string;
-  content: string;
-  timestamp: Date;
-  type: 'user' | 'bot';
-  status: 'sent' | 'delivered' | 'read' | 'failed';
-}
-
-export function MessageFlowTester({ instanceId }: MessageFlowTesterProps) {
+export const MessageFlowTester = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [messageContent, setMessageContent] = useState('');
-  const [testMessages, setTestMessages] = useState<TestMessage[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Use proper parameters object for the hook
-  const contactsParams: UseWhatsAppContactsParams = {
-    instanceId: instanceId || '',
-    searchTerm: phoneNumber
-  };
+  const [testMessage, setTestMessage] = useState('Olá! Esta é uma mensagem de teste do sistema.');
+  const [selectedInstanceId, setSelectedInstanceId] = useState('');
   
-  const { data: contacts, isLoading: contactsLoading } = useWhatsAppContacts(contactsParams);
+  const { contacts, loading, error } = useWhatsAppContacts({ 
+    instanceId: selectedInstanceId,
+    enabled: !!selectedInstanceId 
+  });
 
-  const handleSendTestMessage = async () => {
-    if (!phoneNumber || !messageContent) return;
-
-    setIsLoading(true);
-    
-    const newMessage: TestMessage = {
-      id: Date.now().toString(),
-      content: messageContent,
-      timestamp: new Date(),
-      type: 'user',
-      status: 'sent'
-    };
-
-    setTestMessages(prev => [...prev, newMessage]);
+  const handleSendTest = async () => {
+    if (!phoneNumber || !testMessage || !selectedInstanceId) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
 
     try {
-      // Simulate message sending
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Update message status
-      setTestMessages(prev => 
-        prev.map(msg => 
-          msg.id === newMessage.id 
-            ? { ...msg, status: 'delivered' }
-            : msg
-        )
-      );
-
-      // Simulate bot response
-      setTimeout(() => {
-        const botResponse: TestMessage = {
-          id: (Date.now() + 1).toString(),
-          content: `Resposta automática para: ${messageContent}`,
-          timestamp: new Date(),
-          type: 'bot',
-          status: 'delivered'
-        };
-        setTestMessages(prev => [...prev, botResponse]);
-      }, 2000);
-
+      // Mock test sending since we don't have the actual API
+      toast.success('Mensagem de teste enviada com sucesso!');
     } catch (error) {
       console.error('Erro ao enviar mensagem de teste:', error);
-      setTestMessages(prev => 
-        prev.map(msg => 
-          msg.id === newMessage.id 
-            ? { ...msg, status: 'failed' }
-            : msg
-        )
-      );
-    } finally {
-      setIsLoading(false);
-      setMessageContent('');
-    }
-  };
-
-  const getStatusIcon = (status: TestMessage['status']) => {
-    switch (status) {
-      case 'sent':
-        return <Clock className="h-3 w-3 text-gray-400" />;
-      case 'delivered':
-        return <CheckCircle className="h-3 w-3 text-green-500" />;
-      case 'read':
-        return <CheckCircle className="h-3 w-3 text-blue-500" />;
-      case 'failed':
-        return <AlertCircle className="h-3 w-3 text-red-500" />;
-      default:
-        return null;
+      toast.error('Erro ao enviar mensagem de teste');
     }
   };
 
@@ -110,114 +38,90 @@ export function MessageFlowTester({ instanceId }: MessageFlowTesterProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5" />
+            <MessageCircle className="w-5 h-5" />
             Testador de Fluxo de Mensagens
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium">Número de Telefone</label>
-              <Input
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="5511999999999"
-                type="tel"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Instância</label>
-              <Input
-                value={instanceId || ''}
-                disabled
-                placeholder="ID da instância WhatsApp"
-              />
-            </div>
+          <div>
+            <label className="text-sm font-medium">Instância WhatsApp</label>
+            <Input
+              placeholder="ID da instância"
+              value={selectedInstanceId}
+              onChange={(e) => setSelectedInstanceId(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Número de Telefone</label>
+            <Input
+              placeholder="5511999999999"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+            />
           </div>
 
           <div>
             <label className="text-sm font-medium">Mensagem de Teste</label>
-            <Textarea
-              value={messageContent}
-              onChange={(e) => setMessageContent(e.target.value)}
-              placeholder="Digite a mensagem para testar o fluxo..."
-              rows={3}
+            <Input
+              placeholder="Digite sua mensagem..."
+              value={testMessage}
+              onChange={(e) => setTestMessage(e.target.value)}
             />
           </div>
 
-          <Button
-            onClick={handleSendTestMessage}
-            disabled={!phoneNumber || !messageContent || isLoading}
+          <Button 
+            onClick={handleSendTest}
             className="w-full"
+            disabled={!phoneNumber || !testMessage || !selectedInstanceId}
           >
-            <Send className="h-4 w-4 mr-2" />
-            {isLoading ? 'Enviando...' : 'Enviar Mensagem de Teste'}
+            <Send className="w-4 h-4 mr-2" />
+            Enviar Teste
           </Button>
         </CardContent>
       </Card>
 
-      {testMessages.length > 0 && (
+      {selectedInstanceId && (
         <Card>
           <CardHeader>
-            <CardTitle>Histórico de Mensagens</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" />
+              Contatos da Instância
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {testMessages.map((message, index) => (
-                <div key={message.id}>
-                  <div className={`flex items-start gap-3 ${
-                    message.type === 'user' ? 'justify-end' : 'justify-start'
-                  }`}>
-                    <div className={`flex items-center gap-2 max-w-[70%] p-3 rounded-lg ${
-                      message.type === 'user' 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-100 text-gray-900'
-                    }`}>
-                      {message.type === 'bot' && <Bot className="h-4 w-4" />}
-                      {message.type === 'user' && <User className="h-4 w-4" />}
-                      <div className="flex-1">
-                        <p className="text-sm">{message.content}</p>
-                        <div className="flex items-center gap-1 mt-1">
-                          <span className={`text-xs ${
-                            message.type === 'user' ? 'text-blue-100' : 'text-gray-500'
-                          }`}>
-                            {message.timestamp.toLocaleTimeString()}
-                          </span>
-                          {getStatusIcon(message.status)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {index < testMessages.length - 1 && <Separator className="my-2" />}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            {loading && (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <span className="ml-2">Carregando contatos...</span>
+              </div>
+            )}
 
-      {contacts && contacts.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Contatos Relacionados</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {contacts.slice(0, 5).map((contact) => (
-                <div key={contact.id} className="flex items-center justify-between p-2 border rounded">
-                  <div>
-                    <p className="font-medium">{contact.name}</p>
-                    <p className="text-sm text-gray-500">{contact.phone}</p>
+            {error && (
+              <div className="text-red-500 p-4">
+                Erro ao carregar contatos: {error}
+              </div>
+            )}
+
+            {contacts && contacts.length > 0 && (
+              <div className="grid gap-2 max-h-60 overflow-y-auto">
+                {contacts.map((contact, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 border rounded">
+                    <span>{contact.name || contact.phone}</span>
+                    <Badge variant="outline">{contact.phone}</Badge>
                   </div>
-                  <Badge variant="outline">
-                    {contact.unread_count || 0} não lidas
-                  </Badge>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+
+            {contacts && contacts.length === 0 && !loading && (
+              <div className="text-center text-muted-foreground p-4">
+                Nenhum contato encontrado
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
     </div>
   );
-}
+};

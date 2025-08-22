@@ -1,53 +1,64 @@
 
 import React from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
-import { MassSelectionReturn } from '@/hooks/useMassSelection';
+import { MassSelectionProvider } from '@/contexts/MassSelectionContext';
+import { useMassSelection } from '@/hooks/sales/useMassSelection';
+import { MassSelectionToolbar } from './MassSelectionToolbar';
+import { MassSelectionIndicator } from './MassSelectionIndicator';
 
 interface ProductionMassSelectionWrapperProps {
-  massSelection: MassSelectionReturn;
   children: React.ReactElement;
+  onBulkUpdate: (leadIds: string[], updates: any) => Promise<void>;
+  onBulkDelete: (leadIds: string[]) => Promise<void>;
+  onBulkStageChange: (leadIds: string[], stageId: string) => Promise<void>;
 }
 
-function ErrorFallback({ error }: { error: Error }) {
+const MassSelectionContent: React.FC<{
+  children: React.ReactElement;
+  onBulkUpdate: (leadIds: string[], updates: any) => Promise<void>;
+  onBulkDelete: (leadIds: string[]) => Promise<void>;
+  onBulkStageChange: (leadIds: string[], stageId: string) => Promise<void>;
+}> = ({ children, onBulkUpdate, onBulkDelete, onBulkStageChange }) => {
+  const massSelection = useMassSelection();
+
   return (
-    <div className="p-4 border border-red-200 rounded-lg bg-red-50">
-      <h2 className="text-lg font-semibold text-red-800">Erro na Seleção em Massa</h2>
-      <p className="text-red-600 mt-2">
-        Algo deu errado: {error.message}
-      </p>
+    <div className="relative h-full">
+      {/* Main content */}
+      <div className="h-full">
+        {React.cloneElement(children, { massSelection })}
+      </div>
+
+      {/* Mass selection controls */}
+      {massSelection.selectedLeads.length > 0 && (
+        <>
+          <MassSelectionIndicator count={massSelection.selectedLeads.length} />
+          <MassSelectionToolbar
+            selectedLeads={massSelection.selectedLeads}
+            onBulkUpdate={onBulkUpdate}
+            onBulkDelete={onBulkDelete}
+            onBulkStageChange={onBulkStageChange}
+            onClearSelection={massSelection.clearSelection}
+          />
+        </>
+      )}
     </div>
   );
-}
+};
 
-export const ProductionMassSelectionWrapper = ({ 
-  massSelection, 
-  children 
-}: ProductionMassSelectionWrapperProps) => {
+export const ProductionMassSelectionWrapper: React.FC<ProductionMassSelectionWrapperProps> = ({
+  children,
+  onBulkUpdate,
+  onBulkDelete,
+  onBulkStageChange
+}) => {
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <div className="relative">
-        {/* Mass Selection UI */}
-        {massSelection.isSelectionMode && (
-          <div className="fixed top-4 right-4 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="font-medium">
-                {massSelection.selectedCount} selecionados
-              </span>
-              <button
-                onClick={massSelection.clearSelection}
-                className="text-red-600 hover:text-red-800 text-xs underline"
-              >
-                Limpar
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {/* Single child wrapped in div to satisfy JSX requirements */}
-        <div>
-          {children}
-        </div>
-      </div>
-    </ErrorBoundary>
+    <MassSelectionProvider>
+      <MassSelectionContent
+        onBulkUpdate={onBulkUpdate}
+        onBulkDelete={onBulkDelete}
+        onBulkStageChange={onBulkStageChange}
+      >
+        {children}
+      </MassSelectionContent>
+    </MassSelectionProvider>
   );
 };

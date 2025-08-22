@@ -6,14 +6,21 @@ export interface BroadcastCampaign {
   id: string;
   name: string;
   message_text: string;
+  media_type?: 'text' | 'image' | 'video' | 'audio' | 'document';
+  media_url?: string;
   target_type: 'all' | 'segment' | 'custom';
   target_config: Record<string, any>;
-  status: 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed';
+  status: 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed' | 'paused' | 'running';
   scheduled_at?: string;
   sent_at?: string;
   total_recipients: number;
   successful_sends: number;
   failed_sends: number;
+  sent_count: number;
+  failed_count: number;
+  rate_limit_per_minute: number;
+  business_hours_only: boolean;
+  timezone: string;
   whatsapp_number_id: string;
   created_by_user_id: string;
   created_at: string;
@@ -40,12 +47,18 @@ export const useBroadcastCampaigns = () => {
           id: '1',
           name: 'Campanha de Teste',
           message_text: 'Olá! Esta é uma mensagem de teste.',
+          media_type: 'text',
           target_type: 'all',
           target_config: {},
           status: 'draft',
-          total_recipients: 0,
+          total_recipients: 100,
           successful_sends: 0,
           failed_sends: 0,
+          sent_count: 0,
+          failed_count: 0,
+          rate_limit_per_minute: 2,
+          business_hours_only: false,
+          timezone: 'America/Sao_Paulo',
           whatsapp_number_id: '',
           created_by_user_id: '',
           created_at: new Date().toISOString(),
@@ -104,6 +117,16 @@ export const useBroadcastCampaigns = () => {
     }
   };
 
+  const startCampaign = async (id: string) => {
+    try {
+      await updateCampaign(id, { status: 'running' });
+      return true;
+    } catch (err) {
+      console.error('Erro ao iniciar campanha:', err);
+      return false;
+    }
+  };
+
   return {
     campaigns,
     loading,
@@ -111,6 +134,7 @@ export const useBroadcastCampaigns = () => {
     fetchCampaigns,
     createCampaign,
     updateCampaign,
-    deleteCampaign
+    deleteCampaign,
+    startCampaign
   };
 };

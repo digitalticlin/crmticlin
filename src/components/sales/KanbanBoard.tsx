@@ -1,122 +1,104 @@
 
-import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
-import { MassSelectionReturn } from "@/hooks/useMassSelection";
-import { useDragAndDropOptimized } from "@/hooks/kanban/useDragAndDropOptimized";
-import { BoardContentOptimized } from "./kanban/BoardContentOptimized";
-import { StableDragDropWrapper } from "./funnel/StableDragDropWrapper";
-import { DataErrorBoundary } from "./funnel/DataErrorBoundary";
-import { useMemo } from "react";
+import React, { useState, useEffect } from 'react';
+import { BoardContentOptimized } from './kanban/BoardContentOptimized';
+import { LeadDetailModal } from './LeadDetailModal';
+import { KanbanColumn, KanbanLead } from '@/types/kanban';
+import { useMassSelection } from '@/hooks/sales/useMassSelection';
+import { useLeadActions } from '@/hooks/sales/useLeadActions';
+import { toast } from 'sonner';
 
 interface KanbanBoardProps {
-  columns: IKanbanColumn[];
-  onColumnsChange: (newColumns: IKanbanColumn[]) => void;
-  onOpenLeadDetail: (lead: KanbanLead) => void;
-  onColumnUpdate?: (updatedColumn: IKanbanColumn) => void;
+  columns: KanbanColumn[];
+  searchQuery: string;
+  onColumnUpdate?: (updatedColumn: KanbanColumn) => void;
   onColumnDelete?: (columnId: string) => void;
-  onOpenChat?: (lead: KanbanLead) => void;
-  onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
-  onReturnToFunnel?: (lead: KanbanLead) => void;
-  isWonLostView?: boolean;
-  wonStageId?: string;
-  lostStageId?: string;
-  massSelection?: MassSelectionReturn;
+  onLeadUpdate: (leadId: string, updates: Partial<KanbanLead>) => void;
+  onLeadDelete: (leadId: string) => void;
+  onStageChange: (leadId: string, newStageId: string, oldStageId: string) => void;
 }
 
-export const KanbanBoard = ({
+export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   columns,
-  onColumnsChange,
-  onOpenLeadDetail,
-  onColumnUpdate,
-  onColumnDelete,
-  onOpenChat,
-  onMoveToWonLost,
-  onReturnToFunnel,
-  isWonLostView = false,
-  wonStageId,
-  lostStageId,
-  massSelection
-}: KanbanBoardProps) => {
-  console.log('[KanbanBoard] 🚀 FASES 2+3 - Renderizando com arquitetura otimizada + clone visual:', {
-    columnsReceived: columns?.length || 0,
-    isArray: Array.isArray(columns)
-  });
+  searchQuery,
+  onLeadUpdate,
+  onLeadDelete,
+  onStageChange
+}) => {
+  const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  
+  const massSelection = useMassSelection();
+  const { updateLead, deleteLead } = useLeadActions();
 
-  // Validar colunas uma vez com memoização
-  const validatedColumns = useMemo(() => {
-    if (!Array.isArray(columns)) {
-      console.error('[KanbanBoard] ❌ Colunas não são array:', typeof columns);
-      return [];
+  const handleOpenLeadDetail = (lead: KanbanLead) => {
+    setSelectedLead(lead);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCloseLeadDetail = () => {
+    setSelectedLead(null);
+    setIsDetailModalOpen(false);
+  };
+
+  const handleLeadUpdate = async (leadId: string, updates: Partial<KanbanLead>) => {
+    try {
+      await updateLead(leadId, updates);
+      onLeadUpdate(leadId, updates);
+      toast.success('Lead atualizado com sucesso');
+    } catch (error) {
+      console.error('Erro ao atualizar lead:', error);
+      toast.error('Erro ao atualizar lead');
     }
-    
-    const filtered = columns.filter(col => 
-      col && 
-      typeof col.id === 'string' && 
-      typeof col.title === 'string' &&
-      Array.isArray(col.leads)
-    );
+  };
 
-    console.log('[KanbanBoard] ✅ Colunas validadas (FASES 2+3 + Clone):', filtered.length);
-    return filtered;
-  }, [columns]);
+  const handleLeadDelete = async (leadId: string) => {
+    try {
+      await deleteLead(leadId);
+      onLeadDelete(leadId);
+      toast.success('Lead removido com sucesso');
+    } catch (error) {
+      console.error('Erro ao deletar lead:', error);
+      toast.error('Erro ao deletar lead');
+    }
+  };
 
-  // Hook de drag and drop TOTALMENTE otimizado + Clone Visual
-  const { isDragging, onDragStart, onDragEnd, cloneState } = useDragAndDropOptimized({ 
-    columns: validatedColumns, 
-    onColumnsChange, 
-    onMoveToWonLost, 
-    isWonLostView
-  });
-
-  const isEmpty = !validatedColumns || validatedColumns.length === 0;
-
-  console.log('[KanbanBoard] 🎯 FASES 2+3 + Clone - Renderizando board com clone visual');
-
+  const handleStageChange = async (leadId: string, newStageId: string, oldStageId: string) => {
+    try {
+      await updateLead(leadId, { stage_id: newStageId });
+      onStageChange(leadId, newStageId, oldStageId);
+      toast.success('Lead movido para nova etapa');
+    } catch (error) {
+      console.error('Erro ao mover lead:', error);
+      toast.error('Erro ao mover lead');
+    }
+  };
 
   return (
-    <div className="relative w-full h-full flex flex-col">
-      <DataErrorBoundary context="Kanban Board - Fases 2+3 + Clone Visual">
-        {isEmpty ? (
-          <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {isWonLostView ? "Nenhum lead ganho/perdido" : "Nenhuma etapa encontrada"}
-              </h3>
-              <p className="text-gray-600 mb-4">
-                {isWonLostView 
-                  ? "Nenhum lead foi ganho ou perdido ainda" 
-                  : "Configure as etapas do seu funil para começar"
-                }
-              </p>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Recarregar Página
-              </button>
-            </div>
-          </div>
-        ) : (
-          <StableDragDropWrapper 
-            onDragStart={onDragStart} 
-            onDragEnd={onDragEnd}
-            cloneState={cloneState}
-          >
-            <BoardContentOptimized
-              columns={validatedColumns}
-              onOpenLeadDetail={onOpenLeadDetail}
-              onColumnUpdate={onColumnUpdate}
-              onColumnDelete={onColumnDelete}
-              onOpenChat={onOpenChat}
-              onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
-              onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
-              isWonLostView={isWonLostView}
-              wonStageId={wonStageId}
-              lostStageId={lostStageId}
-              massSelection={massSelection}
-            />
-          </StableDragDropWrapper>
-        )}
-      </DataErrorBoundary>
+    <div className="h-full flex flex-col">
+      <div className="flex-1 min-h-0">
+        <BoardContentOptimized
+          columns={columns}
+          onOpenLeadDetail={handleOpenLeadDetail}
+          onLeadUpdate={handleLeadUpdate}
+          onLeadDelete={handleLeadDelete}
+          onStageChange={handleStageChange}
+          searchQuery={searchQuery}
+          massSelection={massSelection}
+        />
+      </div>
+
+      {selectedLead && (
+        <LeadDetailModal
+          lead={selectedLead}
+          isOpen={isDetailModalOpen}
+          onClose={handleCloseLeadDetail}
+          onUpdate={(updates) => handleLeadUpdate(selectedLead.id, updates)}
+          onDelete={() => {
+            handleLeadDelete(selectedLead.id);
+            handleCloseLeadDetail();
+          }}
+        />
+      )}
     </div>
   );
 };
