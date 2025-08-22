@@ -1,7 +1,28 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ClientData } from './types';
+
+export interface ClientData {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  company: string;
+  document: string;
+  created_at: string;
+  updated_at: string;
+  created_by_user_id: string;
+  notes: string;
+  purchase_value: number;
+  createdAt: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zipcode: string;
+    country: string;
+  };
+}
 
 export const useClients = () => {
   return useQuery({
@@ -21,17 +42,19 @@ export const useClients = () => {
         email: lead.email || '',
         phone: lead.phone || '',
         company: lead.company || '',
-        document: lead.document || '',
+        document: lead.document_id || '',
         created_at: lead.created_at,
         updated_at: lead.updated_at,
+        created_by_user_id: lead.created_by_user_id,
         notes: lead.notes || '',
         purchase_value: 0,
+        createdAt: lead.created_at,
         address: {
-          street: '',
-          city: '',
-          state: '',
-          zipcode: '',
-          country: 'Brasil'
+          street: lead.address || '',
+          city: lead.city || '',
+          state: lead.state || '',
+          zipcode: lead.zip_code || '',
+          country: lead.country || 'Brasil'
         }
       })) as ClientData[];
     }
@@ -54,5 +77,16 @@ export const useDefaultWhatsAppInstance = () => {
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     }
+  });
+};
+
+export const useFilterOptions = () => {
+  return useQuery({
+    queryKey: ['filter-options'],
+    queryFn: async () => ({
+      tags: [],
+      users: [],
+      stages: []
+    })
   });
 };

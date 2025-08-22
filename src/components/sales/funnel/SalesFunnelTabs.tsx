@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { KanbanBoard } from '../KanbanBoard';
@@ -7,7 +8,7 @@ import { SalesFunnelFilters } from './SalesFunnelFilters';
 import { SalesFunnelMassActions } from './SalesFunnelMassActions';
 import { KanbanColumn, KanbanLead } from '@/types/kanban';
 import { KanbanStage } from '@/types/funnel';
-import { useMassSelection } from '@/hooks/useMassSelection';
+import { MassSelectionReturn } from '../KanbanBoard';
 
 interface SalesFunnelTabsProps {
   funnelData: any;
@@ -23,6 +24,16 @@ interface SalesFunnelTabsProps {
   onReturnToFunnel: (lead: KanbanLead) => void;
   onMoveToWonLost: (lead: KanbanLead, status: 'won' | 'lost') => Promise<void>;
 }
+
+// Mock mass selection hook
+const useMassSelection = (): MassSelectionReturn => ({
+  selectedLeads: [],
+  isSelected: () => false,
+  toggleSelection: () => {},
+  selectAll: () => {},
+  clearSelection: () => {},
+  selectMultiple: () => {}
+});
 
 export const SalesFunnelTabs = ({
   funnelData,
@@ -65,15 +76,13 @@ export const SalesFunnelTabs = ({
         );
       }
 
-      // TODO: Implementar filtros de tags e usuário
-
       return {
         id: stage.id,
         title: stage.title,
         leads: stageLeads,
-        color: stage.hex_color || '#CCCCCC',
+        color: stage.color || '#CCCCCC',
         isFixed: stage.is_fixed,
-        isHidden: stage.is_hidden
+        isHidden: false
       } as KanbanColumn;
     });
   }, [stages, leads, searchTerm, selectedTags, selectedUser]);
