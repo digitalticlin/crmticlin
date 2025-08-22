@@ -25,7 +25,7 @@ export function PageLayout({ children, className }: PageLayoutProps) {
       
       <ResponsiveSidebar />
       
-      {/* Main container SEM scroll geral */}
+      {/* Main container responsivo e centralizado */}
       <main className={cn(
         "min-h-screen w-full z-30 transition-all duration-300",
         className?.includes("kanban") ? "h-full" : "overflow-hidden h-full",
@@ -35,7 +35,7 @@ export function PageLayout({ children, className }: PageLayoutProps) {
             ? "ml-[64px]" 
             : "ml-[200px]",
         className
-      )} style={className?.includes("kanban") ? {} : { transform: 'scale(0.8)', transformOrigin: 'top left', width: '125%', height: '125%' }}>
+      )}>
         {/* Container com tratamento especial para páginas Kanban (full-bleed) */}
         {className?.includes("kanban") ? (
           <div className="w-full h-full max-w-none">
@@ -47,9 +47,9 @@ export function PageLayout({ children, className }: PageLayoutProps) {
             </div>
           </div>
         ) : (
-          <div className="w-full h-full flex justify-center px-4 md:px-6">
-            <div className="w-full max-w-[1200px] h-full">
-              <div className="main-content-scale h-full py-4 md:py-6 flex flex-col">
+          <div className="w-full h-full flex justify-center px-4 md:px-6 lg:px-8">
+            <div className="w-full max-w-[1400px] h-full">
+              <div className="h-full py-4 md:py-6 lg:py-8 flex flex-col">
                 {children}
               </div>
             </div>

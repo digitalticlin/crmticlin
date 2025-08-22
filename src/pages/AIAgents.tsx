@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -175,7 +174,10 @@ export default function AIAgents() {
   };
 
   const createAgentAction = (
-    <Button className="bg-ticlin hover:bg-ticlin/90 text-black" onClick={handleCreateAgent}>
+    <Button className="bg-ticlin hover:bg-ticlin/90 text-black" onClick={() => {
+      setEditingAgent(null);
+      setIsModalOpen(true);
+    }}>
       <Plus className="h-4 w-4 mr-2" />
       Criar Novo Agente
     </Button>
@@ -204,131 +206,150 @@ export default function AIAgents() {
         action={createAgentAction}
       />
       
-      <ChartCard 
-        title="Agentes Ativos" 
-        description="Agentes de IA disponíveis para uso nos seus números de WhatsApp"
-      >
-        <div className="mt-4 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left border-b border-gray-200 dark:border-gray-700">
-                  <th className="pb-2 font-medium">Agente</th>
-                  <th className="pb-2 font-medium">Configuração</th>
-                  <th className="pb-2 font-medium text-center">Mensagens</th>
-                  <th className="pb-2 font-medium text-center">Status</th>
-                  <th className="pb-2 font-medium text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {agents.map((agent) => (
-                  <tr key={agent.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                    {/* Coluna Agente */}
-                    <td className="py-4">
-                      <div className="flex items-center">
-                        <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-ticlin/20 to-ticlin/10 grid place-items-center mr-3 border border-ticlin/20">
-                          {getTypeIcon(agent.type)}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-900">{agent.name}</div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Criado em {new Date(agent.created_at).toLocaleDateString()}
+      <div className="flex-1 space-y-6">
+        <ChartCard 
+          title="Agentes Ativos" 
+          description="Agentes de IA disponíveis para uso nos seus números de WhatsApp"
+          className="flex-1"
+        >
+          <div className="w-full">
+            {/* Tabela responsiva com scroll horizontal em telas menores */}
+            <div className="overflow-x-auto -mx-2 px-2">
+              <div className="min-w-[800px]">
+                <table className="w-full table-fixed">
+                  <thead>
+                    <tr className="text-left border-b border-gray-200 dark:border-gray-700">
+                      <th className="pb-3 font-medium text-sm text-gray-700 w-[35%]">Agente</th>
+                      <th className="pb-3 font-medium text-sm text-gray-700 w-[25%]">Configuração</th>
+                      <th className="pb-3 font-medium text-sm text-gray-700 text-center w-[15%]">Mensagens</th>
+                      <th className="pb-3 font-medium text-sm text-gray-700 text-center w-[10%]">Status</th>
+                      <th className="pb-3 font-medium text-sm text-gray-700 text-center w-[15%]">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agents.map((agent) => (
+                      <tr key={agent.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                        {/* Coluna Agente */}
+                        <td className="py-4 pr-4">
+                          <div className="flex items-center min-w-0">
+                            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-ticlin/20 to-ticlin/10 grid place-items-center mr-3 border border-ticlin/20 flex-shrink-0">
+                              {getTypeIcon(agent.type)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-semibold text-gray-900 text-sm truncate">{agent.name}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                {new Date(agent.created_at).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </td>
+                        </td>
 
-                    {/* Coluna Configuração */}
-                    <td className="py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${agentsConfig[agent.id]?.hasPrompt ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                          <span className="text-xs text-gray-600">
-                            {agentsConfig[agent.id]?.hasPrompt ? 'Prompt configurado' : 'Prompt pendente'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${(agentsConfig[agent.id]?.flowSteps || 0) > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                          <span className="text-xs text-gray-600">
-                            Fluxo ({agentsConfig[agent.id]?.flowSteps || 0} passos)
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${agent.funnel_id ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                          <span className="text-xs text-gray-600">
-                            {agent.funnel_id ? 'Funil conectado' : 'Sem funil'}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
+                        {/* Coluna Configuração */}
+                        <td className="py-4 pr-4">
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${agentsConfig[agent.id]?.hasPrompt ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                              <span className="text-xs text-gray-600 truncate">
+                                {agentsConfig[agent.id]?.hasPrompt ? 'Prompt configurado' : 'Prompt pendente'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${(agentsConfig[agent.id]?.flowSteps || 0) > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                              <span className="text-xs text-gray-600 truncate">
+                                Fluxo ({agentsConfig[agent.id]?.flowSteps || 0} passos)
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${agent.funnel_id ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                              <span className="text-xs text-gray-600 truncate">
+                                {agent.funnel_id ? 'Funil conectado' : 'Sem funil'}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
 
-                    {/* Coluna Mensagens */}
-                    <td className="py-4">
-                      <div className="text-center">
-                        <div className="font-bold text-xl text-gray-900">
-                          {agent.messages_count.toLocaleString()}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          mensagens enviadas
-                        </div>
-                      </div>
-                    </td>
+                        {/* Coluna Mensagens */}
+                        <td className="py-4 text-center">
+                          <div className="font-bold text-lg text-gray-900">
+                            {agent.messages_count.toLocaleString('pt-BR')}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            mensagens
+                          </div>
+                        </td>
 
-                    {/* Coluna Status */}
-                    <td className="py-4">
-                      <div className="flex justify-center items-center">
-                        <Switch 
-                          checked={agent.status === "active"} 
-                          onCheckedChange={() => handleToggleStatus(agent.id)}
-                          disabled={togglingStatus === agent.id}
-                        />
-                        {togglingStatus === agent.id && (
-                          <div className="ml-2 animate-spin h-4 w-4 border-2 border-ticlin border-t-transparent rounded-full"></div>
-                        )}
-                      </div>
-                    </td>
+                        {/* Coluna Status */}
+                        <td className="py-4">
+                          <div className="flex justify-center items-center">
+                            <Switch 
+                              checked={agent.status === "active"} 
+                              onCheckedChange={() => {
+                                setTogglingStatus(agent.id);
+                                toggleAgentStatus(agent.id).finally(() => setTogglingStatus(null));
+                              }}
+                              disabled={togglingStatus === agent.id}
+                            />
+                            {togglingStatus === agent.id && (
+                              <div className="ml-2 animate-spin h-3 w-3 border border-ticlin border-t-transparent rounded-full"></div>
+                            )}
+                          </div>
+                        </td>
 
-                    {/* Coluna Ações */}
-                    <td className="py-4">
-                      <div className="flex justify-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditAgent(agent)}
-                          className="h-9 w-9 p-0 hover:bg-ticlin/10 hover:text-ticlin transition-colors"
-                          title="Editar agente"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleDeleteAgent(agent)}
-                          className="h-9 w-9 p-0 hover:bg-red-50 hover:text-red-600 transition-colors"
-                          title="Excluir agente"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {agents.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Nenhum agente de IA configurado. Crie seu primeiro agente para começar.</p>
+                        {/* Coluna Ações */}
+                        <td className="py-4">
+                          <div className="flex justify-center gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setEditingAgent(agent);
+                                setIsModalOpen(true);
+                              }}
+                              className="h-8 w-8 p-0 hover:bg-ticlin/10 hover:text-ticlin transition-colors"
+                              title="Editar agente"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setDeletingAgent(agent);
+                                setShowDeleteConfirm(true);
+                              }}
+                              className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600 transition-colors"
+                              title="Excluir agente"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          )}
-        </div>
-      </ChartCard>
-      
+
+            {agents.length === 0 && (
+              <div className="text-center py-12">
+                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <Bot className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-gray-600 text-sm mb-2">Nenhum agente de IA configurado</p>
+                <p className="text-gray-500 text-xs">Crie seu primeiro agente para começar a automatizar conversas</p>
+              </div>
+            )}
+          </div>
+        </ChartCard>
+      </div>
 
       <AIAgentModal
         isOpen={isModalOpen}
-        onClose={handleModalClose}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingAgent(null);
+        }}
         agent={editingAgent}
         onSave={handleModalSave}
       />
