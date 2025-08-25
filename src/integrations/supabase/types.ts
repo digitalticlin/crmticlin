@@ -151,42 +151,251 @@ export type Database = {
           },
         ]
       }
-      auto_sync_logs: {
+      broadcast_campaigns: {
         Row: {
+          business_hours_only: boolean | null
           created_at: string | null
-          error_details: Json | null
-          errors_count: number | null
-          execution_duration_ms: number | null
-          execution_time: string | null
+          created_by_user_id: string
+          failed_count: number | null
           id: string
-          instances_added: number | null
-          instances_found: number | null
-          instances_updated: number | null
+          media_type: string | null
+          media_url: string | null
+          message_text: string
+          name: string
+          rate_limit_per_minute: number | null
+          schedule_type: string | null
+          scheduled_at: string | null
+          sent_count: number | null
+          status: string | null
+          target_config: Json | null
+          target_type: string
+          timezone: string | null
+          total_recipients: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          business_hours_only?: boolean | null
+          created_at?: string | null
+          created_by_user_id: string
+          failed_count?: number | null
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message_text: string
+          name: string
+          rate_limit_per_minute?: number | null
+          schedule_type?: string | null
+          scheduled_at?: string | null
+          sent_count?: number | null
+          status?: string | null
+          target_config?: Json | null
+          target_type: string
+          timezone?: string | null
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          business_hours_only?: boolean | null
+          created_at?: string | null
+          created_by_user_id?: string
+          failed_count?: number | null
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message_text?: string
+          name?: string
+          rate_limit_per_minute?: number | null
+          schedule_type?: string | null
+          scheduled_at?: string | null
+          sent_count?: number | null
+          status?: string | null
+          target_config?: Json | null
+          target_type?: string
+          timezone?: string | null
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      broadcast_history: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          error_message: string | null
+          external_message_id: string | null
+          id: string
+          lead_id: string | null
+          phone: string
+          queue_id: string | null
+          sent_at: string | null
           status: string
         }
         Insert: {
+          campaign_id: string
           created_at?: string | null
-          error_details?: Json | null
-          errors_count?: number | null
-          execution_duration_ms?: number | null
-          execution_time?: string | null
+          error_message?: string | null
+          external_message_id?: string | null
           id?: string
-          instances_added?: number | null
-          instances_found?: number | null
-          instances_updated?: number | null
+          lead_id?: string | null
+          phone: string
+          queue_id?: string | null
+          sent_at?: string | null
           status: string
         }
         Update: {
+          campaign_id?: string
           created_at?: string | null
-          error_details?: Json | null
-          errors_count?: number | null
-          execution_duration_ms?: number | null
-          execution_time?: string | null
+          error_message?: string | null
+          external_message_id?: string | null
           id?: string
-          instances_added?: number | null
-          instances_found?: number | null
-          instances_updated?: number | null
+          lead_id?: string | null
+          phone?: string
+          queue_id?: string | null
+          sent_at?: string | null
           status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_history_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "broadcast_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_history_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "broadcast_queue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcast_queue: {
+        Row: {
+          campaign_id: string
+          contact_name: string | null
+          created_at: string | null
+          external_message_id: string | null
+          id: string
+          last_error: string | null
+          lead_id: string | null
+          max_retries: number | null
+          media_type: string | null
+          media_url: string | null
+          message_text: string
+          phone: string
+          priority: number | null
+          retry_count: number | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string | null
+          updated_at: string | null
+          whatsapp_instance_id: string
+        }
+        Insert: {
+          campaign_id: string
+          contact_name?: string | null
+          created_at?: string | null
+          external_message_id?: string | null
+          id?: string
+          last_error?: string | null
+          lead_id?: string | null
+          max_retries?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          message_text: string
+          phone: string
+          priority?: number | null
+          retry_count?: number | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          whatsapp_instance_id: string
+        }
+        Update: {
+          campaign_id?: string
+          contact_name?: string | null
+          created_at?: string | null
+          external_message_id?: string | null
+          id?: string
+          last_error?: string | null
+          lead_id?: string | null
+          max_retries?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          message_text?: string
+          phone?: string
+          priority?: number | null
+          retry_count?: number | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          whatsapp_instance_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_queue_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "broadcast_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_queue_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_queue_whatsapp_instance_id_fkey"
+            columns: ["whatsapp_instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcast_rate_limits: {
+        Row: {
+          created_at: string | null
+          current_date_value: string | null
+          current_minute: string | null
+          id: string
+          messages_sent_current_minute: number | null
+          total_messages_today: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_date_value?: string | null
+          current_minute?: string | null
+          id?: string
+          messages_sent_current_minute?: number | null
+          total_messages_today?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          current_date_value?: string | null
+          current_minute?: string | null
+          id?: string
+          messages_sent_current_minute?: number | null
+          total_messages_today?: number | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -388,6 +597,12 @@ export type Database = {
           address: string | null
           city: string | null
           company: string | null
+          company_address: string | null
+          company_cidade: string | null
+          company_cnpj: string | null
+          company_estado: string | null
+          company_segment: string | null
+          conversation_status: string | null
           country: string | null
           created_at: string | null
           created_by_user_id: string
@@ -395,6 +610,7 @@ export type Database = {
           document_id: string | null
           email: string | null
           funnel_id: string | null
+          has_company: boolean | null
           id: string
           import_source: string | null
           kanban_stage_id: string | null
@@ -419,6 +635,12 @@ export type Database = {
           address?: string | null
           city?: string | null
           company?: string | null
+          company_address?: string | null
+          company_cidade?: string | null
+          company_cnpj?: string | null
+          company_estado?: string | null
+          company_segment?: string | null
+          conversation_status?: string | null
           country?: string | null
           created_at?: string | null
           created_by_user_id: string
@@ -426,6 +648,7 @@ export type Database = {
           document_id?: string | null
           email?: string | null
           funnel_id?: string | null
+          has_company?: boolean | null
           id?: string
           import_source?: string | null
           kanban_stage_id?: string | null
@@ -450,6 +673,12 @@ export type Database = {
           address?: string | null
           city?: string | null
           company?: string | null
+          company_address?: string | null
+          company_cidade?: string | null
+          company_cnpj?: string | null
+          company_estado?: string | null
+          company_segment?: string | null
+          conversation_status?: string | null
           country?: string | null
           created_at?: string | null
           created_by_user_id?: string
@@ -457,6 +686,7 @@ export type Database = {
           document_id?: string | null
           email?: string | null
           funnel_id?: string | null
+          has_company?: boolean | null
           id?: string
           import_source?: string | null
           kanban_stage_id?: string | null
@@ -570,13 +800,6 @@ export type Database = {
             columns: ["message_id"]
             isOneToOne: true
             referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "media_cache_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: true
-            referencedRelation: "messages_chat"
             referencedColumns: ["id"]
           },
         ]
@@ -719,6 +942,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      performance_metrics: {
+        Row: {
+          created_at: string | null
+          id: number
+          metric_name: string
+          metric_value: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          metric_name: string
+          metric_value?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          metric_name?: string
+          metric_value?: number | null
+        }
+        Relationships: []
       }
       plan_subscriptions: {
         Row: {
@@ -1118,91 +1362,7 @@ export type Database = {
       }
     }
     Views: {
-      media_conversion_stats: {
-        Row: {
-          avg_base64_chars: number | null
-          avg_size_mb: number | null
-          media_type: Database["public"]["Enums"]["media_type"] | null
-          total_entries: number | null
-          with_base64: number | null
-          without_base64: number | null
-        }
-        Relationships: []
-      }
-      media_processing_status: {
-        Row: {
-          avg_size_kb: number | null
-          media_type: Database["public"]["Enums"]["media_type"] | null
-          newest_entry: string | null
-          oldest_entry: string | null
-          pending_base64: number | null
-          total: number | null
-          with_base64: number | null
-        }
-        Relationships: []
-      }
-      messages_chat: {
-        Row: {
-          created_at: string | null
-          created_by_user_id: string | null
-          from_me: boolean | null
-          id: string | null
-          lead_id: string | null
-          message: string | null
-          session_id: string | null
-          whatsapp_number_id: string | null
-        }
-        Insert: {
-          created_at?: never
-          created_by_user_id?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          lead_id?: string | null
-          message?: string | null
-          session_id?: never
-          whatsapp_number_id?: string | null
-        }
-        Update: {
-          created_at?: never
-          created_by_user_id?: string | null
-          from_me?: boolean | null
-          id?: string | null
-          lead_id?: string | null
-          message?: string | null
-          session_id?: never
-          whatsapp_number_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_messages_lead_id"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_messages_whatsapp_number_id"
-            columns: ["whatsapp_number_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_instances"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_whatsapp_number_id_fkey"
-            columns: ["whatsapp_number_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_instances"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       _preserve_name: {
@@ -1213,6 +1373,10 @@ export type Database = {
         Args: { data: string }
         Returns: string
       }
+      check_rate_limit: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       cleanup_orphan_references: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1221,6 +1385,10 @@ export type Database = {
         Args: { cache_entry_id: string }
         Returns: boolean
       }
+      create_broadcast_queue: {
+        Args: { p_campaign_id: string; p_user_id: string }
+        Returns: number
+      }
       debug_context_full: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -1228,6 +1396,29 @@ export type Database = {
       diagnose_permissions: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      get_user_broadcast_campaigns: {
+        Args: { p_user_id: string }
+        Returns: {
+          business_hours_only: boolean
+          created_at: string
+          failed_count: number
+          id: string
+          media_type: string
+          media_url: string
+          message_text: string
+          name: string
+          rate_limit_per_minute: number
+          schedule_type: string
+          scheduled_at: string
+          sent_count: number
+          status: string
+          target_config: Json
+          target_type: string
+          timezone: string
+          total_recipients: number
+          updated_at: string
+        }[]
       }
       gtrgm_compress: {
         Args: { "": unknown }
@@ -1300,6 +1491,10 @@ export type Database = {
         Args: { curlopt: string; value: string }
         Returns: boolean
       }
+      increment_rate_limit: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       increment_unread_count: {
         Args: { p_lead_id: string }
         Returns: undefined
@@ -1353,7 +1548,7 @@ export type Database = {
         Returns: undefined
       }
       pgmq_read: {
-        Args: { p_qty: number; p_queue_name: string; p_vt: number }
+        Args: { p_qty?: number; p_queue_name: string; p_vt?: number }
         Returns: {
           enqueued_at: string
           message: Json
@@ -1365,6 +1560,18 @@ export type Database = {
       pgmq_send: {
         Args: { msg: Json; queue_name: string }
         Returns: number
+      }
+      process_media_queue_worker: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      read_media_queue: {
+        Args: { p_qty?: number }
+        Returns: {
+          enqueued_at: string
+          message: Json
+          msg_id: number
+        }[]
       }
       save_message_simple: {
         Args: {
@@ -1459,6 +1666,10 @@ export type Database = {
       test_leads_exists: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      test_media_queue_fixed: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       test_media_system: {
         Args: Record<PropertyKey, never>
