@@ -12,17 +12,17 @@ interface ModernPageHeaderProps {
 export function ModernPageHeader({ title, description, action, className }: ModernPageHeaderProps) {
   return (
     <div className={cn(
-      "flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8",
+      "flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 rounded-2xl bg-white/30 backdrop-blur-lg border border-white/30 p-6 shadow-lg relative z-40",
       className
     )}>
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">{title}</h1>
         {description && (
-          <p className="text-base text-muted-foreground/80">{description}</p>
+          <p className="text-base text-gray-800 font-medium">{description}</p>
         )}
       </div>
       {action && (
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 relative z-50">
           {action}
         </div>
       )}

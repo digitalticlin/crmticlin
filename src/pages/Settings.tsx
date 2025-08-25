@@ -10,12 +10,10 @@ import TeamSettings from "@/components/settings/TeamSettings";
 export default function Settings() {
   return (
     <PageLayout>
-      {/* Container principal já limitado pelo PageLayout */}
-      <div className="w-full px-4 md:px-6">
-        <ModernPageHeader 
-          title="Configurações" 
-          description="Gerencie as configurações da sua conta e preferências do sistema"
-        />
+      <ModernPageHeader 
+        title="Configurações" 
+        description="Gerencie as configurações da sua conta e preferências do sistema"
+      />
         
         <Tabs defaultValue="profile" className="w-full">
           {/* Menu de abas reordenado: Perfil, WhatsApp, Equipe */}
@@ -45,20 +43,19 @@ export default function Settings() {
             </TabsList>
           </div>
 
-          {/* Conteúdo das abas com scroll */}
-          <TabsContent value="profile" className="h-[calc(100vh-16rem)] overflow-y-auto custom-scrollbar">
+          {/* Conteúdo das abas com scroll natural */}
+          <TabsContent value="profile" className="space-y-6">
             <ProfileSettings />
           </TabsContent>
 
-          <TabsContent value="whatsapp" className="h-[calc(100vh-16rem)] overflow-y-auto custom-scrollbar space-y-6">
+          <TabsContent value="whatsapp" className="space-y-6">
             <OptimizedSettingsSection />
           </TabsContent>
 
-          <TabsContent value="team" className="h-[calc(100vh-16rem)] overflow-y-auto custom-scrollbar space-y-6">
+          <TabsContent value="team" className="space-y-6">
             <TeamSettings />
           </TabsContent>
         </Tabs>
-      </div>
     </PageLayout>
   );
 }

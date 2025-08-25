@@ -1,12 +1,18 @@
 
-import { PageLayout } from "@/components/layout/PageLayout";
+import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
 import { RealClientsLayout } from "@/components/clients/RealClientsLayout";
 import { useRealClientManagement } from "@/hooks/useRealClientManagement";
 import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw } from "lucide-react";
+import { BackgroundGradient } from "@/components/ui/BackgroundGradient";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useSidebar } from "@/contexts/SidebarContext";
+import { cn } from "@/lib/utils";
 
 export default function Clients() {
+  const isMobile = useIsMobile();
+  const { isCollapsed } = useSidebar();
   const {
     clients,
     setSearchQuery,
@@ -54,33 +60,57 @@ export default function Clients() {
   );
 
   return (
-    <PageLayout>
-      <ModernPageHeader 
-        title="Clientes" 
-        description="Gerencie seus clientes e relacionamentos comerciais"
-        action={addClientAction}
-      />
+    <div className="min-h-screen w-full relative">
+      {/* Fundo gradiente usando o componente reutilizável */}
+      <BackgroundGradient className="fixed inset-0 z-0" />
+
+      {/* Sidebar fixo */}
+      <ResponsiveSidebar />
       
-      <RealClientsLayout 
-        clients={clients}
-        selectedClient={selectedClient}
-        isDetailsOpen={isDetailsOpen}
-        isCreateMode={isCreateMode}
-        isLoading={isLoading}
-        isLoadingMore={isLoadingMore}
-        hasMoreClients={hasMoreClients}
-        totalClientsCount={totalClientsCount}
-        onSelectClient={handleSelectClient}
-        onDeleteClient={handleDeleteClient}
-        onLoadMoreClients={loadMoreClients}
-        onUpdateNotes={handleUpdateNotes}
-        onUpdatePurchaseValue={handleUpdatePurchaseValue}
-        onUpdateBasicInfo={handleUpdateBasicInfo}
-        onUpdateDocument={handleUpdateDocument}
-        onUpdateAddress={handleUpdateAddress}
-        onDetailsOpenChange={setIsDetailsOpen}
-        onCreateClient={handleSaveNewClient}
-      />
-    </PageLayout>
+      {/* Container principal com z-index correto e centralização adequada */}
+      <main className={cn(
+        "min-h-screen z-30 transition-all duration-300",
+        isMobile 
+          ? "pt-14 w-full" 
+          : isCollapsed 
+            ? "ml-[64px] w-[calc(100vw-64px)]" 
+            : "ml-[200px] w-[calc(100vw-200px)]"
+      )}>
+        {/* Container centralizado */}
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <div className={cn(
+            "py-6 lg:py-8 space-y-6 lg:space-y-8 mx-auto max-w-[1400px]",
+            isMobile && "pt-6"
+          )}>
+            <ModernPageHeader 
+              title="Clientes" 
+              description="Gerencie seus clientes e relacionamentos comerciais"
+              action={addClientAction}
+            />
+            
+            <RealClientsLayout 
+              clients={clients}
+              selectedClient={selectedClient}
+              isDetailsOpen={isDetailsOpen}
+              isCreateMode={isCreateMode}
+              isLoading={isLoading}
+              isLoadingMore={isLoadingMore}
+              hasMoreClients={hasMoreClients}
+              totalClientsCount={totalClientsCount}
+              onSelectClient={handleSelectClient}
+              onDeleteClient={handleDeleteClient}
+              onLoadMoreClients={loadMoreClients}
+              onUpdateNotes={handleUpdateNotes}
+              onUpdatePurchaseValue={handleUpdatePurchaseValue}
+              onUpdateBasicInfo={handleUpdateBasicInfo}
+              onUpdateDocument={handleUpdateDocument}
+              onUpdateAddress={handleUpdateAddress}
+              onDetailsOpenChange={setIsDetailsOpen}
+              onCreateClient={handleSaveNewClient}
+            />
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }

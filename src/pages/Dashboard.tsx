@@ -18,44 +18,43 @@ export default function Dashboard() {
   // Logs de render podem ser adicionados dentro de componentes filhos que já consomem o provider
 
   return (
-    <div className="h-screen w-full overflow-hidden relative">
+    <div className="min-h-screen w-full relative">
       {/* ETAPA 1: Fundo gradiente usando o componente reutilizável */}
       <BackgroundGradient className="fixed inset-0 z-0" />
 
       {/* ETAPA 2: Sidebar fixo */}
       <ResponsiveSidebar />
       
-      {/* ETAPA 3: Container principal com z-index correto e max-width universal */}
+      {/* ETAPA 3: Container principal com z-index correto e centralização adequada */}
       <main className={cn(
-        "min-h-screen w-full z-30 overflow-auto transition-all duration-300",
+        "min-h-screen z-30 transition-all duration-300",
         isMobile 
-          ? "pt-14" 
+          ? "pt-14 w-full" 
           : isCollapsed 
-            ? "ml-[64px]" 
-            : "ml-[200px]"
-      )} style={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: '125%', height: '125%' }}>
-        {/* Container centralizado com padding */}
-        <div className="w-full h-full flex justify-center px-4 md:px-6">
-          <div className="w-full max-w-[1200px] h-full">
-            <div className={cn(
-              "main-content-scale py-4 md:py-6 space-y-6 md:space-y-8 min-h-full",
-              isMobile && "pt-6"
-            )}>
+            ? "ml-[64px] w-[calc(100vw-64px)]" 
+            : "ml-[200px] w-[calc(100vw-200px)]"
+      )}>
+        {/* Container centralizado */}
+        <div className="w-full px-4 sm:px-6 lg:px-8">
+          <div className={cn(
+            "py-6 lg:py-8 space-y-6 lg:space-y-8 mx-auto max-w-[1400px]",
+            isMobile && "pt-6"
+          )}>
               <DashboardConfigProvider>
                 <DashboardHeader />
                 
-                <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-4 md:p-6 shadow-md">
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-6 lg:p-8 shadow-md">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
                     <div className="flex-1">
                       <h2 className="text-lg font-semibold text-gray-900">Análise de Performance</h2>
                       <p className="text-sm text-gray-800">Visualize seus dados e métricas em tempo real</p>
                     </div>
                     
-                    <div className="flex justify-center md:justify-start">
+                    <div className="flex justify-center lg:justify-start">
                       <PeriodFilter />
                     </div>
                     
-                    <div className="flex justify-end">
+                    <div className="flex justify-center lg:justify-end">
                       <DashboardCustomizer />
                     </div>
                   </div>
@@ -70,7 +69,6 @@ export default function Dashboard() {
                 </div>
               </DashboardConfigProvider>
             </div>
-          </div>
         </div>
       </main>
     </div>

@@ -69,7 +69,7 @@ export default function CustomizableChartsSection() {
 
   return (
     <div 
-      className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-100 ease-out`}
+      className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-100 ease-out w-full`}
       style={{
         animation: "fade-in 0.1s ease-out"
       }}

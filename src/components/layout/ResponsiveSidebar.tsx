@@ -191,10 +191,9 @@ export default function ResponsiveSidebar() {
   return (
     <div
       className={cn(
-        "main-content-scale fixed top-0 left-0 bottom-0 z-40 flex-col transition-all duration-300 border-r bg-white/25 backdrop-blur-lg border-white/30 hidden md:flex",
+        "fixed top-0 left-0 bottom-0 z-40 flex-col transition-all duration-300 border-r bg-white/25 backdrop-blur-lg border-white/30 hidden md:flex",
         isCollapsed ? "w-[64px]" : "w-[200px]"
       )}
-      style={{ transform: 'scale(0.8)', transformOrigin: 'top left', height: '125%' }}
     >
       <SidebarContent />
       
