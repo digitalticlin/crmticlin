@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,8 @@ export const FlowStepConfigModal = ({
   step,
   stepNumber
 }: FlowStepConfigModalProps) => {
+  console.log('🏗️ FlowStepConfigModal renderizado:', { isOpen, step, stepNumber });
+  console.log('🚪 FlowStepConfigModal Dialog.open será:', isOpen);
   const [stepData, setStepData] = useState<FlowStepEnhanced>(
     step || {
       id: `step_${Date.now()}`,
@@ -32,7 +34,14 @@ export const FlowStepConfigModal = ({
     }
   );
 
-
+  // Atualizar stepData quando step prop mudar
+  useEffect(() => {
+    console.log('🔄 useEffect disparado - step mudou:', step);
+    if (step) {
+      console.log('🔄 Atualizando stepData com:', step);
+      setStepData(step);
+    }
+  }, [step]);
 
   const handleSave = async () => {
     if (!stepData.description.trim()) {
@@ -84,10 +93,12 @@ export const FlowStepConfigModal = ({
 
   return (
       <Dialog open={isOpen} onOpenChange={(open) => {
+        console.log('🚪 Dialog onOpenChange chamado:', open);
         if (!open) {
           handleClose();
         }
       }}>
+        {console.log('🚪 Renderizando Dialog com open:', isOpen)}
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-xl flex flex-col">
           <DialogHeader className="border-b border-white/30 pb-3 bg-white/20 backdrop-blur-sm rounded-t-xl -mx-6 -mt-6 px-6 pt-6">
             <DialogTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">

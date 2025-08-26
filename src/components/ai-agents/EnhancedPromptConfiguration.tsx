@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,6 +67,7 @@ export const EnhancedPromptConfiguration = ({
   const [newStepText, setNewStepText] = useState<string>("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<{ show: boolean; index: number | null }>({ show: false, index: null });
   const [funnelConfigStatus, setFunnelConfigStatus] = useState<'not-selected' | 'ready' | 'configured'>('not-selected');
+  const [forceRender, setForceRender] = useState(0);
 
   // Função para verificar status de configuração do funil
   const checkFunnelConfigStatus = async () => {
@@ -115,8 +116,20 @@ export const EnhancedPromptConfiguration = ({
     checkFunnelConfigStatus();
   }, [agent?.funnel_id]);
 
-  // Configurações dos campos
-  const fieldConfigs = [
+  useEffect(() => {
+    console.log('🔍 editingStep mudou:', editingStep);
+  }, [editingStep]);
+
+  useEffect(() => {
+    console.log('🔍 showDeleteConfirm mudou:', showDeleteConfirm);
+  }, [showDeleteConfirm]);
+
+  useEffect(() => {
+    console.log('🔄 forceRender mudou:', forceRender, '- Componente deve re-renderizar');
+  }, [forceRender]);
+
+  // Configurações dos campos - REATIVO às mudanças do promptData
+  const fieldConfigs = useMemo(() => [
     {
       key: 'agent_function',
       title: 'Qual a função dela?',
@@ -259,7 +272,9 @@ export const EnhancedPromptConfiguration = ({
       value: null, // Será calculado dinamicamente
       description: 'Configure os estágios do funil e notificações'
     }
-  ];
+  ], [promptData, funnelConfigStatus]);
+
+  // fieldConfigs agora é reativo às mudanças do promptData via useMemo
 
   const handleFieldSave = async (fieldKey: string, value: any) => {
     console.log('💾 EnhancedPrompt - handleFieldSave chamado:', { fieldKey, value });
@@ -270,17 +285,33 @@ export const EnhancedPromptConfiguration = ({
         console.log('📝 Campo com exemplos detectado - atualizando description e examples juntos');
         
         // Usar uma única função que atualiza ambos os campos atomicamente
-        onPromptDataChange(fieldKey, value.description, `${fieldKey}_examples`, value.examples);
+        // IMPORTANTE: Passar false para isInternalLoad para marcar como mudança do usuário
+        onPromptDataChange(fieldKey, value.description, `${fieldKey}_examples`, value.examples, false);
       } else {
         console.log('📝 Campo simples detectado - atualizando valor único');
-        onPromptDataChange(fieldKey, value);
+        // IMPORTANTE: Passar false para isInternalLoad para marcar como mudança do usuário
+        onPromptDataChange(fieldKey, value, undefined, undefined, false);
       }
       
       console.log('📝 Estado local atualizado, salvando no banco imediatamente...');
       
-      // Salvar imediatamente após atualizar o estado - sem timeout
-      // Passar contexto para evitar redirecionamento desnecessário
-      await onSave({ fromTab: 'objectives', skipRedirect: true });
+      // Calcular o novo estado que será passado para o salvamento
+      let freshPromptData = { ...promptData };
+      if (fieldKey === 'funnel_stages') {
+        freshPromptData = { ...freshPromptData, [fieldKey]: value.stages };
+      } else if (value && typeof value === 'object' && 'description' in value) {
+        freshPromptData = { ...freshPromptData, [fieldKey]: value.description, [`${fieldKey}_examples`]: value.examples || [] };
+      } else {
+        freshPromptData = { ...freshPromptData, [fieldKey]: value };
+      }
+      
+      console.log('📊 Dados frescos calculados para salvamento:', {
+        campo: fieldKey,
+        valorNovo: freshPromptData[fieldKey] ? `PREENCHIDO (${freshPromptData[fieldKey].length} chars)` : 'VAZIO'
+      });
+      
+      // Salvar imediatamente com os dados frescos
+      await onSave({ fromTab: 'prompt', skipRedirect: true }, freshPromptData);
       console.log('✅ EnhancedPrompt - Dados persistidos no banco com sucesso');
       
       // Se foi configuração de funil, recarregar status
@@ -326,7 +357,13 @@ export const EnhancedPromptConfiguration = ({
   };
 
   const handleStepDelete = (index: number) => {
-    setShowDeleteConfirm({ show: true, index });
+    console.log('🗑️ handleStepDelete chamado com índice:', index);
+    console.log('🗑️ setShowDeleteConfirm será chamado com:', { show: true, index });
+    setShowDeleteConfirm(prev => {
+      console.log('🗑️ CALLBACK setShowDeleteConfirm - anterior:', prev, 'novo:', { show: true, index });
+      return { show: true, index };
+    });
+    setForceRender(prev => prev + 1); // Forçar re-render
   };
 
   const handleConfirmDelete = async () => {
@@ -334,19 +371,28 @@ export const EnhancedPromptConfiguration = ({
     if (index === null) return;
     
     console.log('🗑️ handleConfirmDelete chamado para índice:', index);
+    console.log('📊 Flow atual tem', promptData.flow.length, 'passos');
+    console.log('🎯 Passo a ser removido:', promptData.flow[index]?.description);
     
     try {
       const newFlow = promptData.flow.filter((_, i) => i !== index);
+      console.log('📝 Novo flow terá', newFlow.length, 'passos');
+      
       onPromptDataChange('flow', newFlow);
       
-      console.log('📝 Passo removido, salvando no banco imediatamente...');
+      console.log('📝 Estado local atualizado, salvando no banco imediatamente...');
       
-      // Salvar imediatamente após remoção
-      await onSave();
+      // Salvar imediatamente após remoção - passar contexto para evitar redirecionamento
+      await onSave({ fromTab: 'objectives', skipRedirect: true });
+      
       toast.success('Passo removido com sucesso');
       console.log('✅ Passo removido e salvo no banco com sucesso');
     } catch (error) {
       console.error('❌ Erro ao salvar remoção no banco:', error);
+      console.error('📊 Detalhes do erro:', {
+        message: error instanceof Error ? error.message : 'Erro desconhecido',
+        stack: error instanceof Error ? error.stack : null
+      });
       toast.error('Erro ao remover passo', {
         description: 'Não foi possível salvar a alteração. Tente novamente.',
       });
@@ -412,7 +458,15 @@ export const EnhancedPromptConfiguration = ({
     }
   };
 
+  console.log('🔥 RENDER EnhancedPromptConfiguration - Estados atuais:', {
+    editingStep: !!editingStep,
+    showDeleteConfirm: showDeleteConfirm.show,
+    forceRender,
+    focusObjectives
+  });
+
   if (focusObjectives) {
+    console.log('🎯 Renderizando EnhancedPrompt em MODO OBJECTIVES');
     return (
       <div className="space-y-4">
         {/* Fluxo de Conversação */}
@@ -475,8 +529,14 @@ export const EnhancedPromptConfiguration = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          console.log('✏️ Editando passo:', { step, index });
-                          setEditingStep({ step, index });
+                          console.log('🔧 BOTÃO EDITAR CLICADO - Dados do passo:', { step, index });
+                          console.log('🔧 Estado editingStep antes:', editingStep);
+                          setEditingStep(prev => {
+                            console.log('🔧 CALLBACK setEditingStep - anterior:', prev, 'novo:', { step, index });
+                            return { step, index };
+                          });
+                          setForceRender(prev => prev + 1); // Forçar re-render
+                          console.log('🔧 setEditingStep chamado com:', { step, index });
                         }}
                         className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50/50 rounded-lg p-1 h-6 w-6"
                       >
@@ -485,7 +545,11 @@ export const EnhancedPromptConfiguration = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleStepDelete(index)}
+                        onClick={() => {
+                          console.log('🗑️ BOTÃO EXCLUIR CLICADO - Índice:', index);
+                          console.log('🗑️ Estado showDeleteConfirm antes:', showDeleteConfirm);
+                          handleStepDelete(index);
+                        }}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50/50 rounded-lg p-1 h-6 w-6"
                       >
                         <X className="h-3 w-3" />
@@ -644,20 +708,24 @@ export const EnhancedPromptConfiguration = ({
       />
 
       {/* Modal de configuração de passos do fluxo */}
-      <FlowStepConfigModal
-        isOpen={editingStep !== null}
-        onClose={() => {
-          console.log('🚪 FlowStepConfigModal - Fechando modal');
-          setEditingStep(null);
-        }}
-        onSave={async (step: FlowStepEnhanced) => {
-          console.log('💾 FlowStepConfigModal - Salvando passo:', step);
-          await handleStepSave(step);
-          setEditingStep(null);
-        }}
-        step={editingStep?.step || null}
-        stepNumber={editingStep ? editingStep.index + 1 : 1}
-      />
+      {editingStep !== null && (
+        <FlowStepConfigModal
+          key={`flow-step-modal-${editingStep?.index || 'new'}-${forceRender}`}
+          isOpen={true}
+          onClose={() => {
+            console.log('🚪 FlowStepConfigModal - Fechando modal');
+            setEditingStep(null);
+          }}
+          onSave={async (step: FlowStepEnhanced) => {
+            console.log('💾 FlowStepConfigModal - Salvando passo:', step);
+            await handleStepSave(step);
+            setEditingStep(null);
+          }}
+          step={editingStep?.step || null}
+          stepNumber={editingStep ? editingStep.index + 1 : 1}
+        />
+      )}
+      {console.log('🔍 FlowStepConfigModal renderizando:', editingStep !== null)}
 
       {/* Botões de ação - BUG 2 FIX: Remover botão "Salvar Configuração" redundante */}
       <div className="flex justify-end gap-2 pt-4 border-t border-white/30">
@@ -677,7 +745,16 @@ export const EnhancedPromptConfiguration = ({
       </div>
 
       {/* Modal de confirmação para deletar passo */}
-      <Dialog open={showDeleteConfirm.show} onOpenChange={() => setShowDeleteConfirm({ show: false, index: null })}>
+      {console.log('🔍 DeleteConfirmModal renderizando:', showDeleteConfirm.show)}
+      {showDeleteConfirm.show && (
+        <Dialog 
+          key={`delete-confirm-modal-${showDeleteConfirm.index || 'none'}-${forceRender}`}
+          open={true} 
+          onOpenChange={() => {
+            console.log('🗑️ Modal de confirmação fechando');
+            setShowDeleteConfirm({ show: false, index: null });
+          }}
+        >
         <DialogContent className="max-w-md bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-xl">
           <DialogHeader className="border-b border-white/30 pb-3 bg-white/20 backdrop-blur-sm rounded-t-xl -mx-6 -mt-6 px-6 pt-6">
             <DialogTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
@@ -711,7 +788,8 @@ export const EnhancedPromptConfiguration = ({
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
+        </Dialog>
+      )}
     </div>
   );
 };

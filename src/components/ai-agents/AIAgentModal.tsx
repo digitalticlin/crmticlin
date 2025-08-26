@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,21 +76,35 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     if (isOpen && agent) {
       setWorkingAgent(agent);
       setAllowTabNavigation(true); // Permitir navegação para agente existente
-      // Só carregar dados se não houver mudanças não salvas
-      if (!hasUnsavedChanges) {
+      
+      // CORREÇÃO: Só carregar dados se promptData estiver vazio para evitar sobrescrever edições
+      const isPromptDataEmpty = !promptData.agent_function && !promptData.agent_objective && 
+                               !promptData.communication_style && !promptData.company_info;
+      
+      if (isPromptDataEmpty) {
+        console.log('🔄 Modal aberto - promptData vazio, carregando do banco');
         loadPromptData(agent.id);
+      } else {
+        console.log('🔄 Modal aberto - promptData já preenchido, mantendo dados atuais');
       }
+      
+      // Reset estados de mudanças ao carregar
+      setHasUnsavedChanges(false);
+      setHasBasicFormChanges(false);
     } else if (isOpen && !agent) {
       // Reset state for new agent
       setWorkingAgent(null);
       setAllowTabNavigation(true); // Permitir navegação livre para novo agente
       resetPromptData();
+      setHasUnsavedChanges(false);
+      setHasBasicFormChanges(false);
     } else if (!isOpen) {
-      // Reset everything when modal closes
+      // Reset everything when modal closes - MAS NÃO resetar promptData
+      // pois será recarregado automaticamente na próxima abertura
       setActiveTab("basic");
       setWorkingAgent(null);
       setAllowTabNavigation(false);
-      resetPromptData();
+      // resetPromptData(); // REMOVIDO - causava reset desnecessário
       setHasUnsavedChanges(false);
       setHasBasicFormChanges(false);
     }
@@ -131,29 +145,50 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       
       if (existingPrompt) {
         console.log('📝 Mapeando dados do prompt encontrado...');
+        console.log('📊 Dados carregados do banco:', {
+          agent_function: existingPrompt.agent_function ? 'PREENCHIDO' : 'VAZIO',
+          agent_objective: existingPrompt.agent_objective ? 'PREENCHIDO' : 'VAZIO',
+          communication_style: existingPrompt.communication_style ? 'PREENCHIDO' : 'VAZIO',
+          communication_style_examples: existingPrompt.communication_style_examples?.length || 0,
+          company_info: existingPrompt.company_info ? 'PREENCHIDO' : 'VAZIO',
+          products_services: existingPrompt.products_services ? 'PREENCHIDO' : 'VAZIO',
+          flow: existingPrompt.flow?.length || 0
+        });
+        
         // Mapear dados diretamente da nova estrutura do banco usando batch update
+        const newPromptData = {
+          agent_function: existingPrompt.agent_function || "",
+          agent_objective: existingPrompt.agent_objective || "",
+          communication_style: existingPrompt.communication_style || "",
+          communication_style_examples: existingPrompt.communication_style_examples || [],
+          company_info: existingPrompt.company_info || "",
+          products_services: existingPrompt.products_services || "",
+          products_services_examples: existingPrompt.products_services_examples || [],
+          rules_guidelines: existingPrompt.rules_guidelines || "",
+          rules_guidelines_examples: existingPrompt.rules_guidelines_examples || [],
+          prohibitions: existingPrompt.prohibitions || "",
+          prohibitions_examples: existingPrompt.prohibitions_examples || [],
+          client_objections: existingPrompt.client_objections || "",
+          client_objections_examples: existingPrompt.client_objections_examples || [],
+          phrase_tips: existingPrompt.phrase_tips || "",
+          phrase_tips_examples: existingPrompt.phrase_tips_examples || [],
+          flow: existingPrompt.flow || []
+        };
+        
+        console.log('📝 Dados formatados para setPromptData:', {
+          agent_function: newPromptData.agent_function ? `PREENCHIDO (${newPromptData.agent_function.length} chars)` : 'VAZIO',
+          agent_objective: newPromptData.agent_objective ? `PREENCHIDO (${newPromptData.agent_objective.length} chars)` : 'VAZIO',
+          communication_style: newPromptData.communication_style ? `PREENCHIDO (${newPromptData.communication_style.length} chars)` : 'VAZIO',
+          company_info: newPromptData.company_info ? `PREENCHIDO (${newPromptData.company_info.length} chars)` : 'VAZIO'
+        });
+        
         unstable_batchedUpdates(() => {
-          setPromptData({
-            agent_function: existingPrompt.agent_function || "",
-            agent_objective: existingPrompt.agent_objective || "",
-            communication_style: existingPrompt.communication_style || "",
-            communication_style_examples: existingPrompt.communication_style_examples || [],
-            company_info: existingPrompt.company_info || "",
-            products_services: existingPrompt.products_services || "",
-            products_services_examples: existingPrompt.products_services_examples || [],
-            rules_guidelines: existingPrompt.rules_guidelines || "",
-            rules_guidelines_examples: existingPrompt.rules_guidelines_examples || [],
-            prohibitions: existingPrompt.prohibitions || "",
-            prohibitions_examples: existingPrompt.prohibitions_examples || [],
-            client_objections: existingPrompt.client_objections || "",
-            client_objections_examples: existingPrompt.client_objections_examples || [],
-            phrase_tips: existingPrompt.phrase_tips || "",
-            phrase_tips_examples: existingPrompt.phrase_tips_examples || [],
-            flow: existingPrompt.flow || []
-          });
+          setPromptData(newPromptData);
           // NÃO marcar como hasUnsavedChanges pois é carregamento inicial
           setHasUnsavedChanges(false);
         });
+        
+        // Estado foi atualizado com sucesso
         console.log('✅ Dados do prompt carregados e mapeados com sucesso - sem marcar como alteração');
       } else {
         console.log('⚠️ Nenhum prompt encontrado - usando dados vazios');
@@ -207,7 +242,22 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       } else {
         // Atualização de campo único
         console.log('🔄 Atualizando campo único:', { field, value, isInternalLoad });
-        setPromptData(prev => ({ ...prev, [field]: value }));
+        console.log('📊 Estado ANTES do update:', { 
+          campo: field, 
+          valorAnterior: promptData[field] ? `PREENCHIDO (${promptData[field].length} chars)` : 'VAZIO',
+          novoValor: value ? `PREENCHIDO (${value.length} chars)` : 'VAZIO'
+        });
+        
+        setPromptData(prev => {
+          const newState = { ...prev, [field]: value };
+          console.log('📝 Novo estado calculado:', { 
+            campo: field,
+            novoValor: newState[field] ? `PREENCHIDO (${newState[field].length} chars)` : 'VAZIO'
+          });
+          return newState;
+        });
+        
+        // Estado será verificado via useEffect quando promptData mudar
       }
       
       // Só marcar como não salvo se for uma mudança real do usuário, não carregamento interno
@@ -219,6 +269,19 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       }
     });
   };
+
+  // Criar uma função de salvamento que usa o estado mais atualizado
+  const saveWithFreshState = useCallback((freshPromptData: typeof promptData) => {
+    return handleSave({ fromTab: 'prompt', skipRedirect: true }, freshPromptData);
+  }, []);
+
+  // DEBUG: Monitorar mudanças no promptData
+  useEffect(() => {
+    console.log('🔄 PROMPT DATA MUDOU:', {
+      agent_function: promptData.agent_function ? `${promptData.agent_function.length} chars` : 'VAZIO',
+      timestamp: new Date().toLocaleTimeString()
+    });
+  }, [promptData.agent_function]);
 
   const handleClose = () => {
     if (!isMounted) return; // Safety check
@@ -259,7 +322,9 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     setShowConfirmCloseModal(false);
   };
 
-  const handleSave = async (saveContext?: { fromTab?: string; skipRedirect?: boolean }) => {
+  const handleSave = async (saveContext?: { fromTab?: string; skipRedirect?: boolean }, freshPromptData?: typeof promptData) => {
+    // Usar dados frescos se fornecidos, caso contrário usar o estado atual
+    const dataToSave = freshPromptData || promptData;
     console.log('\n=== SALVAMENTO INICIADO ===');
     console.log('🚀 handleSave do modal principal - DIAGNÓSTICO COMPLETO');
     console.log('🔧 Contexto do salvamento:', saveContext);
@@ -268,10 +333,10 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     console.log('  - workingAgent (estado local):', workingAgent ? { id: workingAgent.id, name: workingAgent.name } : null);
     console.log('  - currentAgent (computed):', getCurrentAgent() ? { id: getCurrentAgent()?.id, name: getCurrentAgent()?.name } : null);
     console.log('\n📝 PROMPT DATA:');
-    console.log('  - agent_function:', promptData.agent_function ? 'PREENCHIDO' : 'VAZIO');
-    console.log('  - agent_objective:', promptData.agent_objective ? 'PREENCHIDO' : 'VAZIO');
-    console.log('  - communication_style:', promptData.communication_style ? 'PREENCHIDO' : 'VAZIO');
-    console.log('  - flow steps:', promptData.flow.length);
+    console.log('  - agent_function:', dataToSave.agent_function ? 'PREENCHIDO' : 'VAZIO');
+    console.log('  - agent_objective:', dataToSave.agent_objective ? 'PREENCHIDO' : 'VAZIO');
+    console.log('  - communication_style:', dataToSave.communication_style ? 'PREENCHIDO' : 'VAZIO');
+    console.log('  - flow steps:', dataToSave.flow.length);
     console.log('\n🔍 MODO DE OPERAÇÃO:', agent ? 'EDIÇÃO' : 'CRIAÇÃO');
     
     try {
@@ -288,7 +353,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
         console.log('❌ Nenhum agente encontrado');
         
         // Se for salvamento da ABA 2/3, auto-criar agente
-        if (saveContext?.fromTab === 'objectives' || saveContext?.skipRedirect) {
+        if (saveContext?.fromTab === 'objectives' || saveContext?.fromTab === 'prompt' || saveContext?.skipRedirect) {
           console.log('🚀 AUTO-CRIANDO agente para salvamento da Aba 2/3');
           
           try {
@@ -384,12 +449,24 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       }
 
       // Preparar dados do prompt para salvamento
+      console.log('🔍 ESTADO DO PROMPT DATA NO MOMENTO DO SALVAMENTO:');
+      console.log('  - agent_function atual:', dataToSave.agent_function ? `PREENCHIDO (${dataToSave.agent_function.length} chars)` : 'VAZIO');
+      console.log('  - usando dados frescos:', freshPromptData ? 'SIM' : 'NÃO');
+      
       const promptDataToSave = {
         agent_id: finalTargetAgent.id,
-        ...promptData
+        ...dataToSave
       };
       
-      console.log('📝 Dados do prompt para salvar:', promptDataToSave);
+      console.log('📝 DADOS DO PROMPT PARA SALVAR - DETALHADO:');
+      console.log('  - agent_id:', promptDataToSave.agent_id);
+      console.log('  - agent_function:', promptDataToSave.agent_function ? `PREENCHIDO (${promptDataToSave.agent_function.length} chars)` : 'VAZIO');
+      console.log('  - agent_objective:', promptDataToSave.agent_objective ? `PREENCHIDO (${promptDataToSave.agent_objective.length} chars)` : 'VAZIO');
+      console.log('  - communication_style:', promptDataToSave.communication_style ? `PREENCHIDO (${promptDataToSave.communication_style.length} chars)` : 'VAZIO');
+      console.log('  - communication_style_examples:', promptDataToSave.communication_style_examples?.length || 0, 'exemplos');
+      console.log('  - company_info:', promptDataToSave.company_info ? `PREENCHIDO (${promptDataToSave.company_info.length} chars)` : 'VAZIO');
+      console.log('  - products_services:', promptDataToSave.products_services ? `PREENCHIDO (${promptDataToSave.products_services.length} chars)` : 'VAZIO');
+      console.log('  - flow:', promptDataToSave.flow?.length || 0, 'passos');
 
       // Verificar se já existe um prompt para este agente
       console.log('\n🔎 VERIFICANDO PROMPT EXISTENTE');

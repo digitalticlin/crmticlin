@@ -87,6 +87,16 @@ export const FieldConfigModal = ({
   // Reset states when modal opens/closes
   useEffect(() => {
     if (isOpen) {
+      console.log(`🔧 FieldConfigModal aberto para campo: ${fieldKey}`);
+      console.log('📊 Valores recebidos:', {
+        type,
+        simpleValue: simpleValue ? `PREENCHIDO (${simpleValue.length} chars)` : 'VAZIO',
+        fieldWithExamples: fieldWithExamples ? {
+          description: fieldWithExamples.description ? `PREENCHIDO (${fieldWithExamples.description.length} chars)` : 'VAZIO',
+          examples: fieldWithExamples.examples?.length || 0
+        } : 'NENHUM'
+      });
+      
       setSimpleData(simpleValue);
       setComplexData(fieldWithExamples || { description: "", examples: [] });
       setShowConfirmation(false);
@@ -101,21 +111,10 @@ export const FieldConfigModal = ({
     let valueToSave;
     
     if (type === 'simple') {
-      if (required && !simpleData.trim()) {
-        toast.error('Campo obrigatório', {
-          description: 'Por favor, preencha este campo antes de salvar.',
-        });
-        return;
-      }
+      // Permitir salvar campos vazios - remover validação obrigatória
       valueToSave = simpleData;
     } else {
-      // Para dicas de frases, não exigir descrição
-      if (fieldKey !== 'phrase_tips' && required && !complexData.description.trim()) {
-        toast.error('Descrição obrigatória', {
-          description: 'Por favor, preencha a descrição antes de salvar.',
-        });
-        return;
-      }
+      // Permitir salvar campos vazios - remover validação obrigatória
       valueToSave = complexData;
     }
     

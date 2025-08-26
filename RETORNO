@@ -1,71 +1,17 @@
-Aug 26, 2025, 12:47am
-Aug 26, 2025, 01:47am
-[Webhook] ✅ Processamento concluído: { success: false, error: "Failed to save message" }
-[Webhook] ❌ Erro ao salvar mensagem: { error: 'invalid input syntax for type uuid: "pending"', phone: "556299212484@s.whatsapp.net", method: "service_role_debug_profile_pic", success: false, sqlstate: "22P02", vps_instance_id: "digitalticlin" }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "image", hasMediaData: false, hasCaption: false }
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "image", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "profile_pic_url", "mediaData", "mediaUrl" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "image", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, data_mediaData_exists: true, payload_size: 365736 }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: true, timestamp: "2025-08-26T04:47:21.523Z" }
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 365736, timestamp: "2025-08-26T04:47:21.519Z" }
-[Webhook] 🔑 Signature recebida: false
-Listening on http://localhost:9999/
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
-[Webhook] 🔑 Webhook secret configurado: false
-booted (time: 119ms)
-[Webhook] ✅ Processamento concluído: { success: false, error: "Failed to save message" }
-[Webhook] ❌ Erro ao salvar mensagem: { error: 'invalid input syntax for type uuid: "pending"', phone: "556299212484@s.whatsapp.net", method: "service_role_debug_profile_pic", success: false, sqlstate: "22P02", vps_instance_id: "digitalticlin" }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "audio", hasMediaData: false, hasCaption: false }
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "audio", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "profile_pic_url", "mediaData", "mediaUrl" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "audio", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, data_mediaData_exists: true, payload_size: 24426 }
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: true, timestamp: "2025-08-26T04:47:20.105Z" }
-[Webhook] 🔑 Signature recebida: false
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 24426, timestamp: "2025-08-26T04:47:20.103Z" }
-Listening on http://localhost:9999/
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
-[Webhook] 🔑 Webhook secret configurado: false
-booted (time: 61ms)
-[Webhook] ✅ Processamento concluído: { success: false, error: "Failed to save message" }
-[Webhook] ❌ Erro ao salvar mensagem: { error: 'invalid input syntax for type uuid: "pending"', phone: "556299212484@s.whatsapp.net", method: "service_role_debug_profile_pic", success: false, sqlstate: "22P02", vps_instance_id: "digitalticlin" }
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "document", hasMediaData: false, hasCaption: false }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "document", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "profile_pic_url", "mediaData", "mediaUrl" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "document", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, data_mediaData_exists: true, payload_size: 35687 }
-[Webhook] 🔑 Signature recebida: false
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 35687, timestamp: "2025-08-26T04:47:18.440Z" }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: true, timestamp: "2025-08-26T04:47:18.442Z" }
-Listening on http://localhost:9999/
-[Webhook] 🔑 Webhook secret configurado: false
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
-booted (time: 63ms)
-[Webhook] ✅ Processamento concluído: { success: false, error: "Failed to save message" }
-[Webhook] ❌ Erro ao salvar mensagem: { error: 'invalid input syntax for type uuid: "pending"', phone: "556299212484@s.whatsapp.net", method: "service_role_debug_profile_pic", success: false, sqlstate: "22P02", vps_instance_id: "digitalticlin" }
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "video", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "profile_pic_url", "mediaData", "mediaUrl" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "video", hasMediaData: false, hasCaption: false }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "video", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, data_mediaData_exists: true, payload_size: 1775138 }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: true, timestamp: "2025-08-26T04:47:18.127Z" }
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 1775138, timestamp: "2025-08-26T04:47:18.070Z" }
-[Webhook] 🔑 Signature recebida: false
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-Listening on http://localhost:9999/
-[Webhook] 🔑 Webhook secret configurado: false
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
-booted (time: 64ms)
-[Webhook] ✅ Processamento concluído: { success: false, error: "Failed to save message" }
-[Webhook] ❌ Erro ao salvar mensagem: { error: 'invalid input syntax for type uuid: "pending"', phone: "556299212484@s.whatsapp.net", method: "service_role_debug_profile_pic", success: false, sqlstate: "22P02", vps_instance_id: "digitalticlin" }
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "text", hasMediaData: false, hasCaption: false }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "text", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, data_mediaData_exists: false, payload_size: 705 }
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 705, timestamp: "2025-08-26T04:47:17.559Z" }
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: false, timestamp: "2025-08-26T04:47:17.561Z" }
-[Webhook] 🔑 Signature recebida: false
-Listening on http://localhost:9999/
-[Webhook] 🔑 Webhook secret configurado: false
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
-booted (time: 77ms)
+🗑️ handleStepDelete chamado com índice: 7
+EnhancedPromptConfiguration.tsx:361 🗑️ setShowDeleteConfirm será chamado com: {show: true, index: 7}
+EnhancedPromptConfiguration.tsx:363 🗑️ CALLBACK setShowDeleteConfirm - anterior: {show: false, index: null} novo: {show: true, index: 7}
+EnhancedPromptConfiguration.tsx:124 🔍 showDeleteConfirm mudou: {show: true, index: 7}
+EnhancedPromptConfiguration.tsx:128 🔄 forceRender mudou: 1 - Componente deve re-renderizar
+EnhancedPromptConfiguration.tsx:524 🔧 BOTÃO EDITAR CLICADO - Dados do passo: {step: {…}, index: 7}
+EnhancedPromptConfiguration.tsx:525 🔧 Estado editingStep antes: null
+EnhancedPromptConfiguration.tsx:531 🔧 setEditingStep chamado com: {step: {…}, index: 7}
+EnhancedPromptConfiguration.tsx:527 🔧 CALLBACK setEditingStep - anterior: null novo: {step: {…}, index: 7}
+EnhancedPromptConfiguration.tsx:120 🔍 editingStep mudou: {step: {…}, index: 7}
+EnhancedPromptConfiguration.tsx:128 🔄 forceRender mudou: 2 - Componente deve re-renderizar
+EnhancedPromptConfiguration.tsx:524 🔧 BOTÃO EDITAR CLICADO - Dados do passo: {step: {…}, index: 6}
+EnhancedPromptConfiguration.tsx:525 🔧 Estado editingStep antes: {step: {…}, index: 7}
+EnhancedPromptConfiguration.tsx:531 🔧 setEditingStep chamado com: {step: {…}, index: 6}
+EnhancedPromptConfiguration.tsx:527 🔧 CALLBACK setEditingStep - anterior: {step: {…}, index: 7} novo: {step: {…}, index: 6}
+EnhancedPromptConfiguration.tsx:120 🔍 editingStep mudou: {step: {…}, index: 6}
+EnhancedPromptConfiguration.tsx:128 🔄 forceRender mudou: 3 - Componente deve re-renderizar

@@ -60,16 +60,14 @@ export const FunnelConfigModal = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  const [globalNotifyPhone, setGlobalNotifyPhone] = useState('');
-  const [globalNotifyEnabled, setGlobalNotifyEnabled] = useState(false);
   const [stageDescriptions, setStageDescriptions] = useState<Record<string, string>>({});
   const [stageNotifications, setStageNotifications] = useState<Record<string, boolean>>({});
+  const [stagePhones, setStagePhones] = useState<Record<string, string>>({});
 
   // Carregar dados quando modal abrir
   useEffect(() => {
     if (isOpen && agent?.funnel_id) {
       loadFunnelData(agent.funnel_id);
-      loadAgentNotificationData();
     } else if (isOpen && !agent?.funnel_id) {
       // Reset se não houver funil
       setFunnelStages([]);
@@ -79,10 +77,9 @@ export const FunnelConfigModal = ({
   }, [isOpen, agent?.funnel_id]);
 
   const resetFormData = () => {
-    setGlobalNotifyPhone('');
-    setGlobalNotifyEnabled(false);
     setStageDescriptions({});
     setStageNotifications({});
+    setStagePhones({});
   };
 
   const loadFunnelData = async (funnelId: string) => {
@@ -151,28 +148,17 @@ export const FunnelConfigModal = ({
       // Mapear dados para o estado local
       const descriptions: Record<string, string> = {};
       const notifications: Record<string, boolean> = {};
-      let hasAnyNotification = false;
-      let globalPhone = '';
+      const phones: Record<string, string> = {};
       
       stagesData?.forEach(stage => {
         descriptions[stage.id] = stage.ai_stage_description || '';
         notifications[stage.id] = stage.ai_notify_enabled || false;
-        
-        // Se algum estágio tem notificação ativa, pegar o telefone dele como padrão global
-        if (stage.ai_notify_enabled && stage.notify_phone && !globalPhone) {
-          globalPhone = stage.notify_phone;
-          hasAnyNotification = true;
-        }
+        phones[stage.id] = stage.notify_phone ? formatPhoneNumber(stage.notify_phone) : '';
       });
 
       setStageDescriptions(descriptions);
       setStageNotifications(notifications);
-      
-      // Se encontrou algum telefone em uso, configurar como telefone global
-      if (globalPhone) {
-        setGlobalNotifyPhone(globalPhone);
-        setGlobalNotifyEnabled(hasAnyNotification);
-      }
+      setStagePhones(phones);
 
     } catch (error) {
       console.error('❌ Erro ao carregar dados do funil:', error);
@@ -185,52 +171,66 @@ export const FunnelConfigModal = ({
     }
   };
 
-  const loadAgentNotificationData = async () => {
-    if (!agent?.id) return;
-
-    try {
-      // Como global_notify_phone ainda não existe, vamos verificar se já foi implementado
-      const { data: agentData, error } = await supabase
-        .from('ai_agents')
-        .select('*')
-        .eq('id', agent.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') { // Ignorar "not found"
-        throw error;
-      }
-
-      // Verificar se o campo global_notify_phone existe na resposta
-      if (agentData && 'global_notify_phone' in agentData && agentData.global_notify_phone) {
-        setGlobalNotifyPhone(agentData.global_notify_phone as string);
-        setGlobalNotifyEnabled(true);
-      }
-    } catch (error) {
-      console.error('❌ Erro ao carregar telefone global:', error);
-    }
-  };
 
   const formatPhoneNumber = (value: string) => {
+    console.log('📞 formatPhoneNumber entrada:', value);
+    // Permitir apenas números
     const numbers = value.replace(/\D/g, '');
+    console.log('📞 Números extraídos:', numbers);
     
-    if (numbers.length >= 11) {
-      const formatted = numbers.substring(0, 13);
-      return `+${formatted.substring(0, 2)} ${formatted.substring(2, 4)} ${formatted.substring(4, 9)}-${formatted.substring(9, 13)}`;
-    } else if (numbers.length >= 2) {
-      return `+${numbers}`;
+    // Limitar a 13 dígitos
+    const cleanNumbers = numbers.substring(0, 13);
+    console.log('📞 Números limpos:', cleanNumbers);
+    
+    // Aplicar formatação apenas se houver números suficientes
+    if (cleanNumbers.length <= 2) {
+      return cleanNumbers;
+    } else if (cleanNumbers.length <= 4) {
+      return `${cleanNumbers.substring(0, 2)} (${cleanNumbers.substring(2)})`;
+    } else if (cleanNumbers.length <= 6) {
+      return `${cleanNumbers.substring(0, 2)} (${cleanNumbers.substring(2, 4)}) ${cleanNumbers.substring(4)}`;
+    } else if (cleanNumbers.length <= 10) {
+      return `${cleanNumbers.substring(0, 2)} (${cleanNumbers.substring(2, 4)}) ${cleanNumbers.substring(4)}`;
+    } else if (cleanNumbers.length === 11) {
+      return `${cleanNumbers.substring(0, 2)} (${cleanNumbers.substring(2, 4)}) ${cleanNumbers.substring(4)}`;
+    } else if (cleanNumbers.length >= 12) {
+      // Formato completo: 55 (62) 99999-9999
+      return `${cleanNumbers.substring(0, 2)} (${cleanNumbers.substring(2, 4)}) ${cleanNumbers.substring(4, 9)}-${cleanNumbers.substring(9)}`;
     }
     
-    return value;
+    return cleanNumbers;
+  };
+
+  const formatPhoneForDatabase = (value: string) => {
+    // Remove todos os caracteres não numéricos
+    const numbers = value.replace(/\D/g, '');
+    
+    // Se já começar com 55, usar como está (limitado a 13 dígitos)
+    if (numbers.startsWith('55')) {
+      return numbers.substring(0, 13);
+    } else if (numbers.length >= 11) {
+      // Se não começar com 55 mas tem 11+ dígitos, adicionar 55
+      return '55' + numbers.substring(0, 11);
+    } else if (numbers.length >= 10) {
+      // Para números com 10 dígitos, adicionar 55
+      return '55' + numbers;
+    }
+    
+    // Retornar como está se for muito curto
+    return numbers;
   };
 
   const validatePhone = (phone: string) => {
     const numbers = phone.replace(/\D/g, '');
+    // Deve ter pelo menos 11 dígitos (DDD + número) ou 13 com código do país (55)
     return numbers.length >= 11;
   };
 
-  const handlePhoneChange = (value: string) => {
+  const handleStagePhoneChange = (stageId: string, value: string) => {
+    console.log('📱 handleStagePhoneChange chamado:', { stageId, value });
     const formatted = formatPhoneNumber(value);
-    setGlobalNotifyPhone(formatted);
+    console.log('📱 Telefone formatado:', { original: value, formatted });
+    setStagePhones(prev => ({ ...prev, [stageId]: formatted }));
   };
 
   const handleStageDescriptionChange = (stageId: string, value: string) => {
@@ -247,19 +247,20 @@ export const FunnelConfigModal = ({
       return;
     }
 
-    // Validações
-    if (globalNotifyEnabled && !validatePhone(globalNotifyPhone)) {
-      toast.error('Telefone inválido', {
-        description: 'Digite um telefone válido no formato +55 11 99999-9999',
-      });
-      return;
+    // Validar telefones dos estágios com notificação ativa
+    for (const stage of funnelStages) {
+      if (stageNotifications[stage.id] && stagePhones[stage.id] && !validatePhone(stagePhones[stage.id])) {
+        toast.error('Telefone inválido', {
+          description: `Digite um telefone válido para o estágio "${stage.title}" (mínimo 11 dígitos)`,
+        });
+        return;
+      }
     }
 
     setIsSaving(true);
 
     try {
-      // Por enquanto, não salvar telefone global até a migração ser aplicada
-      console.log('📞 Telefone global configurado:', globalNotifyEnabled ? globalNotifyPhone : 'Desabilitado');
+      console.log('💾 Salvando configurações individuais por estágio...');
 
       // Salvar configurações de cada estágio (excluindo automáticos)
       const stageUpdates = funnelStages
@@ -267,12 +268,25 @@ export const FunnelConfigModal = ({
         .map(stage => ({
           id: stage.id,
           ai_stage_description: stageDescriptions[stage.id] || '',
-          ai_notify_enabled: globalNotifyEnabled && stageNotifications[stage.id],
-          notify_phone: (globalNotifyEnabled && stageNotifications[stage.id]) ? globalNotifyPhone : '',
+          ai_notify_enabled: stageNotifications[stage.id] || false,
+          notify_phone: (stageNotifications[stage.id] && stagePhones[stage.id]) 
+            ? formatPhoneForDatabase(stagePhones[stage.id]) 
+            : '',
         }));
+
+      console.log('📝 Dados que serão salvos:', stageUpdates.map(u => ({
+        id: u.id,
+        ai_notify_enabled: u.ai_notify_enabled,
+        notify_phone: u.notify_phone ? 'PREENCHIDO' : 'VAZIO'
+      })));
 
       for (const update of stageUpdates) {
         try {
+          console.log(`📱 Salvando estágio ${update.id}:`, {
+            ai_notify_enabled: update.ai_notify_enabled,
+            notify_phone: update.notify_phone || 'VAZIO'
+          });
+
           const { error: stageError } = await supabase
             .from('kanban_stages')
             .update({
@@ -403,66 +417,6 @@ export const FunnelConfigModal = ({
             </div>
           ) : (
             <>
-              {/* Configuração de Telefone Global */}
-              <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
-                    <Phone className="h-5 w-5 text-yellow-500" />
-                    Telefone para Notificações
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">
-                    Configure um telefone único para receber notificações de todos os estágios
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  
-                  {/* Toggle Global */}
-                  <div className="flex items-center justify-between p-3 bg-white/30 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      {globalNotifyEnabled ? (
-                        <Bell className="h-5 w-5 text-green-600" />
-                      ) : (
-                        <BellOff className="h-5 w-5 text-gray-500" />
-                      )}
-                      <div>
-                        <p className="font-medium text-gray-800">
-                          Ativar notificações WhatsApp
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {globalNotifyEnabled ? 'Notificações ativas para estágios selecionados' : 'Nenhuma notificação será enviada'}
-                        </p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={globalNotifyEnabled}
-                      onCheckedChange={setGlobalNotifyEnabled}
-                    />
-                  </div>
-
-                  {/* Campo Telefone */}
-                  {globalNotifyEnabled && (
-                    <div className="space-y-2">
-                      <Label htmlFor="global_phone" className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                        <Phone className="h-4 w-4 text-gray-500" />
-                        Telefone para receber todas as notificações
-                      </Label>
-                      <Input
-                        id="global_phone"
-                        value={globalNotifyPhone}
-                        onChange={(e) => handlePhoneChange(e.target.value)}
-                        placeholder="+55 11 99999-9999"
-                        className="bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-lg"
-                      />
-                      {globalNotifyPhone && !validatePhone(globalNotifyPhone) && (
-                        <div className="flex items-center gap-2 text-xs text-red-600">
-                          <AlertCircle className="h-3 w-3" />
-                          Digite um telefone válido (mínimo 11 dígitos)
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
 
               {/* Lista de Estágios */}
               {funnelStages.length > 0 && (
@@ -532,16 +486,22 @@ export const FunnelConfigModal = ({
                             </div>
                           </div>
                           
-                          {/* Toggle notificação do estágio */}
-                          {globalNotifyEnabled && (
+                          {/* Toggle notificação do estágio - sempre visível */}
+                          <div className="flex items-center gap-3">
+                            {stageNotifications[stage.id] ? (
+                              <Bell className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <BellOff className="h-4 w-4 text-gray-400" />
+                            )}
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-600">Notificar:</span>
+                              <span className="text-xs text-gray-600 font-medium">Notificar:</span>
                               <Switch
                                 checked={stageNotifications[stage.id] || false}
                                 onCheckedChange={(checked) => handleStageNotificationToggle(stage.id, checked)}
+                                className="data-[state=checked]:bg-green-600"
                               />
                             </div>
-                          )}
+                          </div>
                         </div>
 
                         {/* Campo descrição IA */}
@@ -557,6 +517,28 @@ export const FunnelConfigModal = ({
                             rows={3}
                           />
                         </div>
+
+                        {/* Campo de telefone - só aparece se notificação estiver ativa */}
+                        {stageNotifications[stage.id] && (
+                          <div className="space-y-2 p-3 bg-green-50/50 border border-green-200/50 rounded-lg">
+                            <Label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                              <Phone className="h-4 w-4 text-green-600" />
+                              📱 Telefone para notificações deste estágio
+                            </Label>
+                            <Input
+                              value={stagePhones[stage.id] || ''}
+                              onChange={(e) => handleStagePhoneChange(stage.id, e.target.value)}
+                              placeholder="55 (62) 99999-9999"
+                              className="bg-white/60 backdrop-blur-sm border border-green-300/50 focus:border-green-500 rounded-lg"
+                            />
+                            {stagePhones[stage.id] && !validatePhone(stagePhones[stage.id]) && (
+                              <div className="flex items-center gap-2 text-xs text-red-600">
+                                <AlertCircle className="h-3 w-3" />
+                                Digite um telefone válido (mínimo 11 dígitos)
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       );
                     })}
