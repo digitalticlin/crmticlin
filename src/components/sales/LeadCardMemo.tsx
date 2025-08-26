@@ -38,7 +38,9 @@ export const LeadCardMemo = React.memo<LeadCardMemoProps>(
       prevProps.lead.columnId !== nextProps.lead.columnId ||
       prevProps.lead.assignedUser !== nextProps.lead.assignedUser ||
       prevProps.lead.owner_id !== nextProps.lead.owner_id ||
-      prevProps.lead.phone !== nextProps.lead.phone;
+      prevProps.lead.phone !== nextProps.lead.phone ||
+      prevProps.lead.avatar !== nextProps.lead.avatar ||
+      prevProps.lead.profile_pic_url !== nextProps.lead.profile_pic_url;
 
     const tagsChanged = 
       prevProps.lead.tags?.length !== nextProps.lead.tags?.length ||

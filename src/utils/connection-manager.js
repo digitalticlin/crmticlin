@@ -268,19 +268,41 @@ class ConnectionManager {
         }
       } catch (_) {}
 
-      // Se for mídia, extrair como Data URL e anexar
+      // 📸 ADICIONAR PROFILE PIC URL NO PAYLOAD (apenas se não for fromMe)
+      if (!fromMe && remoteJid && !remoteJid.includes('@g.us')) {
+        try {
+          const profilePicUrl = await this.fetchProfilePicUrl(socket, remoteJid);
+          if (profilePicUrl) {
+            messageData.profile_pic_url = profilePicUrl;
+            console.log(`📸 Profile pic incluído no payload: ${remoteJid}`);
+          }
+        } catch (error) {
+          console.log(`⚠️ Erro ao buscar profile pic para payload: ${error.message}`);
+        }
+      }
+
+      // Se for mídia, extrair Base64 + URL temporária
       if (messageData.messageType !== 'text') {
         try {
           const mediaInfo = await this.extractMediaAsDataUrl(message.message, messageData.messageType);
+          
+          // 📦 OTIMIZADO: Enviar apenas uma vez o base64 (na estrutura mediaData)
           if (mediaInfo && mediaInfo.base64Data) {
-            messageData.mediaBase64 = mediaInfo.base64Data; // campo raiz (edge aceita)
             messageData.mediaData = {
-              base64Data: mediaInfo.base64Data,
+              base64Data: mediaInfo.base64Data, // ✅ Base64 para processamento
               fileName: mediaInfo.fileName || undefined,
               mediaType: mediaInfo.mediaType || messageData.messageType,
               caption: mediaInfo.caption || undefined
             };
           }
+
+          // 🔗 ADICIONAR URL TEMPORÁRIA para IA
+          const tempMediaUrl = await this.getTemporaryMediaUrl(message.message, messageData.messageType);
+          if (tempMediaUrl) {
+            messageData.mediaUrl = tempMediaUrl; // ✅ URL temporária para IA
+            console.log(`🔗 URL temporária incluída: ${messageData.messageType}`);
+          }
+          
         } catch (mediaErr) {
           console.error(`${logPrefix} ⚠️ Falha ao extrair mídia:`, mediaErr?.message || mediaErr);
         }
@@ -430,6 +452,47 @@ class ConnectionManager {
       if (buf.length > PROFILE_MAX_IMAGE_KB * 1024) return null;
       const b64 = buf.toString('base64');
       return `data:${mime};base64,${b64}`;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // 📸 Buscar apenas a URL da foto (não base64) - para payload
+  async fetchProfilePicUrl(socket, jid) {
+    try {
+      if (!socket || typeof socket.profilePictureUrl !== 'function') return null;
+      const picUrl = await socket.profilePictureUrl(jid, 'image');
+      return picUrl || null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // 🔗 NOVO: Obter URL temporária da mídia (para IA)
+  async getTemporaryMediaUrl(messageObj, messageType) {
+    try {
+      // Detectar o subcampo de mídia baseado no tipo
+      let content;
+      if (messageObj.imageMessage) {
+        content = messageObj.imageMessage;
+      } else if (messageObj.videoMessage) {
+        content = messageObj.videoMessage;
+      } else if (messageObj.audioMessage) {
+        content = messageObj.audioMessage;
+      } else if (messageObj.documentMessage) {
+        content = messageObj.documentMessage;
+      } else if (messageObj.stickerMessage) {
+        content = messageObj.stickerMessage;
+      } else {
+        return null;
+      }
+
+      // Obter URL temporária via Baileys
+      if (content.url) {
+        return content.url; // URL temporária do WhatsApp
+      }
+      
+      return null;
     } catch (_) {
       return null;
     }

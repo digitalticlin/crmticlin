@@ -28,6 +28,7 @@ const transformLeadToKanbanLead = (lead: any): KanbanLead => ({
   assignedUser: lead.owner_id || undefined,
   unreadCount: lead.unread_count || 0,
   avatar: undefined,
+  profile_pic_url: lead.profile_pic_url || undefined,
   created_at: lead.created_at,
   updated_at: lead.updated_at,
   company_id: undefined,

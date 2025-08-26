@@ -24,6 +24,7 @@ export interface KanbanLead {
   assignedUser?: string;
   unreadCount: number;
   avatar?: string;
+  profile_pic_url?: string;
   created_at: string;
   updated_at?: string;
   company_id?: string;

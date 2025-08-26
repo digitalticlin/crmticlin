@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { MessageCircle, Clock, TrendingUp } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ContactTags } from "./ContactTags";
 import { ContactContextMenu } from "./ContactContextMenu";
 import { useTagsSync } from "@/hooks/whatsapp/useTagsSync";
@@ -200,11 +201,12 @@ export const ContactsList = ({
           >
             <div className="flex items-start gap-3" onClick={() => handleSelectContact(contact)}>
               <div className="relative">
-                <div className="h-12 w-12 rounded-full bg-black flex items-center justify-center ring-2 ring-white/10">
-                  <span className="text-yellow-400 font-extrabold text-lg" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                <Avatar className="h-12 w-12 ring-2 ring-white/10">
+                  <AvatarImage src={contact.profile_pic_url || contact.avatar} alt={displayName} />
+                  <AvatarFallback className="bg-black text-yellow-400 font-extrabold text-lg" style={{ fontFamily: 'Montserrat, sans-serif' }}>
                     T
-                  </span>
-                </div>
+                  </AvatarFallback>
+                </Avatar>
                 
                 {hasUnreadMessages && contact.unreadCount > 0 && (
                   <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full h-6 min-w-[24px] flex items-center justify-center text-xs font-bold animate-pulse">

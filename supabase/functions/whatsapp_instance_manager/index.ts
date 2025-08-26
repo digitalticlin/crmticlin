@@ -7,7 +7,7 @@ const corsHeaders = {
 
 // ✅ CONFIGURAÇÃO VPS PADRONIZADA (igual às edges funcionais)
 const VPS_CONFIG = {
-  baseUrl: Deno.env.get('VPS_BASE_URL') ?? 'http://31.97.163.57:3001',
+  baseUrl: Deno.env.get('VPS_BASE_URL')!,
   authToken: Deno.env.get('VPS_API_TOKEN') ?? '',
   timeout: Number(Deno.env.get('VPS_TIMEOUT_MS') ?? '60000'),
   endpoints: {
@@ -16,7 +16,7 @@ const VPS_CONFIG = {
     generateQR: '/instance/:instanceId/qr',
     deleteInstance: '/instance/logout'
   },
-  webhookUrl: 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver'
+  webhookUrl: `${Deno.env.get('SUPABASE_URL')!}/functions/v1/webhook_qr_receiver`
 };
 
 Deno.serve(async (req) => {

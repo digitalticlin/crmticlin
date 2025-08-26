@@ -9,7 +9,7 @@ const corsHeaders = {
 
 // ✅ CONFIGURAÇÃO DA VPS (carregada por variáveis de ambiente do Edge Function)
 const VPS_CONFIG = {
-  baseUrl: Deno.env.get('VPS_BASE_URL') ?? 'http://31.97.163.57:3001',
+  baseUrl: Deno.env.get('VPS_BASE_URL')!,
   authToken: Deno.env.get('VPS_API_TOKEN') ?? '',
   timeout: Number(Deno.env.get('VPS_TIMEOUT_MS') ?? '60000')
 };

@@ -1,3 +1,6 @@
+require("dotenv").config();
+let syncInterval = null;
+require("./mute-logs");
 // SERVIDOR WHATSAPP COMPLETO - IMPLEMENTAÇÃO ROBUSTA CORRIGIDA
 const express = require('express');
 const crypto = require('crypto');
@@ -16,28 +19,34 @@ const ConnectionManager = require('./src/utils/connection-manager');
 global.crypto = crypto;
 
 const app = express();
-const PORT = 3001; // NOVA VPS PORTA
+app.use((req,res,next)=>{res.setHeader("Access-Control-Allow-Origin","*");res.setHeader("Access-Control-Allow-Methods","GET,POST,OPTIONS");res.setHeader("Access-Control-Allow-Headers","Content-Type,Authorization");if(req.method==="OPTIONS"){res.sendStatus(204);return;} next();});
+const PORT = process.env.PORT || 3001;
 
 // CONFIGURAÇÃO CORRIGIDA - Supabase Service Key para autenticação
-const SUPABASE_PROJECT = 'rhjgagzstjzynvrakdyj';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+const SUPABASE_PROJECT = process.env.SUPABASE_PROJECT_ID;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
 // TOKEN DE AUTENTICAÇÃO VPS
 const VPS_AUTH_TOKEN = process.env.VPS_API_TOKEN;
 
 const SUPABASE_WEBHOOKS = {
-  AUTO_SYNC_INSTANCES: process.env.AUTO_SYNC_INSTANCES || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/auto_whatsapp_sync',
-  QR_RECEIVER: process.env.QR_RECEIVER_WEBHOOK || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver',
-  CONNECTION_SYNC: process.env.CONNECTION_SYNC_WEBHOOK || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/auto_whatsapp_sync',
-  BACKEND_MESSAGES: process.env.BACKEND_MESSAGES_WEBHOOK || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_whatsapp_web',
-  N8N_MESSAGES: process.env.N8N_MESSAGES_WEBHOOK || ''
+// DESABILITADO:   AUTO_SYNC_INSTANCES: process.env.AUTO_SYNC_INSTANCES,
+  QR_RECEIVER: process.env.QR_RECEIVER_WEBHOOK,
+// DESABILITADO:   CONNECTION_SYNC: process.env.CONNECTION_SYNC_WEBHOOK,
+  BACKEND_MESSAGES: process.env.BACKEND_MESSAGES_WEBHOOK,
+  N8N_MESSAGES: process.env.N8N_MESSAGES_WEBHOOK,
+  PROFILE_PIC: process.env.PROFILE_PIC_WEBHOOK
 };
 
 // Armazenamento global de instâncias
 const instances = {};
 
+// Cache de fotos de perfil já enviadas
+const sentProfilePics = new Map();
+let bulkSyncInProgress = false;
+
 // Configuração de diretório persistente
-const AUTH_DIR = path.join(__dirname, 'auth_info');
+const AUTH_DIR = process.env.AUTH_DIR || path.join(__dirname, 'auth_info');
 if (!fs.existsSync(AUTH_DIR)) {
   fs.mkdirSync(AUTH_DIR, { recursive: true });
   console.log(`📁 Diretório de autenticação criado: ${AUTH_DIR}`);
@@ -85,6 +94,191 @@ const webhookManager = new WebhookManager(SUPABASE_WEBHOOKS, SUPABASE_SERVICE_KE
 const connectionManager = new ConnectionManager(instances, AUTH_DIR, webhookManager);
 const diagnosticsManager = new DiagnosticsManager(instances);
 const importManagerRobust = new ImportManagerRobust(instances);
+
+// ================================
+// FUNCIONALIDADES FOTO DE PERFIL
+// ================================
+
+// Função para buscar foto de perfil via Baileys
+async function getProfilePictureUrl(instanceId, phone) {
+  try {
+    const instance = instances[instanceId];
+    if (!instance || !instance.socket || !instance.connected) {
+      console.log(`⚠️ Instância ${instanceId} não disponível para buscar foto de perfil`);
+      return null;
+    }
+
+    // Formatar número para Baileys
+    const formattedJid = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
+    
+    // Buscar foto de perfil via Baileys
+    const profilePicUrl = await instance.socket.profilePictureUrl(formattedJid, 'image');
+    
+    console.log(`📸 Foto de perfil encontrada para ${phone}: ${profilePicUrl ? 'SIM' : 'NÃO'}`);
+    return profilePicUrl;
+  } catch (error) {
+    console.log(`📸 Erro ao buscar foto de perfil para ${phone}:`, error.message);
+    return null;
+  }
+}
+
+// Função para enviar foto para Edge Function
+async function sendProfilePicToEdgeFunction(leadId, phone, profilePicUrl, instanceId) {
+  try {
+    console.log(`📤 Enviando foto de perfil para Edge Function - Lead: ${leadId}`);
+
+    const response = await axios.post(SUPABASE_WEBHOOKS.PROFILE_PIC, {
+      lead_id: leadId,
+      phone: phone,
+      profile_pic_url: profilePicUrl,
+      instance_id: instanceId
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+      },
+      timeout: 10000
+    });
+
+    if (response.data.success) {
+      console.log(`✅ Foto de perfil enviada com sucesso para lead ${leadId}`);
+      return true;
+    } else {
+      console.error(`❌ Falha ao enviar foto de perfil:`, response.data);
+      return false;
+    }
+  } catch (error) {
+    console.error(`❌ Erro ao enviar foto para Edge Function:`, error.message);
+    return false;
+  }
+}
+
+// Função para processar foto de perfil de um novo lead
+async function processNewLeadProfilePic(instanceId, phone, leadData) {
+  try {
+    const cacheKey = `${instanceId}:${phone}`;
+    
+    // Verificar se já foi processado
+    if (sentProfilePics.has(cacheKey)) {
+      console.log(`📸 Foto de perfil já processada para ${phone}`);
+      return;
+    }
+
+    // Buscar foto de perfil
+    const profilePicUrl = await getProfilePictureUrl(instanceId, phone);
+    
+    if (profilePicUrl) {
+      // Enviar para Edge Function
+      const success = await sendProfilePicToEdgeFunction(
+        leadData.lead_id,
+        phone,
+        profilePicUrl,
+        instanceId
+      );
+
+      if (success) {
+        // Adicionar ao cache
+        sentProfilePics.set(cacheKey, {
+          url: profilePicUrl,
+          timestamp: Date.now(),
+          leadId: leadData.lead_id
+        });
+        console.log(`✅ Processamento completo - foto enviada para ${phone}`);
+      }
+    } else {
+      // Marcar como processado mesmo sem foto (para não tentar novamente)
+      sentProfilePics.set(cacheKey, {
+        url: null,
+        timestamp: Date.now(),
+        leadId: leadData.lead_id
+      });
+      console.log(`📸 Nenhuma foto encontrada para ${phone}`);
+    }
+  } catch (error) {
+    console.error(`❌ Erro no processamento da foto de perfil:`, error);
+  }
+}
+
+// Função para processar lote de leads (sincronização em massa)
+async function processBatchProfilePics(instanceId, phoneList, batchSize = 50) {
+  try {
+    console.log(`📸 Iniciando processamento em lote - ${phoneList.length} phones`);
+    
+    const results = {
+      processed: 0,
+      success: 0,
+      errors: 0,
+      notFound: 0
+    };
+
+    for (let i = 0; i < phoneList.length; i += batchSize) {
+      const batch = phoneList.slice(i, i + batchSize);
+      console.log(`📦 Processando lote ${Math.floor(i/batchSize) + 1} - ${batch.length} itens`);
+
+      for (const phoneData of batch) {
+        try {
+          const { phone, lead_id } = phoneData;
+          const cacheKey = `${instanceId}:${phone}`;
+
+          // Pular se já foi processado
+          if (sentProfilePics.has(cacheKey)) {
+            results.processed++;
+            continue;
+          }
+
+          // Buscar foto de perfil
+          const profilePicUrl = await getProfilePictureUrl(instanceId, phone);
+          
+          if (profilePicUrl) {
+            // Enviar para Edge Function
+            const success = await sendProfilePicToEdgeFunction(
+              lead_id,
+              phone,
+              profilePicUrl,
+              instanceId
+            );
+
+            if (success) {
+              sentProfilePics.set(cacheKey, {
+                url: profilePicUrl,
+                timestamp: Date.now(),
+                leadId: lead_id
+              });
+              results.success++;
+            } else {
+              results.errors++;
+            }
+          } else {
+            // Marcar como processado sem foto
+            sentProfilePics.set(cacheKey, {
+              url: null,
+              timestamp: Date.now(),
+              leadId: lead_id
+            });
+            results.notFound++;
+          }
+
+          results.processed++;
+
+          // Rate limiting - pausa entre requisições
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error(`❌ Erro no processamento de ${phoneData.phone}:`, error.message);
+          results.errors++;
+        }
+      }
+
+      // Pausa entre lotes
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    console.log(`📊 Processamento em lote concluído:`, results);
+    return results;
+  } catch (error) {
+    console.error(`❌ Erro no processamento em lote:`, error);
+    throw error;
+  }
+}
 
 // ENDPOINTS PRINCIPAIS
 
@@ -435,6 +629,150 @@ app.delete('/instance/:instanceId', async (req, res) => {
   }
 });
 
+// ================================
+// ENDPOINTS FOTO DE PERFIL
+// ================================
+
+// Processar foto de perfil individual
+app.post('/instance/:instanceId/process-profile-pic', authenticateToken, async (req, res) => {
+  const { instanceId } = req.params;
+  const { phone, lead_id } = req.body;
+
+  if (!phone || !lead_id) {
+    return res.status(400).json({
+      success: false,
+      error: 'phone e lead_id são obrigatórios'
+    });
+  }
+
+  const instance = instances[instanceId];
+  if (!instance) {
+    return res.status(404).json({
+      success: false,
+      error: 'Instância não encontrada',
+      instanceId
+    });
+  }
+
+  if (!instance.connected || !instance.socket) {
+    return res.status(400).json({
+      success: false,
+      error: 'Instância não está conectada',
+      status: instance.status,
+      instanceId
+    });
+  }
+
+  try {
+    console.log(`📸 Processando foto de perfil individual - ${phone}`);
+    
+    await processNewLeadProfilePic(instanceId, phone, { lead_id });
+
+    res.json({
+      success: true,
+      message: 'Foto de perfil processada com sucesso',
+      phone,
+      lead_id,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error(`❌ Erro ao processar foto de perfil:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao processar foto de perfil',
+      message: error.message,
+      phone,
+      instanceId
+    });
+  }
+});
+
+// Sincronização em massa de fotos de perfil
+app.post('/instance/:instanceId/sync-profile-pics-bulk', authenticateToken, async (req, res) => {
+  const { instanceId } = req.params;
+  const { phone_list, batch_size = 50 } = req.body;
+
+  if (!phone_list || !Array.isArray(phone_list)) {
+    return res.status(400).json({
+      success: false,
+      error: 'phone_list deve ser um array com objetos {phone, lead_id}'
+    });
+  }
+
+  const instance = instances[instanceId];
+  if (!instance) {
+    return res.status(404).json({
+      success: false,
+      error: 'Instância não encontrada',
+      instanceId
+    });
+  }
+
+  if (!instance.connected || !instance.socket) {
+    return res.status(400).json({
+      success: false,
+      error: 'Instância não está conectada',
+      status: instance.status,
+      instanceId
+    });
+  }
+
+  // Verificar se já existe um processo em andamento
+  if (bulkSyncInProgress) {
+    return res.status(429).json({
+      success: false,
+      error: 'Sincronização em massa já está em andamento',
+      message: 'Aguarde o processo atual finalizar'
+    });
+  }
+
+  try {
+    console.log(`📸 Iniciando sincronização em massa - ${phone_list.length} leads`);
+    bulkSyncInProgress = true;
+
+    // Processar em background para não travar a resposta
+    processBatchProfilePics(instanceId, phone_list, batch_size)
+      .then(results => {
+        console.log(`✅ Sincronização em massa concluída:`, results);
+        bulkSyncInProgress = false;
+      })
+      .catch(error => {
+        console.error(`❌ Erro na sincronização em massa:`, error);
+        bulkSyncInProgress = false;
+      });
+
+    // Resposta imediata
+    res.json({
+      success: true,
+      message: 'Sincronização em massa iniciada em background',
+      total_leads: phone_list.length,
+      batch_size,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error(`❌ Erro ao iniciar sincronização em massa:`, error);
+    bulkSyncInProgress = false;
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao iniciar sincronização em massa',
+      message: error.message,
+      instanceId
+    });
+  }
+});
+
+// Status da sincronização em massa
+app.get('/bulk-sync-status', authenticateToken, (req, res) => {
+  res.json({
+    success: true,
+    bulk_sync_in_progress: bulkSyncInProgress,
+    cache_size: sentProfilePics.size,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Enviar Mensagem
 app.post('/send', authenticateToken, async (req, res) => {
   const { instanceId, phone, message, mediaType, mediaUrl, ptt, filename, seconds, waveform } = req.body;
@@ -674,9 +1012,7 @@ async function recoverExistingInstances() {
 process.on('SIGINT', async () => {
   console.log('🛑 Encerrando servidor...');
 
-  if (syncInterval) {
-    clearInterval(syncInterval);
-  }
+  if (typeof syncInterval !== "undefined" && syncInterval) { clearInterval(syncInterval); }
 
   const shutdownPromises = Object.values(instances).map(instance => {
     if (instance.socket) {
@@ -717,7 +1053,7 @@ async function startServer() {
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log('✅ SERVIDOR WHATSAPP ROBUSTO IMPLEMENTADO!');
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
-      console.log(`🌐 Acesso: http://31.97.163.57:${PORT}`);
+      console.log(`🌐 Acesso: http://${process.env.SERVER_HOST || 'localhost'}:${PORT}`);
       console.log(`📡 Supabase Webhooks configurados`);
       console.log(`🔧 Versão: 7.0.0-ROBUST-COMPLETE`);
       console.log(`📋 Endpoints disponíveis:`);
@@ -731,6 +1067,9 @@ async function startServer() {
       console.log(`   POST /instance/:id/import-history-robust - Importação robusta`);
       console.log(`   GET  /instance/:id - Detalhes da instância`);
       console.log(`   DELETE /instance/:id - Deletar instância`);
+      console.log(`   📸 POST /instance/:id/process-profile-pic - Processar foto individual`);
+      console.log(`   📸 POST /instance/:id/sync-profile-pics-bulk - Sincronização em massa`);
+      console.log(`   📸 GET  /bulk-sync-status - Status da sincronização`);
       console.log(`   POST /send - Enviar mensagem`);
     });
 

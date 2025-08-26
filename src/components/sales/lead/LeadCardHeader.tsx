@@ -30,8 +30,11 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
     ? `${displayName.substring(0, 25)}...` 
     : displayName;
 
-  console.log('[LeadCardHeader] Debug unread messages:', {
+  console.log('[LeadCardHeader] Debug profile pic & unread messages:', {
     leadName: lead.name,
+    profile_pic_url: lead.profile_pic_url,
+    avatar: lead.avatar,
+    finalAvatarSrc: lead.profile_pic_url || lead.avatar,
     unreadCount: lead.unreadCount,
     unread_count: lead.unread_count,
     finalUnreadCount: unreadCount,
@@ -42,7 +45,7 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
     <div className="flex items-center gap-3 mb-3">
       {/* Avatar */}
       <Avatar className="h-8 w-8 flex-shrink-0">
-        <AvatarImage src={lead.avatar} alt={displayName} />
+        <AvatarImage src={lead.profile_pic_url || lead.avatar} alt={displayName} />
         <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
           <User className="h-4 w-4" />
         </AvatarFallback>

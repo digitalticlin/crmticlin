@@ -27,6 +27,21 @@ function verifyWebhookSignature(payload, signature, secret) {
     return true; // TEMPORARIAMENTE PERMITIR EM CASO DE ERRO
   }
 }
+// 📱 Função para gerar nomes descritivos para mídia
+function getMediaDisplayName(mediaType) {
+  const mediaNames = {
+    'image': '📷 Imagem',
+    'video': '🎥 Vídeo', 
+    'audio': '🎵 Áudio',
+    'document': '📄 Documento',
+    'sticker': '😊 Sticker',
+    'voice': '🎤 Áudio',
+    'ptt': '🎤 Áudio'
+  };
+  
+  return mediaNames[mediaType?.toLowerCase()] || '📎 Mídia';
+}
+
 // Input sanitization
 function sanitizeInput(input) {
   if (typeof input === 'string') {
@@ -384,7 +399,7 @@ serve(async (req)=>{
       instanceId: sanitizedData.instanceId,
       hasMessage: !!(sanitizedData.message || sanitizedData.data?.messages),
       hasMediaData: !!(sanitizedData.mediaBase64 || // ✅ inclusão: raiz
-      sanitizedData.mediabase64 || sanitizedData.mediaData || sanitizedData.base64Data || sanitizedData.media || sanitizedData.buffer || sanitizedData.content || sanitizedData.data?.buffer || sanitizedData.data?.base64 || sanitizedData.message?.media),
+      sanitizedData.mediabase64 || sanitizedData.mediaData || sanitizedData.base64Data || sanitizedData.media || sanitizedData.buffer || sanitizedData.content || sanitizedData.data?.buffer || sanitizedData.data?.base64 || sanitizedData.message?.media || sanitizedData.data?.mediaData), // ✅ ADICIONADO
       timestamp: new Date().toISOString()
     });
     // 🚨 DEBUG: Log completo dos dados recebidos
@@ -401,6 +416,7 @@ serve(async (req)=>{
       data_buffer_exists: !!sanitizedData.data?.buffer,
       data_base64_exists: !!sanitizedData.data?.base64,
       message_media_exists: !!sanitizedData.message?.media,
+      data_mediaData_exists: !!sanitizedData.data?.mediaData, // ✅ ADICIONADO
       payload_size: JSON.stringify(sanitizedData).length
     });
     // 🚨 INVESTIGAÇÃO DETALHADA: Onde está a mídia?
@@ -549,18 +565,18 @@ async function processMessage(supabase, data) {
       fromMe: baileyMsg.key.fromMe,
       externalMessageId: baileyMsg.key.id,
       message: {
-        text: baileyMsg.message?.conversation || baileyMsg.message?.extendedTextMessage?.text || data.caption || '[Mídia recebida]'
+        text: baileyMsg.message?.conversation || baileyMsg.message?.extendedTextMessage?.text || data.caption || getMediaDisplayName(data.messageType)
       },
       messageType: data.messageType === 'sticker' ? 'image' : data.messageType || 'text',
       mediaUrl: data.mediaUrl,
-      contactName: data.contactName,
+      contactName: data.contactName || data.senderProfileName,
       // 🚀 DADOS DE MÍDIA EXTRAÍDOS - CORREÇÃO APLICADA
       mediaData: {
         base64Data: data.mediaBase64 || // raiz
-        data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.media?.base64 || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media?.buffer,
-        fileName: data.fileName || data.mediaData?.fileName,
-        mediaType: data.messageType || data.mediaData?.mediaType,
-        caption: data.caption || data.mediaData?.caption,
+        data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.data?.mediaData?.base64Data || data.media?.base64 || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media?.buffer,
+        fileName: data.fileName || data.mediaData?.fileName || data.data?.mediaData?.fileName,
+        mediaType: data.messageType || data.mediaData?.mediaType || data.data?.mediaData?.mediaType,
+        caption: data.caption || data.mediaData?.caption || data.data?.mediaData?.caption,
         externalMessageId: baileyMsg.key.id
       }
     };
@@ -572,18 +588,19 @@ async function processMessage(supabase, data) {
       fromMe: data.fromMe,
       externalMessageId: data.data?.messageId || data.messageId || data.id || data.external_message_id,
       message: {
-        text: data.message?.text || data.caption || '[Mídia recebida]'
+        text: data.message?.text || data.caption || getMediaDisplayName(data.messageType)
       },
       messageType: data.messageType === 'sticker' ? 'image' : data.messageType || 'text',
       mediaUrl: data.mediaUrl,
-      contactName: data.contactName,
+      contactName: data.contactName || data.senderProfileName || data.data?.senderProfileName,
+      profile_pic_url: data.profilePicUrl || data.profile_pic_url || data.data?.profile_pic_url || data.senderProfilePicUrl || null, // 📸 PROFILE PIC
       // 🚀 DADOS DE MÍDIA EXTRAÍDOS - CORREÇÃO APLICADA
       mediaData: {
         base64Data: data.mediaBase64 || // raiz
-        data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.media?.base64 || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media?.buffer,
-        fileName: data.fileName || data.mediaData?.fileName,
-        mediaType: data.messageType || data.mediaData?.mediaType,
-        caption: data.caption || data.mediaData?.caption,
+        data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.data?.mediaData?.base64Data || data.media?.base64 || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media?.buffer,
+        fileName: data.fileName || data.mediaData?.fileName || data.data?.mediaData?.fileName,
+        mediaType: data.messageType || data.mediaData?.mediaType || data.data?.mediaData?.mediaType,
+        caption: data.caption || data.mediaData?.caption || data.data?.mediaData?.caption,
         externalMessageId: data.data?.messageId || data.messageId || data.id || data.external_message_id
       }
     };
@@ -606,7 +623,8 @@ async function processMessage(supabase, data) {
     p_media_url: messageData.mediaUrl || null,
     p_external_message_id: messageData.externalMessageId || null,
     p_contact_name: messageData.contactName || null,
-    p_base64_data: messageData.mediaData?.base64Data || null // 🎯 BASE64 PARA IA
+    p_base64_data: messageData.mediaData?.base64Data || null, // 🎯 BASE64 PARA IA
+    p_profile_pic_url: messageData.profile_pic_url || null // 📸 PROFILE PIC URL
   });
   if (error || !result?.success) {
     console.error('[Webhook] ❌ Erro ao salvar mensagem:', error || result);

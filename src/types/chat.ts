@@ -17,6 +17,7 @@ export interface Contact {
   lastMessageTime?: string;
   unreadCount?: number;
   avatar?: string;
+  profile_pic_url?: string;
   isOnline?: boolean;
   funnelStage?: string;
   purchaseValue?: number;

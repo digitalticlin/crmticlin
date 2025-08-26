@@ -49,7 +49,9 @@ export const KanbanColumnMemo = React.memo<KanbanColumnMemoProps>(
           lead.unreadCount !== nextLead.unreadCount ||
           lead.unread_count !== nextLead.unread_count ||
           lead.assignedUser !== nextLead.assignedUser ||
-          lead.owner_id !== nextLead.owner_id
+          lead.owner_id !== nextLead.owner_id ||
+          lead.avatar !== nextLead.avatar ||
+          lead.profile_pic_url !== nextLead.profile_pic_url
         );
       });
 

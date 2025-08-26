@@ -67,7 +67,7 @@ export function useSalesFunnelOptimized() {
           id, name, phone, email, company, notes, 
           last_message, last_message_time, purchase_value, 
           unread_count, owner_id, kanban_stage_id, funnel_id,
-          whatsapp_number_id, created_at, updated_at,
+          whatsapp_number_id, created_at, updated_at, profile_pic_url,
           lead_tags(
             tag_id,
             tags:tag_id(
@@ -153,6 +153,7 @@ export function useSalesFunnelOptimized() {
           assignedUser: lead.owner_id || undefined,
           unreadCount: lead.unread_count || 0,
           avatar: undefined,
+          profile_pic_url: lead.profile_pic_url || undefined,
           created_at: lead.created_at,
           updated_at: lead.updated_at,
           company_id: undefined,
