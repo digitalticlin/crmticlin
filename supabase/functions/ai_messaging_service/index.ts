@@ -429,17 +429,16 @@ serve(async (req) => {
       vpsMessageSent: vpsMessageText === ' ' ? 'SINGLE_SPACE_FOR_VALIDATION' : vpsMessageText
     });
 
-    // ✅ SALVAR MENSAGEM NO BANCO COM TEXTO ESPECÍFICO
+    // ✅ SALVAR MENSAGEM NO BANCO COM FUNÇÃO ESPECÍFICA PARA IA
     console.log('[AI Messaging Service] 💾 Salvando mensagem do AI Agent no banco...');
     
     try {
       const { data: saveResult, error: saveError } = await supabase.rpc(
-        'save_whatsapp_message_service_role',
+        'save_whatsapp_message_ai_agent',  // 🤖 NOVA FUNÇÃO ESPECÍFICA PARA IA
         {
           p_vps_instance_id: realVpsInstanceId,  // 🚨 CORREÇÃO: usar nome real da instância
           p_phone: phone.replace(/\D/g, ''),
           p_message_text: messageText,  // ✅ BANCO: vazio para PTT, original para outros
-          p_from_me: true,
           p_media_type: processedMediaType,
           p_media_url: processedMediaUrl || null,
           p_external_message_id: vpsData.messageId || null,

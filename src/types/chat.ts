@@ -39,6 +39,8 @@ export interface Contact {
   };
   // Instância WhatsApp vinculada ao lead (FK para whatsapp_instances.id)
   whatsapp_number_id?: string;
+  // ✅ NOVO: Status da conversa para controle de fechamento/arquivamento
+  conversation_status?: 'active' | 'closed' | 'archived';
 }
 
 export interface Deal {

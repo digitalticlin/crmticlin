@@ -61,18 +61,29 @@ export const ContactsList = ({
 
   const handleDeleteConversation = useCallback(async (contactId: string) => {
     try {
-      const { error } = await supabase
+      // 🗑️ EXCLUIR CONVERSA: Apagar todas as mensagens do lead
+      const { error: messagesError } = await supabase
         .from('messages')
         .delete()
         .eq('lead_id', contactId);
 
-      if (error) throw error;
+      if (messagesError) throw messagesError;
 
-      await supabase
+      // 📝 Atualizar lead: zerar contadores e marcar como arquivado
+      const { error: leadError } = await supabase
         .from('leads')
-        .update({ unread_count: 0 })
+        .update({ 
+          unread_count: 0,
+          last_message: null,
+          last_message_time: null,
+          conversation_status: 'archived',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', contactId);
 
+      if (leadError) throw leadError;
+
+      // 🔄 Refresh da lista e fechar chat se estava selecionado
       if (onRefreshContacts) {
         onRefreshContacts();
       }
@@ -81,23 +92,29 @@ export const ContactsList = ({
         onSelectContact(null);
       }
 
+      console.log('✅ Conversa excluída:', contactId);
+
     } catch (error) {
-      console.error('Error deleting conversation:', error);
+      console.error('❌ Erro ao excluir conversa:', error);
       throw error;
     }
   }, [onRefreshContacts, selectedContact, onSelectContact]);
 
   const handleCloseConversation = useCallback(async (contactId: string) => {
     try {
+      // ❌ FECHAR CONVERSA: Manter mensagens, marcar como fechada
       const { error } = await supabase
         .from('leads')
         .update({ 
-          notes: 'Conversa fechada'
+          conversation_status: 'closed',
+          unread_count: 0,  // Zerar não lidas ao fechar
+          updated_at: new Date().toISOString()
         })
         .eq('id', contactId);
 
       if (error) throw error;
 
+      // 🔄 Refresh da lista e fechar chat se estava selecionado
       if (onRefreshContacts) {
         onRefreshContacts();
       }
@@ -106,8 +123,10 @@ export const ContactsList = ({
         onSelectContact(null);
       }
 
+      console.log('✅ Conversa fechada:', contactId);
+
     } catch (error) {
-      console.error('Error closing conversation:', error);
+      console.error('❌ Erro ao fechar conversa:', error);
       throw error;
     }
   }, [onRefreshContacts, selectedContact, onSelectContact]);

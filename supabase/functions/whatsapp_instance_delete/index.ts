@@ -27,7 +27,7 @@ serve(async (req: Request) => {
   console.log(`🗑️ [${executionId}] WHATSAPP INSTANCE DELETE - VERSÃO CORRIGIDA`);
 
   try {
-    console.log('[Instance Delete] 🚀 Iniciando processamento - VERSÃO CORRIGIDA');
+    console.log('[Instance Delete] 🚀 Iniciando processamento - VERSÃO CORRIGIDA V2');
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -85,8 +85,10 @@ serve(async (req: Request) => {
 
     // ✅ CLIENTE SERVICE ROLE PARA OPERAÇÕES PRIVILEGIADAS
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { instanceId } = await req.json();
-    console.log(`🗑️ [${executionId}] Deletando instância: ${instanceId}`);
+    const requestBody = await req.json();
+    const { instanceId, trigger_source } = requestBody;
+    console.log(`🗑️ [${executionId}] Deletando instância: ${instanceId}`, 
+                trigger_source ? `(fonte: ${trigger_source})` : '');
 
     if (!instanceId) {
       return new Response(JSON.stringify({ 
@@ -178,23 +180,67 @@ serve(async (req: Request) => {
       vpsDeleteSuccess = true; // Considerar sucesso se não há ID da VPS
     }
 
-    // 3. DELETAR DO BANCO (sempre executar)
+    // 3. DELETAR DO BANCO COM PROTEÇÃO ANTI-LOOP
     console.log(`🗄️ [${executionId}] Deletando do banco...`);
     
-    const { error: deleteError } = await supabase
+    // ✅ PROTEÇÃO: Verificar se a requisição veio do próprio trigger para evitar loop infinito
+    const isFromTrigger = trigger_source === 'database_delete_trigger';
+    
+    if (isFromTrigger) {
+      console.log(`⚠️ [${executionId}] Requisição veio do trigger - pulando deleção no banco para evitar loop`);
+      return new Response(JSON.stringify({
+        success: true,
+        message: "Processamento do trigger concluído",
+        details: {
+          instanceId,
+          instanceName: instance.instance_name,
+          vpsDeleted: vpsDeleteSuccess,
+          databaseDeleted: false,
+          source: 'trigger'
+        },
+        executionId
+      }), { 
+        headers: corsHeaders,
+        status: 200
+      });
+    }
+    
+    // ✅ TIMEOUT CONFIGURÁVEL PARA DELETE
+    const deleteTimeoutMs = 30000; // 30 segundos
+    const deletePromise = supabase
       .from('whatsapp_instances')
       .delete()
-      .eq('id', instanceId);
-
-    if (deleteError) {
-      console.error(`❌ [${executionId}] Erro ao deletar do banco:`, deleteError);
+      .eq('id', instanceId)
+      .eq('created_by_user_id', user.id); // Extra segurança
+    
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('DELETE timeout')), deleteTimeoutMs)
+    );
+    
+    try {
+      const { error: deleteError } = await Promise.race([deletePromise, timeoutPromise]);
+      
+      if (deleteError) {
+        console.error(`❌ [${executionId}] Erro ao deletar do banco:`, deleteError);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: `Erro ao deletar do banco: ${deleteError.message}`,
+          executionId 
+        }), { 
+          headers: corsHeaders, 
+          status: 500 
+        });
+      }
+    } catch (timeoutError) {
+      console.error(`❌ [${executionId}] Timeout ao deletar do banco:`, timeoutError);
       return new Response(JSON.stringify({ 
         success: false, 
-        error: `Erro ao deletar do banco: ${deleteError.message}`,
+        error: "Timeout na operação de deleção no banco de dados",
+        details: "A operação excedeu 30 segundos. Verifique se há locks na tabela.",
         executionId 
       }), { 
         headers: corsHeaders, 
-        status: 500 
+        status: 408 
       });
     }
 

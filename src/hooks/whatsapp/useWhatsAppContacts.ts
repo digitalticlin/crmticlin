@@ -100,7 +100,7 @@ export const useWhatsAppContacts = ({
         userId: user.id
       });
 
-      // Query isolada para contatos - incluindo foto de perfil
+      // Query isolada para contatos - incluindo foto de perfil e filtro de conversas ativas
       let query = supabase
         .from('leads')
         .select(`
@@ -122,9 +122,11 @@ export const useWhatsAppContacts = ({
           whatsapp_number_id,
           kanban_stage_id,
           created_by_user_id,
-          profile_pic_url
+          profile_pic_url,
+          conversation_status
         `, { count: 'exact' })
         .eq('created_by_user_id', user.id)
+        .in('conversation_status', ['active', 'closed'])  // ✅ Filtrar apenas conversas ativas e fechadas (não arquivadas)
         .order('last_message_time', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
 
