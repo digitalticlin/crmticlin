@@ -1,7 +1,8 @@
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { ImageIcon, RefreshCw, ZoomIn, X } from 'lucide-react';
+import { ImageIcon, RefreshCw, ZoomIn } from 'lucide-react';
+import { SimpleMediaPortal } from '../components/SimpleMediaPortal';
 
 interface ImageMessageProps {
   messageId: string;
@@ -23,7 +24,6 @@ export const ImageMessage = React.memo(({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [zoom, setZoom] = useState(1);
-  const overlayRef = useRef<HTMLDivElement>(null);
 
   const handleImageLoad = useCallback(() => {
     // ✅ OTIMIZAÇÃO: Log condicionado para desenvolvimento
@@ -102,10 +102,13 @@ export const ImageMessage = React.memo(({
 
   const handleImageClick = useCallback(() => {
     if (imageLoaded && !imageError) {
+      console.log('Opening image modal...', { messageId: messageId.substring(0, 8), url: url.substring(0, 50) });
       setIsFullscreen(true);
       setZoom(1);
+    } else {
+      console.log('Image not ready for modal:', { imageLoaded, imageError });
     }
-  }, [imageLoaded, imageError]);
+  }, [imageLoaded, imageError, messageId, url]);
 
   const handleZoomIn = useCallback((e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -122,12 +125,17 @@ export const ImageMessage = React.memo(({
     setZoom(1);
   }, []);
 
-  // Foco no overlay para receber ESC
-  useEffect(() => {
-    if (isFullscreen) {
-      setTimeout(() => overlayRef.current?.focus(), 0);
-    }
-  }, [isFullscreen]);
+  // ✅ CONTROLES DE ZOOM COM MEDIAPORTAL
+  const handleDownload = useCallback(() => {
+    if (!url) return;
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `imagem-${messageId.substring(0, 8)}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [url, messageId]);
 
   // Loading state
   if (isLoading) {
@@ -252,67 +260,37 @@ export const ImageMessage = React.memo(({
                  {/* Caption removido conforme solicitado */}
       </div>
 
-      {/* Modal fullscreen */}
-      {isFullscreen && (
-        <div 
-          className="fixed inset-0 z-[9999] p-4 flex items-center justify-center"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setIsFullscreen(false)}
-          onKeyDown={(e) => { if ((e as React.KeyboardEvent).key === 'Escape') setIsFullscreen(false); }}
-          tabIndex={-1}
-          ref={overlayRef}
-        >
-          {/* Fundo glasmorphism */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 30% 70%, rgba(211,216,0,0.15) 0%, transparent 50%), " +
-                "radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 60%), " +
-                "linear-gradient(135deg, rgba(23,25,28,0.65) 0%, rgba(23,25,28,0.85) 100%)",
-              backdropFilter: 'blur(16px)'
-            }}
-          />
-
-          <div className="relative max-w-[90vw] max-h-[90vh] w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            {/* Área rolável para pan/zoom */}
-            <div className="relative max-w-full max-h-full w-full h-full overflow-auto rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl">
-              <img 
-                src={url} 
-                alt="Imagem em tela cheia"
-                className="block mx-auto"
-                style={{ transform: `scale(${zoom})`, transformOrigin: 'center center', transition: 'transform 120ms ease' }}
-                onDoubleClick={(e) => { e.stopPropagation(); setZoom((z) => (z === 1 ? 2 : 1)); }}
-              />
-            </div>
-
-            {/* Controles */}
-            <div className="absolute top-4 right-4 flex items-center gap-2">
-              <button
-                onClick={handleZoomOut}
-                className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30"
-                aria-label="Reduzir zoom"
-              >−</button>
-              <button
-                onClick={handleZoomIn}
-                className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30"
-                aria-label="Aumentar zoom"
-              >+</button>
-              <button
-                onClick={handleZoomReset}
-                className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30"
-                aria-label="Redefinir zoom"
-              >1×</button>
-              <button
-                onClick={() => setIsFullscreen(false)}
-                className="px-3 py-2 rounded-xl bg-black/40 hover:bg-black/60 text-white border border-white/30"
-                aria-label="Fechar"
-              >×</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ✅ MODAL SIMPLIFICADO E ROBUSTO */}
+      <SimpleMediaPortal
+        isOpen={isFullscreen}
+        onClose={() => setIsFullscreen(false)}
+        title={`Imagem - ${messageId.substring(0, 8)}`}
+        showZoomControls={true}
+        showDownloadButton={true}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
+        onDownload={handleDownload}
+        zoom={zoom}
+      >
+        <img 
+          src={url} 
+          alt="Imagem em tela cheia"
+          className="block mx-auto max-w-full max-h-full object-contain"
+          style={{ 
+            transform: `scale(${zoom})`, 
+            transformOrigin: 'center center', 
+            transition: 'transform 120ms ease' 
+          }}
+          onDoubleClick={(e) => { 
+            e.stopPropagation(); 
+            setZoom((z) => (z === 1 ? 2 : 1)); 
+          }}
+          onLoad={() => console.log('Modal image loaded successfully')}
+          onError={(e) => console.error('Modal image failed to load:', e)}
+          draggable={false}
+        />
+      </SimpleMediaPortal>
     </>
   );
 });

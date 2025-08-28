@@ -1,7 +1,8 @@
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { PlayIcon, VideoIcon, Loader2, RefreshCw } from 'lucide-react';
+import { SimpleMediaPortal } from '../components/SimpleMediaPortal';
 
 interface VideoMessageProps {
   messageId: string;
@@ -23,9 +24,9 @@ export const VideoMessage = React.memo(({
   const [isPlaying, setIsPlaying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fullscreenVideoRef = useRef<HTMLVideoElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [zoom, setZoom] = useState(1);
-  const overlayRef = useRef<HTMLDivElement>(null);
 
   const handleVideoError = useCallback(() => {
     console.error(`[VideoMessage] ❌ Erro ao carregar vídeo: ${messageId}`);
@@ -56,22 +57,51 @@ export const VideoMessage = React.memo(({
     }
   }, [isPlaying]);
 
-  const handleOpenFullscreen = useCallback(() => {
-    if (!videoError) {
-      setIsFullscreen(true);
-      setZoom(1);
-    }
-  }, [videoError]);
+  // ✅ FUNÇÃO REMOVIDA - Definida mais abaixo com funcionalidade completa
 
   const handleZoomIn = useCallback(() => setZoom((z) => Math.min(3, parseFloat((z + 0.25).toFixed(2)))), []);
   const handleZoomOut = useCallback(() => setZoom((z) => Math.max(0.75, parseFloat((z - 0.25).toFixed(2)))), []);
   const handleZoomReset = useCallback(() => setZoom(1), []);
 
-  useEffect(() => {
-    if (isFullscreen) {
-      setTimeout(() => overlayRef.current?.focus(), 0);
+  // ✅ DOWNLOAD FUNCTIONALITY
+  const handleDownload = useCallback(() => {
+    if (!url) return;
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `video-${messageId.substring(0, 8)}.mp4`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [url, messageId]);
+
+  // ✅ SYNC VIDEO STATE BETWEEN THUMBNAIL AND FULLSCREEN
+  const handleOpenFullscreen = useCallback(() => {
+    if (!videoError) {
+      setIsFullscreen(true);
+      setZoom(1);
+      // Sync video time and state
+      setTimeout(() => {
+        if (videoRef.current && fullscreenVideoRef.current) {
+          fullscreenVideoRef.current.currentTime = videoRef.current.currentTime;
+          if (!videoRef.current.paused) {
+            fullscreenVideoRef.current.play();
+          }
+        }
+      }, 100);
     }
-  }, [isFullscreen]);
+  }, [videoError]);
+
+  const handleCloseFullscreen = useCallback(() => {
+    // Sync back to thumbnail video
+    if (fullscreenVideoRef.current && videoRef.current) {
+      videoRef.current.currentTime = fullscreenVideoRef.current.currentTime;
+      if (!fullscreenVideoRef.current.paused) {
+        videoRef.current.play();
+      }
+    }
+    setIsFullscreen(false);
+  }, []);
 
   // Loading state
   if (isLoading) {
@@ -178,48 +208,43 @@ export const VideoMessage = React.memo(({
       
       {/* Caption removido - apenas vídeo sem descrição */}
 
-      {/* Modal fullscreen semelhante ao de imagem, com scroll/zoom */}
-      {isFullscreen && (
-        <div
-          className="fixed inset-0 z-[9999] p-4 flex items-center justify-center"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setIsFullscreen(false)}
-          onKeyDown={(e) => { if ((e as React.KeyboardEvent).key === 'Escape') setIsFullscreen(false); }}
-          tabIndex={-1}
-          ref={overlayRef}
+      {/* ✅ MODAL SIMPLIFICADO E ROBUSTO */}
+      <SimpleMediaPortal
+        isOpen={isFullscreen}
+        onClose={handleCloseFullscreen}
+        title={`Vídeo - ${messageId.substring(0, 8)}`}
+        showZoomControls={true}
+        showDownloadButton={true}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
+        onDownload={handleDownload}
+        zoom={zoom}
+      >
+        <div 
+          className="flex items-center justify-center w-full h-full"
+          style={{ 
+            transform: `scale(${zoom})`, 
+            transformOrigin: 'center center', 
+            transition: 'transform 120ms ease' 
+          }}
         >
-          {/* Fundo glasmorphism */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at 30% 70%, rgba(211,216,0,0.15) 0%, transparent 50%), " +
-                "radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 60%), " +
-                "linear-gradient(135deg, rgba(23,25,28,0.65) 0%, rgba(23,25,28,0.85) 100%)",
-              backdropFilter: 'blur(16px)'
-            }}
-          />
-
-          <div className="relative max-w-[90vw] max-h-[90vh] w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            <div className="relative max-w-full max-h-full w-full h-full overflow-auto rounded-2xl border border-white/20 bg-white/10 backdrop-blur-xl">
-              <div style={{ transform: `scale(${zoom})`, transformOrigin: 'center center', transition: 'transform 120ms ease' }}>
-                <video controls className="block mx-auto max-w-full" style={{ maxHeight: '80vh' }}>
-                  <source src={url} type="video/mp4" />
-                  <source src={url} type="video/webm" />
-                  <source src={url} type="video/ogg" />
-                </video>
-              </div>
-            </div>
-            <div className="absolute top-4 right-4 flex items-center gap-2">
-              <button onClick={handleZoomOut} className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30" aria-label="Reduzir zoom">−</button>
-              <button onClick={handleZoomIn} className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30" aria-label="Aumentar zoom">+</button>
-              <button onClick={handleZoomReset} className="px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30" aria-label="Redefinir zoom">1×</button>
-              <button onClick={() => setIsFullscreen(false)} className="px-3 py-2 rounded-xl bg-black/40 hover:bg-black/60 text-white border border-white/30" aria-label="Fechar">×</button>
-            </div>
-          </div>
+          <video 
+            ref={fullscreenVideoRef}
+            controls 
+            className="max-w-full max-h-full"
+            style={{ maxHeight: '80vh', maxWidth: '90vw' }}
+            preload="metadata"
+            onLoadedMetadata={() => console.log('Modal video loaded successfully')}
+            onError={(e) => console.error('Modal video failed to load:', e)}
+          >
+            <source src={url} type="video/mp4" />
+            <source src={url} type="video/webm" />
+            <source src={url} type="video/ogg" />
+            Seu navegador não suporta reprodução de vídeo.
+          </video>
         </div>
-      )}
+      </SimpleMediaPortal>
     </div>
   );
 });

@@ -302,23 +302,43 @@ export function SalesFunnelContent() {
     handleOpenChat(lead.id);
   }, [handleOpenChat]);
 
-  // Handlers para ações em massa
+  // Handlers para ações em massa - COM VALIDAÇÃO E BATCHING
   const handleMassDelete = useCallback((selectedLeads: KanbanLead[]) => {
+    if (selectedLeads.length === 0) {
+      toast.error('Nenhum lead selecionado para exclusão');
+      return;
+    }
+    
     setCurrentSelectedLeads(selectedLeads);
     setMassDeleteModalOpen(true);
   }, []);
 
   const handleMassMove = useCallback((selectedLeads: KanbanLead[]) => {
+    if (selectedLeads.length === 0) {
+      toast.error('Nenhum lead selecionado para movimentação');
+      return;
+    }
+    
     setCurrentSelectedLeads(selectedLeads);
     setMassMoveModalOpen(true);
   }, []);
 
   const handleMassAssignTags = useCallback((selectedLeads: KanbanLead[]) => {
+    if (selectedLeads.length === 0) {
+      toast.error('Nenhum lead selecionado para atribuição de tags');
+      return;
+    }
+    
     setCurrentSelectedLeads(selectedLeads);
     setMassTagModalOpen(true);
   }, []);
 
   const handleMassAssignUser = useCallback((selectedLeads: KanbanLead[]) => {
+    if (selectedLeads.length === 0) {
+      toast.error('Nenhum lead selecionado para atribuição de responsável');
+      return;
+    }
+    
     setCurrentSelectedLeads(selectedLeads);
     setMassAssignUserModalOpen(true);
   }, []);
@@ -503,11 +523,14 @@ export function SalesFunnelContent() {
         onAssignUser={handleMassAssignUser}
       />
 
-      {/* Modais de ações em massa com wrapper para limpeza de seleção */}
+      {/* Modais de ações em massa com wrapper para limpeza de seleção - CORRIGIDO */}
       <MassActionWrapper massSelection={massSelection} onSuccess={handleMassActionSuccess}>
         <MassDeleteModal
           isOpen={massDeleteModalOpen}
-          onClose={() => setMassDeleteModalOpen(false)}
+          onClose={() => {
+            setMassDeleteModalOpen(false);
+            setCurrentSelectedLeads([]);
+          }}
           selectedLeads={currentSelectedLeads}
           onSuccess={() => {}} // Será sobrescrito pelo wrapper
         />
@@ -516,7 +539,10 @@ export function SalesFunnelContent() {
       <MassActionWrapper massSelection={massSelection} onSuccess={handleMassActionSuccess}>
         <MassMoveModal
           isOpen={massMoveModalOpen}
-          onClose={() => setMassMoveModalOpen(false)}
+          onClose={() => {
+            setMassMoveModalOpen(false);
+            setCurrentSelectedLeads([]);
+          }}
           selectedLeads={currentSelectedLeads}
           onSuccess={() => {}} // Será sobrescrito pelo wrapper
         />
@@ -525,7 +551,10 @@ export function SalesFunnelContent() {
       <MassActionWrapper massSelection={massSelection} onSuccess={handleMassActionSuccess}>
         <MassTagModal
           isOpen={massTagModalOpen}
-          onClose={() => setMassTagModalOpen(false)}
+          onClose={() => {
+            setMassTagModalOpen(false);
+            setCurrentSelectedLeads([]);
+          }}
           selectedLeads={currentSelectedLeads}
           onSuccess={() => {}} // Será sobrescrito pelo wrapper
         />
@@ -534,7 +563,10 @@ export function SalesFunnelContent() {
       <MassActionWrapper massSelection={massSelection} onSuccess={handleMassActionSuccess}>
         <MassAssignUserModal
           isOpen={massAssignUserModalOpen}
-          onClose={() => setMassAssignUserModalOpen(false)}
+          onClose={() => {
+            setMassAssignUserModalOpen(false);
+            setCurrentSelectedLeads([]);
+          }}
           selectedLeads={currentSelectedLeads}
           onSuccess={() => {}} // Será sobrescrito pelo wrapper
         />

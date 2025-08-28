@@ -97,38 +97,47 @@ export function useTeamManagement(companyId?: string | null) {
     mutationFn: async (memberData: CreateTeamMemberData) => {
       if (!user?.id) throw new Error("Usuário não autenticado");
 
-      // 1. Criar usuário no auth se email e senha fornecidos
-      let userId: string;
+      // 1. Gerar ID único
+      const userId = crypto.randomUUID();
       
-      if (memberData.email && memberData.password) {
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: memberData.email,
-          password: memberData.password,
-          email_confirm: true,
-        });
-
-        if (authError) throw authError;
-        userId = authData.user.id;
-      } else {
-        // Gerar UUID temporário para membros sem email
-        userId = crypto.randomUUID();
+      // 2. Verificar se username já existe e criar um único se necessário
+      let uniqueUsername = memberData.username;
+      let counter = 1;
+      
+      // Tentar até 10 vezes para encontrar um username único
+      while (counter <= 10) {
+        const { data: existingUser } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("username", uniqueUsername)
+          .eq("created_by_user_id", user.id)
+          .single();
+          
+        if (!existingUser) {
+          break; // Username disponível
+        }
+        
+        uniqueUsername = `${memberData.username}${counter}`;
+        counter++;
       }
 
-      // 2. Criar perfil
+      // 3. Criar perfil
       const { error: profileError } = await supabase
         .from("profiles")
         .insert({
           id: userId,
           full_name: memberData.fullName,
-          username: memberData.username,
+          username: uniqueUsername,
           role: memberData.role,
           created_by_user_id: user.id,
           whatsapp: memberData.whatsappPersonal,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
 
       if (profileError) throw profileError;
 
-      // 3. Atribuir acessos aos funis
+      // 4. Atribuir acessos aos funis
       if (memberData.funnelAccess.length > 0) {
         const funnelInserts = memberData.funnelAccess.map(funnelId => ({
           profile_id: userId,
@@ -143,7 +152,7 @@ export function useTeamManagement(companyId?: string | null) {
         if (funnelError) throw funnelError;
       }
 
-      // 4. Atribuir acessos às instâncias WhatsApp
+      // 5. Atribuir acessos às instâncias WhatsApp
       if (memberData.whatsappAccess.length > 0) {
         const whatsappInserts = memberData.whatsappAccess.map(whatsappId => ({
           profile_id: userId,
@@ -158,7 +167,7 @@ export function useTeamManagement(companyId?: string | null) {
         if (whatsappError) throw whatsappError;
       }
 
-      // 5. Enviar convite por email se fornecido
+      // 6. Enviar convite por email se fornecido
       if (memberData.email && memberData.password) {
         try {
           await supabase.functions.invoke('send_team_invite', {
@@ -175,11 +184,16 @@ export function useTeamManagement(companyId?: string | null) {
         }
       }
 
-      return userId;
+      return { userId, finalUsername: uniqueUsername };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["team-members"] });
-      toast.success("Membro da equipe criado com sucesso!");
+      const originalUsername = data.finalUsername.replace(/\d+$/, '');
+      if (data.finalUsername !== originalUsername) {
+        toast.success(`Membro criado com sucesso! Username final: ${data.finalUsername}`);
+      } else {
+        toast.success("Membro da equipe criado com sucesso!");
+      }
     },
     onError: (error) => {
       console.error("Erro ao criar membro:", error);

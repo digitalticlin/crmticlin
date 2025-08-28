@@ -153,12 +153,27 @@ export class MassActionsService {
     newStageId: string, 
     newFunnelId: string
   ): Promise<MassActionResult> {
+    console.log('[MassActionsService] 📦 moveLeads chamado:', {
+      leadIds: leadIds?.length || 0,
+      leadIdsData: leadIds,
+      newStageId,
+      newFunnelId
+    });
+    
     if (!leadIds.length || !newStageId || !newFunnelId) {
-      return { success: false, message: 'Parâmetros inválidos para movimentação' };
+      const errorMessage = 'Parâmetros inválidos para movimentação';
+      console.error('[MassActionsService] ⚠️ Validação falhou:', {
+        leadIdsLength: leadIds?.length || 0,
+        hasNewStageId: !!newStageId,
+        hasNewFunnelId: !!newFunnelId
+      });
+      return { success: false, message: errorMessage };
     }
 
     try {
-      const { error } = await supabase
+      console.log('[MassActionsService] 📋 Executando update no Supabase...');
+      
+      const { error, count } = await supabase
         .from('leads')
         .update({ 
           kanban_stage_id: newStageId,
@@ -166,18 +181,34 @@ export class MassActionsService {
         })
         .in('id', leadIds);
 
+      console.log('[MassActionsService] ✅ Update executado:', {
+        error: !!error,
+        errorMessage: error?.message,
+        count
+      });
+
       if (error) throw error;
 
+      const successMessage = `${leadIds.length} lead${leadIds.length > 1 ? 's' : ''} movido${leadIds.length > 1 ? 's' : ''} com sucesso!`;
+      console.log('[MassActionsService] ✅ Sucesso:', successMessage);
+      
       return {
         success: true,
-        message: `${leadIds.length} lead${leadIds.length > 1 ? 's' : ''} movido${leadIds.length > 1 ? 's' : ''} com sucesso!`,
+        message: successMessage,
         affectedCount: leadIds.length
       };
     } catch (error) {
-      console.error('Erro ao mover leads:', error);
+      const errorMessage = 'Erro ao mover leads. Tente novamente.';
+      console.error('[MassActionsService] ❌ Erro ao mover leads:', {
+        error,
+        message: error?.message,
+        leadIds,
+        newStageId,
+        newFunnelId
+      });
       return {
         success: false,
-        message: 'Erro ao mover leads. Tente novamente.'
+        message: errorMessage
       };
     }
   }

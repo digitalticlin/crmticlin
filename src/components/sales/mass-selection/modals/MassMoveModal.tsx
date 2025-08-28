@@ -17,6 +17,8 @@ import {
   FunnelOption, 
   StageOption 
 } from "@/services/massActions/massActionsService";
+import { BatchingService, BatchProgress } from "@/services/massActions/batchingService";
+import { Progress } from "@/components/ui/progress";
 
 interface MassMoveModalProps {
   isOpen: boolean;
@@ -31,6 +33,11 @@ export const MassMoveModal = ({
   selectedLeads,
   onSuccess
 }: MassMoveModalProps) => {
+  console.log('[MassMoveModal] 📦 Props recebidas:', {
+    isOpen,
+    selectedLeads: selectedLeads?.length || 0,
+    leadsData: selectedLeads?.map(l => ({ id: l.id, name: l.name })) || []
+  });
   const [isMoving, setIsMoving] = useState(false);
   const [funnels, setFunnels] = useState<FunnelOption[]>([]);
   const [stages, setStages] = useState<StageOption[]>([]);
@@ -38,6 +45,8 @@ export const MassMoveModal = ({
   const [selectedStage, setSelectedStage] = useState<string>("");
   const [loadingStages, setLoadingStages] = useState(false);
   const [loadingFunnels, setLoadingFunnels] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
+  const [showProgress, setShowProgress] = useState(false);
 
   const selectedCount = selectedLeads.length;
 
@@ -89,21 +98,60 @@ export const MassMoveModal = ({
   }, [selectedFunnel]);
 
   const handleMove = async () => {
-    if (!selectedStage || !selectedFunnel || selectedCount === 0) return;
+    console.log('[MassMoveModal] 🚀 Iniciando movimentação:', {
+      selectedStage,
+      selectedFunnel,
+      selectedCount,
+      leadIds: selectedLeads.map(l => l.id)
+    });
+    
+    if (!selectedStage || !selectedFunnel || selectedCount === 0) {
+      console.log('[MassMoveModal] ⚠️ Validação falhou:', {
+        selectedStage: !!selectedStage,
+        selectedFunnel: !!selectedFunnel,
+        selectedCount
+      });
+      return;
+    }
 
     setIsMoving(true);
     
+    // Mostrar barra de progresso para grandes volumes
+    if (selectedCount > 100) {
+      setShowProgress(true);
+      setBatchProgress({ current: 0, total: 0, percentage: 0, processedItems: 0, totalItems: selectedCount });
+    }
+    
     try {
       const leadIds = selectedLeads.map(lead => lead.id);
-      const result = await MassActionsService.moveLeads(leadIds, selectedStage, selectedFunnel);
+      
+      // Usar BatchingService para grandes volumes
+      const result = await BatchingService.moveLeadsInBatches(
+        leadIds, 
+        selectedStage, 
+        selectedFunnel,
+        // Callback de progresso
+        selectedCount > 100 ? (progress: BatchProgress) => {
+          console.log('[MassMoveModal] 📈 Progresso:', progress);
+          setBatchProgress(progress);
+        } : undefined
+      );
 
       if (result.success) {
         const selectedStageName = stages.find(s => s.id === selectedStage)?.title;
         const selectedFunnelName = funnels.find(f => f.id === selectedFunnel)?.name;
         
-        toast.success(
-          `${selectedCount} lead${selectedCount > 1 ? 's' : ''} movido${selectedCount > 1 ? 's' : ''} para "${selectedStageName}" em "${selectedFunnelName}"!`
-        );
+        if (result.totalProcessed === selectedCount) {
+          // Sucesso total
+          toast.success(
+            `${result.totalProcessed} lead${result.totalProcessed > 1 ? 's' : ''} movido${result.totalProcessed > 1 ? 's' : ''} para "${selectedStageName}" em "${selectedFunnelName}"!`
+          );
+        } else {
+          // Sucesso parcial
+          toast.success(result.message, {
+            description: `${result.totalProcessed} de ${selectedCount} leads foram movidos com sucesso.`
+          });
+        }
         
         onSuccess();
         onClose();
@@ -115,12 +163,16 @@ export const MassMoveModal = ({
       toast.error('Erro inesperado ao mover leads');
     } finally {
       setIsMoving(false);
+      setShowProgress(false);
+      setBatchProgress(null);
     }
   };
 
   const handleClose = () => {
     setSelectedFunnel("");
     setSelectedStage("");
+    setShowProgress(false);
+    setBatchProgress(null);
     onClose();
   };
 
@@ -230,6 +282,23 @@ export const MassMoveModal = ({
               </span>
             </div>
           )}
+
+          {/* Barra de Progresso para Grandes Volumes */}
+          {showProgress && batchProgress && (
+            <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between text-sm text-blue-700">
+                <span className="font-medium">Processando em lotes...</span>
+                <span>{batchProgress.percentage}%</span>
+              </div>
+              
+              <Progress value={batchProgress.percentage} className="w-full h-2" />
+              
+              <div className="flex justify-between text-xs text-blue-600">
+                <span>Lote {batchProgress.current} de {batchProgress.total}</span>
+                <span>{batchProgress.processedItems} / {batchProgress.totalItems} leads</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -248,12 +317,12 @@ export const MassMoveModal = ({
             {isMoving ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Movendo...
+                {showProgress ? 'Processando...' : 'Movendo...'}
               </>
             ) : (
               <>
                 <Move size={16} />
-                Confirmar Movimentação
+                {selectedCount > 100 ? `Mover ${selectedCount} Leads` : 'Confirmar Movimentação'}
               </>
             )}
           </Button>

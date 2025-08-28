@@ -12,6 +12,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Trash2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { MassActionsService } from "@/services/massActions/massActionsService";
+import { BatchingService, BatchProgress } from "@/services/massActions/batchingService";
+import { Progress } from "@/components/ui/progress";
 
 interface MassDeleteModalProps {
   isOpen: boolean;
@@ -27,6 +29,8 @@ export const MassDeleteModal = ({
   onSuccess
 }: MassDeleteModalProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(null);
+  const [showProgress, setShowProgress] = useState(false);
   const selectedCount = selectedLeads.length;
 
   const handleDelete = async () => {
@@ -34,12 +38,35 @@ export const MassDeleteModal = ({
 
     setIsDeleting(true);
     
+    // Mostrar barra de progresso para grandes volumes
+    if (selectedCount > 100) {
+      setShowProgress(true);
+      setBatchProgress({ current: 0, total: 0, percentage: 0, processedItems: 0, totalItems: selectedCount });
+    }
+    
     try {
       const leadIds = selectedLeads.map(lead => lead.id);
-      const result = await MassActionsService.deleteLeads(leadIds);
+      
+      // Usar BatchingService para grandes volumes
+      const result = await BatchingService.deleteLeadsInBatches(
+        leadIds,
+        // Callback de progresso
+        selectedCount > 100 ? (progress: BatchProgress) => {
+          console.log('[MassDeleteModal] 📈 Progresso:', progress);
+          setBatchProgress(progress);
+        } : undefined
+      );
 
       if (result.success) {
-        toast.success(result.message);
+        if (result.totalProcessed === selectedCount) {
+          // Sucesso total
+          toast.success(result.message);
+        } else {
+          // Sucesso parcial
+          toast.success(result.message, {
+            description: `${result.totalProcessed} de ${selectedCount} leads foram excluídos com sucesso.`
+          });
+        }
         onSuccess();
         onClose();
       } else {
@@ -50,6 +77,8 @@ export const MassDeleteModal = ({
       toast.error('Erro inesperado ao excluir leads');
     } finally {
       setIsDeleting(false);
+      setShowProgress(false);
+      setBatchProgress(null);
     }
   };
 
@@ -92,6 +121,23 @@ export const MassDeleteModal = ({
               )}
             </ul>
           </div>
+
+          {/* Barra de Progresso para Grandes Volumes */}
+          {showProgress && batchProgress && (
+            <div className="mt-4 space-y-3 p-4 bg-red-50 rounded-lg border border-red-200">
+              <div className="flex items-center justify-between text-sm text-red-700">
+                <span className="font-medium">Excluindo em lotes...</span>
+                <span>{batchProgress.percentage}%</span>
+              </div>
+              
+              <Progress value={batchProgress.percentage} className="w-full h-2" />
+              
+              <div className="flex justify-between text-xs text-red-600">
+                <span>Lote {batchProgress.current} de {batchProgress.total}</span>
+                <span>{batchProgress.processedItems} / {batchProgress.totalItems} leads</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -111,12 +157,12 @@ export const MassDeleteModal = ({
             {isDeleting ? (
               <>
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Excluindo...
+                {showProgress ? 'Processando...' : 'Excluindo...'}
               </>
             ) : (
               <>
                 <Trash2 size={16} />
-                Confirmar Exclusão
+                {selectedCount > 100 ? `Excluir ${selectedCount} Leads` : 'Confirmar Exclusão'}
               </>
             )}
           </Button>

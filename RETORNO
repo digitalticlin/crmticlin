@@ -1,17 +1,72 @@
-🗑️ handleStepDelete chamado com índice: 7
-EnhancedPromptConfiguration.tsx:361 🗑️ setShowDeleteConfirm será chamado com: {show: true, index: 7}
-EnhancedPromptConfiguration.tsx:363 🗑️ CALLBACK setShowDeleteConfirm - anterior: {show: false, index: null} novo: {show: true, index: 7}
-EnhancedPromptConfiguration.tsx:124 🔍 showDeleteConfirm mudou: {show: true, index: 7}
-EnhancedPromptConfiguration.tsx:128 🔄 forceRender mudou: 1 - Componente deve re-renderizar
-EnhancedPromptConfiguration.tsx:524 🔧 BOTÃO EDITAR CLICADO - Dados do passo: {step: {…}, index: 7}
-EnhancedPromptConfiguration.tsx:525 🔧 Estado editingStep antes: null
-EnhancedPromptConfiguration.tsx:531 🔧 setEditingStep chamado com: {step: {…}, index: 7}
-EnhancedPromptConfiguration.tsx:527 🔧 CALLBACK setEditingStep - anterior: null novo: {step: {…}, index: 7}
-EnhancedPromptConfiguration.tsx:120 🔍 editingStep mudou: {step: {…}, index: 7}
-EnhancedPromptConfiguration.tsx:128 🔄 forceRender mudou: 2 - Componente deve re-renderizar
-EnhancedPromptConfiguration.tsx:524 🔧 BOTÃO EDITAR CLICADO - Dados do passo: {step: {…}, index: 6}
-EnhancedPromptConfiguration.tsx:525 🔧 Estado editingStep antes: {step: {…}, index: 7}
-EnhancedPromptConfiguration.tsx:531 🔧 setEditingStep chamado com: {step: {…}, index: 6}
-EnhancedPromptConfiguration.tsx:527 🔧 CALLBACK setEditingStep - anterior: {step: {…}, index: 7} novo: {step: {…}, index: 6}
-EnhancedPromptConfiguration.tsx:120 🔍 editingStep mudou: {step: {…}, index: 6}
-EnhancedPromptConfiguration.tsx:128 🔄 forceRender mudou: 3 - Componente deve re-renderizar
+[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { method: "phone_name_only_v3", from_me: false, lead_id: "fa918052-2fd6-4198-b9bd-dba7931ad99c", owner_id: "9936ae64-b78c-48fe-97e8-bf67623349c6", stage_id: "a614e510-51e5-495a-b361-0c43a2e171dd", funnel_id: "1b522686-c1be-4b96-93c5-bf79ac197dbf", lead_name: "+55 (62) 9921-2484", media_type: "audio", message_id: "84652050-f29e-48ca-8e09-7eb8497a47ba", clean_phone: "556299212484", instance_id: "892f87fb-7f51-48b0-9370-2fa9051179de", is_new_lead: false, display_name: "+55 (62) 9921-2484", admin_user_id: "9936ae64-b78c-48fe-97e8-bf67623349c6", profile_pic_updated: false, mediaProcessed: true, usedExistingInfrastructure: true } }
+[Webhook] ✅ Mídia processada com infraestrutura existente
+[Media] ✅ Processamento síncrono com Storage concluído: { messageId: "84652050-f29e-48ca-8e09-7eb8497a47ba", fileName: "media_1756398316860_caqke.ogg", storageUrl: "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media...", fileSize: 17590 }
+[Media] 🍎 Processando mídia com detecção avançada: { originalType: "audio", detectedMime: "audio/ogg", extension: "ogg", isAppleFormat: false, sizeMB: "0.02" }
+[Media] 🔄 Processamento síncrono com Storage existente: 84652050-f29e-48ca-8e09-7eb8497a47ba
+[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
+[Media] 📏 Mídia detectada: 0.02MB
+[Webhook] ✅ Mensagem salva: { messageId: "84652050-f29e-48ca-8e09-7eb8497a47ba", leadId: "fa918052-2fd6-4198-b9bd-dba7931ad99c", fromMe: false }
+[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "84652050-f29e-48ca-8e09-7eb8497a47ba", externalMessageId: "3F3F3CAFC7A7F7D07B27", mediaType: "audio", sizeBytes: 23491, sizeMB: "0.02", limitMB: "16.00", willProcessSync: true, isValid: true, validationError: undefined }
+[Webhook] 💾 Salvando mensagem no banco...
+[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "contatoluizantoniooliveira", hasMessage: true, fromMe: undefined, messageType: "audio", hasMediaData: true, hasCaption: false }
+[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "audio", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "profile_pic_url", "mediaData", "mediaUrl" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
+[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "audio", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, data_mediaData_exists: true, payload_size: 24452 }
+[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
+[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "contatoluizantoniooliveira", hasMessage: true, hasMediaData: true, timestamp: "2025-08-28T16:25:16.772Z" }
+[Webhook] 🔑 Signature recebida: false
+[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 24452, timestamp: "2025-08-28T16:25:16.770Z" }
+Listening on http://localhost:9999/
+[Webhook] 🔑 Webhook secret configurado: false
+[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.1 - OTIMIZADO PARA MEMÓRIA
+booted (time: 79ms)
+[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { method: "phone_name_only_v3", from_me: false, lead_id: "fa918052-2fd6-4198-b9bd-dba7931ad99c", owner_id: "9936ae64-b78c-48fe-97e8-bf67623349c6", stage_id: "a614e510-51e5-495a-b361-0c43a2e171dd", funnel_id: "1b522686-c1be-4b96-93c5-bf79ac197dbf", lead_name: "+55 (62) 9921-2484", media_type: "video", message_id: "f397b875-661f-45ca-b3c9-ab7ddd40463e", clean_phone: "556299212484", instance_id: "892f87fb-7f51-48b0-9370-2fa9051179de", is_new_lead: false, display_name: "+55 (62) 9921-2484", admin_user_id: "9936ae64-b78c-48fe-97e8-bf67623349c6", profile_pic_updated: false, mediaProcessed: true, usedExistingInfrastructure: true } }
+[Webhook] ✅ Mídia processada com infraestrutura existente
+[Media] ✅ Processamento síncrono com Storage concluído: { messageId: "f397b875-661f-45ca-b3c9-ab7ddd40463e", fileName: "media_1756398314604_0qsb9s.mp4", storageUrl: "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media...", fileSize: 1330610 }
+[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { method: "phone_name_only_v3", from_me: false, lead_id: "fa918052-2fd6-4198-b9bd-dba7931ad99c", owner_id: "9936ae64-b78c-48fe-97e8-bf67623349c6", stage_id: "a614e510-51e5-495a-b361-0c43a2e171dd", funnel_id: "1b522686-c1be-4b96-93c5-bf79ac197dbf", lead_name: "+55 (62) 9921-2484", media_type: "document", message_id: "c2541082-d41b-4430-90c7-9ed7f63d4455", clean_phone: "556299212484", instance_id: "892f87fb-7f51-48b0-9370-2fa9051179de", is_new_lead: false, display_name: "+55 (62) 9921-2484", admin_user_id: "9936ae64-b78c-48fe-97e8-bf67623349c6", profile_pic_updated: false, mediaProcessed: true, usedExistingInfrastructure: true } }
+[Media] ✅ Processamento síncrono com Storage concluído: { messageId: "c2541082-d41b-4430-90c7-9ed7f63d4455", fileName: "media_1756398314816_nglohr.pdf", storageUrl: "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media...", fileSize: 25978 }
+[Webhook] ✅ Mídia processada com infraestrutura existente
+[Media] 🍎 Processando mídia com detecção avançada: { originalType: "document", detectedMime: "application/pdf", extension: "pdf", isAppleFormat: false, sizeMB: "0.02" }
+[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "c2541082-d41b-4430-90c7-9ed7f63d4455", externalMessageId: "3F3F00D286FB58656476", mediaType: "document", sizeBytes: 34668, sizeMB: "0.03", limitMB: "100.00", willProcessSync: true, isValid: true, validationError: undefined }
+[Media] 🔄 Processamento síncrono com Storage existente: c2541082-d41b-4430-90c7-9ed7f63d4455
+[Webhook] ✅ Mensagem salva: { messageId: "c2541082-d41b-4430-90c7-9ed7f63d4455", leadId: "fa918052-2fd6-4198-b9bd-dba7931ad99c", fromMe: false }
+[Media] 📏 Mídia detectada: 0.03MB
+[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
+[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "contatoluizantoniooliveira", hasMessage: true, fromMe: undefined, messageType: "document", hasMediaData: true, hasCaption: false }
+[Webhook] 💾 Salvando mensagem no banco...
+[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "document", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "profile_pic_url", "mediaData", "mediaUrl" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
+[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "document", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, data_mediaData_exists: true, payload_size: 35713 }
+[Webhook] 🔑 Signature recebida: false
+[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 35713, timestamp: "2025-08-28T16:25:14.716Z" }
+[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
+[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "contatoluizantoniooliveira", hasMessage: true, hasMediaData: true, timestamp: "2025-08-28T16:25:14.717Z" }
+Listening on http://localhost:9999/
+[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.1 - OTIMIZADO PARA MEMÓRIA
+[Webhook] 🔑 Webhook secret configurado: false
+booted (time: 67ms)
+[Media] 🍎 Processando mídia com detecção avançada: { originalType: "video", detectedMime: "video/mp4", extension: "mp4", isAppleFormat: false, sizeMB: "1.27" }
+[Media] 📏 Mídia detectada: 1.69MB
+[Media] 🔄 Processamento síncrono com Storage existente: f397b875-661f-45ca-b3c9-ab7ddd40463e
+[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "f397b875-661f-45ca-b3c9-ab7ddd40463e", externalMessageId: "3F8411256E4D58A334A2", mediaType: "video", sizeBytes: 1774170, sizeMB: "1.69", limitMB: "16.00", willProcessSync: true, isValid: true, validationError: undefined }
+[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
+[Webhook] ✅ Mensagem salva: { messageId: "f397b875-661f-45ca-b3c9-ab7ddd40463e", leadId: "fa918052-2fd6-4198-b9bd-dba7931ad99c", fromMe: false }
+[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "contatoluizantoniooliveira", hasMessage: true, fromMe: undefined, messageType: "video", hasMediaData: true, hasCaption: false }
+[Webhook] 💾 Salvando mensagem no banco...
+[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "video", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "profile_pic_url", "mediaData", "mediaUrl" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
+[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "video", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, data_mediaData_exists: true, payload_size: 1775164 }
+[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "contatoluizantoniooliveira", hasMessage: true, hasMediaData: true, timestamp: "2025-08-28T16:25:14.139Z" }
+[Webhook] 🔑 Signature recebida: false
+[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 1775164, timestamp: "2025-08-28T16:25:14.079Z" }
+[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
+[Webhook] 🔑 Webhook secret configurado: false
+
+[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { method: "phone_name_only_v3", from_me: true, lead_id: "5ffe9ff4-9305-4976-926b-e4c2f8b47712", owner_id: "152f2390-ede4-4f46-89bc-da3d7f5da747", stage_id: "d4014be6-3d25-4a54-ae29-faa66c966473", funnel_id: "d4018059-889c-4ef3-b4f2-e3beff849b57", lead_name: "+55 (62) 9697-9424", media_type: "image", message_id: "889c76e5-0309-47fc-b876-18ff4ddad231", clean_phone: "556296979424", instance_id: "d1d34909-3546-4dee-93fc-083f95323bc6", is_new_lead: false, display_name: "+55 (62) 9697-9424", admin_user_id: "152f2390-ede4-4f46-89bc-da3d7f5da747", profile_pic_updated: false, mediaProcessed: true, usedExistingInfrastructure: true } }
+[Media] ❌ Erro ao salvar cache: { code: "22P02", details: null, hint: null, message: 'invalid input value for enum media_type: "sticker"' }
+[Webhook] ⚠️ Falha no processamento de mídia, mas mensagem foi salva
+[Media] 🍎 Processando mídia com detecção avançada: { originalType: "sticker", detectedMime: "image/webp", extension: "webp", isAppleFormat: false, sizeMB: "0.06" }
+[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
+[Media] 📏 Mídia detectada: 0.07MB
+[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "889c76e5-0309-47fc-b876-18ff4ddad231", externalMessageId: "3EB09B7822BA70FB4DA6AC", mediaType: "sticker", sizeBytes: 78239, sizeMB: "0.07", limitMB: "0.49", willProcessSync: true, isValid: true, validationError: undefined }
+[Media] 🔄 Processamento síncrono com Storage existente: 889c76e5-0309-47fc-b876-18ff4ddad231
+[Webhook] ✅ Mensagem salva: { messageId: "889c76e5-0309-47fc-b876-18ff4ddad231", leadId: "5ffe9ff4-9305-4976-926b-e4c2f8b47712", fromMe: true }
+[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "imperioesportegyn", hasMessage: true, fromMe: true, messageType: "sticker", hasMediaData: true, hasCaption: false }
+[Webhook] 💾 Salvando mensagem no banco...

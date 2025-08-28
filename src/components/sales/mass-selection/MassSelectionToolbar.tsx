@@ -42,8 +42,6 @@ export const MassSelectionToolbar = ({
   } = massSelection;
   const selectedLeadsData = getSelectedLeadsData(allLeads);
   const allSelected = allLeads.length > 0 && selectedLeads.size === allLeads.length;
-  
-  // Production-ready toolbar without debug logs
 
   const handleSelectAll = () => {
     if (allSelected) {

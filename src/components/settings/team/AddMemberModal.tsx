@@ -115,7 +115,7 @@ export const AddMemberModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl flex flex-col">
         <DialogHeader className="border-b border-white/30 pb-6 bg-white/20 backdrop-blur-sm rounded-t-2xl -mx-6 -mt-6 px-6 pt-6">
           <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-gray-900">
             <div className="p-3 bg-white/30 backdrop-blur-sm rounded-xl border border-white/40 shadow-glass">
@@ -128,8 +128,8 @@ export const AddMemberModal = ({
           </p>
         </DialogHeader>
 
-        <div className="overflow-y-auto max-h-[calc(90vh-140px)] px-1">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="overflow-y-auto flex-1 px-1 space-y-6">
             {/* Informações Básicas */}
             <div className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl p-6 transition-all duration-300 hover:bg-white/50">
               <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -297,37 +297,37 @@ export const AddMemberModal = ({
                 </p>
               </div>
             )}
-          </form>
-        </div>
+          </div>
+          
+          <DialogFooter className="border-t border-white/30 pt-6 bg-white/20 backdrop-blur-sm rounded-b-2xl -mx-6 -mb-6 px-6 pb-6 mt-6 flex-shrink-0">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              className="bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-xl"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={loading || !formData.full_name.trim() || !formData.email.trim() || !formData.password.trim()}
+              className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-xl shadow-glass hover:shadow-glass-lg transition-all duration-200"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Adicionar Membro
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
 
-        <DialogFooter className="border-t border-white/30 pt-6 bg-white/20 backdrop-blur-sm rounded-b-2xl -mx-6 -mb-6 px-6 pb-6">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => onOpenChange(false)}
-            className="bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-xl"
-          >
-            Cancelar
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={loading || !formData.full_name.trim() || !formData.email.trim() || !formData.password.trim()}
-            onClick={handleSubmit}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-xl shadow-glass hover:shadow-glass-lg transition-all duration-200"
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Criando...
-              </>
-            ) : (
-              <>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Adicionar Membro
-              </>
-            )}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

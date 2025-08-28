@@ -9,8 +9,27 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const webhookSecret = Deno.env.get("WEBHOOK_SECRET");
-console.log('[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE');
+console.log('[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.1 - OTIMIZADO PARA MEMÓRIA');
 console.log('[Webhook] 🔑 Webhook secret configurado:', !!webhookSecret);
+
+// =====================================================================
+// 🧠 CONFIGURAÇÕES DE LIMITE DE MEMÓRIA
+// =====================================================================
+const MEMORY_LIMITS = {
+  MAX_PAYLOAD_SIZE: 20 * 1024 * 1024, // 20MB máximo
+  MAX_BASE64_SIZE: 3 * 1024 * 1024, // 3MB para processamento direto
+  MAX_LOG_SIZE: 1000, // Máximo de caracteres em logs
+  CLEANUP_THRESHOLD: 8 * 1024 * 1024 // 8MB - forçar limpeza
+};
+
+// 🧹 Função para limpeza de memória
+function forceMemoryCleanup() {
+  // @ts-ignore - Forçar garbage collection se disponível
+  if (globalThis.gc) {
+    globalThis.gc();
+    console.log('[Memory] 🧹 Limpeza forçada');
+  }
+}
 // Webhook signature verification (TEMPORARIAMENTE DESABILITADO)
 function verifyWebhookSignature(payload, signature, secret) {
   if (!secret || !signature) {
@@ -42,17 +61,27 @@ function getMediaDisplayName(mediaType) {
   return mediaNames[mediaType?.toLowerCase()] || '📎 Mídia';
 }
 
-// Input sanitization
+// ✅ Input sanitization otimizada para memória
 function sanitizeInput(input) {
+  if (!input) return input;
+  
   if (typeof input === 'string') {
-    return input.replace(/[<>\"']/g, '');
+    // Limitar tamanho de strings para evitar vazamentos
+    return input.length > MEMORY_LIMITS.MAX_LOG_SIZE ? 
+      input.substring(0, MEMORY_LIMITS.MAX_LOG_SIZE) + '...' : 
+      input.replace(/[<>\"']/g, '');
   }
+  
   if (typeof input === 'object' && input !== null) {
     const sanitized = {};
+    let keyCount = 0;
+    
     for (const [key, value] of Object.entries(input)){
+      if (keyCount++ > 20) break; // Limitar propriedades
+      
       if (typeof value === 'string') {
-        sanitized[key] = sanitizeInput(value);
-      } else if (typeof value === 'object') {
+        sanitized[key] = value.length > 500 ? value.substring(0, 500) + '...' : sanitizeInput(value);
+      } else if (typeof value === 'object' && keyCount < 10) {
         sanitized[key] = sanitizeInput(value);
       } else {
         sanitized[key] = value;
@@ -98,9 +127,20 @@ class MediaProcessor {
   static async processMediaOptimized(supabase, messageId, mediaData) {
     try {
       if (mediaData.base64Data) {
+        // ✅ Verificar tamanho antes de processar
+        const dataSize = mediaData.base64Data.length;
+        const sizeMB = (dataSize / 1024 / 1024).toFixed(2);
+        
+        console.log(`[Media] 📏 Mídia detectada: ${sizeMB}MB`);
+        
+        // ✅ Se muito grande, enfileirar imediatamente
+        if (dataSize > MEMORY_LIMITS.MAX_BASE64_SIZE) {
+          console.log(`[Media] 🚀 Mídia grande (${sizeMB}MB) - enfileirando diretamente`);
+          return await enqueueMediaProcessing(supabase, messageId, mediaData);
+        }
+        
         // Usar limite específico por tipo de mídia
         const sizeLimit = this.getSizeLimit(mediaData.mediaType);
-        const dataSize = mediaData.base64Data.length;
         // Validar mídia primeiro
         const validation = this.validateMedia(mediaData);
         console.log('[Media] 📊 Processando mídia com limites dinâmicos:', {
@@ -138,8 +178,9 @@ class MediaProcessor {
       // 1. Validar mídia primeiro
       const validation = this.validateMedia(mediaData);
       if (!validation.valid) {
-        console.error('[Media] ❌ Mídia inválida:', validation.error);
-        return await this.processSyncMediaFallback(supabase, messageId, mediaData);
+        console.error('[Media] ❌ Mídia inválida - não será processada:', validation.error);
+        // ❌ SEM FALLBACK - apenas aceitar mídia válida para Storage
+        return false;
       }
       // 2. Converter base64 para buffer
       let base64Data = mediaData.base64Data;
@@ -163,16 +204,34 @@ class MediaProcessor {
         isAppleFormat: mimeType.includes('heic') || mimeType.includes('heif') || mimeType.includes('hevc'),
         sizeMB: (bytes.length / 1024 / 1024).toFixed(2)
       });
-      // 4. Upload para Storage existente
-      const { data: uploadData, error: uploadError } = await supabase.storage.from('whatsapp-media').upload(fileName, bytes, {
-        contentType: mimeType,
-        cacheControl: '3600',
-        upsert: false
-      });
+      // 4. Upload para Storage com retry (até 3 tentativas)
+      let uploadData, uploadError;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        console.log(`[Media] 📤 Tentativa ${attempt}/3 de upload para Storage...`);
+        
+        const result = await supabase.storage.from('whatsapp-media').upload(fileName, bytes, {
+          contentType: mimeType,
+          cacheControl: '3600',
+          upsert: attempt > 1 // Permitir sobrescrever nas tentativas subsequentes
+        });
+        
+        uploadData = result.data;
+        uploadError = result.error;
+        
+        if (!uploadError) {
+          console.log(`[Media] ✅ Upload bem-sucedido na tentativa ${attempt}`);
+          break;
+        }
+        
+        console.warn(`[Media] ⚠️ Tentativa ${attempt} falhou:`, uploadError);
+        if (attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Backoff progressivo
+        }
+      }
+      
       if (uploadError) {
-        console.error('[Media] ❌ Storage upload falhou:', uploadError);
-        // Fallback para cache base64
-        return await this.processSyncMediaFallback(supabase, messageId, mediaData);
+        console.error('[Media] ❌ Todas as tentativas de upload falharam - mídia não será processada:', uploadError);
+        return false;
       }
       // 5. Obter URL pública
       const { data: urlData } = supabase.storage.from('whatsapp-media').getPublicUrl(fileName);
@@ -187,7 +246,7 @@ class MediaProcessor {
           base64_data: mediaData.base64Data ? `data:${mimeType};base64,${base64Data}` : null,
           file_name: mediaData.fileName || fileName,
           file_size: bytes.length,
-          media_type: mediaData.mediaType,
+          media_type: mediaData.mediaType === 'sticker' ? 'image' : (mediaData.mediaType === 'unknown' ? 'text' : mediaData.mediaType),
           external_message_id: mediaData.externalMessageId || null,
           processing_status: 'completed',
           created_at: new Date().toISOString(),
@@ -245,7 +304,7 @@ class MediaProcessor {
           original_url: `base64://${mediaData.externalMessageId || Date.now()}`,
           file_name: mediaData.fileName || `media_${Date.now()}`,
           file_size: mediaData.base64Data.length,
-          media_type: mediaData.mediaType,
+          media_type: mediaData.mediaType === 'sticker' ? 'image' : (mediaData.mediaType === 'unknown' ? 'text' : mediaData.mediaType),
           external_message_id: mediaData.externalMessageId || null,
           processing_status: 'completed',
           created_at: new Date().toISOString(),
@@ -255,16 +314,18 @@ class MediaProcessor {
         console.error('[Media] ❌ Erro ao salvar cache fallback:', cacheError);
         return false;
       }
-      // Atualizar mensagem com URL de mídia
+      // ❌ NÃO USAR FALLBACK BASE64 - tentar Storage mesmo em falha
+      console.warn('[Media] ⚠️ Fallback desabilitado - mensagem ficará sem mídia temporariamente');
+      
+      // Atualizar apenas o texto, sem salvar base64 na media_url
       const { error: updateError } = await supabase.from('messages').update({
-        media_url: cachedUrl,
         text: mediaData.caption || ''
       }).eq('id', messageId);
       if (updateError) {
         console.error('[Media] ❌ Erro ao atualizar mensagem fallback:', updateError);
         return false;
       }
-      console.log('[Media] ✅ Fallback base64 concluído:', messageId);
+      console.log('[Media] ⚠️ Mídia não processada - aguardando reprocessamento:', messageId);
       return true;
     } catch (error) {
       console.error('[Media] ❌ Erro no fallback:', error);
@@ -289,45 +350,79 @@ class MediaProcessor {
     // Fallback baseado no tipo com suporte completo
     const fallbackMimes = {
       'image': 'image/jpeg',
-      'video': 'video/mp4',
+      'video': 'video/mp4', 
       'audio': 'audio/mpeg',
       'document': 'application/pdf',
-      'sticker': 'image/webp'
+      'sticker': 'image/webp',
+      'text': 'text/plain'
     };
     return fallbackMimes[fallbackType] || 'application/octet-stream';
   }
   // 🍎 EXTENSÕES CORRETAS INCLUINDO FORMATOS APPLE
   static getFileExtension(mimeType) {
     const extensions = {
-      // 🖼️ IMAGENS (incluindo Apple HEIC)
+      // 🖼️ IMAGENS (incluindo Apple HEIC e todos formatos)
       'image/jpeg': 'jpg',
       'image/jpg': 'jpg',
       'image/png': 'png',
       'image/webp': 'webp',
+      'image/gif': 'gif',
+      'image/bmp': 'bmp',
+      'image/tiff': 'tiff',
+      'image/tif': 'tiff',
+      'image/svg+xml': 'svg',
+      'image/avif': 'avif',
       'image/heic': 'heic',
       'image/heif': 'heif',
-      // 🎥 VÍDEOS (incluindo Apple HEVC)
+      // 🎥 VÍDEOS (incluindo Apple HEVC e todos formatos)
       'video/mp4': 'mp4',
+      'video/mpeg': 'mpg',
+      'video/avi': 'avi',
+      'video/mov': 'mov',
+      'video/wmv': 'wmv',
+      'video/flv': 'flv',
+      'video/webm': 'webm',
       'video/3gpp': '3gp',
       'video/hevc': 'mov',
       'video/h265': 'mov',
       'video/quicktime': 'mov',
-      // 🎵 ÁUDIOS
+      // 🎵 ÁUDIOS (todos formatos)
       'audio/mpeg': 'mp3',
       'audio/mp3': 'mp3',
       'audio/mp4': 'm4a',
       'audio/aac': 'aac',
+      'audio/wav': 'wav',
+      'audio/flac': 'flac',
       'audio/amr': 'amr',
       'audio/ogg': 'ogg',
-      // 📄 DOCUMENTOS
+      'audio/opus': 'opus',
+      'audio/webm': 'webm',
+      // 📄 DOCUMENTOS (todos formatos Office e mais)
       'application/pdf': 'pdf',
       'text/plain': 'txt',
+      'text/csv': 'csv',
+      'application/rtf': 'rtf',
+      // Microsoft Office
       'application/msword': 'doc',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
       'application/vnd.ms-excel': 'xls',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
       'application/vnd.ms-powerpoint': 'ppt',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx'
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+      // LibreOffice/OpenOffice
+      'application/vnd.oasis.opendocument.text': 'odt',
+      'application/vnd.oasis.opendocument.spreadsheet': 'ods',
+      'application/vnd.oasis.opendocument.presentation': 'odp',
+      // Arquivos compactados
+      'application/zip': 'zip',
+      'application/x-rar-compressed': 'rar',
+      'application/x-7z-compressed': '7z',
+      // Outros
+      'application/json': 'json',
+      'application/xml': 'xml',
+      'text/html': 'html',
+      'text/css': 'css',
+      'application/javascript': 'js'
     };
     return extensions[mimeType] || 'bin';
   }
@@ -375,6 +470,19 @@ serve(async (req)=>{
   }
   const supabase = createClient(supabaseUrl, supabaseKey);
   try {
+    // ✅ Verificar tamanho do payload antes de processar
+    const contentLength = req.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > MEMORY_LIMITS.MAX_PAYLOAD_SIZE) {
+      console.error('[Webhook] ❌ Payload muito grande:', contentLength);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Payload too large' }),
+        { 
+          status: 413,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
     const body = await req.text();
     console.log('[Webhook] 📨 Recebendo webhook:', {
       method: req.method,
@@ -423,24 +531,24 @@ serve(async (req)=>{
     if (sanitizedData.messageType !== 'text') {
       console.log('[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA:', {
         messageType: sanitizedData.messageType,
-        topLevelKeys: Object.keys(sanitizedData),
+        topLevelKeys: Object.keys(sanitizedData).slice(0, 10), // ✅ Limitar keys
         // Verificar campos diretos
         directMedia: {
-          mediaBase64: sanitizedData.mediaBase64 ? `${sanitizedData.mediaBase64.substring(0, 50)}...` : null,
-          mediabase64: sanitizedData.mediabase64 ? `${sanitizedData.mediabase64.substring(0, 50)}...` : null,
-          mediaData: sanitizedData.mediaData,
-          base64Data: sanitizedData.base64Data ? `${sanitizedData.base64Data.substring(0, 50)}...` : null,
-          media: sanitizedData.media,
-          buffer: sanitizedData.buffer ? `${sanitizedData.buffer.substring(0, 50)}...` : null,
-          content: sanitizedData.content ? `${sanitizedData.content.substring(0, 50)}...` : null
+          mediaBase64: sanitizedData.mediaBase64 ? 'EXISTS' : null, // ✅ Não logar conteúdo
+          mediabase64: sanitizedData.mediabase64 ? 'EXISTS' : null,
+          mediaData: sanitizedData.mediaData ? 'EXISTS' : undefined,
+          base64Data: sanitizedData.base64Data ? 'EXISTS' : null,
+          media: sanitizedData.media ? 'EXISTS' : undefined,
+          buffer: sanitizedData.buffer ? 'EXISTS' : null,
+          content: sanitizedData.content ? 'EXISTS' : null
         },
         // Verificar campos aninhados
         nestedMedia: {
-          data_keys: sanitizedData.data ? Object.keys(sanitizedData.data) : null,
-          data_buffer: sanitizedData.data?.buffer ? `${sanitizedData.data.buffer.substring(0, 50)}...` : null,
-          data_base64: sanitizedData.data?.base64 ? `${sanitizedData.data.base64.substring(0, 50)}...` : null,
-          message_keys: sanitizedData.message ? Object.keys(sanitizedData.message) : null,
-          message_media: sanitizedData.message?.media
+          data_keys: sanitizedData.data ? Object.keys(sanitizedData.data).slice(0, 10) : null, // ✅ Limitar
+          data_buffer: sanitizedData.data?.buffer ? 'EXISTS' : null, // ✅ Não logar conteúdo
+          data_base64: sanitizedData.data?.base64 ? 'EXISTS' : null,
+          message_keys: sanitizedData.message ? Object.keys(sanitizedData.message).slice(0, 10) : null,
+          message_media: sanitizedData.message?.media ? 'EXISTS' : undefined
         }
       });
     }
@@ -481,6 +589,10 @@ serve(async (req)=>{
       }
     });
     console.log('[Webhook] ✅ Processamento concluído:', result);
+    
+    // ✅ Limpeza final de memória antes de retornar
+    forceMemoryCleanup();
+    
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: corsHeaders
@@ -506,6 +618,10 @@ serve(async (req)=>{
     } catch (logError) {
       console.error('[Webhook] ❌ Erro ao fazer log:', logError);
     }
+    
+    // ✅ Limpeza de memória mesmo em caso de erro
+    forceMemoryCleanup();
+    
     return new Response(JSON.stringify({
       success: false,
       error: 'Webhook processing failed',
@@ -551,7 +667,7 @@ async function processMessage(supabase, data) {
     fromMe: data.fromMe || data.data?.messages?.[0]?.key?.fromMe,
     messageType: data.messageType || data.data?.messages?.[0]?.messageType,
     hasMediaData: !!(data.mediaBase64 || // ✅ inclusão: raiz
-    data.data?.mediaBase64 || data.mediabase64 || data.mediaData || data.base64Data || data.media || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media),
+    data.data?.mediaBase64 || data.mediabase64 || data.mediaData || data.data?.mediaData || data.base64Data || data.media || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media),
     hasCaption: !!data.caption
   });
   // 🔍 EXTRAÇÃO COMPLETA DE DADOS DA MENSAGEM (garantir base64 em nested data.mediaData.base64Data)
@@ -567,13 +683,13 @@ async function processMessage(supabase, data) {
       message: {
         text: baileyMsg.message?.conversation || baileyMsg.message?.extendedTextMessage?.text || data.caption || getMediaDisplayName(data.messageType)
       },
-      messageType: data.messageType === 'sticker' ? 'image' : data.messageType || 'text',
+      messageType: data.messageType === 'sticker' ? 'image' : (data.messageType === 'unknown' ? 'text' : data.messageType) || 'text',
       mediaUrl: data.mediaUrl,
-      contactName: data.contactName || data.senderProfileName,
+      // ❌ REMOVIDO: contactName - usar apenas telefone formatado
       // 🚀 DADOS DE MÍDIA EXTRAÍDOS - CORREÇÃO APLICADA
       mediaData: {
         base64Data: data.mediaBase64 || // raiz
-        data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.data?.mediaData?.base64Data || data.media?.base64 || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media?.buffer,
+        data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.data?.mediaData?.base64Data || data.data?.mediaData || data.mediaData || data.media?.base64 || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media?.buffer,
         fileName: data.fileName || data.mediaData?.fileName || data.data?.mediaData?.fileName,
         mediaType: data.messageType || data.mediaData?.mediaType || data.data?.mediaData?.mediaType,
         caption: data.caption || data.mediaData?.caption || data.data?.mediaData?.caption,
@@ -590,14 +706,14 @@ async function processMessage(supabase, data) {
       message: {
         text: data.message?.text || data.caption || getMediaDisplayName(data.messageType)
       },
-      messageType: data.messageType === 'sticker' ? 'image' : data.messageType || 'text',
+      messageType: data.messageType === 'sticker' ? 'image' : (data.messageType === 'unknown' ? 'text' : data.messageType) || 'text',
       mediaUrl: data.mediaUrl,
-      contactName: data.contactName || data.senderProfileName || data.data?.senderProfileName,
+      // ❌ REMOVIDO: contactName - usar apenas telefone formatado
       profile_pic_url: data.profilePicUrl || data.profile_pic_url || data.data?.profile_pic_url || data.senderProfilePicUrl || null, // 📸 PROFILE PIC
       // 🚀 DADOS DE MÍDIA EXTRAÍDOS - CORREÇÃO APLICADA
       mediaData: {
         base64Data: data.mediaBase64 || // raiz
-        data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.data?.mediaData?.base64Data || data.media?.base64 || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media?.buffer,
+        data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.data?.mediaData?.base64Data || data.data?.mediaData || data.mediaData || data.media?.base64 || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media?.buffer,
         fileName: data.fileName || data.mediaData?.fileName || data.data?.mediaData?.fileName,
         mediaType: data.messageType || data.mediaData?.mediaType || data.data?.mediaData?.mediaType,
         caption: data.caption || data.mediaData?.caption || data.data?.mediaData?.caption,
@@ -613,16 +729,17 @@ async function processMessage(supabase, data) {
     };
   }
   // 🚀 STEP 1: SALVAR MENSAGEM NO BANCO (COM BASE64 PARA IA)
+  // 📱 NOTA: contactName sempre enviado como NULL - usa apenas telefone formatado
   console.log('[Webhook] 💾 Salvando mensagem no banco...');
   const { data: result, error } = await supabase.rpc('save_whatsapp_message_service_role', {
     p_vps_instance_id: messageData.instanceId,
     p_phone: messageData.from,
     p_message_text: messageData.message.text || '',
-    p_from_me: messageData.fromMe || false,
-    p_media_type: messageData.messageType || 'text',
-    p_media_url: messageData.mediaUrl || null,
+    p_from_me: Boolean(messageData.fromMe),
+    p_media_type: messageData.messageType === 'sticker' ? 'image' : (messageData.messageType === 'unknown' ? 'text' : (messageData.messageType || 'text')),
+    p_media_url: null, // ❌ SEMPRE NULL - será definida após processamento da mídia no Storage
     p_external_message_id: messageData.externalMessageId || null,
-    p_contact_name: messageData.contactName || null,
+    p_contact_name: null, // ❌ SEMPRE NULL - usar apenas telefone formatado
     p_base64_data: messageData.mediaData?.base64Data || null, // 🎯 BASE64 PARA IA
     p_profile_pic_url: messageData.profile_pic_url || null // 📸 PROFILE PIC URL
   });
@@ -647,7 +764,9 @@ async function processMessage(supabase, data) {
     fromMe: messageData.fromMe
   });
   // 🚀 STEP 2: PROCESSAR MÍDIA USANDO INFRAESTRUTURA EXISTENTE
-  if (messageData.mediaData?.base64Data && messageData.messageType !== 'text') {
+  const hadMediaData = !!(messageData.mediaData?.base64Data && messageData.messageType !== 'text'); // ✅ Capturar antes de limpar
+  
+  if (hadMediaData) {
     console.log('[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...');
     const mediaProcessed = await MediaProcessor.processMediaOptimized(supabase, messageId, messageData.mediaData);
     if (!mediaProcessed) {
@@ -655,13 +774,21 @@ async function processMessage(supabase, data) {
     } else {
       console.log('[Webhook] ✅ Mídia processada com infraestrutura existente');
     }
+    
+    // ✅ Limpeza imediata da mídia da memória
+    messageData.mediaData.base64Data = null;
+    messageData.mediaData = null;
   }
+  
+  // ✅ Forçar limpeza de memória após processamento
+  forceMemoryCleanup();
+  
   return {
     success: true,
     message: 'Message processed completely with existing infrastructure',
     data: {
       ...result.data,
-      mediaProcessed: !!messageData.mediaData?.base64Data,
+      mediaProcessed: hadMediaData, // ✅ Usar valor capturado antes da limpeza
       usedExistingInfrastructure: true
     }
   };
