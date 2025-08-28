@@ -131,7 +131,7 @@ export default function TeamSettings() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white/30 backdrop-blur-sm border border-white/30 shadow-glass rounded-xl p-6 transition-all duration-300 hover:bg-white/40">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-green-500/20 rounded-lg">
@@ -176,7 +176,7 @@ export default function TeamSettings() {
 
       {/* 2º Card: Lista de Membros da Equipe */}
       <div className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-2xl p-8 transition-all duration-300 hover:bg-white/50 animate-fade-in" style={{ animationDelay: "100ms" }}>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0 mb-6">
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-white/30 backdrop-blur-sm rounded-xl border border-white/40 shadow-glass">
               <Users className="h-6 w-6 text-yellow-500" />
@@ -190,7 +190,7 @@ export default function TeamSettings() {
           {/* Botão de Adicionar Membro */}
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-6 py-3 rounded-xl shadow-glass hover:shadow-glass-lg transition-all duration-200 flex items-center gap-2"
+            className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-6 py-3 rounded-xl shadow-glass hover:shadow-glass-lg transition-all duration-200 flex items-center justify-center gap-2 w-full md:w-auto"
           >
             <UserPlus className="h-5 w-5" />
             Adicionar Membro

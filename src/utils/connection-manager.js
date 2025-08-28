@@ -41,7 +41,7 @@ class ConnectionManager {
       // Configurar estado de autenticação persistente
       const { state, saveCreds } = await useMultiFileAuthState(instanceAuthDir);
 
-      // Configurar socket com configurações otimizadas
+      // Configurar socket com configurações otimizadas + SUPORTE A GRUPOS
       const socket = makeWASocket({
         auth: state,
         printQRInTerminal: false,
@@ -51,11 +51,20 @@ class ConnectionManager {
         keepAliveIntervalMs: 30000,
         receiveFullHistory: false,
         syncFullHistory: false,
-        generateHighQualityLinkPreview: false,
+        generateHighQualityLinkPreview: true,  // ✅ IMPORTANTE PARA GRUPOS
         markOnlineOnConnect: true,
         fireInitQueries: true,
         emitOwnEvents: false,
-        maxQueryAttempts: 3
+        maxQueryAttempts: 3,
+        
+        // ✅ CONFIGURAÇÃO ESPECÍFICA PARA GRUPOS
+        patchMessageBeforeSending: (message) => {
+          if (message.key && message.key.remoteJid && message.key.remoteJid.endsWith('@g.us')) {
+            console.log(`${logPrefix} 📱 Configurando mensagem para grupo: ${message.key.remoteJid.substring(0, 15)}****`);
+            // Adicionar configurações específicas para grupos se necessário
+          }
+          return message;
+        }
       });
 
       // Criar instância no armazenamento

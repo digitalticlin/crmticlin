@@ -811,6 +811,16 @@ app.post('/send', authenticateToken, async (req, res) => {
     // Formatar número de telefone
     const formattedPhone = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
 
+    // ✅ DETECTAR GRUPO SEM VALIDAÇÃO AUTOMÁTICA
+    const isGroup = formattedPhone.endsWith('@g.us');
+    if (isGroup) {
+      console.log(`📱 Detectado envio para grupo: ${formattedPhone.substring(0, 15)}****`);
+      console.log(`⚡ Pulando validação automática para evitar timeout do Baileys`);
+    }
+
+    // ✅ CONFIGURAR TIMEOUT ESPECÍFICO PARA GRUPOS
+    const sendTimeout = isGroup ? 60000 : 30000; // 60s para grupos, 30s para contatos
+
     // Enviar mensagem via Baileys
     let messageResult;
 
@@ -833,16 +843,58 @@ app.post('/send', authenticateToken, async (req, res) => {
              console.log('📱 Convertendo DataURL para Buffer...');
              const base64Data = mediaUrl.split(',')[1];
              const buffer = Buffer.from(base64Data, 'base64');
-             messageResult = await instance.socket.sendMessage(formattedPhone, {
-               image: buffer,
-               // caption removida
-             });
+             
+             if (isGroup) {
+               // ✅ ENVIO OTIMIZADO PARA GRUPOS
+               messageResult = await Promise.race([
+                 instance.socket.sendMessage(formattedPhone, {
+                   image: buffer
+                 }, {
+                   messageOptions: {
+                     ephemeral: false,
+                     linkPreview: false
+                   }
+                 }),
+                 new Promise((_, reject) => 
+                   setTimeout(() => reject(new Error(`Timeout sending image to group (${sendTimeout}ms)`)), sendTimeout)
+                 )
+               ]);
+             } else {
+               messageResult = await Promise.race([
+                 instance.socket.sendMessage(formattedPhone, {
+                   image: buffer
+                 }),
+                 new Promise((_, reject) => 
+                   setTimeout(() => reject(new Error(`Timeout sending image to contact (${sendTimeout}ms)`)), sendTimeout)
+                 )
+               ]);
+             }
            } else {
              // URL HTTP normal
-             messageResult = await instance.socket.sendMessage(formattedPhone, {
-               image: { url: mediaUrl },
-               // caption removida
-             });
+             if (isGroup) {
+               messageResult = await Promise.race([
+                 instance.socket.sendMessage(formattedPhone, {
+                   image: { url: mediaUrl }
+                 }, {
+                   messageOptions: {
+                     ephemeral: false,
+                     linkPreview: false
+                   }
+                 }),
+                 new Promise((_, reject) => 
+                   setTimeout(() => reject(new Error(`Timeout sending image to group (${sendTimeout}ms)`)), sendTimeout)
+                 )
+               ]);
+             } else {
+               messageResult = await Promise.race([
+                 instance.socket.sendMessage(formattedPhone, {
+                   image: { url: mediaUrl }
+                 }),
+                 new Promise((_, reject) => 
+                   setTimeout(() => reject(new Error(`Timeout sending image to contact (${sendTimeout}ms)`)), sendTimeout)
+                 )
+               ]);
+             }
            }
            break;
 
@@ -852,16 +904,59 @@ app.post('/send', authenticateToken, async (req, res) => {
             console.log('📹 Convertendo vídeo DataURL para Buffer...');
             const base64Data = mediaUrl.split(',')[1];
             const buffer = Buffer.from(base64Data, 'base64');
-            messageResult = await instance.socket.sendMessage(formattedPhone, {
-              video: buffer,
-              fileName: 'video.mp4' // nome fixo
-            });
+            
+            if (isGroup) {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  video: buffer,
+                  fileName: 'video.mp4'
+                }, {
+                  messageOptions: {
+                    ephemeral: false,
+                    linkPreview: false
+                  }
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending video to group (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            } else {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  video: buffer,
+                  fileName: 'video.mp4'
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending video to contact (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            }
           } else {
             // URL HTTP normal
-            messageResult = await instance.socket.sendMessage(formattedPhone, {
-              video: { url: mediaUrl },
-              // caption removida
-            });
+            if (isGroup) {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  video: { url: mediaUrl }
+                }, {
+                  messageOptions: {
+                    ephemeral: false,
+                    linkPreview: false
+                  }
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending video to group (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            } else {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  video: { url: mediaUrl }
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending video to contact (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            }
           }
           break;
 
@@ -905,13 +1000,54 @@ app.post('/send', authenticateToken, async (req, res) => {
               console.log('🎵 Enviando como áudio normal (não-PTT)');
             }
 
-            messageResult = await instance.socket.sendMessage(formattedPhone, audioOptions);
+            if (isGroup) {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, audioOptions, {
+                  messageOptions: {
+                    ephemeral: false,
+                    linkPreview: false
+                  }
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending audio to group (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            } else {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, audioOptions),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending audio to contact (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            }
           } else {
-            // URL HTTP normal - comportamento original
-            messageResult = await instance.socket.sendMessage(formattedPhone, {
-              audio: { url: mediaUrl },
-              ptt: true
-            });
+            // URL HTTP normal
+            if (isGroup) {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  audio: { url: mediaUrl },
+                  ptt: true
+                }, {
+                  messageOptions: {
+                    ephemeral: false,
+                    linkPreview: false
+                  }
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending audio to group (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            } else {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  audio: { url: mediaUrl },
+                  ptt: true
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending audio to contact (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            }
           }
           break;
 
@@ -926,28 +1062,119 @@ app.post('/send', authenticateToken, async (req, res) => {
             const mimeMatch = mediaUrl.match(/data:([^;]+)/);
             const mimeType = mimeMatch ? mimeMatch[1] : 'application/pdf';
 
-            messageResult = await instance.socket.sendMessage(formattedPhone, {
-              document: buffer,
-              fileName: 'documento.pdf', // nome fixo
-              mimetype: mimeType
-            });
+            if (isGroup) {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  document: buffer,
+                  fileName: 'documento.pdf',
+                  mimetype: mimeType
+                }, {
+                  messageOptions: {
+                    ephemeral: false,
+                    linkPreview: false
+                  }
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending document to group (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            } else {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  document: buffer,
+                  fileName: 'documento.pdf',
+                  mimetype: mimeType
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending document to contact (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            }
           } else {
             // URL HTTP normal
-            messageResult = await instance.socket.sendMessage(formattedPhone, {
-              document: { url: mediaUrl },
-              fileName: 'documento.pdf', // nome fixo
-              mimetype: 'application/pdf'
-            });
+            if (isGroup) {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  document: { url: mediaUrl },
+                  fileName: 'documento.pdf',
+                  mimetype: 'application/pdf'
+                }, {
+                  messageOptions: {
+                    ephemeral: false,
+                    linkPreview: false
+                  }
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending document to group (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            } else {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  document: { url: mediaUrl },
+                  fileName: 'documento.pdf',
+                  mimetype: 'application/pdf'
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending document to contact (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            }
           }
           break;
 
         default:
           console.log('⚠️  Tipo de mídia não reconhecido, enviando como texto');
-          messageResult = await instance.socket.sendMessage(formattedPhone, { text: message });
+          if (isGroup) {
+            messageResult = await Promise.race([
+              instance.socket.sendMessage(formattedPhone, { text: message }, {
+                messageOptions: {
+                  ephemeral: false,
+                  linkPreview: false
+                }
+              }),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error(`Timeout sending fallback text to group (${sendTimeout}ms)`)), sendTimeout)
+              )
+            ]);
+          } else {
+            messageResult = await Promise.race([
+              instance.socket.sendMessage(formattedPhone, { text: message }),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error(`Timeout sending fallback text to contact (${sendTimeout}ms)`)), sendTimeout)
+              )
+            ]);
+          }
       }
     } else {
-      // Mensagem de texto padrão
-      messageResult = await instance.socket.sendMessage(formattedPhone, { text: message });
+      // Mensagem de texto com configuração otimizada para grupos
+      console.log(`💬 Enviando mensagem de texto ${isGroup ? '(GRUPO)' : '(CONTATO)'} - Timeout: ${sendTimeout}ms`);
+      
+      if (isGroup) {
+        // ✅ CONFIGURAÇÃO OTIMIZADA PARA GRUPOS - EVITA VALIDAÇÃO AUTOMÁTICA
+        messageResult = await Promise.race([
+          instance.socket.sendMessage(formattedPhone, { 
+            text: message 
+          }, {
+            // Opções para evitar validações automáticas do Baileys
+            messageOptions: {
+              ephemeral: false,
+              linkPreview: false
+            }
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`Timeout sending to group (${sendTimeout}ms)`)), sendTimeout)
+          )
+        ]);
+      } else {
+        // Envio normal para contatos individuais
+        messageResult = await Promise.race([
+          instance.socket.sendMessage(formattedPhone, { text: message }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`Timeout sending to contact (${sendTimeout}ms)`)), sendTimeout)
+          )
+        ]);
+      }
     }
 
     // Adicionar ao cache para evitar reenvio de webhook
