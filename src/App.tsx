@@ -10,6 +10,7 @@ import { supabase } from './integrations/supabase/client'; // 🚀 IMPORTAR SUPA
 import './utils/debug-messages-test'; // 🔧 IMPORTAR SCRIPTS DE DEBUG
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { PortalErrorBoundary } from './components/error/PortalErrorBoundary';
+import { AppLayout } from './components/layout/AppLayout';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Index';
 import Register from './pages/Register';
@@ -31,6 +32,134 @@ declare global {
 }
 
 const queryClient = new QueryClient();
+
+// ✅ COMPONENTE DE ROTAS SPA - SIDEBAR FIXO
+function AppLayoutRoutes() {
+  return (
+    <Routes>
+      <Route 
+        path="/" 
+        element={
+          <AppLayout>
+            <Dashboard />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/dashboard" 
+        element={
+          <AppLayout>
+            <Dashboard />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/funnels" 
+        element={
+          <AppLayout fullHeight>
+            <FunnelsPage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/sales-funnel" 
+        element={
+          <AppLayout fullHeight>
+            <FunnelsPage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/whatsapp-chat" 
+        element={
+          <AppLayout fullHeight>
+            <WhatsAppWebPage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/clients" 
+        element={
+          <AppLayout>
+            <LeadsPage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/leads" 
+        element={
+          <AppLayout>
+            <LeadsPage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/automation" 
+        element={
+          <AppLayout>
+            <AutomationPage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/integration" 
+        element={
+          <AppLayout>
+            <WhatsAppIntegration />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/whatsapp" 
+        element={
+          <AppLayout>
+            <WhatsAppIntegration />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/ai-agents" 
+        element={
+          <AppLayout>
+            <AIAgentsPage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/plans" 
+        element={
+          <AppLayout>
+            <PlansPage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/settings" 
+        element={
+          <AppLayout>
+            <SettingsPage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/whatsapp-web" 
+        element={
+          <AppLayout fullHeight>
+            <WhatsAppWebPage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/debug/media" 
+        element={
+          <AppLayout>
+            <MediaDebug />
+          </AppLayout>
+        } 
+      />
+    </Routes>
+  );
+}
 
 function App() {
   console.log('[App] 🚀 Inicializando aplicação');
@@ -122,133 +251,20 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <PortalErrorBoundary>
         <Router>
-          <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-            <AuthProvider>
-              <SidebarProvider>
-                <QRCodeModalProvider>
+          <AuthProvider>
+            <SidebarProvider>
+              <QRCodeModalProvider>
                 <Routes>
-                  {/* Rotas públicas */}
+                  {/* Rotas públicas - fora do layout */}
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   
-                  {/* Rotas protegidas */}
+                  {/* Rotas protegidas - dentro do layout SPA */}
                   <Route 
-                    path="/" 
+                    path="/*" 
                     element={
                       <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/dashboard" 
-                    element={
-                      <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/funnels" 
-                    element={
-                      <ProtectedRoute>
-                        <FunnelsPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/sales-funnel" 
-                    element={
-                      <ProtectedRoute>
-                        <FunnelsPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/whatsapp-chat" 
-                    element={
-                      <ProtectedRoute>
-                        <WhatsAppWebPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/clients" 
-                    element={
-                      <ProtectedRoute>
-                        <LeadsPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/leads" 
-                    element={
-                      <ProtectedRoute>
-                        <LeadsPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/automation" 
-                    element={
-                      <ProtectedRoute>
-                        <AutomationPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/integration" 
-                    element={
-                      <ProtectedRoute>
-                        <WhatsAppIntegration />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/whatsapp" 
-                    element={
-                      <ProtectedRoute>
-                        <WhatsAppIntegration />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/ai-agents" 
-                    element={
-                      <ProtectedRoute>
-                        <AIAgentsPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/plans" 
-                    element={
-                      <ProtectedRoute>
-                        <PlansPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/settings" 
-                    element={
-                      <ProtectedRoute>
-                        <SettingsPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/whatsapp-web" 
-                    element={
-                      <ProtectedRoute>
-                        <WhatsAppWebPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/debug/media" 
-                    element={
-                      <ProtectedRoute>
-                        <MediaDebug />
+                        <AppLayoutRoutes />
                       </ProtectedRoute>
                     } 
                   />
@@ -256,8 +272,7 @@ function App() {
               </QRCodeModalProvider>
             </SidebarProvider>
           </AuthProvider>
-        </div>
-      </Router>
+        </Router>
       </PortalErrorBoundary>
     </QueryClientProvider>
   );

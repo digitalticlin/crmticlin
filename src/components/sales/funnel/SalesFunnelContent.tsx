@@ -399,9 +399,9 @@ export function SalesFunnelContent() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)] md:h-[calc(100vh-3.5rem)]" style={{ transform: 'scale(0.8)', transformOrigin: 'top left', width: '125%', height: '125%' }}>
+    <div className="flex flex-col h-full w-full">
       {/* Barra de Controles compacta e sticky */}
-      <div className="sticky top-0 z-10 px-3 py-2 -mt-4 md:-mt-6 bg-transparent border-none backdrop-blur-0">
+      <div className="sticky top-0 z-10 px-6 py-4 bg-white/80 backdrop-blur-md border-b border-white/20">
         <ModernFunnelControlBar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -418,7 +418,7 @@ export function SalesFunnelContent() {
       </div>
 
       {/* Área do board em full-bleed e altura restante do viewport */}
-      <div className="flex-1 min-h-0 px-0 md:px-0">
+      <div className="flex-1 min-h-0 px-6 py-4 overflow-hidden">
         {activeTab === "funnel" ? (
           <div className="mt-2 md:mt-4 h-full flex flex-col">
             {/* Barra de pesquisa/filtro para Funil principal (fixa acima, fora do scroll horizontal) */}
