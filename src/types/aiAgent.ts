@@ -1,11 +1,10 @@
-
 export interface AIAgent {
   id: string;
   name: string;
   type: 'attendance' | 'sales' | 'support' | 'custom';
   status: 'active' | 'inactive';
-  funnel_id?: string; // Por enquanto apenas um funil (limitação do banco atual)
-  whatsapp_number_id?: string; // Por enquanto apenas uma instância (limitação do banco atual)
+  funnel_id?: string;
+  whatsapp_number_id?: string;
   messages_count: number;
   created_by_user_id: string;
   created_at: string;
@@ -43,11 +42,11 @@ export interface AIAgentPrompt {
   company_info: string;
   products_services: string;
   products_services_examples: PQExample[];
-  rules_guidelines: string;
+  rules_guidelines: string[] | PQExample[];
   rules_guidelines_examples: PQExample[];
-  prohibitions: string;
+  prohibitions: string[] | PQExample[];
   prohibitions_examples: PQExample[];
-  client_objections: string;
+  client_objections: string[] | PQExample[];
   client_objections_examples: PQExample[];
   phrase_tips: string;
   phrase_tips_examples: PQExample[];
@@ -60,8 +59,8 @@ export interface AIAgentPrompt {
 export interface CreateAIAgentData {
   name: string;
   type: 'attendance' | 'sales' | 'support' | 'custom';
-  funnel_id?: string | null; // Por enquanto apenas um funil (limitação do banco atual)
-  whatsapp_number_id?: string | null; // Por enquanto apenas uma instância (limitação do banco atual)
+  funnel_id?: string | null;
+  whatsapp_number_id?: string | null;
 }
 
 export interface CreateAIAgentPromptData {
@@ -73,13 +72,14 @@ export interface CreateAIAgentPromptData {
   company_info: string;
   products_services: string;
   products_services_examples: PQExample[];
-  rules_guidelines: string;
+  rules_guidelines: string[] | PQExample[];
   rules_guidelines_examples: PQExample[];
-  prohibitions: string;
+  prohibitions: string[] | PQExample[];
   prohibitions_examples: PQExample[];
-  client_objections: string;
+  client_objections: string[] | PQExample[];
   client_objections_examples: PQExample[];
   phrase_tips: string;
   phrase_tips_examples: PQExample[];
   flow: FlowStepEnhanced[];
+  funnel_configuration?: any[]; // Para compatibilidade com o banco
 }
