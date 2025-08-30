@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Search, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import ContactsList from "./contacts/ContactsList";
 import { Contact } from "@/types/chat";
 import { cn } from "@/lib/utils";
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface WhatsAppContactsListProps {
   contacts: Contact[];
@@ -36,6 +38,75 @@ export const WhatsAppContactsList = React.memo(({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
 
+  // Funções para fechar e excluir conversas
+  const handleDeleteConversation = useCallback(async (contactId: string) => {
+    console.log('[WhatsAppContactsList] handleDeleteConversation chamado:', contactId);
+    try {
+      // 🗑️ EXCLUIR CONVERSA: Apagar todas as mensagens do lead
+      const { error: messagesError } = await supabase
+        .from('messages')
+        .delete()
+        .eq('lead_id', contactId);
+
+      if (messagesError) throw messagesError;
+
+      // 📝 Atualizar lead: zerar contadores e marcar como arquivado
+      const { error: leadError } = await supabase
+        .from('leads')
+        .update({ 
+          unread_count: 0,
+          last_message: null,
+          last_message_time: null,
+          conversation_status: 'archived',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', contactId);
+
+      if (leadError) throw leadError;
+
+      // 🔄 Refresh da lista e fechar chat se estava selecionado
+      if (onRefreshContacts) {
+        console.log('[WhatsAppContactsList] Chamando onRefreshContacts após exclusão');
+        onRefreshContacts();
+      }
+
+      toast.success('Conversa excluída com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao excluir conversa:', error);
+      toast.error('Erro ao excluir conversa');
+      throw error;
+    }
+  }, [onRefreshContacts]);
+
+  const handleCloseConversation = useCallback(async (contactId: string) => {
+    console.log('[WhatsAppContactsList] handleCloseConversation chamado:', contactId);
+    try {
+      // ❌ FECHAR CONVERSA: Manter mensagens, marcar como fechada
+      const { error } = await supabase
+        .from('leads')
+        .update({ 
+          conversation_status: 'closed',
+          unread_count: 0,  // Zerar não lidas ao fechar
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', contactId);
+
+      if (error) throw error;
+
+      // 🔄 Refresh da lista e fechar chat se estava selecionado
+      if (onRefreshContacts) {
+        console.log('[WhatsAppContactsList] Chamando onRefreshContacts após fechamento');
+        onRefreshContacts();
+      }
+
+      toast.success('Conversa fechada com sucesso');
+    } catch (error) {
+      console.error('❌ Erro ao fechar conversa:', error);
+      toast.error('Erro ao fechar conversa');
+      throw error;
+    }
+  }, [onRefreshContacts]);
+
   // 🚀 CORREÇÃO: Não filtrar localmente - dados já vêm filtrados do servidor
   const filteredContacts = useMemo(() => {
     // Se há busca ativa, os contatos já vêm filtrados do servidor via onSearch
@@ -43,22 +114,33 @@ export const WhatsAppContactsList = React.memo(({
     console.log('[WhatsAppContactsList] 📊 Contatos recebidos:', {
       total: contacts.length,
       hasSearch: !!searchQuery.trim(),
-      searchQuery
+      searchQuery,
+      contactsLength: contacts.length
     });
     return contacts;
   }, [contacts, searchQuery]);
 
   // Filtrar por tipo
   const finalContacts = useMemo(() => {
+    console.log('[WhatsAppContactsList] Filtering contacts:', {
+      totalContacts: filteredContacts.length,
+      activeFilter,
+      searchQuery
+    });
+    
+    // When searching, don't apply local filters - server already filtered
+    if (searchQuery.trim()) {
+      console.log('[WhatsAppContactsList] Search active, returning all filtered contacts');
+      return filteredContacts;
+    }
+    
     switch (activeFilter) {
       case "unread":
         return filteredContacts.filter(contact => contact.unreadCount && contact.unreadCount > 0);
-      case "recent":
-        return filteredContacts.filter(contact => contact.lastMessageTime);
       default:
         return filteredContacts;
     }
-  }, [filteredContacts, activeFilter]);
+  }, [filteredContacts, activeFilter, searchQuery]);
 
   const clearSearch = () => {
     setSearchQuery("");
@@ -96,8 +178,10 @@ export const WhatsAppContactsList = React.memo(({
               value={searchQuery}
               onChange={(e) => {
                 const q = e.target.value;
+                console.log('[WhatsAppContactsList] Search query changed:', q);
                 setSearchQuery(q);
                 if (onSearch) {
+                  console.log('[WhatsAppContactsList] Calling onSearch with query:', q);
                   onSearch(q);
                 }
               }}
@@ -119,8 +203,7 @@ export const WhatsAppContactsList = React.memo(({
           <div className="flex space-x-2">
             {[
               { key: "all", label: "Todas", count: totalContactsAvailable || contacts.length },
-              { key: "unread", label: "Não lidas", count: contacts.filter(c => c.unreadCount && c.unreadCount > 0).length },
-              { key: "recent", label: "Recentes", count: contacts.filter(c => c.lastMessageTime).length }
+              { key: "unread", label: "Não lidas", count: contacts.filter(c => c.unreadCount && c.unreadCount > 0).length }
             ].map((filter) => (
               <button
                 key={filter.key}
@@ -159,6 +242,8 @@ export const WhatsAppContactsList = React.memo(({
           onRefreshContacts={onRefreshContacts}
           totalContactsAvailable={totalContactsAvailable}
           onEditLead={onEditLead}
+          onDeleteConversation={handleDeleteConversation}
+          onCloseConversation={handleCloseConversation}
         />
       </div>
 

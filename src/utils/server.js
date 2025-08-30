@@ -15,6 +15,7 @@ const DiagnosticsManager = require('./src/utils/diagnostics-manager');
 const ImportManagerRobust = require('./src/utils/import-manager-robust');
 const WebhookManager = require('./src/utils/webhook-manager');
 const ConnectionManager = require('./src/utils/connection-manager');
+// const ReadMessagesWorker = require('./src/utils/read-messages-worker'); // Temporariamente desabilitado para corrigir 502
 
 global.crypto = crypto;
 
@@ -94,6 +95,13 @@ const webhookManager = new WebhookManager(SUPABASE_WEBHOOKS, SUPABASE_SERVICE_KE
 const connectionManager = new ConnectionManager(instances, AUTH_DIR, webhookManager);
 const diagnosticsManager = new DiagnosticsManager(instances);
 const importManagerRobust = new ImportManagerRobust(instances);
+// const readMessagesWorker = new ReadMessagesWorker(instances, webhookManager); // Temporariamente desabilitado
+const readMessagesWorker = {
+  markAsReadWhenOpenConversation: async () => ({ success: false, error: 'ReadMessagesWorker temporariamente desabilitado' }),
+  markSpecificMessagesAsRead: async () => ({ success: false, error: 'ReadMessagesWorker temporariamente desabilitado' }),
+  getQueueStats: () => ({ totalChats: 0, totalMessages: 0, chats: [] }),
+  clearQueue: () => ({ cleared: 0 })
+};
 
 // ================================
 // FUNCIONALIDADES FOTO DE PERFIL
@@ -110,10 +118,10 @@ async function getProfilePictureUrl(instanceId, phone) {
 
     // Formatar número para Baileys
     const formattedJid = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
-    
+
     // Buscar foto de perfil via Baileys
     const profilePicUrl = await instance.socket.profilePictureUrl(formattedJid, 'image');
-    
+
     console.log(`📸 Foto de perfil encontrada para ${phone}: ${profilePicUrl ? 'SIM' : 'NÃO'}`);
     return profilePicUrl;
   } catch (error) {
@@ -157,7 +165,7 @@ async function sendProfilePicToEdgeFunction(leadId, phone, profilePicUrl, instan
 async function processNewLeadProfilePic(instanceId, phone, leadData) {
   try {
     const cacheKey = `${instanceId}:${phone}`;
-    
+
     // Verificar se já foi processado
     if (sentProfilePics.has(cacheKey)) {
       console.log(`📸 Foto de perfil já processada para ${phone}`);
@@ -166,7 +174,7 @@ async function processNewLeadProfilePic(instanceId, phone, leadData) {
 
     // Buscar foto de perfil
     const profilePicUrl = await getProfilePictureUrl(instanceId, phone);
-    
+
     if (profilePicUrl) {
       // Enviar para Edge Function
       const success = await sendProfilePicToEdgeFunction(
@@ -203,7 +211,7 @@ async function processNewLeadProfilePic(instanceId, phone, leadData) {
 async function processBatchProfilePics(instanceId, phoneList, batchSize = 50) {
   try {
     console.log(`📸 Iniciando processamento em lote - ${phoneList.length} phones`);
-    
+
     const results = {
       processed: 0,
       success: 0,
@@ -228,7 +236,7 @@ async function processBatchProfilePics(instanceId, phoneList, batchSize = 50) {
 
           // Buscar foto de perfil
           const profilePicUrl = await getProfilePictureUrl(instanceId, phone);
-          
+
           if (profilePicUrl) {
             // Enviar para Edge Function
             const success = await sendProfilePicToEdgeFunction(
@@ -665,7 +673,7 @@ app.post('/instance/:instanceId/process-profile-pic', authenticateToken, async (
 
   try {
     console.log(`📸 Processando foto de perfil individual - ${phone}`);
-    
+
     await processNewLeadProfilePic(instanceId, phone, { lead_id });
 
     res.json({
@@ -773,6 +781,157 @@ app.get('/bulk-sync-status', authenticateToken, (req, res) => {
   });
 });
 
+// ================================
+// 📱 ENDPOINTS READ MESSAGES
+// ================================
+
+// Marcar mensagens como lidas quando usuário abre conversa no CRM
+app.post('/instance/:instanceId/mark-read-conversation', authenticateToken, async (req, res) => {
+  const { instanceId } = req.params;
+  const { phone, user_id } = req.body;
+  const logPrefix = `[MarkRead ${instanceId}]`;
+
+  if (!phone) {
+    return res.status(400).json({
+      success: false,
+      error: 'phone é obrigatório'
+    });
+  }
+
+  try {
+    console.log(`${logPrefix} 📱 Usuário ${user_id || 'N/A'} abriu conversa com ${phone}`);
+    
+    const result = await readMessagesWorker.markAsReadWhenOpenConversation(instanceId, phone, user_id);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Mensagens marcadas como lidas',
+        phone,
+        instanceId,
+        unreadCount: result.unreadCount || 0,
+        queued: result.queued || 0,
+        syncedWithMobile: true,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error,
+        phone,
+        instanceId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+  } catch (error) {
+    console.error(`${logPrefix} ❌ Erro:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao marcar mensagens como lidas',
+      message: error.message,
+      phone,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Marcar mensagens específicas como lidas
+app.post('/instance/:instanceId/mark-read-messages', authenticateToken, async (req, res) => {
+  const { instanceId } = req.params;
+  const { phone, message_ids, user_id } = req.body;
+  const logPrefix = `[MarkReadSpecific ${instanceId}]`;
+
+  if (!phone || !message_ids || !Array.isArray(message_ids)) {
+    return res.status(400).json({
+      success: false,
+      error: 'phone e message_ids (array) são obrigatórios'
+    });
+  }
+
+  try {
+    console.log(`${logPrefix} 🎯 Marcando ${message_ids.length} mensagens específicas como lidas`);
+    
+    const chatJid = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
+    const result = await readMessagesWorker.markSpecificMessagesAsRead(instanceId, chatJid, message_ids);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Mensagens específicas marcadas como lidas',
+        phone,
+        instanceId,
+        messagesMarked: result.messagesRead,
+        syncedWithMobile: true,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error,
+        phone,
+        instanceId,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+  } catch (error) {
+    console.error(`${logPrefix} ❌ Erro:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao marcar mensagens específicas como lidas',
+      message: error.message,
+      phone,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Obter estatísticas da fila de read messages
+app.get('/read-messages-stats', authenticateToken, (req, res) => {
+  try {
+    const stats = readMessagesWorker.getQueueStats();
+    
+    res.json({
+      success: true,
+      stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Erro ao obter estatísticas de read messages:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao obter estatísticas',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Limpar fila de read messages (manutenção)
+app.delete('/read-messages-queue', authenticateToken, (req, res) => {
+  try {
+    const result = readMessagesWorker.clearQueue();
+    
+    res.json({
+      success: true,
+      message: 'Fila de read messages limpa',
+      itemsCleared: result.cleared,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Erro ao limpar fila de read messages:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao limpar fila',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Enviar Mensagem
 app.post('/send', authenticateToken, async (req, res) => {
   const { instanceId, phone, message, mediaType, mediaUrl, ptt, filename, seconds, waveform } = req.body;
@@ -811,16 +970,6 @@ app.post('/send', authenticateToken, async (req, res) => {
     // Formatar número de telefone
     const formattedPhone = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
 
-    // ✅ DETECTAR GRUPO SEM VALIDAÇÃO AUTOMÁTICA
-    const isGroup = formattedPhone.endsWith('@g.us');
-    if (isGroup) {
-      console.log(`📱 Detectado envio para grupo: ${formattedPhone.substring(0, 15)}****`);
-      console.log(`⚡ Pulando validação automática para evitar timeout do Baileys`);
-    }
-
-    // ✅ CONFIGURAR TIMEOUT ESPECÍFICO PARA GRUPOS
-    const sendTimeout = isGroup ? 60000 : 30000; // 60s para grupos, 30s para contatos
-
     // Enviar mensagem via Baileys
     let messageResult;
 
@@ -843,58 +992,16 @@ app.post('/send', authenticateToken, async (req, res) => {
              console.log('📱 Convertendo DataURL para Buffer...');
              const base64Data = mediaUrl.split(',')[1];
              const buffer = Buffer.from(base64Data, 'base64');
-             
-             if (isGroup) {
-               // ✅ ENVIO OTIMIZADO PARA GRUPOS
-               messageResult = await Promise.race([
-                 instance.socket.sendMessage(formattedPhone, {
-                   image: buffer
-                 }, {
-                   messageOptions: {
-                     ephemeral: false,
-                     linkPreview: false
-                   }
-                 }),
-                 new Promise((_, reject) => 
-                   setTimeout(() => reject(new Error(`Timeout sending image to group (${sendTimeout}ms)`)), sendTimeout)
-                 )
-               ]);
-             } else {
-               messageResult = await Promise.race([
-                 instance.socket.sendMessage(formattedPhone, {
-                   image: buffer
-                 }),
-                 new Promise((_, reject) => 
-                   setTimeout(() => reject(new Error(`Timeout sending image to contact (${sendTimeout}ms)`)), sendTimeout)
-                 )
-               ]);
-             }
+             messageResult = await instance.socket.sendMessage(formattedPhone, {
+               image: buffer,
+               // caption removida
+             });
            } else {
              // URL HTTP normal
-             if (isGroup) {
-               messageResult = await Promise.race([
-                 instance.socket.sendMessage(formattedPhone, {
-                   image: { url: mediaUrl }
-                 }, {
-                   messageOptions: {
-                     ephemeral: false,
-                     linkPreview: false
-                   }
-                 }),
-                 new Promise((_, reject) => 
-                   setTimeout(() => reject(new Error(`Timeout sending image to group (${sendTimeout}ms)`)), sendTimeout)
-                 )
-               ]);
-             } else {
-               messageResult = await Promise.race([
-                 instance.socket.sendMessage(formattedPhone, {
-                   image: { url: mediaUrl }
-                 }),
-                 new Promise((_, reject) => 
-                   setTimeout(() => reject(new Error(`Timeout sending image to contact (${sendTimeout}ms)`)), sendTimeout)
-                 )
-               ]);
-             }
+             messageResult = await instance.socket.sendMessage(formattedPhone, {
+               image: { url: mediaUrl },
+               // caption removida
+             });
            }
            break;
 
@@ -904,59 +1011,16 @@ app.post('/send', authenticateToken, async (req, res) => {
             console.log('📹 Convertendo vídeo DataURL para Buffer...');
             const base64Data = mediaUrl.split(',')[1];
             const buffer = Buffer.from(base64Data, 'base64');
-            
-            if (isGroup) {
-              messageResult = await Promise.race([
-                instance.socket.sendMessage(formattedPhone, {
-                  video: buffer,
-                  fileName: 'video.mp4'
-                }, {
-                  messageOptions: {
-                    ephemeral: false,
-                    linkPreview: false
-                  }
-                }),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout sending video to group (${sendTimeout}ms)`)), sendTimeout)
-                )
-              ]);
-            } else {
-              messageResult = await Promise.race([
-                instance.socket.sendMessage(formattedPhone, {
-                  video: buffer,
-                  fileName: 'video.mp4'
-                }),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout sending video to contact (${sendTimeout}ms)`)), sendTimeout)
-                )
-              ]);
-            }
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              video: buffer,
+              fileName: 'video.mp4' // nome fixo
+            });
           } else {
             // URL HTTP normal
-            if (isGroup) {
-              messageResult = await Promise.race([
-                instance.socket.sendMessage(formattedPhone, {
-                  video: { url: mediaUrl }
-                }, {
-                  messageOptions: {
-                    ephemeral: false,
-                    linkPreview: false
-                  }
-                }),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout sending video to group (${sendTimeout}ms)`)), sendTimeout)
-                )
-              ]);
-            } else {
-              messageResult = await Promise.race([
-                instance.socket.sendMessage(formattedPhone, {
-                  video: { url: mediaUrl }
-                }),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout sending video to contact (${sendTimeout}ms)`)), sendTimeout)
-                )
-              ]);
-            }
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              video: { url: mediaUrl },
+              // caption removida
+            });
           }
           break;
 
@@ -1000,54 +1064,13 @@ app.post('/send', authenticateToken, async (req, res) => {
               console.log('🎵 Enviando como áudio normal (não-PTT)');
             }
 
-            if (isGroup) {
-              messageResult = await Promise.race([
-                instance.socket.sendMessage(formattedPhone, audioOptions, {
-                  messageOptions: {
-                    ephemeral: false,
-                    linkPreview: false
-                  }
-                }),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout sending audio to group (${sendTimeout}ms)`)), sendTimeout)
-                )
-              ]);
-            } else {
-              messageResult = await Promise.race([
-                instance.socket.sendMessage(formattedPhone, audioOptions),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout sending audio to contact (${sendTimeout}ms)`)), sendTimeout)
-                )
-              ]);
-            }
+            messageResult = await instance.socket.sendMessage(formattedPhone, audioOptions);
           } else {
-            // URL HTTP normal
-            if (isGroup) {
-              messageResult = await Promise.race([
-                instance.socket.sendMessage(formattedPhone, {
-                  audio: { url: mediaUrl },
-                  ptt: true
-                }, {
-                  messageOptions: {
-                    ephemeral: false,
-                    linkPreview: false
-                  }
-                }),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout sending audio to group (${sendTimeout}ms)`)), sendTimeout)
-                )
-              ]);
-            } else {
-              messageResult = await Promise.race([
-                instance.socket.sendMessage(formattedPhone, {
-                  audio: { url: mediaUrl },
-                  ptt: true
-                }),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout sending audio to contact (${sendTimeout}ms)`)), sendTimeout)
-                )
-              ]);
-            }
+            // URL HTTP normal - comportamento original
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              audio: { url: mediaUrl },
+              ptt: true
+            });
           }
           break;
 
@@ -1062,119 +1085,28 @@ app.post('/send', authenticateToken, async (req, res) => {
             const mimeMatch = mediaUrl.match(/data:([^;]+)/);
             const mimeType = mimeMatch ? mimeMatch[1] : 'application/pdf';
 
-            if (isGroup) {
-              messageResult = await Promise.race([
-                instance.socket.sendMessage(formattedPhone, {
-                  document: buffer,
-                  fileName: 'documento.pdf',
-                  mimetype: mimeType
-                }, {
-                  messageOptions: {
-                    ephemeral: false,
-                    linkPreview: false
-                  }
-                }),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout sending document to group (${sendTimeout}ms)`)), sendTimeout)
-                )
-              ]);
-            } else {
-              messageResult = await Promise.race([
-                instance.socket.sendMessage(formattedPhone, {
-                  document: buffer,
-                  fileName: 'documento.pdf',
-                  mimetype: mimeType
-                }),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout sending document to contact (${sendTimeout}ms)`)), sendTimeout)
-                )
-              ]);
-            }
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              document: buffer,
+              fileName: 'documento.pdf', // nome fixo
+              mimetype: mimeType
+            });
           } else {
             // URL HTTP normal
-            if (isGroup) {
-              messageResult = await Promise.race([
-                instance.socket.sendMessage(formattedPhone, {
-                  document: { url: mediaUrl },
-                  fileName: 'documento.pdf',
-                  mimetype: 'application/pdf'
-                }, {
-                  messageOptions: {
-                    ephemeral: false,
-                    linkPreview: false
-                  }
-                }),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout sending document to group (${sendTimeout}ms)`)), sendTimeout)
-                )
-              ]);
-            } else {
-              messageResult = await Promise.race([
-                instance.socket.sendMessage(formattedPhone, {
-                  document: { url: mediaUrl },
-                  fileName: 'documento.pdf',
-                  mimetype: 'application/pdf'
-                }),
-                new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error(`Timeout sending document to contact (${sendTimeout}ms)`)), sendTimeout)
-                )
-              ]);
-            }
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              document: { url: mediaUrl },
+              fileName: 'documento.pdf', // nome fixo
+              mimetype: 'application/pdf'
+            });
           }
           break;
 
         default:
           console.log('⚠️  Tipo de mídia não reconhecido, enviando como texto');
-          if (isGroup) {
-            messageResult = await Promise.race([
-              instance.socket.sendMessage(formattedPhone, { text: message }, {
-                messageOptions: {
-                  ephemeral: false,
-                  linkPreview: false
-                }
-              }),
-              new Promise((_, reject) => 
-                setTimeout(() => reject(new Error(`Timeout sending fallback text to group (${sendTimeout}ms)`)), sendTimeout)
-              )
-            ]);
-          } else {
-            messageResult = await Promise.race([
-              instance.socket.sendMessage(formattedPhone, { text: message }),
-              new Promise((_, reject) => 
-                setTimeout(() => reject(new Error(`Timeout sending fallback text to contact (${sendTimeout}ms)`)), sendTimeout)
-              )
-            ]);
-          }
+          messageResult = await instance.socket.sendMessage(formattedPhone, { text: message });
       }
     } else {
-      // Mensagem de texto com configuração otimizada para grupos
-      console.log(`💬 Enviando mensagem de texto ${isGroup ? '(GRUPO)' : '(CONTATO)'} - Timeout: ${sendTimeout}ms`);
-      
-      if (isGroup) {
-        // ✅ CONFIGURAÇÃO OTIMIZADA PARA GRUPOS - EVITA VALIDAÇÃO AUTOMÁTICA
-        messageResult = await Promise.race([
-          instance.socket.sendMessage(formattedPhone, { 
-            text: message 
-          }, {
-            // Opções para evitar validações automáticas do Baileys
-            messageOptions: {
-              ephemeral: false,
-              linkPreview: false
-            }
-          }),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error(`Timeout sending to group (${sendTimeout}ms)`)), sendTimeout)
-          )
-        ]);
-      } else {
-        // Envio normal para contatos individuais
-        messageResult = await Promise.race([
-          instance.socket.sendMessage(formattedPhone, { text: message }),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error(`Timeout sending to contact (${sendTimeout}ms)`)), sendTimeout)
-          )
-        ]);
-      }
+      // Mensagem de texto padrão
+      messageResult = await instance.socket.sendMessage(formattedPhone, { text: message });
     }
 
     // Adicionar ao cache para evitar reenvio de webhook
@@ -1297,7 +1229,14 @@ async function startServer() {
       console.log(`   📸 POST /instance/:id/process-profile-pic - Processar foto individual`);
       console.log(`   📸 POST /instance/:id/sync-profile-pics-bulk - Sincronização em massa`);
       console.log(`   📸 GET  /bulk-sync-status - Status da sincronização`);
-      console.log(`   POST /send - Enviar mensagem`);
+      console.log(`   POST /queue/add-message - Enviar mensagem (via queue)`);
+      console.log(`   POST /queue/add-broadcast - Envio em massa (broadcast)`);
+      console.log(`   POST /queue/mark-as-read - Marcar mensagens como lidas`);
+      console.log(`   POST /send - Enviar mensagem (endpoint original)`);
+      console.log(`   POST /instance/:id/mark-read-conversation - Marcar mensagens como lidas`);
+      console.log(`   POST /instance/:id/mark-read-messages - Marcar mensagens específicas como lidas`);
+      console.log(`   GET  /read-messages-stats - Estatísticas da fila de read messages`);
+      console.log(`   DELETE /read-messages-queue - Limpar fila de read messages`);
     });
 
     server.timeout = 60000;
@@ -1336,3 +1275,647 @@ function cleanupFailedInstances() {
 
 // Executar limpeza a cada 5 minutos
 setInterval(cleanupFailedInstances, 300000);
+
+// ================================
+// 📦 ENDPOINTS ESSENCIAIS DE QUEUE
+// ================================
+
+// 📢 ENDPOINT BROADCAST: Envio em massa (para broadcast_messaging_service)
+app.post('/queue/add-broadcast', authenticateToken, async (req, res) => {
+  const { instanceId, contacts, message, mediaType, mediaUrl, rateLimitMs, campaignId } = req.body;
+
+  console.log(`🔥 [BROADCAST] Recebida solicitação:`, {
+    instanceId,
+    contactsCount: Array.isArray(contacts) ? contacts.length : 1,
+    messageLength: message?.length || 0,
+    mediaType: mediaType || 'text',
+    hasMediaUrl: !!mediaUrl,
+    campaignId
+  });
+
+  if (!instanceId || !contacts || !message) {
+    return res.status(400).json({
+      success: false,
+      error: 'instanceId, contacts e message são obrigatórios',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Verificar se instância existe
+  const instance = instances[instanceId];
+  if (!instance) {
+    return res.status(404).json({
+      success: false,
+      error: 'Instância não encontrada',
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  if (!instance.connected || !instance.socket) {
+    return res.status(400).json({
+      success: false,
+      error: 'Instância não está conectada',
+      status: instance.status,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  try {
+    const contactsArray = Array.isArray(contacts) ? contacts : [contacts];
+    const rateLimit = rateLimitMs || 2000; // 2s padrão entre envios
+    
+    console.log(`📢 [BROADCAST] Processando ${contactsArray.length} contatos com rate limit de ${rateLimit}ms`);
+
+    const results = [];
+    let successCount = 0;
+    let errorCount = 0;
+
+    // Processar envios com rate limiting
+    for (let i = 0; i < contactsArray.length; i++) {
+      const contact = contactsArray[i];
+      const phone = contact.phone || contact;
+
+      try {
+        // Formatar número de telefone
+        const formattedPhone = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
+
+        console.log(`📤 [BROADCAST] Enviando ${i + 1}/${contactsArray.length} para ${phone.substring(0, 6)}****`);
+
+        // Preparar mensagem personalizada se necessário
+        let personalizedMessage = message;
+        if (contact.name && message.includes('{nome}')) {
+          personalizedMessage = message.replace(/\{nome\}/g, contact.name);
+        }
+
+        // Enviar mensagem
+        let messageResult;
+        if (mediaType && mediaType !== 'text' && mediaUrl) {
+          // Com mídia
+          if (mediaUrl.startsWith('data:')) {
+            const base64Data = mediaUrl.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+            
+            switch (mediaType.toLowerCase()) {
+              case 'image':
+                messageResult = await instance.socket.sendMessage(formattedPhone, {
+                  image: buffer,
+                  caption: personalizedMessage
+                });
+                break;
+              case 'document':
+                messageResult = await instance.socket.sendMessage(formattedPhone, {
+                  document: buffer,
+                  fileName: 'documento.pdf',
+                  caption: personalizedMessage
+                });
+                break;
+              default:
+                messageResult = await instance.socket.sendMessage(formattedPhone, {
+                  text: personalizedMessage
+                });
+            }
+          } else {
+            // URL externa
+            switch (mediaType.toLowerCase()) {
+              case 'image':
+                messageResult = await instance.socket.sendMessage(formattedPhone, {
+                  image: { url: mediaUrl },
+                  caption: personalizedMessage
+                });
+                break;
+              default:
+                messageResult = await instance.socket.sendMessage(formattedPhone, {
+                  text: personalizedMessage
+                });
+            }
+          }
+        } else {
+          // Só texto
+          messageResult = await instance.socket.sendMessage(formattedPhone, {
+            text: personalizedMessage
+          });
+        }
+
+        // Adicionar ao cache
+        connectionManager.addSentMessageToCache(instanceId, messageResult.key.id, formattedPhone);
+
+        results.push({
+          phone,
+          status: 'success',
+          messageId: messageResult.key.id
+        });
+        successCount++;
+
+        console.log(`✅ [BROADCAST] Sucesso ${i + 1}/${contactsArray.length}`);
+
+      } catch (contactError) {
+        console.error(`❌ [BROADCAST] Erro no contato ${phone}:`, contactError.message);
+        results.push({
+          phone,
+          status: 'error',
+          error: contactError.message
+        });
+        errorCount++;
+      }
+
+      // Rate limiting - pausar entre envios (exceto no último)
+      if (i < contactsArray.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, rateLimit));
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Broadcast processado',
+      campaignId,
+      instanceId,
+      summary: {
+        total: contactsArray.length,
+        success: successCount,
+        errors: errorCount
+      },
+      results: results.slice(0, 10), // Retornar só os primeiros 10 para não sobrecarregar
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error(`❌ [BROADCAST] Erro geral:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro no processamento do broadcast',
+      message: error.message,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 👁️ ENDPOINT MARK AS READ: Marcar mensagens como lidas (para readmessages_service)
+app.post('/queue/mark-as-read', authenticateToken, async (req, res) => {
+  const { instanceId, conversationId, messageIds, userId } = req.body;
+
+  console.log(`🔥 [MARK READ] Recebida solicitação:`, {
+    instanceId,
+    conversationId: conversationId?.substring(0, 15) + '****',
+    messageIdsCount: Array.isArray(messageIds) ? messageIds.length : 1,
+    userId
+  });
+
+  if (!instanceId || !conversationId || !messageIds) {
+    return res.status(400).json({
+      success: false,
+      error: 'instanceId, conversationId e messageIds são obrigatórios',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Verificar se instância existe
+  const instance = instances[instanceId];
+  if (!instance) {
+    return res.status(404).json({
+      success: false,
+      error: 'Instância não encontrada',
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  if (!instance.connected || !instance.socket) {
+    return res.status(400).json({
+      success: false,
+      error: 'Instância não está conectada',
+      status: instance.status,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  try {
+    const messageIdsArray = Array.isArray(messageIds) ? messageIds : [messageIds];
+    const chatJid = conversationId.includes('@') ? conversationId : `${conversationId}@s.whatsapp.net`;
+
+    console.log(`👁️ [MARK READ] Marcando ${messageIdsArray.length} mensagens como lidas para ${chatJid.substring(0, 15)}****`);
+
+    // Usar ReadMessagesWorker se disponível
+    if (readMessagesWorker) {
+      const result = await readMessagesWorker.markSpecificMessagesAsRead(instanceId, chatJid, messageIdsArray);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          message: 'Mensagens marcadas como lidas',
+          instanceId,
+          conversationId: chatJid,
+          messagesMarked: result.messagesRead,
+          method: 'worker',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: result.error,
+          instanceId,
+          conversationId: chatJid,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } else {
+      // Fallback: usar Baileys diretamente
+      await instance.socket.readMessages([{
+        remoteJid: chatJid,
+        id: messageIdsArray,
+        participant: undefined
+      }]);
+
+      res.json({
+        success: true,
+        message: 'Mensagens marcadas como lidas',
+        instanceId,
+        conversationId: chatJid,
+        messagesMarked: messageIdsArray.length,
+        method: 'direct',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+  } catch (error) {
+    console.error(`❌ [MARK READ] Erro:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao marcar mensagens como lidas',
+      message: error.message,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Status das filas (simples)
+app.get('/queue-status', (req, res) => {
+  console.log('📦 Queue status solicitado');
+  res.json({
+    success: true,
+    status: 'queues_basic',
+    port: 3001,
+    integration: 'CRM_READY',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 🚀 ENDPOINT QUEUE: Receber mensagens das Edge Functions
+app.post('/queue/add-message', authenticateToken, async (req, res) => {
+  const { instanceId, phone, message, mediaType, mediaUrl, ptt, filename, seconds, waveform, audioMimeType } = req.body;
+
+  console.log(`🔥 [QUEUE] Recebida mensagem via /queue/add-message:`, {
+    instanceId,
+    phone: phone?.substring(0, 4) + '****',
+    messageLength: message?.length || 0,
+    mediaType: mediaType || 'text',
+    hasMediaUrl: !!mediaUrl,
+    isPTT: !!ptt
+  });
+
+  if (!instanceId || !phone || !message) {
+    return res.status(400).json({
+      success: false,
+      error: 'instanceId, phone e message são obrigatórios',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Verificar se instância existe
+  const instance = instances[instanceId];
+  if (!instance) {
+    return res.status(404).json({
+      success: false,
+      error: 'Instância não encontrada',
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  if (!instance.connected || !instance.socket) {
+    return res.status(400).json({
+      success: false,
+      error: 'Instância não está conectada',
+      status: instance.status,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  try {
+    console.log(`📤 [QUEUE→SEND] Processando via ${instanceId} para ${phone}: ${message.substring(0, 50)}...`);
+
+    // Formatar número de telefone
+    const formattedPhone = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
+
+    // ✅ DETECTAR GRUPO SEM VALIDAÇÃO AUTOMÁTICA
+    const isGroup = formattedPhone.endsWith('@g.us');
+    if (isGroup) {
+      console.log(`📱 [QUEUE] Detectado envio para grupo: ${formattedPhone.substring(0, 15)}****`);
+      console.log(`⚡ [QUEUE] Pulando validação automática para evitar timeout do Baileys`);
+    }
+
+    // ✅ CONFIGURAR TIMEOUT ESPECÍFICO PARA GRUPOS
+    const sendTimeout = isGroup ? 60000 : 30000; // 60s para grupos, 30s para contatos
+
+    // Enviar mensagem via Baileys
+    let messageResult;
+
+    // ✅ SUPORTE COMPLETO A MÍDIA E DATAURL
+    if (mediaType && mediaType !== 'text' && mediaUrl) {
+      console.log(`🎬 [QUEUE] Enviando mídia tipo: ${mediaType}`);
+
+      // Detectar tipos especiais
+      const isDataUrl = mediaType.includes('_dataurl');
+      const baseType = mediaType.replace('_dataurl', '');
+
+      if (isDataUrl) {
+        console.log('📱 [QUEUE] Detectada DataURL, processando...');
+      }
+
+      switch (baseType.toLowerCase()) {
+        case 'image':
+           if (mediaUrl.startsWith('data:')) {
+             // ✅ DataURL → Buffer (para Baileys)
+             console.log('📱 [QUEUE] Convertendo DataURL para Buffer...');
+             const base64Data = mediaUrl.split(',')[1];
+             const buffer = Buffer.from(base64Data, 'base64');
+             
+             if (isGroup) {
+               // ✅ ENVIO OTIMIZADO PARA GRUPOS
+               messageResult = await Promise.race([
+                 instance.socket.sendMessage(formattedPhone, {
+                   image: buffer
+                 }, {
+                   messageOptions: {
+                     ephemeral: false,
+                     linkPreview: false
+                   }
+                 }),
+                 new Promise((_, reject) => 
+                   setTimeout(() => reject(new Error(`Timeout sending image to group (${sendTimeout}ms)`)), sendTimeout)
+                 )
+               ]);
+             } else {
+               messageResult = await Promise.race([
+                 instance.socket.sendMessage(formattedPhone, {
+                   image: buffer
+                 }),
+                 new Promise((_, reject) => 
+                   setTimeout(() => reject(new Error(`Timeout sending image to contact (${sendTimeout}ms)`)), sendTimeout)
+                 )
+               ]);
+             }
+           } else {
+             // URL HTTP normal
+             if (isGroup) {
+               messageResult = await Promise.race([
+                 instance.socket.sendMessage(formattedPhone, {
+                   image: { url: mediaUrl }
+                 }, {
+                   messageOptions: {
+                     ephemeral: false,
+                     linkPreview: false
+                   }
+                 }),
+                 new Promise((_, reject) => 
+                   setTimeout(() => reject(new Error(`Timeout sending image to group (${sendTimeout}ms)`)), sendTimeout)
+                 )
+               ]);
+             } else {
+               messageResult = await Promise.race([
+                 instance.socket.sendMessage(formattedPhone, {
+                   image: { url: mediaUrl }
+                 }),
+                 new Promise((_, reject) => 
+                   setTimeout(() => reject(new Error(`Timeout sending image to contact (${sendTimeout}ms)`)), sendTimeout)
+                 )
+               ]);
+             }
+           }
+           break;
+
+        case 'audio':
+          if (mediaUrl.startsWith('data:')) {
+            // ✅ DataURL → Buffer para áudios
+            console.log('🎵 [QUEUE] Convertendo áudio DataURL para Buffer...');
+            const base64Data = mediaUrl.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            // ✅ CORREÇÃO PRINCIPAL: PROCESSAR METADADOS PTT
+            // Detectar mimetype do DataURL ou usar fornecido
+            const mimeMatch = mediaUrl.match(/data:([^;]+)/);
+            const detectedMimeType = audioMimeType || (mimeMatch ? mimeMatch[1] : 'audio/mpeg');
+
+            console.log(`🎙️ [QUEUE] Metadados PTT recebidos: ptt=${ptt}, filename=${filename}, seconds=${seconds}`);
+            console.log(`🎵 [QUEUE] MIME type usado: ${detectedMimeType}`);
+
+            // Construir opções de áudio baseado nos metadados
+            const audioOptions = {
+              audio: buffer,
+              fileName: filename || 'audio.mp3',
+              mimetype: detectedMimeType
+            };
+
+            // ✅ ADICIONAR SUPORTE A PTT NATIVO
+            if (ptt === true) {
+              console.log('🎙️ [QUEUE] ENVIANDO COMO ÁUDIO NATIVO PTT (Push-to-Talk)');
+              audioOptions.ptt = true;
+
+              // Adicionar duração se disponível
+              if (seconds) {
+                audioOptions.seconds = parseInt(seconds);
+              }
+
+              // Adicionar waveform se disponível (opcional)
+              if (waveform) {
+                audioOptions.waveform = waveform;
+              }
+            } else {
+              console.log('🎵 [QUEUE] Enviando como áudio normal (não-PTT)');
+            }
+
+            if (isGroup) {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, audioOptions, {
+                  messageOptions: {
+                    ephemeral: false,
+                    linkPreview: false
+                  }
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending audio to group (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            } else {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, audioOptions),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending audio to contact (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            }
+          }
+          break;
+
+        case 'video':
+          if (mediaUrl.startsWith('data:')) {
+            // ✅ DataURL → Buffer para vídeos
+            console.log('📹 [QUEUE] Convertendo vídeo DataURL para Buffer...');
+            const base64Data = mediaUrl.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+            
+            if (isGroup) {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  video: buffer,
+                  fileName: 'video.mp4'
+                }, {
+                  messageOptions: {
+                    ephemeral: false,
+                    linkPreview: false
+                  }
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending video to group (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            } else {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  video: buffer,
+                  fileName: 'video.mp4'
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending video to contact (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            }
+          }
+          break;
+
+        case 'document':
+          if (mediaUrl.startsWith('data:')) {
+            // ✅ DataURL → Buffer para documentos
+            console.log('📄 [QUEUE] Convertendo documento DataURL para Buffer...');
+            const base64Data = mediaUrl.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            // Detectar MIME type do DataURL
+            const mimeMatch = mediaUrl.match(/data:([^;]+)/);
+            const mimeType = mimeMatch ? mimeMatch[1] : 'application/pdf';
+
+            if (isGroup) {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  document: buffer,
+                  fileName: 'documento.pdf',
+                  mimetype: mimeType
+                }, {
+                  messageOptions: {
+                    ephemeral: false,
+                    linkPreview: false
+                  }
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending document to group (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            } else {
+              messageResult = await Promise.race([
+                instance.socket.sendMessage(formattedPhone, {
+                  document: buffer,
+                  fileName: 'documento.pdf',
+                  mimetype: mimeType
+                }),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error(`Timeout sending document to contact (${sendTimeout}ms)`)), sendTimeout)
+                )
+              ]);
+            }
+          }
+          break;
+
+        default:
+          console.log('⚠️ [QUEUE] Tipo de mídia não reconhecido, enviando como texto');
+          if (isGroup) {
+            messageResult = await Promise.race([
+              instance.socket.sendMessage(formattedPhone, { text: message }, {
+                messageOptions: {
+                  ephemeral: false,
+                  linkPreview: false
+                }
+              }),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error(`Timeout sending fallback text to group (${sendTimeout}ms)`)), sendTimeout)
+              )
+            ]);
+          } else {
+            messageResult = await Promise.race([
+              instance.socket.sendMessage(formattedPhone, { text: message }),
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error(`Timeout sending fallback text to contact (${sendTimeout}ms)`)), sendTimeout)
+              )
+            ]);
+          }
+      }
+    } else {
+      // Mensagem de texto com configuração otimizada para grupos
+      console.log(`💬 [QUEUE] Enviando mensagem de texto ${isGroup ? '(GRUPO)' : '(CONTATO)'} - Timeout: ${sendTimeout}ms`);
+      
+      if (isGroup) {
+        // ✅ CONFIGURAÇÃO OTIMIZADA PARA GRUPOS - EVITA VALIDAÇÃO AUTOMÁTICA
+        messageResult = await Promise.race([
+          instance.socket.sendMessage(formattedPhone, { 
+            text: message 
+          }, {
+            // Opções para evitar validações automáticas do Baileys
+            messageOptions: {
+              ephemeral: false,
+              linkPreview: false
+            }
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`Timeout sending to group (${sendTimeout}ms)`)), sendTimeout)
+          )
+        ]);
+      } else {
+        // Envio normal para contatos individuais
+        messageResult = await Promise.race([
+          instance.socket.sendMessage(formattedPhone, { text: message }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`Timeout sending to contact (${sendTimeout}ms)`)), sendTimeout)
+          )
+        ]);
+      }
+    }
+
+    // Adicionar ao cache para evitar reenvio de webhook
+    connectionManager.addSentMessageToCache(instanceId, messageResult.key.id, formattedPhone);
+
+    console.log(`✅ [QUEUE] Mensagem enviada com sucesso via ${instanceId}`);
+
+    res.json({
+      success: true,
+      messageId: messageResult.key.id,
+      instanceId,
+      phone: formattedPhone,
+      message: message,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error(`❌ [QUEUE] Erro ao enviar mensagem via ${instanceId}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao enviar mensagem',
+      message: error.message,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+});

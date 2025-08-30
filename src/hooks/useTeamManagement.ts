@@ -95,33 +95,56 @@ export function useTeamManagement(companyId?: string | null) {
 
   const createTeamMember = useMutation({
     mutationFn: async (memberData: CreateTeamMemberData) => {
-      if (!user?.id) throw new Error("Usuário não autenticado");
+      console.log('[TeamManagement] Iniciando criação de membro:', memberData);
+      
+      if (!user?.id) {
+        console.error('[TeamManagement] Usuário não autenticado');
+        throw new Error("Usuário não autenticado");
+      }
 
       // 1. Gerar ID único
       const userId = crypto.randomUUID();
+      console.log('[TeamManagement] ID gerado:', userId);
       
       // 2. Verificar se username já existe e criar um único se necessário
       let uniqueUsername = memberData.username;
       let counter = 1;
       
+      console.log('[TeamManagement] Verificando disponibilidade de username:', uniqueUsername);
+      
       // Tentar até 10 vezes para encontrar um username único
       while (counter <= 10) {
-        const { data: existingUser } = await supabase
+        const { data: existingUser, error: checkError } = await supabase
           .from("profiles")
           .select("id")
           .eq("username", uniqueUsername)
           .eq("created_by_user_id", user.id)
           .single();
           
+        if (checkError) {
+          console.log('[TeamManagement] Erro ao verificar username:', checkError);
+        }
+        
         if (!existingUser) {
+          console.log('[TeamManagement] Username disponível:', uniqueUsername);
           break; // Username disponível
         }
         
+        console.log('[TeamManagement] Username já existe, tentando próximo:', uniqueUsername);
         uniqueUsername = `${memberData.username}${counter}`;
         counter++;
       }
 
       // 3. Criar perfil
+      console.log('[TeamManagement] Criando perfil com dados:', {
+        id: userId,
+        full_name: memberData.fullName,
+        username: uniqueUsername,
+        role: memberData.role,
+        created_by_user_id: user.id,
+        whatsapp: memberData.whatsappPersonal
+      });
+      
       const { error: profileError } = await supabase
         .from("profiles")
         .insert({
@@ -135,10 +158,17 @@ export function useTeamManagement(companyId?: string | null) {
           updated_at: new Date().toISOString()
         });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('[TeamManagement] Erro ao criar perfil:', profileError);
+        throw profileError;
+      }
+      
+      console.log('[TeamManagement] Perfil criado com sucesso');
 
       // 4. Atribuir acessos aos funis
       if (memberData.funnelAccess.length > 0) {
+        console.log('[TeamManagement] Atribuindo acesso a funis:', memberData.funnelAccess);
+        
         const funnelInserts = memberData.funnelAccess.map(funnelId => ({
           profile_id: userId,
           funnel_id: funnelId,
@@ -149,11 +179,18 @@ export function useTeamManagement(companyId?: string | null) {
           .from("user_funnels")
           .insert(funnelInserts);
 
-        if (funnelError) throw funnelError;
+        if (funnelError) {
+          console.error('[TeamManagement] Erro ao atribuir acesso a funis:', funnelError);
+          throw funnelError;
+        }
+        
+        console.log('[TeamManagement] Acesso a funis atribuído com sucesso');
       }
 
       // 5. Atribuir acessos às instâncias WhatsApp
       if (memberData.whatsappAccess.length > 0) {
+        console.log('[TeamManagement] Atribuindo acesso a instâncias WhatsApp:', memberData.whatsappAccess);
+        
         const whatsappInserts = memberData.whatsappAccess.map(whatsappId => ({
           profile_id: userId,
           whatsapp_number_id: whatsappId,
@@ -164,13 +201,20 @@ export function useTeamManagement(companyId?: string | null) {
           .from("user_whatsapp_numbers")
           .insert(whatsappInserts);
 
-        if (whatsappError) throw whatsappError;
+        if (whatsappError) {
+          console.error('[TeamManagement] Erro ao atribuir acesso a instâncias WhatsApp:', whatsappError);
+          throw whatsappError;
+        }
+        
+        console.log('[TeamManagement] Acesso a instâncias WhatsApp atribuído com sucesso');
       }
 
       // 6. Enviar convite por email se fornecido
       if (memberData.email && memberData.password) {
+        console.log('[TeamManagement] Enviando convite por email para:', memberData.email);
+        
         try {
-          await supabase.functions.invoke('send_team_invite', {
+          const inviteResult = await supabase.functions.invoke('send_team_invite', {
             body: {
               email: memberData.email,
               full_name: memberData.fullName,
@@ -178,12 +222,15 @@ export function useTeamManagement(companyId?: string | null) {
               companyId: user.id,
             }
           });
+          
+          console.log('[TeamManagement] Resultado do envio de convite:', inviteResult);
         } catch (emailError) {
-          console.warn("Erro ao enviar email de convite:", emailError);
+          console.warn("[TeamManagement] Erro ao enviar email de convite:", emailError);
           // Não falha a criação do membro se o email falhar
         }
       }
 
+      console.log('[TeamManagement] Membro criado com sucesso:', { userId, finalUsername: uniqueUsername });
       return { userId, finalUsername: uniqueUsername };
     },
     onSuccess: (data) => {

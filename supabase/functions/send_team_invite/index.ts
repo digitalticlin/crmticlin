@@ -18,13 +18,26 @@ interface InviteRequest {
   companyId: string;
 }
 serve(async (req) => {
+  console.log('[send_team_invite] Function called with method:', req.method);
+  
   if (req.method === "OPTIONS") {
+    console.log('[send_team_invite] Responding to OPTIONS request');
     return new Response(null, { headers: corsHeaders });
   }
+  
   try {
-    const { email, full_name, tempPassword }: InviteRequest = await req.json();
+    const body = await req.json();
+    console.log('[send_team_invite] Request body:', body);
+    
+    const { email, full_name, tempPassword, companyId }: InviteRequest = body;
 
-    await resend.emails.send({
+    console.log('[send_team_invite] Sending email with params:', {
+      from: "Ticlin <onboarding@resend.dev>",
+      to: [email],
+      subject: "Bem-vindo à sua equipe Ticlin"
+    });
+
+    const result = await resend.emails.send({
       from: "Ticlin <onboarding@resend.dev>",
       to: [email],
       subject: "Bem-vindo à sua equipe Ticlin",
@@ -41,14 +54,17 @@ serve(async (req) => {
         <p>Atenciosamente,<br/>Equipe Ticlin</p>
       `,
     });
+    
+    console.log('[send_team_invite] Email sent result:', result);
 
     return new Response(
-      JSON.stringify({ message: "Email de convite enviado" }),
+      JSON.stringify({ message: "Email de convite enviado", result }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (err) {
+    console.error('[send_team_invite] Error:', err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: err.message, stack: err.stack }),
       { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }

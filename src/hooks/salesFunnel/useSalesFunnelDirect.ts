@@ -61,8 +61,16 @@ export function useSalesFunnelDirect() {
           .select(`
             id, name, phone, email, company, notes, 
             last_message, last_message_time, purchase_value, 
-            unread_count, owner_id, kanban_stage_id, funnel_id,
+            unread_count, owner_id, created_by_user_id, kanban_stage_id, funnel_id,
             whatsapp_number_id, created_at, updated_at, profile_pic_url,
+            owner:owner_id (
+              id,
+              full_name
+            ),
+            creator:created_by_user_id (
+              id,
+              full_name
+            ),
             lead_tags(
               tag_id,
               tags:tag_id(
@@ -140,7 +148,7 @@ export function useSalesFunnelDirect() {
           notes: lead.notes || undefined,
           columnId: stage.id,
           purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
-          assignedUser: lead.owner_id || undefined,
+          assignedUser: lead.owner?.full_name || lead.creator?.full_name || lead.created_by_user_id || undefined,
           unreadCount: lead.unread_count || 0,
           avatar: undefined,
           profile_pic_url: lead.profile_pic_url || undefined,
@@ -150,7 +158,8 @@ export function useSalesFunnelDirect() {
           whatsapp_number_id: lead.whatsapp_number_id || undefined,
           funnel_id: lead.funnel_id,
           kanban_stage_id: lead.kanban_stage_id || undefined,
-          owner_id: lead.owner_id || undefined
+          owner_id: lead.owner_id || undefined,
+          ownerName: lead.owner?.full_name || undefined
         }));
 
       return {

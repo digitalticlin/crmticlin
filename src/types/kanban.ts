@@ -32,6 +32,7 @@ export interface KanbanLead {
   funnel_id: string;
   kanban_stage_id?: string;
   owner_id?: string;
+  ownerName?: string; // Novo campo para o nome do responsável
   // Propriedades do banco que podem ser acessadas via raw data
   last_message?: string;
   purchase_value?: number;

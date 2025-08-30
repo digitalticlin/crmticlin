@@ -20,7 +20,7 @@ export const useChatDatabase = () => {
       // CORREÇÃO: Garantir que zero não seja exibido
       unreadCount: lead.unread_count && lead.unread_count > 0 ? lead.unread_count : undefined,
       createdAt: lead.created_at,
-      assignedUser: lead.owner_id,
+      assignedUser: lead.owner?.full_name || lead.owner_id,
       purchaseValue: lead.purchase_value,
       stageId: lead.kanban_stage_id || null, // ✅ CORREÇÃO SEGURA: Garantir que seja null se não houver
       deals: [],

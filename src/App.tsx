@@ -14,7 +14,6 @@ import { AppLayout } from './components/layout/AppLayout';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Index';
 import Register from './pages/Register';
-import WhatsAppIntegration from './pages/Integration';
 import FunnelsPage from './pages/SalesFunnel';
 import LeadsPage from './pages/Clients';
 import SettingsPage from './pages/Settings';
@@ -22,7 +21,6 @@ import WhatsAppWebPage from './pages/WhatsAppChat';
 import AutomationPage from './pages/Automation';
 import AIAgentsPage from './pages/AIAgents';
 import PlansPage from './pages/Plans';
-import MediaDebug from './pages/MediaDebug';
 
 // 🚀 DECLARAÇÃO GLOBAL PARA TYPESCRIPT
 declare global {
@@ -102,22 +100,6 @@ function AppLayoutRoutes() {
         } 
       />
       <Route 
-        path="/integration" 
-        element={
-          <AppLayout>
-            <WhatsAppIntegration />
-          </AppLayout>
-        } 
-      />
-      <Route 
-        path="/whatsapp" 
-        element={
-          <AppLayout>
-            <WhatsAppIntegration />
-          </AppLayout>
-        } 
-      />
-      <Route 
         path="/ai-agents" 
         element={
           <AppLayout>
@@ -146,14 +128,6 @@ function AppLayoutRoutes() {
         element={
           <AppLayout fullHeight>
             <WhatsAppWebPage />
-          </AppLayout>
-        } 
-      />
-      <Route 
-        path="/debug/media" 
-        element={
-          <AppLayout>
-            <MediaDebug />
           </AppLayout>
         } 
       />

@@ -335,7 +335,7 @@ serve(async (req) => {
     };
 
     console.log('[AI Messaging Service] 📡 Enviando para VPS (CORREÇÃO CRITICAL: instanceId deve ser nome real):', {
-      url: `${VPS_CONFIG.baseUrl}/send`,
+      url: `${VPS_CONFIG.baseUrl}/queue/add-message`,
       vpsInstanceIdFromDB: vpsInstanceId,
       payload: {
         ...vpsPayload,
@@ -348,7 +348,7 @@ serve(async (req) => {
     });
 
     // ✅ ENVIAR PARA VPS
-    const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/send`, {
+    const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/queue/add-message`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -368,7 +368,7 @@ serve(async (req) => {
         status: vpsResponse.status,
         statusText: vpsResponse.statusText,
         errorText: errorText.substring(0, 300),
-        vpsUrl: `${VPS_CONFIG.baseUrl}/send`,
+        vpsUrl: `${VPS_CONFIG.baseUrl}/queue/add-message`,
         sentPayload: {
           instanceId: vpsInstanceId,
           phone: phone.substring(0, 4) + '****',

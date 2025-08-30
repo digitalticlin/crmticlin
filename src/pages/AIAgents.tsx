@@ -1,12 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { BackgroundGradient } from "@/components/ui/BackgroundGradient";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useSidebar } from "@/contexts/SidebarContext";
-import { cn } from "@/lib/utils";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Button } from "@/components/ui/button";
 import { 
@@ -26,8 +21,6 @@ import { useAIAgents } from "@/hooks/useAIAgents";
 import { AIAgent } from "@/types/aiAgent";
 
 export default function AIAgents() {
-  const isMobile = useIsMobile();
-  const { isCollapsed } = useSidebar();
   const { agents, isLoading, deleteAgent, toggleAgentStatus, refetch } = useAIAgents();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AIAgent | null>(null);
@@ -36,7 +29,7 @@ export default function AIAgents() {
   const [deletingAgent, setDeletingAgent] = useState<AIAgent | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Carregar configurações dos agentes
+  // ATUALIZADO: Carregar configurações diretamente dos agentes
   useEffect(() => {
     if (agents.length > 0) {
       loadAgentsConfig();
@@ -45,26 +38,20 @@ export default function AIAgents() {
 
   const loadAgentsConfig = async () => {
     try {
-      const agentIds = agents.map(agent => agent.id);
-      const { data: prompts, error } = await supabase
-        .from('ai_agent_prompts')
-        .select('agent_id, agent_function, flow')
-        .in('agent_id', agentIds);
-
-      if (error) throw error;
-
+      // Os dados já estão nos agentes carregados, não precisa de query adicional
       const configMap: Record<string, any> = {};
-      prompts?.forEach(prompt => {
-        const flowSteps = Array.isArray(prompt.flow) ? prompt.flow.length : 0;
-        configMap[prompt.agent_id] = {
-          hasPrompt: !!prompt.agent_function,
+      
+      agents.forEach(agent => {
+        const flowSteps = Array.isArray((agent as any).flow) ? (agent as any).flow.length : 0;
+        configMap[agent.id] = {
+          hasPrompt: !!(agent as any).agent_function,
           flowSteps: flowSteps
         };
       });
 
       setAgentsConfig(configMap);
     } catch (error) {
-      console.error('Erro ao carregar configurações dos agentes:', error);
+      console.error('Erro ao processar configurações dos agentes:', error);
     }
   };
 
@@ -189,71 +176,31 @@ export default function AIAgents() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen w-full relative">
-        <BackgroundGradient className="fixed inset-0 z-0" />
-        <ResponsiveSidebar />
-        
-        <main className={cn(
-          "min-h-screen z-30 transition-all duration-300",
-          isMobile 
-            ? "pt-14 w-full" 
-            : isCollapsed 
-              ? "ml-[64px] w-[calc(100vw-64px)]" 
-              : "ml-[200px] w-[calc(100vw-200px)]"
-        )}>
-          <div className="w-full px-4 sm:px-6 lg:px-8">
-            <div className={cn(
-              "py-6 lg:py-8 space-y-6 lg:space-y-8 mx-auto max-w-[1400px]",
-              isMobile && "pt-6"
-            )}>
-              <PageHeader 
-                title="Agentes IA" 
-                description="Configure e gerencie seus assistentes virtuais de IA"
-                action={createAgentAction}
-              />
-              <div className="flex items-center justify-center py-8">
-                <p>Carregando agentes...</p>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
+      <>
+        <PageHeader 
+          title="Agentes IA" 
+          description="Configure e gerencie seus assistentes virtuais de IA"
+          action={createAgentAction}
+        />
+        <div className="flex items-center justify-center py-8">
+          <p>Carregando agentes...</p>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen w-full relative">
-      {/* Fundo gradiente usando o componente reutilizável */}
-      <BackgroundGradient className="fixed inset-0 z-0" />
-
-      {/* Sidebar fixo */}
-      <ResponsiveSidebar />
+    <div className="w-full">
+      <PageHeader 
+        title="Agentes IA" 
+        description="Configure e gerencie seus assistentes virtuais de IA"
+        action={createAgentAction}
+      />
       
-      {/* Container principal com z-index correto e centralização adequada */}
-      <main className={cn(
-        "min-h-screen z-30 transition-all duration-300",
-        isMobile 
-          ? "pt-14 w-full" 
-          : isCollapsed 
-            ? "ml-[64px] w-[calc(100vw-64px)]" 
-            : "ml-[200px] w-[calc(100vw-200px)]"
-      )}>
-        {/* Container centralizado */}
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className={cn(
-            "py-6 lg:py-8 space-y-6 lg:space-y-8 mx-auto max-w-[1400px]",
-            isMobile && "pt-6"
-          )}>
-            <PageHeader 
-              title="Agentes IA" 
-              description="Configure e gerencie seus assistentes virtuais de IA"
-              action={createAgentAction}
-            />
-            
-            <ChartCard 
-              title="Agentes Ativos" 
-              description="Agentes de IA disponíveis para uso nos seus números de WhatsApp"
-            >
+      <ChartCard 
+        title="Agentes Ativos" 
+        description="Agentes de IA disponíveis para uso nos seus números de WhatsApp"
+      >
         <div className="mt-4 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -368,60 +315,57 @@ export default function AIAgents() {
               <p className="text-muted-foreground">Nenhum agente de IA configurado. Crie seu primeiro agente para começar.</p>
             </div>
           )}
-            </div>
-            </ChartCard>
-            
-
-            <AIAgentModal
-              isOpen={isModalOpen}
-              onClose={handleModalClose}
-              agent={editingAgent}
-              onSave={handleModalSave}
-            />
-
-            {/* Modal de confirmação para exclusão */}
-            <Dialog open={showDeleteConfirm} onOpenChange={() => setShowDeleteConfirm(false)}>
-              <DialogContent className="max-w-md bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-xl">
-                <DialogHeader className="border-b border-white/30 pb-3 bg-white/20 backdrop-blur-sm rounded-t-xl -mx-6 -mt-6 px-6 pt-6">
-                  <DialogTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
-                    <div className="p-2 bg-red-500/20 backdrop-blur-sm rounded-lg border border-red-500/30">
-                      <Trash2 className="h-5 w-5 text-red-600" />
-                    </div>
-                    Confirmar exclusão
-                  </DialogTitle>
-                </DialogHeader>
-
-                <div className="py-4">
-                  <p className="text-gray-700 text-sm leading-relaxed mb-3">
-                    Tem certeza que deseja excluir o agente <strong>"{deletingAgent?.name}"</strong>?
-                  </p>
-                  <p className="text-red-600 text-sm font-medium">
-                    ⚠️ Esta ação não pode ser desfeita. Todas as configurações, prompts e fluxos serão perdidos permanentemente.
-                  </p>
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4 border-t border-white/30 bg-white/10 backdrop-blur-sm -mx-6 -mb-6 px-6 pb-6 rounded-b-xl">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="px-4 h-10 bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-lg transition-all duration-200"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button 
-                    onClick={confirmDeleteAgent}
-                    className="px-4 h-10 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-all duration-200"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Excluir Agente
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
         </div>
-      </main>
+      </ChartCard>
+      
+
+      <AIAgentModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        agent={editingAgent}
+        onSave={handleModalSave}
+      />
+
+      {/* Modal de confirmação para exclusão */}
+      <Dialog open={showDeleteConfirm} onOpenChange={() => setShowDeleteConfirm(false)}>
+        <DialogContent className="max-w-md bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-xl">
+          <DialogHeader className="border-b border-white/30 pb-3 bg-white/20 backdrop-blur-sm rounded-t-xl -mx-6 -mt-6 px-6 pt-6">
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
+              <div className="p-2 bg-red-500/20 backdrop-blur-sm rounded-lg border border-red-500/30">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              Confirmar exclusão
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4">
+            <p className="text-gray-700 text-sm leading-relaxed mb-3">
+              Tem certeza que deseja excluir o agente <strong>"{deletingAgent?.name}"</strong>?
+            </p>
+            <p className="text-red-600 text-sm font-medium">
+              ⚠️ Esta ação não pode ser desfeita. Todas as configurações, prompts e fluxos serão perdidos permanentemente.
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-white/30 bg-white/10 backdrop-blur-sm -mx-6 -mb-6 px-6 pb-6 rounded-b-xl">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowDeleteConfirm(false)}
+              className="px-4 h-10 bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-lg transition-all duration-200"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={confirmDeleteAgent}
+              className="px-4 h-10 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-all duration-200"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Excluir Agente
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

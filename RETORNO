@@ -1,72 +1,169 @@
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { method: "phone_name_only_v3", from_me: false, lead_id: "fa918052-2fd6-4198-b9bd-dba7931ad99c", owner_id: "9936ae64-b78c-48fe-97e8-bf67623349c6", stage_id: "a614e510-51e5-495a-b361-0c43a2e171dd", funnel_id: "1b522686-c1be-4b96-93c5-bf79ac197dbf", lead_name: "+55 (62) 9921-2484", media_type: "audio", message_id: "84652050-f29e-48ca-8e09-7eb8497a47ba", clean_phone: "556299212484", instance_id: "892f87fb-7f51-48b0-9370-2fa9051179de", is_new_lead: false, display_name: "+55 (62) 9921-2484", admin_user_id: "9936ae64-b78c-48fe-97e8-bf67623349c6", profile_pic_updated: false, mediaProcessed: true, usedExistingInfrastructure: true } }
-[Webhook] ✅ Mídia processada com infraestrutura existente
-[Media] ✅ Processamento síncrono com Storage concluído: { messageId: "84652050-f29e-48ca-8e09-7eb8497a47ba", fileName: "media_1756398316860_caqke.ogg", storageUrl: "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media...", fileSize: 17590 }
-[Media] 🍎 Processando mídia com detecção avançada: { originalType: "audio", detectedMime: "audio/ogg", extension: "ogg", isAppleFormat: false, sizeMB: "0.02" }
-[Media] 🔄 Processamento síncrono com Storage existente: 84652050-f29e-48ca-8e09-7eb8497a47ba
-[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
-[Media] 📏 Mídia detectada: 0.02MB
-[Webhook] ✅ Mensagem salva: { messageId: "84652050-f29e-48ca-8e09-7eb8497a47ba", leadId: "fa918052-2fd6-4198-b9bd-dba7931ad99c", fromMe: false }
-[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "84652050-f29e-48ca-8e09-7eb8497a47ba", externalMessageId: "3F3F3CAFC7A7F7D07B27", mediaType: "audio", sizeBytes: 23491, sizeMB: "0.02", limitMB: "16.00", willProcessSync: true, isValid: true, validationError: undefined }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "contatoluizantoniooliveira", hasMessage: true, fromMe: undefined, messageType: "audio", hasMediaData: true, hasCaption: false }
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "audio", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "profile_pic_url", "mediaData", "mediaUrl" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "audio", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, data_mediaData_exists: true, payload_size: 24452 }
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "contatoluizantoniooliveira", hasMessage: true, hasMediaData: true, timestamp: "2025-08-28T16:25:16.772Z" }
-[Webhook] 🔑 Signature recebida: false
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 24452, timestamp: "2025-08-28T16:25:16.770Z" }
-Listening on http://localhost:9999/
-[Webhook] 🔑 Webhook secret configurado: false
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.1 - OTIMIZADO PARA MEMÓRIA
-booted (time: 79ms)
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { method: "phone_name_only_v3", from_me: false, lead_id: "fa918052-2fd6-4198-b9bd-dba7931ad99c", owner_id: "9936ae64-b78c-48fe-97e8-bf67623349c6", stage_id: "a614e510-51e5-495a-b361-0c43a2e171dd", funnel_id: "1b522686-c1be-4b96-93c5-bf79ac197dbf", lead_name: "+55 (62) 9921-2484", media_type: "video", message_id: "f397b875-661f-45ca-b3c9-ab7ddd40463e", clean_phone: "556299212484", instance_id: "892f87fb-7f51-48b0-9370-2fa9051179de", is_new_lead: false, display_name: "+55 (62) 9921-2484", admin_user_id: "9936ae64-b78c-48fe-97e8-bf67623349c6", profile_pic_updated: false, mediaProcessed: true, usedExistingInfrastructure: true } }
-[Webhook] ✅ Mídia processada com infraestrutura existente
-[Media] ✅ Processamento síncrono com Storage concluído: { messageId: "f397b875-661f-45ca-b3c9-ab7ddd40463e", fileName: "media_1756398314604_0qsb9s.mp4", storageUrl: "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media...", fileSize: 1330610 }
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { method: "phone_name_only_v3", from_me: false, lead_id: "fa918052-2fd6-4198-b9bd-dba7931ad99c", owner_id: "9936ae64-b78c-48fe-97e8-bf67623349c6", stage_id: "a614e510-51e5-495a-b361-0c43a2e171dd", funnel_id: "1b522686-c1be-4b96-93c5-bf79ac197dbf", lead_name: "+55 (62) 9921-2484", media_type: "document", message_id: "c2541082-d41b-4430-90c7-9ed7f63d4455", clean_phone: "556299212484", instance_id: "892f87fb-7f51-48b0-9370-2fa9051179de", is_new_lead: false, display_name: "+55 (62) 9921-2484", admin_user_id: "9936ae64-b78c-48fe-97e8-bf67623349c6", profile_pic_updated: false, mediaProcessed: true, usedExistingInfrastructure: true } }
-[Media] ✅ Processamento síncrono com Storage concluído: { messageId: "c2541082-d41b-4430-90c7-9ed7f63d4455", fileName: "media_1756398314816_nglohr.pdf", storageUrl: "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media...", fileSize: 25978 }
-[Webhook] ✅ Mídia processada com infraestrutura existente
-[Media] 🍎 Processando mídia com detecção avançada: { originalType: "document", detectedMime: "application/pdf", extension: "pdf", isAppleFormat: false, sizeMB: "0.02" }
-[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "c2541082-d41b-4430-90c7-9ed7f63d4455", externalMessageId: "3F3F00D286FB58656476", mediaType: "document", sizeBytes: 34668, sizeMB: "0.03", limitMB: "100.00", willProcessSync: true, isValid: true, validationError: undefined }
-[Media] 🔄 Processamento síncrono com Storage existente: c2541082-d41b-4430-90c7-9ed7f63d4455
-[Webhook] ✅ Mensagem salva: { messageId: "c2541082-d41b-4430-90c7-9ed7f63d4455", leadId: "fa918052-2fd6-4198-b9bd-dba7931ad99c", fromMe: false }
-[Media] 📏 Mídia detectada: 0.03MB
-[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "contatoluizantoniooliveira", hasMessage: true, fromMe: undefined, messageType: "document", hasMediaData: true, hasCaption: false }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "document", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "profile_pic_url", "mediaData", "mediaUrl" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "document", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, data_mediaData_exists: true, payload_size: 35713 }
-[Webhook] 🔑 Signature recebida: false
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 35713, timestamp: "2025-08-28T16:25:14.716Z" }
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "contatoluizantoniooliveira", hasMessage: true, hasMediaData: true, timestamp: "2025-08-28T16:25:14.717Z" }
-Listening on http://localhost:9999/
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.1 - OTIMIZADO PARA MEMÓRIA
-[Webhook] 🔑 Webhook secret configurado: false
-booted (time: 67ms)
-[Media] 🍎 Processando mídia com detecção avançada: { originalType: "video", detectedMime: "video/mp4", extension: "mp4", isAppleFormat: false, sizeMB: "1.27" }
-[Media] 📏 Mídia detectada: 1.69MB
-[Media] 🔄 Processamento síncrono com Storage existente: f397b875-661f-45ca-b3c9-ab7ddd40463e
-[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "f397b875-661f-45ca-b3c9-ab7ddd40463e", externalMessageId: "3F8411256E4D58A334A2", mediaType: "video", sizeBytes: 1774170, sizeMB: "1.69", limitMB: "16.00", willProcessSync: true, isValid: true, validationError: undefined }
-[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
-[Webhook] ✅ Mensagem salva: { messageId: "f397b875-661f-45ca-b3c9-ab7ddd40463e", leadId: "fa918052-2fd6-4198-b9bd-dba7931ad99c", fromMe: false }
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "contatoluizantoniooliveira", hasMessage: true, fromMe: undefined, messageType: "video", hasMediaData: true, hasCaption: false }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "video", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "profile_pic_url", "mediaData", "mediaUrl" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "video", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, data_mediaData_exists: true, payload_size: 1775164 }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "contatoluizantoniooliveira", hasMessage: true, hasMediaData: true, timestamp: "2025-08-28T16:25:14.139Z" }
-[Webhook] 🔑 Signature recebida: false
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 1775164, timestamp: "2025-08-28T16:25:14.079Z" }
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 🔑 Webhook secret configurado: false
+suppressDragDropWarnings.ts:34 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+console.warn @ suppressDragDropWarnings.ts:34
+warnOnce @ react-router-dom.js?v=1af45239:4393
+logDeprecation @ react-router-dom.js?v=1af45239:4396
+logV6DeprecationWarnings @ react-router-dom.js?v=1af45239:4399
+(anonymous) @ react-router-dom.js?v=1af45239:5271
+commitHookEffectListMount @ chunk-276SZO74.js?v=1af45239:16915
+commitPassiveMountOnFiber @ chunk-276SZO74.js?v=1af45239:18156
+commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=1af45239:18129
+commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=1af45239:18119
+commitPassiveMountEffects @ chunk-276SZO74.js?v=1af45239:18109
+flushPassiveEffectsImpl @ chunk-276SZO74.js?v=1af45239:19490
+flushPassiveEffects @ chunk-276SZO74.js?v=1af45239:19447
+(anonymous) @ chunk-276SZO74.js?v=1af45239:19328
+workLoop @ chunk-276SZO74.js?v=1af45239:197
+flushWork @ chunk-276SZO74.js?v=1af45239:176
+performWorkUntilDeadline @ chunk-276SZO74.js?v=1af45239:384Understand this warning
+suppressDragDropWarnings.ts:34 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+console.warn @ suppressDragDropWarnings.ts:34
+warnOnce @ react-router-dom.js?v=1af45239:4393
+logDeprecation @ react-router-dom.js?v=1af45239:4396
+logV6DeprecationWarnings @ react-router-dom.js?v=1af45239:4402
+(anonymous) @ react-router-dom.js?v=1af45239:5271
+commitHookEffectListMount @ chunk-276SZO74.js?v=1af45239:16915
+commitPassiveMountOnFiber @ chunk-276SZO74.js?v=1af45239:18156
+commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=1af45239:18129
+commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=1af45239:18119
+commitPassiveMountEffects @ chunk-276SZO74.js?v=1af45239:18109
+flushPassiveEffectsImpl @ chunk-276SZO74.js?v=1af45239:19490
+flushPassiveEffects @ chunk-276SZO74.js?v=1af45239:19447
+(anonymous) @ chunk-276SZO74.js?v=1af45239:19328
+workLoop @ chunk-276SZO74.js?v=1af45239:197
+flushWork @ chunk-276SZO74.js?v=1af45239:176
+performWorkUntilDeadline @ chunk-276SZO74.js?v=1af45239:384Understand this warning
+App.tsx:144 [App] 📍 Rota atual: /ai-agents
+App.tsx:162 [App] ✅ Supabase exposto globalmente para debug
+App.tsx:207 [App] ✅ BigQuery Optimizer carregado - ativará apenas se necessário
+AuthContext.tsx:65 [Auth] 📡 SIGNED_IN contatoluizantoniooliveira@gmail.com
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/ai-agents', hasUser: true, authLoading: false, roleLoading: true, userRole: 'operational', …}
+ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
+useUserRole.ts:25 [useUserRole] 👤 Buscando perfil do usuário: 9936ae64-b78c-48fe-97e8-bf67623349c6
+AuthContext.tsx:49 [Auth] 🔍 Sessão inicial: contatoluizantoniooliveira@gmail.com
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/ai-agents', hasUser: true, authLoading: false, roleLoading: true, userRole: 'operational', …}
+ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+AuthContext.tsx:65 [Auth] 📡 INITIAL_SESSION contatoluizantoniooliveira@gmail.com
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/ai-agents', hasUser: true, authLoading: false, roleLoading: true, userRole: 'operational', …}
+ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+App.tsx:192 [App] 🔐 Estado inicial de autenticação: {hasSession: true, userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', userEmail: 'contatoluizantoniooliveira@gmail.com', currentPath: '/ai-agents', error: undefined}
+useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', role: 'admin', isAdmin: true, createdByUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6'}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/ai-agents', hasUser: true, authLoading: false, roleLoading: false, userRole: 'admin', …}
+ProtectedRoute.tsx:103 [ProtectedRoute] ✅ Usuário autenticado e autorizado
+useAIAgents.ts:13 🔄 Buscando agentes atualizados do banco...
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: SUBSCRIBED
+useConnectionStatusSync.ts:117 [ConnectionStatusSync] ✅ Conectado com sucesso
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:119 [useUserPermissions] ✅ Permissões definidas: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …}
+useAIAgents.ts:28 ✅ 1 agentes carregados do banco
+AIAgentModal.tsx:61 🎯 getCurrentAgent() chamado: null
+AIAgentModal.tsx:265 🔄 PROMPT DATA MUDOU: {agent_function: 'VAZIO', timestamp: '15:53:10'}
+AIAgentModal.tsx:61 🎯 getCurrentAgent() chamado: null
+dragDropDebugger.ts:85 🚀 [DragDropDebugger] Iniciando diagnóstico completo
+dragDropDebugger.ts:6 🔍 [DragDropDebugger] Análise de elementos
+dragDropDebugger.ts:10 📐 Elementos com transform: 0
+dragDropDebugger.ts:14 🎯 Elementos RBD: 0
+dragDropDebugger.ts:18 🚫 Elementos com overflow hidden: 0
+dragDropDebugger.ts:22 👆 Elementos com pointer-events none: 0
+dragDropDebugger.ts:62 🧪 [DragDropDebugger] Verificação React Beautiful DND
+dragDropDebugger.ts:66 📦 Script RBD encontrado: false
+dragDropDebugger.ts:70 🎯 DragDropContext ativo: false
+dragDropDebugger.ts:74 🎪 Elementos draggable: 0
+dragDropDebugger.ts:78 🎯 Elementos droppable: 0
+dragDropDebugger.ts:29 🎬 [DragDropDebugger] Configurando monitoramento
+dragDropDebugger.ts:91 ✅ [DragDropDebugger] Diagnóstico concluído - verifique os logs acima
+AIAgentModal.tsx:61 🎯 getCurrentAgent() chamado: {id: '481766d9-2b00-4812-aeb1-9ea350a7ed71', name: 'Amanda', source: 'agent prop'}
+AIAgentModal.tsx:80 🔄 Modal aberto - promptData vazio, carregando do banco
+AIAgentModal.tsx:129 
+=== CARREGAMENTO DE DADOS DO PROMPT ===
+AIAgentModal.tsx:130 📎 Carregando dados para agente ID: 481766d9-2b00-4812-aeb1-9ea350a7ed71
+useAIAgentPrompts.ts:188 
+=== GET PROMPT BY AGENT ID (CONSOLIDADO) ===
+useAIAgentPrompts.ts:189 🔍 Buscando dados do agente ID: 481766d9-2b00-4812-aeb1-9ea350a7ed71
+useAIAgents.ts:13 🔄 Buscando agentes atualizados do banco...
+AIAgentForm.tsx:37 🔄 Sincronizando formData com agent prop: {id: '481766d9-2b00-4812-aeb1-9ea350a7ed71', name: 'Amanda', type: 'sales', status: 'inactive', funnel_id: '1b522686-c1be-4b96-93c5-bf79ac197dbf', …}
+suppressDragDropWarnings.ts:34 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+console.warn @ suppressDragDropWarnings.ts:34
+(anonymous) @ chunk-ERCPQWBU.js?v=1af45239:340
+commitHookEffectListMount @ chunk-276SZO74.js?v=1af45239:16915
+commitPassiveMountOnFiber @ chunk-276SZO74.js?v=1af45239:18156
+commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=1af45239:18129
+commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=1af45239:18119
+commitPassiveMountEffects @ chunk-276SZO74.js?v=1af45239:18109
+flushPassiveEffectsImpl @ chunk-276SZO74.js?v=1af45239:19490
+flushPassiveEffects @ chunk-276SZO74.js?v=1af45239:19447
+commitRootImpl @ chunk-276SZO74.js?v=1af45239:19416
+commitRoot @ chunk-276SZO74.js?v=1af45239:19277
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=1af45239:18895
+flushSyncCallbacks @ chunk-276SZO74.js?v=1af45239:9119
+(anonymous) @ chunk-276SZO74.js?v=1af45239:18627Understand this warning
+AIAgentModal.tsx:61 🎯 getCurrentAgent() chamado: {id: '481766d9-2b00-4812-aeb1-9ea350a7ed71', name: 'Amanda', source: 'workingAgent'}
+useAIAgentPrompts.ts:197 📊 Resposta da busca: {data: 'SIM', error: 'NENHUM'}
+useAIAgentPrompts.ts:230 ✅ Dados do agente convertidos com sucesso
+useAIAgentPrompts.ts:231 === FIM GET PROMPT (COM SUCESSO) ===
 
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { method: "phone_name_only_v3", from_me: true, lead_id: "5ffe9ff4-9305-4976-926b-e4c2f8b47712", owner_id: "152f2390-ede4-4f46-89bc-da3d7f5da747", stage_id: "d4014be6-3d25-4a54-ae29-faa66c966473", funnel_id: "d4018059-889c-4ef3-b4f2-e3beff849b57", lead_name: "+55 (62) 9697-9424", media_type: "image", message_id: "889c76e5-0309-47fc-b876-18ff4ddad231", clean_phone: "556296979424", instance_id: "d1d34909-3546-4dee-93fc-083f95323bc6", is_new_lead: false, display_name: "+55 (62) 9697-9424", admin_user_id: "152f2390-ede4-4f46-89bc-da3d7f5da747", profile_pic_updated: false, mediaProcessed: true, usedExistingInfrastructure: true } }
-[Media] ❌ Erro ao salvar cache: { code: "22P02", details: null, hint: null, message: 'invalid input value for enum media_type: "sticker"' }
-[Webhook] ⚠️ Falha no processamento de mídia, mas mensagem foi salva
-[Media] 🍎 Processando mídia com detecção avançada: { originalType: "sticker", detectedMime: "image/webp", extension: "webp", isAppleFormat: false, sizeMB: "0.06" }
-[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
-[Media] 📏 Mídia detectada: 0.07MB
-[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "889c76e5-0309-47fc-b876-18ff4ddad231", externalMessageId: "3EB09B7822BA70FB4DA6AC", mediaType: "sticker", sizeBytes: 78239, sizeMB: "0.07", limitMB: "0.49", willProcessSync: true, isValid: true, validationError: undefined }
-[Media] 🔄 Processamento síncrono com Storage existente: 889c76e5-0309-47fc-b876-18ff4ddad231
-[Webhook] ✅ Mensagem salva: { messageId: "889c76e5-0309-47fc-b876-18ff4ddad231", leadId: "5ffe9ff4-9305-4976-926b-e4c2f8b47712", fromMe: true }
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "imperioesportegyn", hasMessage: true, fromMe: true, messageType: "sticker", hasMediaData: true, hasCaption: false }
-[Webhook] 💾 Salvando mensagem no banco...
+AIAgentModal.tsx:134 📊 Prompt encontrado: SIM
+AIAgentModal.tsx:137 📝 Mapeando dados do prompt encontrado...
+AIAgentModal.tsx:138 📊 Dados carregados do banco: {agent_function: 'PREENCHIDO', agent_objective: 'PREENCHIDO', communication_style: 'PREENCHIDO', communication_style_examples: 1, company_info: 'PREENCHIDO', …}
+AIAgentModal.tsx:163 📝 Dados formatados para setPromptData: {agent_function: 'PREENCHIDO (80 chars)', agent_objective: 'PREENCHIDO (60 chars)', communication_style: 'PREENCHIDO (60 chars)', company_info: 'PREENCHIDO (80 chars)'}
+AIAgentModal.tsx:177 ✅ Dados do prompt carregados e mapeados com sucesso - sem marcar como alteração
+AIAgentModal.tsx:182 === FIM CARREGAMENTO PROMPT ===
+
+AIAgentModal.tsx:61 🎯 getCurrentAgent() chamado: {id: '481766d9-2b00-4812-aeb1-9ea350a7ed71', name: 'Amanda', source: 'workingAgent'}
+AIAgentModal.tsx:265 🔄 PROMPT DATA MUDOU: {agent_function: '80 chars', timestamp: '15:53:13'}
+useAIAgents.ts:28 ✅ 1 agentes carregados do banco
+AIAgentModal.tsx:61 🎯 getCurrentAgent() chamado: {id: '481766d9-2b00-4812-aeb1-9ea350a7ed71', name: 'Amanda', source: 'workingAgent'}
+EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
+EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
+EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
+EnhancedPromptConfiguration.tsx:113 🔍 editingStep mudou: null
+EnhancedPromptConfiguration.tsx:117 🔍 showDeleteConfirm mudou: {show: false, index: null}
+EnhancedPromptConfiguration.tsx:121 🔄 forceRender mudou: 0 - Componente deve re-renderizar
+EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
+EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
+EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
+EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
+EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
+EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
+EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
+EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
+EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
+FieldConfigModal.tsx:131 🔧 FieldConfigModal aberto para campo: products_services
+FieldConfigModal.tsx:132 📊 Valores recebidos: {type: 'simple', simpleValue: 'PREENCHIDO (100 chars)', fieldWithExamples: 'NENHUM'}
+suppressDragDropWarnings.ts:34 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+console.warn @ suppressDragDropWarnings.ts:34
+(anonymous) @ chunk-ERCPQWBU.js?v=1af45239:340
+commitHookEffectListMount @ chunk-276SZO74.js?v=1af45239:16915
+commitPassiveMountOnFiber @ chunk-276SZO74.js?v=1af45239:18156
+commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=1af45239:18129
+commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=1af45239:18119
+commitPassiveMountEffects @ chunk-276SZO74.js?v=1af45239:18109
+flushPassiveEffectsImpl @ chunk-276SZO74.js?v=1af45239:19490
+flushPassiveEffects @ chunk-276SZO74.js?v=1af45239:19447
+commitRootImpl @ chunk-276SZO74.js?v=1af45239:19416
+commitRoot @ chunk-276SZO74.js?v=1af45239:19277
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=1af45239:18895
+flushSyncCallbacks @ chunk-276SZO74.js?v=1af45239:9119
+(anonymous) @ chunk-276SZO74.js?v=1af45239:18627Understand this warning
+EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
+EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
+EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
+EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
+EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
+EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
+EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
+EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
+EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
+EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
+EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
+EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
+EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
+EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
+EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false

@@ -141,6 +141,28 @@ class WebhookManager {
       timestamp: new Date().toISOString()
     };
   }
+
+  // 📱 Notificar mensagens marcadas como lidas (sincronização com móvel)
+  async notifyReadMessages(instanceId, chatJid, messageCount, userId = null) {
+    try {
+      const data = {
+        event_type: 'read_messages',
+        instance_id: instanceId,
+        chat_jid: chatJid,
+        phone: chatJid.replace('@s.whatsapp.net', ''),
+        messages_marked: messageCount,
+        user_id: userId,
+        synced_with_mobile: true,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log(`📱 [Webhook] Notificando read messages: ${messageCount} mensagens de ${data.phone}`);
+      return await this.sendWebhook('BACKEND_MESSAGES', data, 'read-messages');
+    } catch (error) {
+      console.error('❌ [Webhook] Erro ao notificar read messages:', error);
+      return false;
+    }
+  }
 }
 
 module.exports = WebhookManager;

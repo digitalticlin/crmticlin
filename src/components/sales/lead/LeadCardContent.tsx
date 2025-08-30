@@ -40,8 +40,18 @@ export const LeadCardContent = ({ lead, isWonLostView = false, lostStageId }: Le
   
   const hasUnreadMessages = unreadMessages !== undefined && unreadMessages !== null && unreadMessages > 0;
 
-  // Determinar usuário responsável
-  const responsibleUser = lead.assignedUser || lead.owner_id;
+  // Determinar usuário responsável - priorizando o nome quando disponível
+  const responsibleUser = lead.ownerName || lead.assignedUser;
+  
+  // Debug logs para verificar valores
+  console.log('[LeadCardContent] Debug lead data:', {
+    name: lead.name,
+    assignedUser: lead.assignedUser,
+    ownerName: lead.ownerName,
+    owner_id: lead.owner_id,
+    created_by_user_id: lead.created_by_user_id,
+    responsibleUser: responsibleUser
+  });
 
   return (
     <>

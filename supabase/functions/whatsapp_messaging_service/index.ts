@@ -427,7 +427,7 @@ serve(async (req) => {
     };
 
       console.log('[Messaging Service] 📡 Enviando para VPS (síncrono):', {
-      url: `${VPS_CONFIG.baseUrl}/send`,
+      url: `${VPS_CONFIG.baseUrl}/queue/add-message`,
       supabaseInstanceId: instanceData.id,
       vpsInstanceId: vpsInstanceId,
       payload: {
@@ -437,7 +437,7 @@ serve(async (req) => {
       }
     });
 
-    const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/send`, {
+    const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/queue/add-message`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -457,7 +457,7 @@ serve(async (req) => {
         status: vpsResponse.status,
         statusText: vpsResponse.statusText,
         errorText: errorText.substring(0, 300),
-        vpsUrl: `${VPS_CONFIG.baseUrl}/send`
+        vpsUrl: `${VPS_CONFIG.baseUrl}/queue/add-message`
       });
       
       return new Response(JSON.stringify({

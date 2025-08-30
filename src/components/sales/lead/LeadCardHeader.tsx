@@ -34,7 +34,7 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
     leadName: lead.name,
     profile_pic_url: lead.profile_pic_url,
     avatar: lead.avatar,
-    finalAvatarSrc: lead.profile_pic_url || lead.avatar,
+    finalAvatarSrc: lead.profile_pic_url || '/avatar-lead.png',
     unreadCount: lead.unreadCount,
     unread_count: lead.unread_count,
     finalUnreadCount: unreadCount,
@@ -45,7 +45,18 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
     <div className="flex items-center gap-3 mb-3">
       {/* Avatar */}
       <Avatar className="h-8 w-8 flex-shrink-0">
-        <AvatarImage src={lead.profile_pic_url || lead.avatar} alt={displayName} />
+        <img 
+          src={lead.profile_pic_url && lead.profile_pic_url.trim() !== '' ? lead.profile_pic_url : '/avatar-lead.png'} 
+          alt={displayName}
+          className="h-full w-full object-cover rounded-full"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            console.log('[LeadCardHeader] Avatar load error, switching to default:', target.src);
+            if (!target.src.includes('avatar-lead.png')) {
+              target.src = '/avatar-lead.png';
+            }
+          }}
+        />
         <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
           <User className="h-4 w-4" />
         </AvatarFallback>

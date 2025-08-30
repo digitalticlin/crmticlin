@@ -58,16 +58,26 @@ export const AddMemberModal = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('[AddMemberModal] Form data before submit:', formData);
+    
     if (!formData.full_name.trim() || !formData.email.trim() || !formData.password.trim()) {
+      console.log('[AddMemberModal] Validação falhou - campos obrigatórios ausentes');
       return;
     }
 
-    const success = await onSubmit({
+    const submitData = {
       ...formData,
       whatsapp_personal: formData.whatsapp_personal || undefined
-    });
+    };
+    
+    console.log('[AddMemberModal] Dados enviados para onSubmit:', submitData);
+    
+    const success = await onSubmit(submitData);
+    
+    console.log('[AddMemberModal] Resultado do onSubmit:', success);
 
     if (success) {
+      console.log('[AddMemberModal] Membro criado com sucesso, limpando formulário');
       setFormData({
         full_name: "",
         email: "",
@@ -78,6 +88,8 @@ export const AddMemberModal = ({
         assignedFunnelIds: []
       });
       onOpenChange(false);
+    } else {
+      console.log('[AddMemberModal] Falha ao criar membro');
     }
   };
 

@@ -24,6 +24,8 @@ interface ContactsListProps {
   onRefreshContacts?: () => void;
   totalContactsAvailable?: number;
   onEditLead?: () => void;
+  onDeleteConversation?: (contactId: string) => Promise<void>;
+  onCloseConversation?: (contactId: string) => Promise<void>;
 }
 
 const getDisplayName = (contact: Contact): string => {
@@ -44,7 +46,9 @@ export const ContactsList = ({
   onLoadMoreContacts,
   onRefreshContacts,
   totalContactsAvailable,
-  onEditLead
+  onEditLead,
+  onDeleteConversation,
+  onCloseConversation
 }: ContactsListProps) => {
   const { user } = useAuth();
   const [highlightedContacts, setHighlightedContacts] = useState<Set<string>>(new Set());
@@ -53,83 +57,18 @@ export const ContactsList = ({
   const isLoadingRef = useRef(false);
   const lastLoadTimeRef = useRef(0);
 
+  console.log('[ContactsList] Props received:', {
+    contactsLength: contacts.length,
+    searchQuery,
+    activeFilter,
+    selectedContactId: selectedContact?.id
+  });
+
   useTagsSync(user?.id || null, () => {
     if (onRefreshContacts) {
       onRefreshContacts();
     }
   });
-
-  const handleDeleteConversation = useCallback(async (contactId: string) => {
-    try {
-      // 🗑️ EXCLUIR CONVERSA: Apagar todas as mensagens do lead
-      const { error: messagesError } = await supabase
-        .from('messages')
-        .delete()
-        .eq('lead_id', contactId);
-
-      if (messagesError) throw messagesError;
-
-      // 📝 Atualizar lead: zerar contadores e marcar como arquivado
-      const { error: leadError } = await supabase
-        .from('leads')
-        .update({ 
-          unread_count: 0,
-          last_message: null,
-          last_message_time: null,
-          conversation_status: 'archived',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', contactId);
-
-      if (leadError) throw leadError;
-
-      // 🔄 Refresh da lista e fechar chat se estava selecionado
-      if (onRefreshContacts) {
-        onRefreshContacts();
-      }
-
-      if (selectedContact?.id === contactId) {
-        onSelectContact(null);
-      }
-
-      console.log('✅ Conversa excluída:', contactId);
-
-    } catch (error) {
-      console.error('❌ Erro ao excluir conversa:', error);
-      throw error;
-    }
-  }, [onRefreshContacts, selectedContact, onSelectContact]);
-
-  const handleCloseConversation = useCallback(async (contactId: string) => {
-    try {
-      // ❌ FECHAR CONVERSA: Manter mensagens, marcar como fechada
-      const { error } = await supabase
-        .from('leads')
-        .update({ 
-          conversation_status: 'closed',
-          unread_count: 0,  // Zerar não lidas ao fechar
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', contactId);
-
-      if (error) throw error;
-
-      // 🔄 Refresh da lista e fechar chat se estava selecionado
-      if (onRefreshContacts) {
-        onRefreshContacts();
-      }
-
-      if (selectedContact?.id === contactId) {
-        onSelectContact(null);
-      }
-
-      console.log('✅ Conversa fechada:', contactId);
-
-    } catch (error) {
-      console.error('❌ Erro ao fechar conversa:', error);
-      throw error;
-    }
-  }, [onRefreshContacts, selectedContact, onSelectContact]);
 
   const handleEditContact = useCallback((contact: Contact) => {
     onSelectContact(contact);
@@ -199,6 +138,11 @@ export const ContactsList = ({
   }, [hasMoreContacts, handleLoadMore, onLoadMoreContacts]);
 
   const renderedContacts = useMemo(() => {
+    console.log('[ContactsList] Rendering contacts:', {
+      contactsLength: contacts.length,
+      searchQuery,
+      activeFilter
+    });
     return contacts.map((contact, index) => {
       const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
       const displayName = getDisplayName(contact);
@@ -208,8 +152,8 @@ export const ContactsList = ({
         <ContactContextMenu
           key={contact.id}
           contact={contact}
-          onDeleteConversation={handleDeleteConversation}
-          onCloseConversation={handleCloseConversation}
+          onDeleteConversation={onDeleteConversation}
+          onCloseConversation={onCloseConversation}
           onEditContact={handleEditContact}
         >
           <div
@@ -220,12 +164,19 @@ export const ContactsList = ({
           >
             <div className="flex items-start gap-3" onClick={() => handleSelectContact(contact)}>
               <div className="relative">
-                <Avatar className="h-12 w-12 ring-2 ring-white/10">
-                  <AvatarImage src={contact.profile_pic_url || contact.avatar} alt={displayName} />
-                  <AvatarFallback className="bg-black text-yellow-400 font-extrabold text-lg" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-                    T
-                  </AvatarFallback>
-                </Avatar>
+                <div className="h-12 w-12 ring-2 ring-white/10 rounded-full overflow-hidden bg-gray-200">
+                  <img 
+                    src={contact.profilePicUrl || contact.profile_pic_url || contact.avatar || '/avatar-lead.png'}
+                    alt={displayName}
+                    className="h-full w-full object-cover rounded-full"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (!target.src.includes('avatar-lead.png')) {
+                        target.src = '/avatar-lead.png';
+                      }
+                    }}
+                  />
+                </div>
                 
                 {hasUnreadMessages && contact.unreadCount > 0 && (
                   <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full h-6 min-w-[24px] flex items-center justify-center text-xs font-bold animate-pulse">
@@ -269,7 +220,7 @@ export const ContactsList = ({
         </ContactContextMenu>
       );
     });
-  }, [contacts, selectedContact, handleSelectContact, handleDeleteConversation, handleCloseConversation, handleEditContact]);
+  }, [contacts, selectedContact, handleSelectContact, onDeleteConversation, onCloseConversation, handleEditContact]);
 
   if (contacts.length === 0) {
     return (

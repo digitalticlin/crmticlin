@@ -62,7 +62,7 @@ export function FunnelActionsBar({
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
-            <TabsList className="shadow bg-white/90 dark:bg-[#232323] border border-slate-200/70 dark:border-white/10 flex px-2 gap-2 rounded-full py-1">
+            <TabsList className="bg-transparent border-none flex px-2 gap-2 rounded-full py-1">
               <TabsTrigger
                 value="funnel"
                 className={`px-4 py-1 rounded-full font-medium text-xs md:text-sm transition-all

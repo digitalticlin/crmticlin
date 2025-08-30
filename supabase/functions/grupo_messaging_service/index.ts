@@ -105,7 +105,7 @@ serve(async (req) => {
     };
 
     console.log('[Group Messaging Service] 📡 Enviando para VPS:', {
-      url: `${VPS_CONFIG.baseUrl}/send`,
+      url: `${VPS_CONFIG.baseUrl}/queue/add-message`,
       instanceId: instanceName,
       groupId: groupId?.substring(0, 15) + '****',
       messageLength: message.length,
@@ -114,7 +114,7 @@ serve(async (req) => {
     });
 
     // ✅ ENVIAR PARA VPS API
-    const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/send`, {
+    const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/queue/add-message`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -133,7 +133,7 @@ serve(async (req) => {
         status: vpsResponse.status,
         statusText: vpsResponse.statusText,
         errorText: errorText.substring(0, 300),
-        vpsUrl: `${VPS_CONFIG.baseUrl}/send`
+        vpsUrl: `${VPS_CONFIG.baseUrl}/queue/add-message`
       });
 
       return new Response(JSON.stringify({

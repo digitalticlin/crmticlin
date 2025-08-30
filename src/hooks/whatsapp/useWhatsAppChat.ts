@@ -20,6 +20,7 @@ import { useWhatsAppContacts } from './useWhatsAppContacts';
 import { useWhatsAppMessages } from './chat/useWhatsAppMessages';
 import { useWhatsAppRealtime } from './realtime/useWhatsAppRealtime';
 import { Contact, Message } from '@/types/chat';
+import { readMessagesService } from '@/services/whatsapp/readMessagesService';
 
 interface UseWhatsAppChatReturn {
   selectedContact: Contact | null;
@@ -192,19 +193,29 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     // Processar mensagens - ISOLADO
     messages.addMessage(message);
     
-    // Se não é do usuário atual, atualizar contatos
+    // ✅ CORREÇÃO: Apenas processar mensagens recebidas (fromMe: false)
     if (!message.fromMe) {
+      console.log('[WhatsApp Chat] 📬 Processando mensagem recebida:', {
+        sender: message.sender,
+        selectedContactId: selectedContact?.id
+      });
+      
+      // Atualizar contador de não lidas apenas para mensagens recebidas
       if (selectedContact?.id !== message.sender) {
         handleUpdateUnreadCount(selectedContact?.id || '', true);
       }
       
+      // Mover contato para o topo
       handleMoveContactToTop(selectedContact?.id || '', message);
       
+      // ✅ CORREÇÃO: Mostrar notificação apenas para mensagens recebidas
       if (!document.hasFocus()) {
         toast.info(`Nova mensagem de ${selectedContact?.name || 'Contato'}`, {
           description: message.text.substring(0, 60) + '...'
         });
       }
+    } else {
+      console.log('[WhatsApp Chat] 📤 Mensagem enviada ignorada para notificações');
     }
   }, [messages.addMessage, selectedContact, handleUpdateUnreadCount, handleMoveContactToTop]);
 
@@ -257,8 +268,28 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     
     if (contact && contact.unreadCount && contact.unreadCount > 0) {
       try {
+        // ✅ 1. Marcar como lida no CRM (local)
         await markAsRead(contact.id);
         handleUpdateUnreadCount(contact.id, false);
+        
+        // ✅ 2. NOVA FEATURE: Sincronizar com WhatsApp nativo
+        if (user?.id && instances.activeInstance?.id) {
+          console.log('[WhatsApp Chat] 👁️ Sincronizando leitura com WhatsApp nativo');
+          
+          try {
+            await readMessagesService.syncConversationOnOpen(
+              contact.id, // conversationId
+              instances.activeInstance.id, // instanceId  
+              user.id // userId
+            );
+            
+            console.log('[WhatsApp Chat] ✅ Sincronização WhatsApp concluída');
+          } catch (syncError) {
+            console.error('[WhatsApp Chat] ⚠️ Erro na sincronização WhatsApp (não crítico):', syncError);
+            // Não bloquear a abertura da conversa por erro de sincronização
+          }
+        }
+        
       } catch (error) {
         console.error('[WhatsApp Chat] ❌ Erro ao marcar como lida:', error);
       }
@@ -266,7 +297,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     
     setSelectedContact(contact);
     console.log('[WhatsApp Chat] ✅ Contato selecionado:', contact?.name);
-  }, [markAsRead, handleUpdateUnreadCount]);
+  }, [markAsRead, handleUpdateUnreadCount, user?.id, instances.activeInstance?.id]);
 
   // Auto-seleção de contato da URL (isolada) - com busca no banco se necessário
   useEffect(() => {
@@ -340,7 +371,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
               documentId: leadData.document_id,
               notes: leadData.notes,
               purchaseValue: leadData.purchase_value,
-              assignedUser: leadData.owner_id,
+              assignedUser: leadData.owner?.full_name || leadData.owner_id,
               lastMessage: leadData.last_message,
               lastMessageTime: leadData.last_message_time,
               unreadCount: leadData.unread_count && leadData.unread_count > 0 ? leadData.unread_count : undefined,

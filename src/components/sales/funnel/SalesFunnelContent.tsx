@@ -399,7 +399,7 @@ export function SalesFunnelContent() {
   }
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full w-full relative">
       {/* Barra de Controles compacta e sticky */}
       <div className="sticky top-0 z-10 px-6 py-4 bg-white/80 backdrop-blur-md border-b border-white/20">
         <ModernFunnelControlBar
@@ -418,7 +418,7 @@ export function SalesFunnelContent() {
       </div>
 
       {/* Área do board em full-bleed e altura restante do viewport */}
-      <div className="flex-1 min-h-0 px-6 py-4 overflow-hidden">
+      <div className="flex-1 min-h-0 px-6 py-4 overflow-hidden relative">
         {activeTab === "funnel" ? (
           <div className="mt-2 md:mt-4 h-full flex flex-col">
             {/* Barra de pesquisa/filtro para Funil principal (fixa acima, fora do scroll horizontal) */}

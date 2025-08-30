@@ -205,7 +205,7 @@ export const useWhatsAppContacts = ({
         documentId: lead.document_id,
         notes: lead.notes,
         purchaseValue: lead.purchase_value,
-        assignedUser: lead.owner_id,
+        assignedUser: lead.owner?.full_name || lead.owner_id,
         lastMessage: lead.last_message,
         lastMessageTime: lead.last_message_time,
         unreadCount: lead.unread_count && lead.unread_count > 0 ? lead.unread_count : undefined,

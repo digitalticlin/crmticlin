@@ -13,7 +13,10 @@ export default function TeamSettings() {
   console.log('[TeamSettings] Component rendering');
   
   const { user } = useAuth();
+  console.log('[TeamSettings] User data:', user);
+  
   const { permissions, loading: permissionsLoading } = useUserPermissions();
+  console.log('[TeamSettings] Permissions data:', permissions, 'Loading:', permissionsLoading);
   const {
     teamMembers,
     isLoading,
@@ -99,8 +102,10 @@ export default function TeamSettings() {
     assignedFunnelIds: string[];
     whatsapp_personal?: string;
   }): Promise<boolean> => {
+    console.log('[TeamSettings] Iniciando criação de membro com dados:', data);
+    
     try {
-      await createTeamMember.mutateAsync({
+      const result = await createTeamMember.mutateAsync({
         fullName: data.full_name,
         username: data.email.split('@')[0], // Extract username from email
         email: data.email,
@@ -110,9 +115,12 @@ export default function TeamSettings() {
         funnelAccess: data.assignedFunnelIds,
         whatsappPersonal: data.whatsapp_personal,
       });
+      
+      console.log('[TeamSettings] Membro criado com sucesso:', result);
       return true;
     } catch (error) {
-      console.error("Error creating member:", error);
+      console.error("[TeamSettings] Erro ao criar membro:", error);
+      toast.error(`Erro ao criar membro: ${error.message || 'Erro desconhecido'}`);
       return false;
     }
   };

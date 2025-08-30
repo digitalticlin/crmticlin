@@ -30,14 +30,20 @@ export const TiclinAvatar = ({
   className,
   size = "md"
 }: TiclinAvatarProps) => {
-  // Lógica de prioridade: WhatsApp profile pic > custom avatar > Ticlin default
-  const imageUrl = profilePicUrl || customAvatar;
   
   return (
     <Avatar className={cn(sizeClasses[size], "ring-2 ring-white/10", className)}>
-      {imageUrl && (
-        <AvatarImage src={imageUrl} alt={name} />
-      )}
+      <img 
+        src={profilePicUrl && profilePicUrl.trim() !== '' ? profilePicUrl : '/avatar-lead.png'} 
+        alt={name}
+        className="h-full w-full object-cover rounded-full"
+        onError={(e) => {
+          const target = e.target as HTMLImageElement;
+          if (!target.src.includes('avatar-lead.png')) {
+            target.src = '/avatar-lead.png';
+          }
+        }}
+      />
       <AvatarFallback 
         className={cn(
           "bg-black text-yellow-400 font-extrabold flex items-center justify-center",

@@ -5,6 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExamplesManager } from "./ExamplesManager";
 import { PhraseTipsManager } from "./PhraseTipsManager";
+import { Input } from "@/components/ui/input";
+import { Plus, Minus, MoveUp, MoveDown } from "lucide-react";
 import { PQExample, FieldWithExamples } from "@/types/aiAgent";
 import { Save, X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -28,8 +30,20 @@ interface FieldConfigModalProps {
     answer: string;
   };
   
+  // Para campos com lista de textos
+  textListValue?: string[];
+  
+  // Para campos com objeções
+  objectionsValue?: Array<{objection: string; response: string}>;
+  
+  // Para campos com passos do fluxo
+  flowStepsValue?: string[];
+  
+  // Para campos de configuração do funil
+  funnelConfigValue?: any[];
+  
   // Configurações
-  type: 'simple' | 'with-examples';
+  type: 'simple' | 'with-examples' | 'text-list' | 'objections-list' | 'flow-steps' | 'funnel-config';
   required?: boolean;
 }
 
@@ -44,6 +58,10 @@ export const FieldConfigModal = ({
   placeholder = "",
   fieldWithExamples,
   examplePlaceholder,
+  textListValue,
+  objectionsValue,
+  flowStepsValue,
+  funnelConfigValue,
   type,
   required = false
 }: FieldConfigModalProps) => {
@@ -57,6 +75,20 @@ export const FieldConfigModal = ({
       examples: []
     }
   );
+  
+  // Estados para campos de lista de textos
+  const [textListData, setTextListData] = useState<string[]>(textListValue || []);
+  
+  // Estados para campos de objeções
+  const [objectionsData, setObjectionsData] = useState<Array<{objection: string; response: string}>>(
+    objectionsValue || []
+  );
+  
+  // Estados para passos do fluxo
+  const [flowStepsData, setFlowStepsData] = useState<string[]>(flowStepsValue || []);
+  
+  // Estados para configuração do funil
+  const [funnelConfigData, setFunnelConfigData] = useState<any[]>(funnelConfigValue || []);
 
   // Estados para controle de confirmação
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -76,13 +108,22 @@ export const FieldConfigModal = ({
   const hasUnsavedChanges = useMemo(() => {
     if (type === 'simple') {
       return simpleData !== initialSimpleValue;
-    } else {
+    } else if (type === 'with-examples') {
       return (
         complexData.description !== initialComplexValue.description ||
         JSON.stringify(complexData.examples) !== JSON.stringify(initialComplexValue.examples)
       );
+    } else if (type === 'text-list') {
+      return JSON.stringify(textListData) !== JSON.stringify(textListValue || []);
+    } else if (type === 'objections-list') {
+      return JSON.stringify(objectionsData) !== JSON.stringify(objectionsValue || []);
+    } else if (type === 'flow-steps') {
+      return JSON.stringify(flowStepsData) !== JSON.stringify(flowStepsValue || []);
+    } else if (type === 'funnel-config') {
+      return JSON.stringify(funnelConfigData) !== JSON.stringify(funnelConfigValue || []);
     }
-  }, [type, simpleData, complexData, initialSimpleValue, initialComplexValue]);
+    return false;
+  }, [type, simpleData, complexData, textListData, objectionsData, flowStepsData, funnelConfigData, initialSimpleValue, initialComplexValue, textListValue, objectionsValue, flowStepsValue, funnelConfigValue]);
 
   // Reset states when modal opens/closes
   useEffect(() => {
@@ -99,9 +140,13 @@ export const FieldConfigModal = ({
       
       setSimpleData(simpleValue);
       setComplexData(fieldWithExamples || { description: "", examples: [] });
+      setTextListData(textListValue || []);
+      setObjectionsData(objectionsValue || []);
+      setFlowStepsData(flowStepsValue || []);
+      setFunnelConfigData(funnelConfigValue || []);
       setShowConfirmation(false);
     }
-  }, [isOpen, simpleValue, fieldWithExamples]);
+  }, [isOpen, simpleValue, fieldWithExamples, textListValue, objectionsValue, flowStepsValue, funnelConfigValue]);
 
 
 
@@ -113,9 +158,17 @@ export const FieldConfigModal = ({
     if (type === 'simple') {
       // Permitir salvar campos vazios - remover validação obrigatória
       valueToSave = simpleData;
-    } else {
+    } else if (type === 'with-examples') {
       // Permitir salvar campos vazios - remover validação obrigatória
       valueToSave = complexData;
+    } else if (type === 'text-list') {
+      valueToSave = textListData;
+    } else if (type === 'objections-list') {
+      valueToSave = objectionsData;
+    } else if (type === 'flow-steps') {
+      valueToSave = flowStepsData;
+    } else if (type === 'funnel-config') {
+      valueToSave = funnelConfigData;
     }
     
     console.log('📝 Salvando valor:', valueToSave);
@@ -165,6 +218,10 @@ export const FieldConfigModal = ({
     // Reset states
     setSimpleData(simpleValue);
     setComplexData(fieldWithExamples || { description: "", examples: [] });
+    setTextListData(textListValue || []);
+    setObjectionsData(objectionsValue || []);
+    setFlowStepsData(flowStepsValue || []);
+    setFunnelConfigData(funnelConfigValue || []);
     setShowConfirmation(false);
     onClose();
   };
@@ -204,8 +261,8 @@ export const FieldConfigModal = ({
           <div className="flex-1 overflow-y-auto px-1 min-h-0">
             <div className="space-y-4 py-4">
                 
-                {/* Campo Principal - Não mostrar para dicas de frases */}
-                {fieldKey !== 'phrase_tips' && (
+                {/* Campo Principal - Campos simples e com exemplos */}
+                {(type === 'simple' || type === 'with-examples') && fieldKey !== 'phrase_tips' && (
                   <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl">
                     <CardHeader className="pb-2">
                       <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
@@ -233,6 +290,255 @@ export const FieldConfigModal = ({
                           : 'Forneça uma descrição geral. Os exemplos ajudarão o agente a entender melhor.'
                         }
                       </p>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {/* Campo Lista de Textos - Regras/Diretrizes e Proibições */}
+                {type === 'text-list' && (
+                  <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
+                        {icon}
+                        Lista de Itens
+                      </CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Adicione itens à lista. Cada item será uma regra ou diretriz específica.
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {textListData.map((item, index) => (
+                        <div key={index} className="flex items-center gap-2 group">
+                          <div className="flex-1">
+                            <Input
+                              value={item}
+                              onChange={(e) => {
+                                const newData = [...textListData];
+                                newData[index] = e.target.value;
+                                setTextListData(newData);
+                              }}
+                              placeholder="Digite o item aqui..."
+                              className="bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500"
+                            />
+                          </div>
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newData = textListData.filter((_, i) => i !== index);
+                                  setTextListData(newData);
+                                }}
+                                className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                          </div>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setTextListData([...textListData, ''])}
+                        className="w-full h-10 border-dashed border-gray-300 hover:border-yellow-500 hover:bg-yellow-50"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar Item
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {/* Campo Objeções */}
+                {type === 'objections-list' && (
+                  <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
+                        {icon}
+                        Objeções e Respostas
+                      </CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Configure objeções comuns dos clientes e as melhores respostas.
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {objectionsData.map((objection, index) => (
+                        <div key={index} className="bg-white/20 p-4 rounded-lg border border-white/20 group">
+                          <div className="space-y-3">
+                            <div>
+                              <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                Objeção do Cliente:
+                              </label>
+                              <Input
+                                value={objection.objection}
+                                onChange={(e) => {
+                                  const newData = [...objectionsData];
+                                  newData[index] = { ...objection, objection: e.target.value };
+                                  setObjectionsData(newData);
+                                }}
+                                placeholder="Ex: 'É muito caro'"
+                                className="bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-gray-700 mb-1 block">
+                                Resposta Sugerida:
+                              </label>
+                              <Textarea
+                                value={objection.response}
+                                onChange={(e) => {
+                                  const newData = [...objectionsData];
+                                  newData[index] = { ...objection, response: e.target.value };
+                                  setObjectionsData(newData);
+                                }}
+                                placeholder="Digite a melhor resposta para esta objeção..."
+                                className="bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500"
+                                rows={3}
+                              />
+                            </div>
+                            <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const newData = objectionsData.filter((_, i) => i !== index);
+                                    setObjectionsData(newData);
+                                  }}
+                                  className="text-red-600 hover:bg-red-100"
+                                >
+                                  <Minus className="h-4 w-4 mr-1" />
+                                  Remover
+                                </Button>
+                              </div>
+                          </div>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setObjectionsData([...objectionsData, { objection: '', response: '' }])}
+                        className="w-full h-10 border-dashed border-gray-300 hover:border-yellow-500 hover:bg-yellow-50"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar Objeção
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {/* Campo Passos do Fluxo */}
+                {type === 'flow-steps' && (
+                  <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
+                        {icon}
+                        Passo a Passo do Atendimento
+                      </CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Configure a sequência de passos que o agente deve seguir durante o atendimento.
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {flowStepsData.map((step, index) => (
+                        <div key={index} className="flex items-start gap-3 group">
+                          <div className="flex-shrink-0 w-8 h-8 bg-yellow-500 text-black font-bold rounded-full flex items-center justify-center text-sm mt-1">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1">
+                            <Textarea
+                              value={step}
+                              onChange={(e) => {
+                                const newData = [...flowStepsData];
+                                newData[index] = e.target.value;
+                                setFlowStepsData(newData);
+                              }}
+                              placeholder={`Descreva o passo ${index + 1} do atendimento...`}
+                              className="bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500"
+                              rows={2}
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {index > 0 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newData = [...flowStepsData];
+                                  [newData[index], newData[index - 1]] = [newData[index - 1], newData[index]];
+                                  setFlowStepsData(newData);
+                                }}
+                                className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-600"
+                              >
+                                <MoveUp className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {index < flowStepsData.length - 1 && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newData = [...flowStepsData];
+                                  [newData[index], newData[index + 1]] = [newData[index + 1], newData[index]];
+                                  setFlowStepsData(newData);
+                                }}
+                                className="h-8 w-8 p-0 hover:bg-blue-100 hover:text-blue-600"
+                              >
+                                <MoveDown className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newData = flowStepsData.filter((_, i) => i !== index);
+                                  setFlowStepsData(newData);
+                                }}
+                                className="h-8 w-8 p-0 hover:bg-red-100 hover:text-red-600"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                          </div>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setFlowStepsData([...flowStepsData, ''])}
+                        className="w-full h-10 border-dashed border-gray-300 hover:border-yellow-500 hover:bg-yellow-50"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar Passo
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {/* Campo Configuração do Funil */}
+                {type === 'funnel-config' && (
+                  <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
+                        {icon}
+                        Configuração do Funil
+                      </CardTitle>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Configure como o agente deve interagir com o funil de vendas.
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <p className="text-sm text-yellow-700 font-medium">
+                          🚧 Esta funcionalidade será implementada em breve.
+                        </p>
+                        <p className="text-xs text-yellow-600 mt-1">
+                          A configuração do funil permitirá definir como o agente move leads através das etapas do funil.
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 )}

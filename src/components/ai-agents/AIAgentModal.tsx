@@ -29,7 +29,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   const [allowTabNavigation, setAllowTabNavigation] = useState(false); // Permitir navegação livre
   const { getPromptByAgentId, createPrompt, updatePrompt } = useAIAgentPrompts();
   
-  // Centralized form data state with database structure
+  // Centralized form data state with NEW database structure
   const [promptData, setPromptData] = useState({
     agent_function: "",
     agent_objective: "",
@@ -37,15 +37,10 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     communication_style_examples: [] as PQExample[],
     company_info: "",
     products_services: "",
-    products_services_examples: [] as PQExample[],
-    rules_guidelines: "",
-    rules_guidelines_examples: [] as PQExample[],
-    prohibitions: "",
-    prohibitions_examples: [] as PQExample[],
-    client_objections: "",
-    client_objections_examples: [] as PQExample[],
-    phrase_tips: "",
-    phrase_tips_examples: [] as PQExample[],
+    rules_guidelines: [] as any[], // JSONB - array de objetos
+    prohibitions: [] as any[], // JSONB - array de objetos
+    client_objections: [] as any[], // JSONB - array de objetos com objeção+resposta
+    funnel_configuration: [] as any[], // JSONB - configuração do funil
     flow: [] as FlowStepEnhanced[]
   });
 
@@ -119,15 +114,10 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
         communication_style_examples: [],
         company_info: "",
         products_services: "",
-        products_services_examples: [],
-        rules_guidelines: "",
-        rules_guidelines_examples: [],
-        prohibitions: "",
-        prohibitions_examples: [],
-        client_objections: "",
-        client_objections_examples: [],
-        phrase_tips: "",
-        phrase_tips_examples: [],
+        rules_guidelines: [], // JSONB array
+        prohibitions: [], // JSONB array
+        client_objections: [], // JSONB array
+        funnel_configuration: [], // JSONB array
         flow: []
       });
       // Reset também não deve marcar como alteração não salva
@@ -155,7 +145,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           flow: existingPrompt.flow?.length || 0
         });
         
-        // Mapear dados diretamente da nova estrutura do banco usando batch update
+        // Mapear dados da nova estrutura consolidada do banco
         const newPromptData = {
           agent_function: existingPrompt.agent_function || "",
           agent_objective: existingPrompt.agent_objective || "",
@@ -163,16 +153,11 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           communication_style_examples: existingPrompt.communication_style_examples || [],
           company_info: existingPrompt.company_info || "",
           products_services: existingPrompt.products_services || "",
-          products_services_examples: existingPrompt.products_services_examples || [],
-          rules_guidelines: existingPrompt.rules_guidelines || "",
-          rules_guidelines_examples: existingPrompt.rules_guidelines_examples || [],
-          prohibitions: existingPrompt.prohibitions || "",
-          prohibitions_examples: existingPrompt.prohibitions_examples || [],
-          client_objections: existingPrompt.client_objections || "",
-          client_objections_examples: existingPrompt.client_objections_examples || [],
-          phrase_tips: existingPrompt.phrase_tips || "",
-          phrase_tips_examples: existingPrompt.phrase_tips_examples || [],
-          flow: existingPrompt.flow || []
+          rules_guidelines: Array.isArray(existingPrompt.rules_guidelines) ? existingPrompt.rules_guidelines : [],
+          prohibitions: Array.isArray(existingPrompt.prohibitions) ? existingPrompt.prohibitions : [],
+          client_objections: Array.isArray(existingPrompt.client_objections) ? existingPrompt.client_objections : [],
+          funnel_configuration: Array.isArray(existingPrompt.funnel_configuration) ? existingPrompt.funnel_configuration : [],
+          flow: Array.isArray(existingPrompt.flow) ? existingPrompt.flow : []
         };
         
         console.log('📝 Dados formatados para setPromptData:', {
@@ -554,7 +539,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
 
         <div className="overflow-y-auto max-h-[calc(85vh-120px)] px-1">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-4 bg-white/20 backdrop-blur-md p-1 rounded-xl h-10 border border-white/30 shadow-glass">
+            <TabsList className="grid w-full grid-cols-2 mb-4 bg-white/20 backdrop-blur-md p-1 rounded-xl h-10 border border-white/30 shadow-glass">
               <TabsTrigger 
                 value="basic" 
                 className="flex items-center gap-2 text-xs font-medium data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-glass data-[state=active]:border data-[state=active]:border-white/50 rounded-lg py-2 px-3 transition-all duration-300 hover:bg-white/30"
@@ -575,19 +560,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
                 <span className="sm:hidden">Prompt</span>
                 {currentAgent && !agent && (
                   <span className="ml-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" title="Próximo passo"></span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger 
-                value="objectives" 
-                className="flex items-center gap-2 text-xs font-medium data-[state=active]:bg-white/40 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-glass data-[state=active]:border data-[state=active]:border-white/50 rounded-lg py-2 px-3 transition-all duration-300 hover:bg-white/30"
-              >
-                <ListChecks className="h-3 w-3" />
-                <span className="hidden sm:inline">Fluxo do Agente</span>
-                <span className="sm:hidden">Fluxo</span>
-                {stepsCount > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-yellow-500 text-black text-xs rounded-full font-bold">
-                    {stepsCount}
-                  </span>
                 )}
               </TabsTrigger>
             </TabsList>
@@ -641,36 +613,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
               </Card>
             </TabsContent>
 
-            <TabsContent value="objectives" className="mt-0">
-              <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg rounded-xl transition-all duration-300 hover:bg-white/50 hover:shadow-glass">
-                <CardHeader className="bg-white/20 backdrop-blur-sm border-b border-white/30 rounded-t-xl">
-                  <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
-                    <div className="p-1.5 bg-white/30 backdrop-blur-sm rounded-lg border border-white/40">
-                      <ListChecks className="h-4 w-4 text-gray-800" />
-                    </div>
-                    Fluxo de Conversação
-                    {stepsCount > 0 && (
-                      <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-bold">
-                        {stepsCount} passo{stepsCount !== 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </CardTitle>
-                  <CardDescription className="text-gray-700 font-medium text-xs">
-                    Defina o passo a passo que seu agente deve seguir durante a conversa
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-4 bg-white/20 backdrop-blur-sm rounded-b-xl">
-                  <EnhancedPromptConfiguration 
-                    agent={currentAgent} 
-                    promptData={promptData}
-                    onPromptDataChange={handlePromptDataChange}
-                    onSave={handleSave}
-                    onCancel={handleClose}
-                    focusObjectives={true}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
           </Tabs>
           
           {/* Info de como salvar */}

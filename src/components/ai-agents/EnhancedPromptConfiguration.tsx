@@ -37,21 +37,15 @@ interface EnhancedPromptConfigurationProps {
     communication_style_examples: PQExample[];
     company_info: string;
     products_services: string;
-    products_services_examples: PQExample[];
-    rules_guidelines: string;
-    rules_guidelines_examples: PQExample[];
-    prohibitions: string;
-    prohibitions_examples: PQExample[];
-    client_objections: string;
-    client_objections_examples: PQExample[];
-    phrase_tips: string;
-    phrase_tips_examples: PQExample[];
+    rules_guidelines: any[]; // JSONB - array de objetos
+    prohibitions: any[]; // JSONB - array de objetos  
+    client_objections: any[]; // JSONB - array de objetos com objeção+resposta
+    funnel_configuration: any[]; // JSONB - nova configuração do funil
     flow: FlowStepEnhanced[];
   };
   onPromptDataChange: (field: string, value: any) => void;
   onSave: (saveContext?: { fromTab?: string; skipRedirect?: boolean }) => Promise<void>;
   onCancel: () => void;
-  focusObjectives?: boolean;
 }
 
 export const EnhancedPromptConfiguration = ({
@@ -59,8 +53,7 @@ export const EnhancedPromptConfiguration = ({
   promptData,
   onPromptDataChange,
   onSave,
-  onCancel,
-  focusObjectives = false
+  onCancel
 }: EnhancedPromptConfigurationProps) => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [editingStep, setEditingStep] = useState<{ step: FlowStepEnhanced | null; index: number } | null>(null);
@@ -128,14 +121,14 @@ export const EnhancedPromptConfiguration = ({
     console.log('🔄 forceRender mudou:', forceRender, '- Componente deve re-renderizar');
   }, [forceRender]);
 
-  // Configurações dos campos - REATIVO às mudanças do promptData
+  // Configurações dos campos - ATUALIZADO para nova estrutura
   const fieldConfigs = useMemo(() => [
     {
       key: 'agent_function',
       title: 'Qual a função dela?',
       icon: <User className="h-4 w-4 text-yellow-500" />,
       type: 'simple' as const,
-      required: true,
+      required: false, // REMOVIDO obrigatório
       placeholder: 'Ex: Você é um assistente de vendas especializado em produtos tecnológicos para empresas. Sua função é identificar necessidades, apresentar soluções e conduzir o cliente até o fechamento da venda.',
       value: promptData.agent_function,
       description: 'Define o papel e identidade do agente'
@@ -145,7 +138,7 @@ export const EnhancedPromptConfiguration = ({
       title: 'Qual o objetivo dela?',
       icon: <Target className="h-4 w-4 text-yellow-500" />,
       type: 'simple' as const,
-      required: true,
+      required: false, // REMOVIDO obrigatório
       placeholder: 'Ex: Converter leads em vendas qualificadas, mantendo um atendimento humanizado e identificando exatamente a necessidade do cliente para oferecer a melhor solução.',
       value: promptData.agent_objective,
       description: 'Define o objetivo principal do agente'
@@ -155,7 +148,7 @@ export const EnhancedPromptConfiguration = ({
       title: 'Estilo de Conversa',
       icon: <MessageSquare className="h-4 w-4 text-yellow-500" />,
       type: 'with-examples' as const,
-      required: true,
+      required: false, // REMOVIDO obrigatório
       placeholder: 'Ex: Comunicação amigável, profissional, com linguagem clara e objetiva. Sempre empático e paciente.',
       value: {
         description: promptData.communication_style,
@@ -181,92 +174,59 @@ export const EnhancedPromptConfiguration = ({
       key: 'products_services',
       title: 'Explique seus produtos e serviços',
       icon: <Package className="h-4 w-4 text-yellow-500" />,
-      type: 'with-examples' as const,
+      type: 'simple' as const, // MUDADO de 'with-examples' para 'simple'
       required: false,
       placeholder: 'Ex: Oferecemos sistemas de gestão, automação comercial e consultoria em tecnologia...',
-      value: {
-        description: promptData.products_services,
-        examples: promptData.products_services_examples
-      },
-      examplePlaceholder: {
-        question: 'Quais produtos vocês oferecem?',
-        answer: 'Oferecemos três principais soluções: Sistema ERP, CRM e Automação de Marketing...'
-      },
+      value: promptData.products_services,
       description: 'Produtos e serviços da empresa'
     },
     {
       key: 'rules_guidelines',
       title: 'Regras/Diretrizes para o Agente',
       icon: <FileText className="h-4 w-4 text-yellow-500" />,
-      type: 'with-examples' as const,
+      type: 'text-list' as const, // Modo de adição de texto como exemplos
       required: false,
       placeholder: 'Ex: Sempre confirme dados importantes, mantenha o foco no cliente, seja transparente sobre limitações...',
-      value: {
-        description: promptData.rules_guidelines,
-        examples: promptData.rules_guidelines_examples
-      },
-      examplePlaceholder: {
-        question: 'Qual sua política de atendimento?',
-        answer: 'Seguimos sempre a política de transparência total e foco na necessidade real do cliente.'
-      },
+      value: promptData.rules_guidelines || [],
+      itemPlaceholder: 'Ex: Sempre confirmar dados do cliente antes de prosseguir',
       description: 'Regras que o agente deve seguir'
     },
     {
       key: 'prohibitions',
       title: 'Proibições para o Agente',
       icon: <ShieldX className="h-4 w-4 text-yellow-500" />,
-      type: 'with-examples' as const,
+      type: 'text-list' as const, // Modo de adição de texto como exemplos
       required: false,
       placeholder: 'Ex: Não forneça informações sobre preços sem consultar um vendedor, não faça promessas de desconto...',
-      value: {
-        description: promptData.prohibitions,
-        examples: promptData.prohibitions_examples
-      },
-      examplePlaceholder: {
-        question: 'Você pode dar desconto?',
-        answer: 'Para questões de preço e condições especiais, vou conectar você com nosso especialista comercial.'
-      },
+      value: promptData.prohibitions || [],
+      itemPlaceholder: 'Ex: Nunca dar descontos sem autorização',
       description: 'O que o agente NÃO pode fazer'
     },
     {
       key: 'client_objections',
       title: 'Objeções de Clientes',
       icon: <AlertTriangle className="h-4 w-4 text-yellow-500" />,
-      type: 'with-examples' as const,
+      type: 'objections-list' as const, // Tipo para objeção + resposta
       required: false,
       placeholder: 'Ex: Como tratar objeções sobre preço, tempo de implantação, comparação com concorrentes...',
-      value: {
-        description: promptData.client_objections,
-        examples: promptData.client_objections_examples
-      },
-      examplePlaceholder: {
-        question: 'Está muito caro...',
-        answer: 'Entendo sua preocupação. Vamos analisar juntos o retorno que nossa solução pode trazer para seu negócio...'
-      },
+      value: promptData.client_objections || [],
       description: 'Como lidar com objeções comuns'
     },
     {
-      key: 'phrase_tips',
-      title: 'Dicas de Frases para usar',
-      icon: <Lightbulb className="h-4 w-4 text-yellow-500" />,
-      type: 'with-examples' as const,
+      key: 'flow',
+      title: 'Passo a passo do atendimento',
+      icon: <ListChecks className="h-4 w-4 text-yellow-500" />,
+      type: 'flow-steps' as const, // Tipo especial para fluxo numerado
       required: false,
-      placeholder: 'Ex: Frases estratégicas para diferentes momentos da conversa, cada uma com seu contexto de uso ideal.',
-      value: {
-        description: promptData.phrase_tips,
-        examples: promptData.phrase_tips_examples
-      },
-      examplePlaceholder: {
-        question: 'Quando usar: "Vamos encontrar a melhor solução para você"',
-        answer: 'Use quando o cliente demonstrar dúvida ou resistência, para mostrar que você está focado em ajudá-lo.'
-      },
-      description: 'Frases úteis com contexto de uso'
+      placeholder: '',
+      value: promptData.flow || [],
+      description: 'Defina o fluxo que o agente deve seguir durante o atendimento'
     },
     {
       key: 'funnel_stages',
       title: 'Configuração do Funil',
       icon: <Target className="h-4 w-4 text-yellow-500" />,
-      type: 'funnel-config' as const,
+      type: 'funnel-config' as const, // Volta ao tipo original
       required: false,
       placeholder: '',
       value: null, // Será calculado dinamicamente
@@ -287,6 +247,16 @@ export const EnhancedPromptConfiguration = ({
         // Usar uma única função que atualiza ambos os campos atomicamente
         // IMPORTANTE: Passar false para isInternalLoad para marcar como mudança do usuário
         onPromptDataChange(fieldKey, value.description, `${fieldKey}_examples`, value.examples, false);
+      } else if (fieldKey === 'flow' && Array.isArray(value)) {
+        // Para o campo flow, converter array de strings para array de objetos FlowStepEnhanced
+        console.log('📝 Campo flow detectado - convertendo para formato FlowStepEnhanced');
+        const flowSteps = value.map((content: string, index: number) => ({
+          step: index + 1,
+          title: `Passo ${index + 1}`,
+          content: content,
+          isExpanded: false
+        }));
+        onPromptDataChange(fieldKey, flowSteps, undefined, undefined, false);
       } else {
         console.log('📝 Campo simples detectado - atualizando valor único');
         // IMPORTANTE: Passar false para isInternalLoad para marcar como mudança do usuário
@@ -301,13 +271,22 @@ export const EnhancedPromptConfiguration = ({
         freshPromptData = { ...freshPromptData, [fieldKey]: value.stages };
       } else if (value && typeof value === 'object' && 'description' in value) {
         freshPromptData = { ...freshPromptData, [fieldKey]: value.description, [`${fieldKey}_examples`]: value.examples || [] };
+      } else if (fieldKey === 'flow' && Array.isArray(value)) {
+        // Para o campo flow, garantir que é salvo como array de objetos
+        const flowSteps = value.map((content: string, index: number) => ({
+          step: index + 1,
+          title: `Passo ${index + 1}`,
+          content: content,
+          isExpanded: false
+        }));
+        freshPromptData = { ...freshPromptData, [fieldKey]: flowSteps };
       } else {
         freshPromptData = { ...freshPromptData, [fieldKey]: value };
       }
       
       console.log('📊 Dados frescos calculados para salvamento:', {
         campo: fieldKey,
-        valorNovo: freshPromptData[fieldKey] ? `PREENCHIDO (${freshPromptData[fieldKey].length} chars)` : 'VAZIO'
+        valorNovo: freshPromptData[fieldKey] ? `PREENCHIDO (${Array.isArray(freshPromptData[fieldKey]) ? freshPromptData[fieldKey].length : freshPromptData[fieldKey].length} items/chars)` : 'VAZIO'
       });
       
       // Salvar imediatamente com os dados frescos
@@ -436,8 +415,22 @@ export const EnhancedPromptConfiguration = ({
   const getFieldStatus = (config: any) => {
     if (config.type === 'simple') {
       return config.value ? '✅' : '❌';
+    } else if (config.type === 'with-examples') {
+      // Campos com exemplos (communication_style)
+      const hasDescription = config.value.description;
+      const hasExamples = config.value.examples.length > 0;
+      return hasDescription ? (hasExamples ? '✅' : '🟡') : '❌';
+    } else if (config.type === 'text-list') {
+      // Lista de textos simples (rules_guidelines, prohibitions)
+      return Array.isArray(config.value) && config.value.length > 0 ? '✅' : '❌';
+    } else if (config.type === 'objections-list') {
+      // Lista de objeções com resposta (client_objections)
+      return Array.isArray(config.value) && config.value.length > 0 ? '✅' : '❌';
+    } else if (config.type === 'flow-steps') {
+      // Fluxo passo a passo numerado (flow)
+      return Array.isArray(config.value) && config.value.length > 0 ? '✅' : '❌';
     } else if (config.type === 'funnel-config') {
-      // Para configuração de funil, usar novo status
+      // Configuração do funil (volta ao original)
       switch (funnelConfigStatus) {
         case 'configured': return '✅';
         case 'ready': return '🟡';
@@ -445,162 +438,15 @@ export const EnhancedPromptConfiguration = ({
         default: return '❌';
       }
     } else {
-      const hasDescription = config.value.description;
-      const hasExamples = config.value.examples.length > 0;
-      
-      // Para "dicas de frases", considerar configurado apenas se tiver exemplos
-      if (config.key === 'phrase_tips') {
-        return hasExamples ? '✅' : '❌';
-      }
-      
-      // Para outros campos com exemplos
-      return hasDescription ? (hasExamples ? '✅' : '🟡') : '❌';
+      return '❌';
     }
   };
 
   console.log('🔥 RENDER EnhancedPromptConfiguration - Estados atuais:', {
     editingStep: !!editingStep,
     showDeleteConfirm: showDeleteConfirm.show,
-    forceRender,
-    focusObjectives
+    forceRender
   });
-
-  if (focusObjectives) {
-    console.log('🎯 Renderizando EnhancedPrompt em MODO OBJECTIVES');
-    return (
-      <div className="space-y-4">
-        {/* Fluxo de Conversação */}
-        <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
-              <ListChecks className="h-5 w-5 text-yellow-500" />
-              Fluxo de Conversação
-            </CardTitle>
-            <p className="text-xs text-gray-600 mt-1">
-              Defina o passo a passo que seu agente deve seguir durante a conversa
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            
-            {/* Campo para adicionar passo */}
-            <div className="flex gap-2 p-3 bg-white/30 backdrop-blur-sm border border-white/20 rounded-lg">
-              <div className="flex items-center gap-2 flex-1">
-                <Plus className="h-4 w-4 text-yellow-600 flex-shrink-0" />
-                <Input
-                  value={newStepText}
-                  onChange={(e) => setNewStepText(e.target.value)}
-                  placeholder="Ex: Passo 1: Se apresentar e perguntar o nome do lead"
-                  className="flex-1 bg-white/50 border-white/30 focus:border-yellow-500 text-sm"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && newStepText.trim()) {
-                      handleAddStep();
-                    }
-                  }}
-                />
-              </div>
-              <Button
-                onClick={handleAddStep}
-                disabled={!newStepText.trim()}
-                className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium px-4 h-9 rounded-lg shadow-glass transition-all duration-200"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Lista de passos configurados */}
-            {promptData.flow.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                  Fluxo Configurado ({promptData.flow.length} passo{promptData.flow.length !== 1 ? 's' : ''})
-                </h4>
-                {promptData.flow.map((step, index) => (
-                  <div 
-                    key={step.id}
-                    className="flex items-center gap-3 p-3 bg-white/40 backdrop-blur-sm border border-white/30 rounded-lg hover:bg-white/60 transition-all duration-200"
-                  >
-                    <div className="w-6 h-6 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold flex items-center justify-center flex-shrink-0">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-800">{step.description}</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          console.log('🔧 BOTÃO EDITAR CLICADO - Dados do passo:', { step, index });
-                          console.log('🔧 Estado editingStep antes:', editingStep);
-                          setEditingStep(prev => {
-                            console.log('🔧 CALLBACK setEditingStep - anterior:', prev, 'novo:', { step, index });
-                            return { step, index };
-                          });
-                          setForceRender(prev => prev + 1); // Forçar re-render
-                          console.log('🔧 setEditingStep chamado com:', { step, index });
-                        }}
-                        className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50/50 rounded-lg p-1 h-6 w-6"
-                      >
-                        <Settings className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          console.log('🗑️ BOTÃO EXCLUIR CLICADO - Índice:', index);
-                          console.log('🗑️ Estado showDeleteConfirm antes:', showDeleteConfirm);
-                          handleStepDelete(index);
-                        }}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50/50 rounded-lg p-1 h-6 w-6"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Botões de ação */}
-        <div className="flex justify-end gap-2 pt-4 border-t border-white/30">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={onCancel}
-            className="px-4 h-9 bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-lg text-sm"
-          >
-            Fechar
-          </Button>
-          <Button 
-            onClick={async (event) => {
-              try {
-                await onSave({ fromTab: 'objectives', skipRedirect: true });
-                
-                // Feedback visual de sucesso
-                const button = event.currentTarget as HTMLButtonElement;
-                if (button) {
-                  const originalText = button.textContent;
-                  button.textContent = '✅ Fluxo Salvo!';
-                  button.style.backgroundColor = '#10b981';
-                  setTimeout(() => {
-                    button.textContent = originalText;
-                    button.style.backgroundColor = '';
-                  }, 2000);
-                }
-              } catch (error) {
-                console.error('❌ Erro no botão salvar fluxo:', error);
-                // Erro já é tratado pelo toast no componente pai
-              }
-            }}
-            className="px-6 h-9 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-lg shadow-glass hover:shadow-glass-lg transition-all duration-200 text-sm"
-          >
-            Salvar Fluxo
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -627,12 +473,14 @@ export const EnhancedPromptConfiguration = ({
                 <span className="text-xs font-medium text-gray-700">
                   {config.type === 'simple' 
                     ? (config.value ? 'Configurado' : 'Não configurado')
+                    : config.type === 'with-examples'
+                      ? (config.value?.description || config.value?.examples?.length > 0 ? 'Configurado' : 'Não configurado')
+                    : config.type === 'text-list' || config.type === 'objections-list' || config.type === 'flow-steps'
+                      ? (Array.isArray(config.value) && config.value.length > 0 ? 'Configurado' : 'Não configurado')
                     : config.type === 'funnel-config'
                       ? (funnelConfigStatus === 'configured' ? 'Configurado' : 
                          funnelConfigStatus === 'ready' ? 'Pronto para configurar' : 'Não configurado')
-                    : config.key === 'phrase_tips'
-                      ? (config.value?.examples?.length > 0 ? 'Configurado' : 'Não configurado')
-                      : (config.value?.description || config.value?.examples?.length > 0 ? 'Configurado' : 'Não configurado')
+                      : 'Não configurado'
                   }
                 </span>
               </div>
@@ -643,12 +491,7 @@ export const EnhancedPromptConfiguration = ({
                   <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
                     {config.value ? String(config.value).substring(0, 80) + (String(config.value).length > 80 ? '...' : '') : 'Clique em "Configurar" para adicionar'}
                   </div>
-                ) : config.type === 'funnel-config' ? (
-                  <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
-                    {funnelConfigStatus === 'configured' ? 'Estágios do funil configurados para IA' : 
-                     funnelConfigStatus === 'ready' ? 'Ensine o agente quando mover os leads' : 'Selecione um funil na Aba 1 primeiro'}
-                  </div>
-                ) : (
+                ) : config.type === 'with-examples' ? (
                   <div className="space-y-1">
                     <div className="text-xs text-gray-700 bg-white/30 rounded p-2">
                       {config.value?.description ? String(config.value.description).substring(0, 60) + (String(config.value.description).length > 60 ? '...' : '') : 'Sem descrição'}
@@ -656,6 +499,33 @@ export const EnhancedPromptConfiguration = ({
                     <p className="text-xs text-gray-500 text-center">
                       {config.value?.examples?.length || 0} exemplos configurados
                     </p>
+                  </div>
+                ) : config.type === 'text-list' ? (
+                  <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
+                    {Array.isArray(config.value) && config.value.length > 0 
+                      ? `${config.value.length} item${config.value.length !== 1 ? 'ns' : ''} configurado${config.value.length !== 1 ? 's' : ''}`
+                      : 'Clique em "Configurar" para adicionar itens'}
+                  </div>
+                ) : config.type === 'objections-list' ? (
+                  <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
+                    {Array.isArray(config.value) && config.value.length > 0 
+                      ? `${config.value.length} objeção${config.value.length !== 1 ? 'ões' : ''} configurada${config.value.length !== 1 ? 's' : ''}`
+                      : 'Clique em "Configurar" para adicionar objeções'}
+                  </div>
+                ) : config.type === 'flow-steps' ? (
+                  <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
+                    {Array.isArray(config.value) && config.value.length > 0 
+                      ? `${config.value.length} passo${config.value.length !== 1 ? 's' : ''} configurado${config.value.length !== 1 ? 's' : ''}`
+                      : 'Clique em "Configurar" para adicionar passos'}
+                  </div>
+                ) : config.type === 'funnel-config' ? (
+                  <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
+                    {funnelConfigStatus === 'configured' ? 'Estágios do funil configurados para IA' : 
+                     funnelConfigStatus === 'ready' ? 'Ensine o agente quando mover os leads' : 'Selecione um funil na Aba 1 primeiro'}
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
+                    Tipo não reconhecido
                   </div>
                 )}
               </div>
@@ -679,7 +549,14 @@ export const EnhancedPromptConfiguration = ({
       </div>
 
       {/* Modais de configuração */}
-      {fieldConfigs.filter(config => config.type !== 'funnel-config').map((config) => (
+      {fieldConfigs.filter(config => 
+        config.type === 'simple' || 
+        config.type === 'with-examples' ||
+        config.type === 'text-list' ||
+        config.type === 'objections-list' ||
+        config.type === 'flow-steps' ||
+        config.type === 'funnel-config'
+      ).map((config) => (
         <FieldConfigModal
           key={config.key}
           isOpen={activeModal === config.key}
@@ -694,18 +571,13 @@ export const EnhancedPromptConfiguration = ({
           placeholder={config.placeholder}
           fieldWithExamples={config.type === 'with-examples' ? config.value : undefined}
           examplePlaceholder={config.examplePlaceholder}
+          textListValue={config.type === 'text-list' ? config.value : undefined}
+          objectionsValue={config.type === 'objections-list' ? config.value : undefined}
+          flowStepsValue={config.type === 'flow-steps' ? config.value?.map((step: any) => step.content || step) : undefined}
+          funnelConfigValue={config.type === 'funnel-config' ? config.value : undefined}
         />
       ))}
 
-      {/* Modal de configuração do funil */}
-      <FunnelConfigModal
-        isOpen={activeModal === 'funnel_stages'}
-        onClose={() => setActiveModal(null)}
-        onSave={(value) => handleFieldSave('funnel_stages', value)}
-        title="Configuração do Funil"
-        icon={<Target className="h-5 w-5 text-yellow-500" />}
-        agent={agent}
-      />
 
       {/* Modal de configuração de passos do fluxo */}
       {editingStep !== null && (

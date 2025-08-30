@@ -25,7 +25,7 @@ const transformLeadToKanbanLead = (lead: any): KanbanLead => ({
   notes: lead.notes || undefined,
   columnId: lead.kanban_stage_id || undefined,
   purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
-  assignedUser: lead.owner_id || undefined,
+  assignedUser: lead.owner?.full_name || lead.creator?.full_name || lead.created_by_user_id || undefined,
   unreadCount: lead.unread_count || 0,
   avatar: undefined,
   profile_pic_url: lead.profile_pic_url || undefined,
@@ -36,6 +36,7 @@ const transformLeadToKanbanLead = (lead: any): KanbanLead => ({
   funnel_id: lead.funnel_id,
   kanban_stage_id: lead.kanban_stage_id || undefined,
   owner_id: lead.owner_id || undefined,
+  ownerName: lead.owner?.full_name || undefined,
   // Propriedades do banco para compatibilidade
   last_message: lead.last_message,
   purchase_value: lead.purchase_value,

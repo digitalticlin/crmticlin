@@ -17,7 +17,7 @@ export const transformDatabaseLeadToKanban = (lead: any): KanbanLead => {
     notes: lead.notes || undefined,
     columnId: lead.kanban_stage_id || undefined,
     purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
-    assignedUser: lead.owner_id || undefined,
+    assignedUser: lead.owner?.full_name || lead.owner_id || undefined,
     unreadCount: lead.unread_count || 0,
     avatar: undefined,
     created_at: lead.created_at,

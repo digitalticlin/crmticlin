@@ -1,5 +1,4 @@
 
-import { PageLayout } from "@/components/layout/PageLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BillingSettings from "@/components/settings/BillingSettings";
@@ -12,7 +11,7 @@ import { UpgradeRecommendation } from "@/modules/billing/components/UpgradeRecom
 
 export default function Plans() {
   return (
-    <PageLayout>
+    <div className="w-full">
       <PageHeader 
         title="Planos e Faturamento" 
         description="Gerencie seus planos de mensagens e faturamento de forma completa"
@@ -63,6 +62,6 @@ export default function Plans() {
           <BillingSettings />
         </TabsContent>
       </Tabs>
-    </PageLayout>
+    </div>
   );
 }

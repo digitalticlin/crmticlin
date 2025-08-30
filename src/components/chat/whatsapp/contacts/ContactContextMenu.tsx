@@ -41,10 +41,22 @@ export const ContactContextMenu = ({
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  console.log('[ContactContextMenu] Props received:', {
+    contactId: contact.id,
+    contactName: contact.name,
+    hasDeleteFunction: !!onDeleteConversation,
+    hasCloseFunction: !!onCloseConversation,
+    hasEditFunction: !!onEditContact
+  });
+
   const displayName = contact.name || contact.phone;
 
   const handleDeleteConversation = async () => {
-    if (!onDeleteConversation) return;
+    console.log('[ContactContextMenu] handleDeleteConversation called:', contact.id);
+    if (!onDeleteConversation) {
+      console.log('[ContactContextMenu] No onDeleteConversation function provided');
+      return;
+    }
     
     setIsLoading(true);
     try {
@@ -60,7 +72,11 @@ export const ContactContextMenu = ({
   };
 
   const handleCloseConversation = async () => {
-    if (!onCloseConversation) return;
+    console.log('[ContactContextMenu] handleCloseConversation called:', contact.id);
+    if (!onCloseConversation) {
+      console.log('[ContactContextMenu] No onCloseConversation function provided');
+      return;
+    }
     
     setIsLoading(true);
     try {

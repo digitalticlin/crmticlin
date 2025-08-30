@@ -1,87 +1,48 @@
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { phone: "55629921****", lead_id: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", user_id: "712e7708-2299-4a00-9128-577c8f113ca4", has_media: false, media_type: "video", message_id: "3dad29b8-0abe-4043-b423-3dd8dafecf40", instance_id: "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785", formatted_name: "+55 (62) 99212-484", media_cache_id: "215b9476-e20a-40a0-add3-230b8e186cf9", mediaProcessed: true, usedExistingInfrastructure: true } }
-[Media] ❌ Erro ao salvar cache: { code: "23505", details: "Key (message_id)=(3dad29b8-0abe-4043-b423-3dd8dafecf40) already exists.", hint: null, message: 'duplicate key value violates unique constraint "media_cache_message_id_key"' }
-[Webhook] ⚠️ Falha no processamento de mídia, mas mensagem foi salva
-[Media] 🍎 Processando mídia com detecção avançada: { originalType: "video", detectedMime: "video/mp4", extension: "mp4", isAppleFormat: false, sizeMB: "1.27" }
-[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
-[Webhook] ✅ Mensagem salva: { messageId: "3dad29b8-0abe-4043-b423-3dd8dafecf40", leadId: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", fromMe: false }
-[Media] 🔄 Processamento síncrono com Storage existente: 3dad29b8-0abe-4043-b423-3dd8dafecf40
-[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "3dad29b8-0abe-4043-b423-3dd8dafecf40", externalMessageId: "3F6977D32E065FFD22B3", mediaType: "video", sizeBytes: 1774170, sizeMB: "1.69", limitMB: "16.00", willProcessSync: true, isValid: true, validationError: undefined }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "video", hasMediaData: true, hasCaption: false }
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "video", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "mediaBase64", "mediaData" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "video", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 3548901 }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: false, timestamp: "2025-08-11T05:14:19.149Z" }
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 🔑 Signature recebida: false
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 3548901, timestamp: "2025-08-11T05:14:19.146Z" }
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { phone: "55629921****", lead_id: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", user_id: "712e7708-2299-4a00-9128-577c8f113ca4", has_media: false, media_type: "image", message_id: "94d569e5-d52e-4782-a637-678cb502729c", instance_id: "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785", formatted_name: "+55 (62) 99212-484", media_cache_id: "cf1f6e9b-d487-49d7-ad04-7a1730eb34bb", mediaProcessed: true, usedExistingInfrastructure: true } }
-[Media] ❌ Erro ao salvar cache: { code: "23505", details: "Key (message_id)=(94d569e5-d52e-4782-a637-678cb502729c) already exists.", hint: null, message: 'duplicate key value violates unique constraint "media_cache_message_id_key"' }
-[Webhook] ⚠️ Falha no processamento de mídia, mas mensagem foi salva
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { phone: "55629921****", lead_id: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", user_id: "712e7708-2299-4a00-9128-577c8f113ca4", has_media: false, media_type: "document", message_id: "a44cb7f3-0fcc-4852-950e-f4f01f1e439a", instance_id: "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785", formatted_name: "+55 (62) 99212-484", media_cache_id: "b8a7ffc2-94b5-47f6-a4ce-aded37db95f6", mediaProcessed: true, usedExistingInfrastructure: true } }
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { phone: "55629921****", lead_id: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", user_id: "712e7708-2299-4a00-9128-577c8f113ca4", has_media: false, media_type: "document", message_id: "a44cb7f3-0fcc-4852-950e-f4f01f1e439a", instance_id: "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785", formatted_name: "+55 (62) 99212-484", media_cache_id: "b8a7ffc2-94b5-47f6-a4ce-aded37db95f6", mediaProcessed: true, usedExistingInfrastructure: true } }
-[Media] ❌ Erro ao salvar cache: { code: "23505", details: "Key (message_id)=(a44cb7f3-0fcc-4852-950e-f4f01f1e439a) already exists.", hint: null, message: 'duplicate key value violates unique constraint "media_cache_message_id_key"' }
-[Media] ❌ Erro ao salvar cache: { code: "23505", details: "Key (message_id)=(a44cb7f3-0fcc-4852-950e-f4f01f1e439a) already exists.", hint: null, message: 'duplicate key value violates unique constraint "media_cache_message_id_key"' }
-[Webhook] ⚠️ Falha no processamento de mídia, mas mensagem foi salva
-[Webhook] ⚠️ Falha no processamento de mídia, mas mensagem foi salva
-[Media] 🍎 Processando mídia com detecção avançada: { originalType: "image", detectedMime: "image/jpeg", extension: "jpg", isAppleFormat: false, sizeMB: "0.18" }
-[Media] 🔄 Processamento síncrono com Storage existente: 94d569e5-d52e-4782-a637-678cb502729c
-[Webhook] ✅ Mensagem salva: { messageId: "94d569e5-d52e-4782-a637-678cb502729c", leadId: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", fromMe: false }
-[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "94d569e5-d52e-4782-a637-678cb502729c", externalMessageId: "3F542F6A4D7CD4D9B7F4", mediaType: "image", sizeBytes: 249531, sizeMB: "0.24", limitMB: "5.00", willProcessSync: true, isValid: true, validationError: undefined }
-[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "image", hasMediaData: true, hasCaption: false }
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "image", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "mediaBase64", "mediaData" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "image", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 499623 }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: false, timestamp: "2025-08-11T05:14:17.300Z" }
-[Webhook] 🔑 Signature recebida: false
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 499623, timestamp: "2025-08-11T05:14:17.290Z" }
-Listening on http://localhost:9999/
-[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.0 - USANDO INFRAESTRUTURA EXISTENTE
-[Webhook] 🔑 Webhook secret configurado: false
-booted (time: 32ms)
-[Media] 🍎 Processando mídia com detecção avançada: { originalType: "document", detectedMime: "application/pdf", extension: "pdf", isAppleFormat: false, sizeMB: "1.03" }
-[Media] 🍎 Processando mídia com detecção avançada: { originalType: "document", detectedMime: "application/pdf", extension: "pdf", isAppleFormat: false, sizeMB: "1.03" }
-[Media] 🔄 Processamento síncrono com Storage existente: a44cb7f3-0fcc-4852-950e-f4f01f1e439a
-[Media] 🔄 Processamento síncrono com Storage existente: a44cb7f3-0fcc-4852-950e-f4f01f1e439a
-[Webhook] ✅ Mensagem salva: { messageId: "a44cb7f3-0fcc-4852-950e-f4f01f1e439a", leadId: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", fromMe: false }
-[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "a44cb7f3-0fcc-4852-950e-f4f01f1e439a", externalMessageId: "3F41AB543A88DC76CD4A", mediaType: "document", sizeBytes: 1440012, sizeMB: "1.37", limitMB: "100.00", willProcessSync: true, isValid: true, validationError: undefined }
-[Webhook] ✅ Mensagem salva: { messageId: "a44cb7f3-0fcc-4852-950e-f4f01f1e439a", leadId: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", fromMe: false }
-[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
-[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "a44cb7f3-0fcc-4852-950e-f4f01f1e439a", externalMessageId: "3F41AB543A88DC76CD4A", mediaType: "document", sizeBytes: 1440012, sizeMB: "1.37", limitMB: "100.00", willProcessSync: true, isValid: true, validationError: undefined }
-[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { phone: "55629921****", lead_id: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", user_id: "712e7708-2299-4a00-9128-577c8f113ca4", has_media: false, media_type: "image", message_id: "7e626860-c06b-45ee-a5e3-77df2251497a", instance_id: "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785", formatted_name: "+55 (62) 99212-484", media_cache_id: "46100a24-03cb-4753-93f3-26991ed70e14", mediaProcessed: true, usedExistingInfrastructure: true } }
-[Media] ❌ Erro ao salvar cache: { code: "23505", details: "Key (message_id)=(7e626860-c06b-45ee-a5e3-77df2251497a) already exists.", hint: null, message: 'duplicate key value violates unique constraint "media_cache_message_id_key"' }
-[Webhook] ⚠️ Falha no processamento de mídia, mas mensagem foi salva
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { phone: "55629921****", lead_id: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", user_id: "712e7708-2299-4a00-9128-577c8f113ca4", has_media: false, media_type: "document", message_id: "466283f6-d788-4e75-9acf-4ad9677401e1", instance_id: "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785", formatted_name: "+55 (62) 99212-484", media_cache_id: "7c39ef99-1076-4c86-99bd-3a09cf6da3dd", mediaProcessed: true, usedExistingInfrastructure: true } }
-[Media] ❌ Erro ao salvar cache: { code: "23505", details: "Key (message_id)=(466283f6-d788-4e75-9acf-4ad9677401e1) already exists.", hint: null, message: 'duplicate key value violates unique constraint "media_cache_message_id_key"' }
-[Webhook] ⚠️ Falha no processamento de mídia, mas mensagem foi salva
-[Webhook] ✅ Processamento concluído: { success: true, message: "Message processed completely with existing infrastructure", data: { phone: "55629921****", lead_id: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", user_id: "712e7708-2299-4a00-9128-577c8f113ca4", has_media: false, media_type: "audio", message_id: "fe58a347-53f9-4dbe-8ae4-3f46dcc848c9", instance_id: "c3b6cfe7-bc4e-4b1f-9f18-4573f4232785", formatted_name: "+55 (62) 99212-484", media_cache_id: "b0d35311-ef8f-42a5-875c-dafc6ab30dc1", mediaProcessed: true, usedExistingInfrastructure: true } }
-[Media] 🍎 Processando mídia com detecção avançada: { originalType: "image", detectedMime: "image/jpeg", extension: "jpg", isAppleFormat: false, sizeMB: "0.26" }
-[Media] 🔄 Processamento síncrono com Storage existente: 7e626860-c06b-45ee-a5e3-77df2251497a
-[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
-[Webhook] ✅ Mensagem salva: { messageId: "7e626860-c06b-45ee-a5e3-77df2251497a", leadId: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", fromMe: false }
-[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "7e626860-c06b-45ee-a5e3-77df2251497a", externalMessageId: "3F32087DF8DFF1E3496C", mediaType: "image", sizeBytes: 364711, sizeMB: "0.35", limitMB: "5.00", willProcessSync: true, isValid: true, validationError: undefined }
-[Webhook] ⚠️ Falha no processamento de mídia, mas mensagem foi salva
-[Media] ❌ Erro ao salvar cache: { code: "23505", details: "Key (message_id)=(fe58a347-53f9-4dbe-8ae4-3f46dcc848c9) already exists.", hint: null, message: 'duplicate key value violates unique constraint "media_cache_message_id_key"' }
-[Media] 🍎 Processando mídia com detecção avançada: { originalType: "document", detectedMime: "application/pdf", extension: "pdf", isAppleFormat: false, sizeMB: "0.12" }
-[Media] 🔄 Processamento síncrono com Storage existente: 466283f6-d788-4e75-9acf-4ad9677401e1
-[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...
-[Media] 📊 Processando mídia com limites dinâmicos: { messageId: "466283f6-d788-4e75-9acf-4ad9677401e1", externalMessageId: "3FDBA9DBF97FCC9514B0", mediaType: "document", sizeBytes: 162399, sizeMB: "0.15", limitMB: "100.00", willProcessSync: true, isValid: true, validationError: undefined }
-[Webhook] ✅ Mensagem salva: { messageId: "466283f6-d788-4e75-9acf-4ad9677401e1", leadId: "df8d7bcf-418e-4c9d-adcd-7caaea70e3d7", fromMe: false }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "document", hasMediaData: true, hasCaption: false }
-[Webhook] 📨 Processando mensagem com infraestrutura existente: { instanceId: "digitalticlin", hasMessage: true, fromMe: undefined, messageType: "document", hasMediaData: true, hasCaption: false }
-[Webhook] 💾 Salvando mensagem no banco...
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "document", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "mediaBase64", "mediaData" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "document", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 2880634 }
-[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA: { messageType: "document", topLevelKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], directMedia: { mediaBase64: null, mediabase64: null, mediaData: undefined, base64Data: null, media: undefined, buffer: null, content: null }, nestedMedia: { data_keys: [ "messageId", "body", "from", "fromMe", "timestamp", "messageType", "senderProfileName", "mediaBase64", "mediaData" ], data_buffer: null, data_base64: null, message_keys: [ "text" ], message_media: undefined } }
-[Webhook] 📋 PAYLOAD COMPLETO VPS: { allKeys: [ "event", "instanceId", "instanceName", "from", "fromMe", "messageType", "message", "timestamp", "createdByUserId", "data" ], messageType: "document", mediaBase64_exists: false, mediabase64_exists: false, mediaData_exists: false, base64Data_exists: false, media_exists: false, buffer_exists: false, content_exists: false, data_buffer_exists: false, data_base64_exists: false, message_media_exists: false, payload_size: 2880634 }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: false, timestamp: "2025-08-11T05:14:15.630Z" }
-[Webhook] 🔄 Processando evento: { event: "message_received", instanceId: "digitalticlin", hasMessage: true, hasMediaData: false, timestamp: "2025-08-11T05:14:15.630Z" }
-[Webhook] 🔑 Signature recebida: false
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO
-[Webhook] 🔑 Signature recebida: false
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 2880634, timestamp: "2025-08-11T05:14:15.625Z" }
-[Webhook] 📨 Recebendo webhook: { method: "POST", contentLength: 2880634, timestamp: "2025-08-11T05:14:15.625Z" }
+  ✅ OPÇÃO RECOMENDADA: FORK + QUEUES
+
+  - Suporte: ✅ SIM, milhares de instâncias WhatsApp
+  - Arquitetura: 1 processo principal + N workers
+  - Performance: Superior para alta concorrência
+
+  🏗️ ARQUITETURA PROPOSTA:
+
+  ┌─────────────────────────────────────────────────────────┐
+  │                 PM2 FORK MODE                           │
+  ├─────────────────────────────────────────────────────────┤
+  │ PROCESSO PRINCIPAL (server.js)                         │
+  │ • Gerencia TODAS instâncias WhatsApp (sem conflito)    │
+  │ • Recebe mensagens → Envia para QUEUES                 │
+  │ • 1 processo = 1 conexão por número (estável)          │
+  └─────────────────────────────────────────────────────────┘
+                              ↓
+  ┌─────────────────────────────────────────────────────────┐
+  │                  REDIS/BULL QUEUES                     │
+  ├─────────────────────────────────────────────────────────┤
+  │ MESSAGE_QUEUE    │ WEBHOOK_QUEUE    │ BROADCAST_QUEUE   │
+  │ • Processar msgs │ • Enviar webhooks│ • Envios em massa │
+  │ • Rate limiting  │ • Retry logic    │ • Agendamentos    │
+  └─────────────────────────────────────────────────────────┘
+                              ↓
+  ┌─────────────────────────────────────────────────────────┐
+  │                 WORKERS SEPARADOS                       │
+  ├─────────────────────────────────────────────────────────┤
+  │ WORKER 1         │ WORKER 2         │ WORKER N          │
+  │ • Process msgs   │ • Send webhooks  │ • Handle uploads  │
+  │ • 2-4 CPU cores  │ • HTTP requests  │ • File processing │
+  └─────────────────────────────────────────────────────────┘
+
+  ⚡ VANTAGENS PARA MILHARES DE INSTÂNCIAS:
+
+  1. 📱 WhatsApp Stability
+    - ✅ 1 processo = sem conflitos Baileys
+    - ✅ 1 conexão por número = estável
+    - ✅ Reconexão individual (não afeta outras)
+  2. 🚀 Performance Escalável
+    - ✅ Queues processam 50K+ msgs/minuto
+    - ✅ Workers independentes (crash-isolated)
+    - ✅ Rate limiting automático
+    - ✅ Batch processing inteligente
+  3. 💾 Uso Eficiente de Recursos
+    - ✅ RAM: ~200MB processo principal + 50MB/worker
+    - ✅ CPU: Distribuído entre workers
+    - ✅ I/O: Non-blocking via queues
