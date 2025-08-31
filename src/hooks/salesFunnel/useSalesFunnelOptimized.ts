@@ -19,18 +19,37 @@ export function useSalesFunnelOptimized() {
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
 
-  // Database hooks com cache otimizado
+  // Database hooks com cache otimizado COM filtro de usuário
   const { data: funnels = [], isLoading: funnelLoading, refetch: refetchFunnels } = useQuery({
-    queryKey: ['funnels-optimized'],
+    queryKey: ['funnels-optimized', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
+      // Buscar funis que o usuário criou OU tem acesso via user_funnels
       const { data, error } = await supabase
         .from('funnels')
-        .select('*')
+        .select(`
+          *,
+          user_funnels!inner(profile_id)
+        `)
+        .or(`created_by_user_id.eq.${user.id},user_funnels.profile_id.eq.${user.id}`)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('[useSalesFunnelOptimized] Erro ao buscar funis:', error);
+        // Fallback: buscar apenas funis criados pelo usuário
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('funnels')
+          .select('*')
+          .eq('created_by_user_id', user.id)
+          .order('created_at', { ascending: true });
+        
+        if (fallbackError) throw fallbackError;
+        return fallbackData || [];
+      }
       return data || [];
     },
+    enabled: !!user?.id,
     staleTime: CACHE_TIME,
     gcTime: CACHE_TIME * 2
   });
@@ -78,6 +97,7 @@ export function useSalesFunnelOptimized() {
           )
         `)
         .eq('funnel_id', selectedFunnel.id)
+        .or(`created_by_user_id.eq.${user?.id},owner_id.eq.${user?.id}`)
         .order('updated_at', { ascending: false });
       
       if (error) throw error;
@@ -306,6 +326,7 @@ export function useSalesFunnelOptimized() {
         .from('leads')
         .select('id')
         .eq('funnel_id', selectedFunnel.id)
+        .or(`created_by_user_id.eq.${user?.id},owner_id.eq.${user?.id}`)
         .order('updated_at', { ascending: false })
         .limit(200);
       

@@ -16,18 +16,36 @@ export function useSalesFunnelDirect() {
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
 
-  // Database hooks - usando queries diretas
+  // Verificar se o usuário é admin
+  const isAdmin = user?.user_metadata?.role === 'admin' || user?.email === 'inacio@ticlin.com.br';
+  
+  // Logging para monitoring multi-tenancy
+  console.log('[useSalesFunnelDirect] 🚀 Hook iniciado para usuário:', user?.email, 'isAdmin:', isAdmin);
+
+  // Database hooks - usando queries diretas COM filtro de usuário
   const { data: funnels = [], isLoading: funnelLoading, refetch: refetchFunnels } = useQuery({
-    queryKey: ['funnels'],
+    queryKey: ['funnels', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
+      // ESTRUTURA DIRETA: Buscar apenas funis do usuário para isolamento multi-tenant
       const { data, error } = await supabase
         .from('funnels')
         .select('*')
+        .eq('created_by_user_id', user.id)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('[useSalesFunnelDirect] Erro ao buscar funis:', error);
+        throw error;
+      }
+      
+      console.log('[useSalesFunnelDirect] 📊 Funis carregados:', data?.length || 0);
       return data || [];
-    }
+    },
+    enabled: !!user?.id,
+    staleTime: 2 * 60 * 1000, // 2 minutos de cache
+    gcTime: 5 * 60 * 1000 // 5 minutos no garbage collector
   });
 
   const { data: stages = [], isLoading: stagesLoading, refetch: refetchStages } = useQuery({
@@ -44,7 +62,9 @@ export function useSalesFunnelDirect() {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!selectedFunnel?.id
+    enabled: !!selectedFunnel?.id,
+    staleTime: 1 * 60 * 1000, // 1 minuto de cache para stages
+    gcTime: 3 * 60 * 1000
   });
 
   const { data: leads = [], isLoading: leadsLoading, refetch: refetchLeads } = useQuery({
@@ -81,15 +101,19 @@ export function useSalesFunnelDirect() {
             )
           `)
           .eq('funnel_id', selectedFunnel.id)
+          .eq('created_by_user_id', user?.id)
           .order('created_at', { ascending: false })
           .range(offset, offset + PAGE_SIZE - 1);
         if (error) throw error;
         allLeads = allLeads.concat(data || []);
         if (!data || data.length < PAGE_SIZE) break;
       }
+      console.log('[useSalesFunnelDirect] 📊 Leads carregados:', allLeads?.length || 0);
       return allLeads;
     },
-    enabled: !!selectedFunnel?.id
+    enabled: !!selectedFunnel?.id,
+    staleTime: 30 * 1000, // 30 segundos de cache para leads (mais dinâmico)
+    gcTime: 2 * 60 * 1000
   });
 
   const { tags: availableTags } = useTagDatabase();
