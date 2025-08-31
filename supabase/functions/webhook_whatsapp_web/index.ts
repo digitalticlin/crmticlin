@@ -728,7 +728,7 @@ async function processMessage(supabase, data) {
       error: 'Missing required message data'
     };
   }
-  // 🚀 STEP 1: SALVAR MENSAGEM NO BANCO (COM BASE64 PARA IA)
+  // 🚀 STEP 1: SALVAR MENSAGEM NO BANCO (SEM BASE64 - REMOVIDO DO CAMPO AI_DESCRIPTION)
   // 📱 NOTA: contactName sempre enviado como NULL - usa apenas telefone formatado
   console.log('[Webhook] 💾 Salvando mensagem no banco...');
   const { data: result, error } = await supabase.rpc('save_whatsapp_message_service_role', {
@@ -740,7 +740,6 @@ async function processMessage(supabase, data) {
     p_media_url: null, // ❌ SEMPRE NULL - será definida após processamento da mídia no Storage
     p_external_message_id: messageData.externalMessageId || null,
     p_contact_name: null, // ❌ SEMPRE NULL - usar apenas telefone formatado
-    p_base64_data: messageData.mediaData?.base64Data || null, // 🎯 BASE64 PARA IA
     p_profile_pic_url: messageData.profile_pic_url || null // 📸 PROFILE PIC URL
   });
   if (error || !result?.success) {

@@ -1,169 +1,83 @@
-suppressDragDropWarnings.ts:34 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
-console.warn @ suppressDragDropWarnings.ts:34
-warnOnce @ react-router-dom.js?v=1af45239:4393
-logDeprecation @ react-router-dom.js?v=1af45239:4396
-logV6DeprecationWarnings @ react-router-dom.js?v=1af45239:4399
-(anonymous) @ react-router-dom.js?v=1af45239:5271
-commitHookEffectListMount @ chunk-276SZO74.js?v=1af45239:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=1af45239:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=1af45239:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=1af45239:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=1af45239:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=1af45239:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=1af45239:19447
-(anonymous) @ chunk-276SZO74.js?v=1af45239:19328
-workLoop @ chunk-276SZO74.js?v=1af45239:197
-flushWork @ chunk-276SZO74.js?v=1af45239:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=1af45239:384Understand this warning
-suppressDragDropWarnings.ts:34 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
-console.warn @ suppressDragDropWarnings.ts:34
-warnOnce @ react-router-dom.js?v=1af45239:4393
-logDeprecation @ react-router-dom.js?v=1af45239:4396
-logV6DeprecationWarnings @ react-router-dom.js?v=1af45239:4402
-(anonymous) @ react-router-dom.js?v=1af45239:5271
-commitHookEffectListMount @ chunk-276SZO74.js?v=1af45239:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=1af45239:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=1af45239:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=1af45239:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=1af45239:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=1af45239:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=1af45239:19447
-(anonymous) @ chunk-276SZO74.js?v=1af45239:19328
-workLoop @ chunk-276SZO74.js?v=1af45239:197
-flushWork @ chunk-276SZO74.js?v=1af45239:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=1af45239:384Understand this warning
-App.tsx:144 [App] 📍 Rota atual: /ai-agents
-App.tsx:162 [App] ✅ Supabase exposto globalmente para debug
-App.tsx:207 [App] ✅ BigQuery Optimizer carregado - ativará apenas se necessário
-AuthContext.tsx:65 [Auth] 📡 SIGNED_IN contatoluizantoniooliveira@gmail.com
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
-ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/ai-agents', hasUser: true, authLoading: false, roleLoading: true, userRole: 'operational', …}
-ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
-useUserRole.ts:25 [useUserRole] 👤 Buscando perfil do usuário: 9936ae64-b78c-48fe-97e8-bf67623349c6
-AuthContext.tsx:49 [Auth] 🔍 Sessão inicial: contatoluizantoniooliveira@gmail.com
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
-ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/ai-agents', hasUser: true, authLoading: false, roleLoading: true, userRole: 'operational', …}
-ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
-useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
-useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
-AuthContext.tsx:65 [Auth] 📡 INITIAL_SESSION contatoluizantoniooliveira@gmail.com
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
-ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/ai-agents', hasUser: true, authLoading: false, roleLoading: true, userRole: 'operational', …}
-ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
-useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
-useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
-App.tsx:192 [App] 🔐 Estado inicial de autenticação: {hasSession: true, userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', userEmail: 'contatoluizantoniooliveira@gmail.com', currentPath: '/ai-agents', error: undefined}
-useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', role: 'admin', isAdmin: true, createdByUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6'}
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
-ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/ai-agents', hasUser: true, authLoading: false, roleLoading: false, userRole: 'admin', …}
-ProtectedRoute.tsx:103 [ProtectedRoute] ✅ Usuário autenticado e autorizado
-useAIAgents.ts:13 🔄 Buscando agentes atualizados do banco...
-useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: SUBSCRIBED
-useConnectionStatusSync.ts:117 [ConnectionStatusSync] ✅ Conectado com sucesso
-useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
-useUserPermissions.ts:119 [useUserPermissions] ✅ Permissões definidas: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …}
-useAIAgents.ts:28 ✅ 1 agentes carregados do banco
-AIAgentModal.tsx:61 🎯 getCurrentAgent() chamado: null
-AIAgentModal.tsx:265 🔄 PROMPT DATA MUDOU: {agent_function: 'VAZIO', timestamp: '15:53:10'}
-AIAgentModal.tsx:61 🎯 getCurrentAgent() chamado: null
-dragDropDebugger.ts:85 🚀 [DragDropDebugger] Iniciando diagnóstico completo
-dragDropDebugger.ts:6 🔍 [DragDropDebugger] Análise de elementos
-dragDropDebugger.ts:10 📐 Elementos com transform: 0
-dragDropDebugger.ts:14 🎯 Elementos RBD: 0
-dragDropDebugger.ts:18 🚫 Elementos com overflow hidden: 0
-dragDropDebugger.ts:22 👆 Elementos com pointer-events none: 0
-dragDropDebugger.ts:62 🧪 [DragDropDebugger] Verificação React Beautiful DND
-dragDropDebugger.ts:66 📦 Script RBD encontrado: false
-dragDropDebugger.ts:70 🎯 DragDropContext ativo: false
-dragDropDebugger.ts:74 🎪 Elementos draggable: 0
-dragDropDebugger.ts:78 🎯 Elementos droppable: 0
-dragDropDebugger.ts:29 🎬 [DragDropDebugger] Configurando monitoramento
-dragDropDebugger.ts:91 ✅ [DragDropDebugger] Diagnóstico concluído - verifique os logs acima
-AIAgentModal.tsx:61 🎯 getCurrentAgent() chamado: {id: '481766d9-2b00-4812-aeb1-9ea350a7ed71', name: 'Amanda', source: 'agent prop'}
-AIAgentModal.tsx:80 🔄 Modal aberto - promptData vazio, carregando do banco
-AIAgentModal.tsx:129 
-=== CARREGAMENTO DE DADOS DO PROMPT ===
-AIAgentModal.tsx:130 📎 Carregando dados para agente ID: 481766d9-2b00-4812-aeb1-9ea350a7ed71
-useAIAgentPrompts.ts:188 
-=== GET PROMPT BY AGENT ID (CONSOLIDADO) ===
-useAIAgentPrompts.ts:189 🔍 Buscando dados do agente ID: 481766d9-2b00-4812-aeb1-9ea350a7ed71
-useAIAgents.ts:13 🔄 Buscando agentes atualizados do banco...
-AIAgentForm.tsx:37 🔄 Sincronizando formData com agent prop: {id: '481766d9-2b00-4812-aeb1-9ea350a7ed71', name: 'Amanda', type: 'sales', status: 'inactive', funnel_id: '1b522686-c1be-4b96-93c5-bf79ac197dbf', …}
-suppressDragDropWarnings.ts:34 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
-console.warn @ suppressDragDropWarnings.ts:34
-(anonymous) @ chunk-ERCPQWBU.js?v=1af45239:340
-commitHookEffectListMount @ chunk-276SZO74.js?v=1af45239:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=1af45239:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=1af45239:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=1af45239:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=1af45239:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=1af45239:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=1af45239:19447
-commitRootImpl @ chunk-276SZO74.js?v=1af45239:19416
-commitRoot @ chunk-276SZO74.js?v=1af45239:19277
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=1af45239:18895
-flushSyncCallbacks @ chunk-276SZO74.js?v=1af45239:9119
-(anonymous) @ chunk-276SZO74.js?v=1af45239:18627Understand this warning
-AIAgentModal.tsx:61 🎯 getCurrentAgent() chamado: {id: '481766d9-2b00-4812-aeb1-9ea350a7ed71', name: 'Amanda', source: 'workingAgent'}
-useAIAgentPrompts.ts:197 📊 Resposta da busca: {data: 'SIM', error: 'NENHUM'}
-useAIAgentPrompts.ts:230 ✅ Dados do agente convertidos com sucesso
-useAIAgentPrompts.ts:231 === FIM GET PROMPT (COM SUCESSO) ===
+Uncaught ReferenceError: React is not defined
+    at FieldConfigModalTemp (FieldConfigModalTemp.tsx:235:24)
 
-AIAgentModal.tsx:134 📊 Prompt encontrado: SIM
-AIAgentModal.tsx:137 📝 Mapeando dados do prompt encontrado...
-AIAgentModal.tsx:138 📊 Dados carregados do banco: {agent_function: 'PREENCHIDO', agent_objective: 'PREENCHIDO', communication_style: 'PREENCHIDO', communication_style_examples: 1, company_info: 'PREENCHIDO', …}
-AIAgentModal.tsx:163 📝 Dados formatados para setPromptData: {agent_function: 'PREENCHIDO (80 chars)', agent_objective: 'PREENCHIDO (60 chars)', communication_style: 'PREENCHIDO (60 chars)', company_info: 'PREENCHIDO (80 chars)'}
-AIAgentModal.tsx:177 ✅ Dados do prompt carregados e mapeados com sucesso - sem marcar como alteração
-AIAgentModal.tsx:182 === FIM CARREGAMENTO PROMPT ===
+PortalErrorBoundary.tsx:20 [PortalErrorBoundary] Portal error captured: ReferenceError: React is not defined
+    at FieldConfigModalTemp (FieldConfigModalTemp.tsx:235:24)
+EnhancedPromptConfiguration.tsx:446 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: 
+Object
+EnhancedPromptConfiguration.tsx:608 🔍 FlowStepConfigModal renderizando: false
+EnhancedPromptConfiguration.tsx:628 🔍 DeleteConfirmModal renderizando: false
+FieldConfigModalTemp.tsx:235 Uncaught ReferenceError: React is not defined
+    at FieldConfigModalTemp (FieldConfigModalTemp.tsx:235:24)
+PortalErrorBoundary.tsx:20 [PortalErrorBoundary] Portal error captured: ReferenceError: React is not defined
+    at FieldConfigModalTemp (FieldConfigModalTemp.tsx:235:24)
+chunk-276SZO74.js?v=1af45239:14032 The above error occurred in the <FieldConfigModalTemp> component:
 
-AIAgentModal.tsx:61 🎯 getCurrentAgent() chamado: {id: '481766d9-2b00-4812-aeb1-9ea350a7ed71', name: 'Amanda', source: 'workingAgent'}
-AIAgentModal.tsx:265 🔄 PROMPT DATA MUDOU: {agent_function: '80 chars', timestamp: '15:53:13'}
-useAIAgents.ts:28 ✅ 1 agentes carregados do banco
-AIAgentModal.tsx:61 🎯 getCurrentAgent() chamado: {id: '481766d9-2b00-4812-aeb1-9ea350a7ed71', name: 'Amanda', source: 'workingAgent'}
-EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
-EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
-EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
-EnhancedPromptConfiguration.tsx:113 🔍 editingStep mudou: null
-EnhancedPromptConfiguration.tsx:117 🔍 showDeleteConfirm mudou: {show: false, index: null}
-EnhancedPromptConfiguration.tsx:121 🔄 forceRender mudou: 0 - Componente deve re-renderizar
-EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
-EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
-EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
-EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
-EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
-EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
-EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
-EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
-EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
-FieldConfigModal.tsx:131 🔧 FieldConfigModal aberto para campo: products_services
-FieldConfigModal.tsx:132 📊 Valores recebidos: {type: 'simple', simpleValue: 'PREENCHIDO (100 chars)', fieldWithExamples: 'NENHUM'}
-suppressDragDropWarnings.ts:34 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
-console.warn @ suppressDragDropWarnings.ts:34
-(anonymous) @ chunk-ERCPQWBU.js?v=1af45239:340
-commitHookEffectListMount @ chunk-276SZO74.js?v=1af45239:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=1af45239:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=1af45239:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=1af45239:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=1af45239:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=1af45239:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=1af45239:19447
-commitRootImpl @ chunk-276SZO74.js?v=1af45239:19416
-commitRoot @ chunk-276SZO74.js?v=1af45239:19277
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=1af45239:18895
-flushSyncCallbacks @ chunk-276SZO74.js?v=1af45239:9119
-(anonymous) @ chunk-276SZO74.js?v=1af45239:18627Understand this warning
-EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
-EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
-EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
-EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
-EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
-EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
-EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
-EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
-EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
-EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
-EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
-EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
-EnhancedPromptConfiguration.tsx:445 🔥 RENDER EnhancedPromptConfiguration - Estados atuais: {editingStep: false, showDeleteConfirm: false, forceRender: 0}
-EnhancedPromptConfiguration.tsx:600 🔍 FlowStepConfigModal renderizando: false
-EnhancedPromptConfiguration.tsx:620 🔍 DeleteConfirmModal renderizando: false
+    at FieldConfigModalTemp (http://localhost:8080/src/components/ai-agents/FieldConfigModalTemp.tsx:32:40)
+    at div
+    at EnhancedPromptConfiguration (http://localhost:8080/src/components/ai-agents/EnhancedPromptConfiguration.tsx:33:47)
+    at div
+    at _c8 (http://localhost:8080/src/components/ui/card.tsx:95:61)
+    at div
+    at _c (http://localhost:8080/src/components/ui/card.tsx:23:53)
+    at div
+    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=1af45239:43:13
+    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-GWCB6ZNV.js?v=1af45239:24:11)
+    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=1af45239:178:13
+    at _c4 (http://localhost:8080/src/components/ui/tabs.tsx:61:61)
+    at div
+    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=1af45239:43:13
+    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-3RXG37ZK.js?v=1af45239:38:15)
+    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=1af45239:55:7
+    at div
+    at div
+    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=1af45239:43:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-VOOK2GQG.js?v=1af45239:63:7
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=1af45239:79:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=1af45239:56:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=1af45239:43:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-HKSXYMEN.js?v=1af45239:34:5
+    at http://localhost:8080/node_modules/.vite/deps/chunk-ERCPQWBU.js?v=1af45239:236:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-ERCPQWBU.js?v=1af45239:159:58
+    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-GWCB6ZNV.js?v=1af45239:24:11)
+    at http://localhost:8080/node_modules/.vite/deps/chunk-ERCPQWBU.js?v=1af45239:150:64
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=1af45239:79:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-X5NZ3XE2.js?v=1af45239:56:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-GF6V5RWQ.js?v=1af45239:43:13
+    at http://localhost:8080/node_modules/.vite/deps/chunk-VOOK2GQG.js?v=1af45239:260:22
+    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-GWCB6ZNV.js?v=1af45239:24:11)
+    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-3RXG37ZK.js?v=1af45239:38:15)
+    at DialogPortal (http://localhost:8080/node_modules/.vite/deps/chunk-ERCPQWBU.js?v=1af45239:112:11)
+    at DialogPortal (http://localhost:8080/src/components/ui/dialog.tsx:27:25)
+    at _c2 (http://localhost:8080/src/components/ui/dialog.tsx:65:63)
+    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-3RXG37ZK.js?v=1af45239:38:15)
+    at Dialog (http://localhost:8080/node_modules/.vite/deps/chunk-ERCPQWBU.js?v=1af45239:52:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:61:9)
+    at AIAgentModal (http://localhost:8080/src/components/ai-agents/AIAgentModal.tsx:34:32)
+    at div
+    at AIAgents (http://localhost:8080/src/pages/AIAgents.tsx:34:76)
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:28:29)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=1af45239:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=1af45239:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=1af45239:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=1af45239:4558:5)
+    at QRCodeModalProvider (http://localhost:8080/src/modules/whatsapp/instanceCreation/hooks/useQRCodeModal.tsx:29:39)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=1af45239:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=1af45239:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:61:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=1af45239:2933:3)
+    at App (http://localhost:8080/src/App.tsx:552:5)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, PortalErrorBoundary.
+PortalErrorBoundary.tsx:45 [PortalErrorBoundary] Uncaught error: ReferenceError: React is not defined
+    at FieldConfigModalTemp (FieldConfigModalTemp.tsx:235:24)
+ 
+Object

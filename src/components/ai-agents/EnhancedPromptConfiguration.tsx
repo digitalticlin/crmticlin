@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { FieldConfigModal } from "./FieldConfigModal";
+import { FieldConfigModalTemp } from "./FieldConfigModalTemp";
 import { FlowStepConfigModal } from "./FlowStepConfigModal";
 import { FunnelConfigModal } from "./FunnelConfigModal";
 import { AIAgent, FieldWithExamples, FlowStepEnhanced, PQExample } from "@/types/aiAgent";
@@ -492,60 +493,61 @@ export const EnhancedPromptConfiguration = ({
                     {config.value ? String(config.value).substring(0, 80) + (String(config.value).length > 80 ? '...' : '') : 'Clique em "Configurar" para adicionar'}
                   </div>
                 ) : config.type === 'with-examples' ? (
-                  <div className="space-y-1">
-                    <div className="text-xs text-gray-700 bg-white/30 rounded p-2">
-                      {config.value?.description ? String(config.value.description).substring(0, 60) + (String(config.value.description).length > 60 ? '...' : '') : 'Sem descrição'}
+                    <div className="space-y-1">
+                      <div className="text-xs text-gray-700 bg-white/30 rounded p-2">
+                        {config.value?.description ? String(config.value.description).substring(0, 60) + (String(config.value.description).length > 60 ? '...' : '') : 'Sem descrição'}
+                      </div>
+                      <p className="text-xs text-gray-500 text-center">
+                        {config.value?.examples?.length || 0} exemplos configurados
+                      </p>
                     </div>
-                    <p className="text-xs text-gray-500 text-center">
-                      {config.value?.examples?.length || 0} exemplos configurados
-                    </p>
-                  </div>
                 ) : config.type === 'text-list' ? (
-                  <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
-                    {Array.isArray(config.value) && config.value.length > 0 
-                      ? `${config.value.length} item${config.value.length !== 1 ? 'ns' : ''} configurado${config.value.length !== 1 ? 's' : ''}`
-                      : 'Clique em "Configurar" para adicionar itens'}
-                  </div>
+                    <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
+                      {Array.isArray(config.value) && config.value.length > 0 
+                        ? `${config.value.length} item${config.value.length !== 1 ? 'ns' : ''} configurado${config.value.length !== 1 ? 's' : ''}`
+                        : 'Clique em "Configurar" para adicionar itens'}
+                    </div>
                 ) : config.type === 'objections-list' ? (
-                  <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
-                    {Array.isArray(config.value) && config.value.length > 0 
-                      ? `${config.value.length} objeção${config.value.length !== 1 ? 'ões' : ''} configurada${config.value.length !== 1 ? 's' : ''}`
-                      : 'Clique em "Configurar" para adicionar objeções'}
-                  </div>
+                    <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
+                      {Array.isArray(config.value) && config.value.length > 0 
+                        ? `${config.value.length} objeção${config.value.length !== 1 ? 'ões' : ''} configurada${config.value.length !== 1 ? 's' : ''}`
+                        : 'Clique em "Configurar" para adicionar objeções'}
+                    </div>
                 ) : config.type === 'flow-steps' ? (
-                  <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
-                    {Array.isArray(config.value) && config.value.length > 0 
-                      ? `${config.value.length} passo${config.value.length !== 1 ? 's' : ''} configurado${config.value.length !== 1 ? 's' : ''}`
-                      : 'Clique em "Configurar" para adicionar passos'}
-                  </div>
+                    <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
+                      {Array.isArray(config.value) && config.value.length > 0 
+                        ? `${config.value.length} passo${config.value.length !== 1 ? 's' : ''} configurado${config.value.length !== 1 ? 's' : ''}`
+                        : 'Clique em "Configurar" para adicionar passos'}
+                    </div>
                 ) : config.type === 'funnel-config' ? (
-                  <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
-                    {funnelConfigStatus === 'configured' ? 'Estágios do funil configurados para IA' : 
-                     funnelConfigStatus === 'ready' ? 'Ensine o agente quando mover os leads' : 'Selecione um funil na Aba 1 primeiro'}
-                  </div>
+                    <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
+                      {funnelConfigStatus === 'configured' ? 'Estágios do funil configurados para IA' : 
+                       funnelConfigStatus === 'ready' ? 'Ensine o agente quando mover os leads' : 'Selecione um funil na Aba 1 primeiro'}
+                    </div>
                 ) : (
-                  <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
-                    Tipo não reconhecido
-                  </div>
+                    <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
+                      Tipo não reconhecido
+                    </div>
                 )}
-              </div>
-              
-              {/* Botão configurar */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full bg-yellow-100 border-yellow-300 hover:bg-yellow-200 text-yellow-800 font-medium text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveModal(config.key);
-                }}
-              >
-                <Settings className="h-3 w-3 mr-1" />
-                Configurar Campo
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+                </div>
+                
+                {/* Botão configurar */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full bg-yellow-100 border-yellow-300 hover:bg-yellow-200 text-yellow-800 font-medium text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveModal(config.key);
+                  }}
+                >
+                  <Settings className="h-3 w-3 mr-1" />
+                  Configurar Campo
+                </Button>
+              </CardContent>
+            </Card>
+          )
+        )}
       </div>
 
       {/* Modais de configuração */}
@@ -556,27 +558,33 @@ export const EnhancedPromptConfiguration = ({
         config.type === 'objections-list' ||
         config.type === 'flow-steps' ||
         config.type === 'funnel-config'
-      ).map((config) => (
-        <FieldConfigModal
-          key={config.key}
-          isOpen={activeModal === config.key}
-          onClose={() => setActiveModal(null)}
-          onSave={(value) => handleFieldSave(config.key, value)}
-          title={config.title}
-          fieldKey={config.key}
-          icon={config.icon}
-          type={config.type}
-          required={config.required}
-          simpleValue={config.type === 'simple' ? config.value : undefined}
-          placeholder={config.placeholder}
-          fieldWithExamples={config.type === 'with-examples' ? config.value : undefined}
-          examplePlaceholder={config.examplePlaceholder}
-          textListValue={config.type === 'text-list' ? config.value : undefined}
-          objectionsValue={config.type === 'objections-list' ? config.value : undefined}
-          flowStepsValue={config.type === 'flow-steps' ? config.value?.map((step: any) => step.content || step) : undefined}
-          funnelConfigValue={config.type === 'funnel-config' ? config.value : undefined}
-        />
-      ))}
+      ).map((config) => {
+        // Usar modal temporário APENAS para agent_function como teste
+        const ModalComponent = config.key === 'agent_function' ? FieldConfigModalTemp : FieldConfigModal;
+        
+        return (
+          <ModalComponent
+            key={config.key}
+            isOpen={activeModal === config.key}
+            onClose={() => setActiveModal(null)}
+            onSave={(value) => handleFieldSave(config.key, value)}
+            title={config.title}
+            fieldKey={config.key}
+            icon={config.icon}
+            type={config.type}
+            required={config.required}
+            simpleValue={config.type === 'simple' ? config.value : undefined}
+            placeholder={config.placeholder}
+            fieldWithExamples={config.type === 'with-examples' ? config.value : undefined}
+            examplePlaceholder={config.examplePlaceholder}
+            textListValue={config.type === 'text-list' ? config.value : undefined}
+            objectionsValue={config.type === 'objections-list' ? config.value : undefined}
+            flowStepsValue={config.type === 'flow-steps' ? config.value?.map((step: any) => step.content || step) : undefined}
+            funnelConfigValue={config.type === 'funnel-config' ? config.value : undefined}
+            agent={agent}
+          />
+        );
+      })}
 
 
       {/* Modal de configuração de passos do fluxo */}

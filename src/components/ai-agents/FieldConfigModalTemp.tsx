@@ -52,7 +52,7 @@ interface FieldConfigModalProps {
   required?: boolean;
 }
 
-export const FieldConfigModal = ({
+export const FieldConfigModalTemp = ({
   isOpen,
   onClose,
   onSave,
