@@ -68,21 +68,30 @@ export function useSalesFunnelDirect() {
   });
 
   const { data: leads = [], isLoading: leadsLoading, refetch: refetchLeads } = useQuery({
-    queryKey: ['leads', selectedFunnel?.id],
+    queryKey: ['leads', selectedFunnel?.id, user?.id, isAdmin],
     queryFn: async () => {
-      if (!selectedFunnel?.id) return [];
+      if (!selectedFunnel?.id || !user?.id) return [];
+
+      console.log('[useSalesFunnelDirect] 🔍 Buscando leads:', {
+        funnelId: selectedFunnel.id,
+        userId: user.id,
+        isAdmin,
+        userEmail: user.email
+      });
 
       // Carregar leads de forma paginada para evitar limite de 1000
       const PAGE_SIZE = 1000;
       let allLeads: any[] = [];
+      
       for (let offset = 0; ; offset += PAGE_SIZE) {
-        const { data, error } = await supabase
+        let query = supabase
           .from('leads')
           .select(`
             id, name, phone, email, company, notes, 
             last_message, last_message_time, purchase_value, 
             unread_count, owner_id, created_by_user_id, kanban_stage_id, funnel_id,
             whatsapp_number_id, created_at, updated_at, profile_pic_url,
+            conversation_status,
             owner:owner_id (
               id,
               full_name
@@ -101,17 +110,37 @@ export function useSalesFunnelDirect() {
             )
           `)
           .eq('funnel_id', selectedFunnel.id)
-          .eq('created_by_user_id', user?.id)
-          .order('created_at', { ascending: false })
+          .in('conversation_status', ['active', 'closed']);
+
+        // FILTRO CORRETO: Admin vê todos os seus leads, Team vê apenas leads responsáveis
+        if (isAdmin) {
+          console.log('[useSalesFunnelDirect] 👑 Usuário ADMIN - buscando todos os leads criados por ele');
+          query = query.eq('created_by_user_id', user.id);
+        } else {
+          console.log('[useSalesFunnelDirect] 👤 Usuário TEAM - buscando apenas leads responsáveis');
+          query = query.or(`owner_id.eq.${user.id},created_by_user_id.eq.${user.id}`);
+        }
+
+        const { data, error } = await query
+          .order('updated_at', { ascending: false })
           .range(offset, offset + PAGE_SIZE - 1);
+
         if (error) throw error;
+        
         allLeads = allLeads.concat(data || []);
         if (!data || data.length < PAGE_SIZE) break;
       }
-      console.log('[useSalesFunnelDirect] 📊 Leads carregados:', allLeads?.length || 0);
+      
+      console.log('[useSalesFunnelDirect] 📊 Leads carregados:', {
+        count: allLeads?.length || 0,
+        isAdmin,
+        userId: user.id,
+        funnelId: selectedFunnel.id
+      });
+      
       return allLeads;
     },
-    enabled: !!selectedFunnel?.id,
+    enabled: !!selectedFunnel?.id && !!user?.id,
     staleTime: 30 * 1000, // 30 segundos de cache para leads (mais dinâmico)
     gcTime: 2 * 60 * 1000
   });

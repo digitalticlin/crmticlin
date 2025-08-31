@@ -40,7 +40,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     rules_guidelines: [] as any[], // JSONB - array de objetos
     prohibitions: [] as any[], // JSONB - array de objetos
     client_objections: [] as any[], // JSONB - array de objetos com objeção+resposta
-    funnel_configuration: [] as any[], // JSONB - configuração do funil
     flow: [] as FlowStepEnhanced[]
   });
 
@@ -117,7 +116,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
         rules_guidelines: [], // JSONB array
         prohibitions: [], // JSONB array
         client_objections: [], // JSONB array
-        funnel_configuration: [], // JSONB array
         flow: []
       });
       // Reset também não deve marcar como alteração não salva
@@ -156,7 +154,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           rules_guidelines: Array.isArray(existingPrompt.rules_guidelines) ? existingPrompt.rules_guidelines : [],
           prohibitions: Array.isArray(existingPrompt.prohibitions) ? existingPrompt.prohibitions : [],
           client_objections: Array.isArray(existingPrompt.client_objections) ? existingPrompt.client_objections : [],
-          funnel_configuration: Array.isArray(existingPrompt.funnel_configuration) ? existingPrompt.funnel_configuration : [],
           flow: Array.isArray(existingPrompt.flow) ? existingPrompt.flow : []
         };
         

@@ -87,6 +87,7 @@ export function useSalesFunnelOptimized() {
           last_message, last_message_time, purchase_value, 
           unread_count, owner_id, kanban_stage_id, funnel_id,
           whatsapp_number_id, created_at, updated_at, profile_pic_url,
+          conversation_status, created_by_user_id,
           lead_tags(
             tag_id,
             tags:tag_id(
@@ -97,7 +98,8 @@ export function useSalesFunnelOptimized() {
           )
         `)
         .eq('funnel_id', selectedFunnel.id)
-        .or(`created_by_user_id.eq.${user?.id},owner_id.eq.${user?.id}`)
+        .eq('created_by_user_id', user.id)
+        .in('conversation_status', ['active', 'closed'])
         .order('updated_at', { ascending: false });
       
       if (error) throw error;
@@ -111,10 +113,10 @@ export function useSalesFunnelOptimized() {
       return data || [];
     },
     enabled: !!selectedFunnel?.id,
-    staleTime: 1000, // 1 segundo para dados mais frescos
+    staleTime: 30000, // 30 segundos - evitar re-fetches excessivos
     gcTime: CACHE_TIME,
-    refetchOnWindowFocus: true, // Refetch quando a janela receber foco
-    refetchOnMount: true // Sempre refetch ao montar
+    refetchOnWindowFocus: false, // Desabilitado para evitar loops
+    refetchOnMount: false // Desabilitado para evitar loops
   });
 
   const { tags: availableTags } = useTagDatabase();
@@ -326,7 +328,8 @@ export function useSalesFunnelOptimized() {
         .from('leads')
         .select('id')
         .eq('funnel_id', selectedFunnel.id)
-        .or(`created_by_user_id.eq.${user?.id},owner_id.eq.${user?.id}`)
+        .eq('created_by_user_id', user.id)
+        .in('conversation_status', ['active', 'closed'])
         .order('updated_at', { ascending: false })
         .limit(200);
       

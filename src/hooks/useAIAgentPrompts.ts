@@ -34,16 +34,17 @@ export const useAIAgentPrompts = (agentId?: string) => {
         communication_style_examples: Array.isArray(data.communication_style_examples) ? data.communication_style_examples : [],
         company_info: data.company_info || '',
         products_services: data.products_services || '',
-        products_services_examples: [], // Campo não existe na tabela consolidada
+        products_services_examples: [], // Campo legacy - mantido para compatibilidade
         rules_guidelines: Array.isArray(data.rules_guidelines) ? data.rules_guidelines : [],
-        rules_guidelines_examples: [], // Campo não existe na tabela consolidada
+        rules_guidelines_examples: [], // Campo legacy - mantido para compatibilidade
         prohibitions: Array.isArray(data.prohibitions) ? data.prohibitions : [],
-        prohibitions_examples: [], // Campo não existe na tabela consolidada
+        prohibitions_examples: [], // Campo legacy - mantido para compatibilidade
         client_objections: Array.isArray(data.client_objections) ? data.client_objections : [],
-        client_objections_examples: [], // Campo não existe na tabela consolidada
-        phrase_tips: '', // Campo não existe na tabela consolidada
-        phrase_tips_examples: [], // Campo não existe na tabela consolidada
+        client_objections_examples: [], // Campo legacy - mantido para compatibilidade
+        phrase_tips: '', // Campo legacy - mantido para compatibilidade
+        phrase_tips_examples: [], // Campo legacy - mantido para compatibilidade
         flow: Array.isArray(data.flow) ? data.flow : [],
+        funnel_configuration: Array.isArray(data.funnel_configuration) ? data.funnel_configuration : [], // NOVO: Configuração do funil
         created_by_user_id: data.created_by_user_id,
         created_at: data.created_at,
         updated_at: data.updated_at
@@ -80,8 +81,8 @@ export const useAIAgentPrompts = (agentId?: string) => {
         rules_guidelines: Array.isArray(data.rules_guidelines) ? data.rules_guidelines : [],
         prohibitions: Array.isArray(data.prohibitions) ? data.prohibitions : [],
         client_objections: Array.isArray(data.client_objections) ? data.client_objections : [],
-        funnel_configuration: Array.isArray(data.funnel_configuration) ? data.funnel_configuration : [],
         flow: Array.isArray(data.flow) ? data.flow : [],
+        funnel_configuration: Array.isArray(data.funnel_configuration) ? data.funnel_configuration : [], // NOVO: Suporte ao campo
         updated_at: new Date().toISOString()
       };
 
@@ -117,16 +118,17 @@ export const useAIAgentPrompts = (agentId?: string) => {
         communication_style_examples: Array.isArray(updatedAgent.communication_style_examples) ? updatedAgent.communication_style_examples : [],
         company_info: updatedAgent.company_info || '',
         products_services: updatedAgent.products_services || '',
-        products_services_examples: [],
+        products_services_examples: [], // Campo legacy - mantido para compatibilidade
         rules_guidelines: Array.isArray(updatedAgent.rules_guidelines) ? updatedAgent.rules_guidelines : [],
-        rules_guidelines_examples: [],
+        rules_guidelines_examples: [], // Campo legacy - mantido para compatibilidade  
         prohibitions: Array.isArray(updatedAgent.prohibitions) ? updatedAgent.prohibitions : [],
-        prohibitions_examples: [],
+        prohibitions_examples: [], // Campo legacy - mantido para compatibilidade
         client_objections: Array.isArray(updatedAgent.client_objections) ? updatedAgent.client_objections : [],
-        client_objections_examples: [],
-        phrase_tips: '',
-        phrase_tips_examples: [],
+        client_objections_examples: [], // Campo legacy - mantido para compatibilidade
+        phrase_tips: '', // Campo legacy - mantido para compatibilidade
+        phrase_tips_examples: [], // Campo legacy - mantido para compatibilidade
         flow: Array.isArray(updatedAgent.flow) ? updatedAgent.flow : [],
+        funnel_configuration: Array.isArray(updatedAgent.funnel_configuration) ? updatedAgent.funnel_configuration : [], // NOVO: Configuração do funil
         created_by_user_id: updatedAgent.created_by_user_id,
         created_at: updatedAgent.created_at,
         updated_at: updatedAgent.updated_at
@@ -208,6 +210,13 @@ export const useAIAgentPrompts = (agentId?: string) => {
         console.log('📌 Mapeando flow:', flow.length, 'itens');
       }
       
+      // NOVO: Mapear funnel_configuration
+      if (updates.funnel_configuration !== undefined) {
+        const funnelConfig = Array.isArray(updates.funnel_configuration) ? updates.funnel_configuration : [];
+        formattedUpdates.funnel_configuration = funnelConfig;
+        console.log('📌 Mapeando funnel_configuration:', funnelConfig.length, 'itens');
+      }
+      
       // Adicionar updated_at
       formattedUpdates.updated_at = new Date().toISOString();
       
@@ -285,16 +294,17 @@ export const useAIAgentPrompts = (agentId?: string) => {
         communication_style_examples: Array.isArray(data.communication_style_examples) ? data.communication_style_examples : [],
         company_info: data.company_info || '',
         products_services: data.products_services || '',
-        products_services_examples: [],
+        products_services_examples: [], // Campo legacy - mantido para compatibilidade
         rules_guidelines: Array.isArray(data.rules_guidelines) ? data.rules_guidelines : [],
-        rules_guidelines_examples: [],
+        rules_guidelines_examples: [], // Campo legacy - mantido para compatibilidade
         prohibitions: Array.isArray(data.prohibitions) ? data.prohibitions : [],
-        prohibitions_examples: [],
+        prohibitions_examples: [], // Campo legacy - mantido para compatibilidade
         client_objections: Array.isArray(data.client_objections) ? data.client_objections : [],
-        client_objections_examples: [],
-        phrase_tips: '',
-        phrase_tips_examples: [],
+        client_objections_examples: [], // Campo legacy - mantido para compatibilidade
+        phrase_tips: '', // Campo legacy - mantido para compatibilidade
+        phrase_tips_examples: [], // Campo legacy - mantido para compatibilidade
         flow: Array.isArray(data.flow) ? data.flow : [],
+        funnel_configuration: Array.isArray(data.funnel_configuration) ? data.funnel_configuration : [], // NOVO: Configuração do funil
         created_by_user_id: data.created_by_user_id,
         created_at: data.created_at,
         updated_at: data.updated_at

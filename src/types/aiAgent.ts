@@ -81,5 +81,13 @@ export interface CreateAIAgentPromptData {
   phrase_tips: string;
   phrase_tips_examples: PQExample[];
   flow: FlowStepEnhanced[];
-  funnel_configuration?: any[]; // Para compatibilidade com o banco
+  funnel_configuration: FunnelStageConfig[]; // NOVO: Configuração consolidada do funil
+}
+
+// NOVO: Estrutura para configuração de estágios do funil
+export interface FunnelStageConfig {
+  stage_id: string;
+  order: number;
+  name: string;
+  description: string;
 }

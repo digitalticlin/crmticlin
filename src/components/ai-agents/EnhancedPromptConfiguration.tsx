@@ -41,7 +41,6 @@ interface EnhancedPromptConfigurationProps {
     rules_guidelines: any[]; // JSONB - array de objetos
     prohibitions: any[]; // JSONB - array de objetos  
     client_objections: any[]; // JSONB - array de objetos com objeção+resposta
-    funnel_configuration: any[]; // JSONB - nova configuração do funil
     flow: FlowStepEnhanced[];
   };
   onPromptDataChange: (field: string, value: any) => void;
@@ -63,25 +62,32 @@ export const EnhancedPromptConfiguration = ({
   const [funnelConfigStatus, setFunnelConfigStatus] = useState<'not-selected' | 'ready' | 'configured'>('not-selected');
   const [forceRender, setForceRender] = useState(0);
 
-  // Função para verificar status de configuração do funil
+  // MELHORADA: Função para verificar status de configuração do funil
   const checkFunnelConfigStatus = async () => {
+    console.log('🔍 Verificando status de configuração do funil...');
+    
     if (!agent?.funnel_id) {
+      console.log('❌ Nenhum funil selecionado');
       setFunnelConfigStatus('not-selected');
       return;
     }
+
+    console.log('📊 Funil selecionado:', agent.funnel_id);
 
     try {
       // Verificar se há estágios configurados com ai_stage_description
       const { data: stages, error } = await supabase
         .from('kanban_stages')
-        .select('ai_stage_description, title')
+        .select('ai_stage_description, title, id')
         .eq('funnel_id', agent.funnel_id);
 
       if (error) {
-        console.warn('Erro ao verificar configuração do funil:', error);
+        console.warn('⚠️ Erro ao verificar configuração do funil (provavelmente campos AI não existem ainda):', error);
         setFunnelConfigStatus('ready');
         return;
       }
+
+      console.log(`📋 Encontrados ${stages?.length || 0} estágios no funil`);
 
       // Contar estágios configurados (excluindo etapas automáticas)
       const configurableStages = stages?.filter(stage => 
@@ -89,18 +95,27 @@ export const EnhancedPromptConfiguration = ({
         stage.title !== 'Em atendimento'
       ) || [];
 
+      console.log(`⚙️ Estágios configuráveis: ${configurableStages.length}`);
+
       const configuredStages = configurableStages.filter(stage => 
         stage.ai_stage_description && stage.ai_stage_description.trim().length > 0
       );
 
+      console.log(`✅ Estágios configurados: ${configuredStages.length}/${configurableStages.length}`);
+
       // Se pelo menos uma etapa configurável tem descrição, considerar configurado
       if (configuredStages.length > 0) {
+        console.log('✅ Status: Configurado');
         setFunnelConfigStatus('configured');
-      } else {
+      } else if (configurableStages.length > 0) {
+        console.log('🟡 Status: Pronto para configurar');
         setFunnelConfigStatus('ready');
+      } else {
+        console.log('❌ Status: Nenhum estágio configurável encontrado');
+        setFunnelConfigStatus('not-selected');
       }
     } catch (error) {
-      console.warn('Erro ao verificar status do funil:', error);
+      console.warn('❌ Erro ao verificar status do funil:', error);
       setFunnelConfigStatus('ready');
     }
   };
@@ -520,9 +535,25 @@ export const EnhancedPromptConfiguration = ({
                         : 'Clique em "Configurar" para adicionar passos'}
                     </div>
                 ) : config.type === 'funnel-config' ? (
-                    <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">
-                      {funnelConfigStatus === 'configured' ? 'Estágios do funil configurados para IA' : 
-                       funnelConfigStatus === 'ready' ? 'Ensine o agente quando mover os leads' : 'Selecione um funil na Aba 1 primeiro'}
+                    <div className={`text-xs rounded p-3 min-h-[3rem] flex items-center gap-2 ${
+                      funnelConfigStatus === 'configured' ? 'bg-green-50/80 text-green-800 border border-green-200/50' :
+                      funnelConfigStatus === 'ready' ? 'bg-yellow-50/80 text-yellow-800 border border-yellow-200/50' :
+                      'bg-gray-50/80 text-gray-600 border border-gray-200/50'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full ${
+                        funnelConfigStatus === 'configured' ? 'bg-green-500' :
+                        funnelConfigStatus === 'ready' ? 'bg-yellow-500' :
+                        'bg-gray-400'
+                      }`}></div>
+                      <div className="flex-1">
+                        {funnelConfigStatus === 'configured' ? (
+                          <div className="font-medium">✅ Estágios configurados</div>
+                        ) : funnelConfigStatus === 'ready' ? (
+                          <div className="font-medium">🎯 Pronto para configurar</div>
+                        ) : (
+                          <div className="font-medium">📋 Funil não selecionado</div>
+                        )}
+                      </div>
                     </div>
                 ) : (
                     <div className="text-xs text-gray-700 bg-white/30 rounded p-2 min-h-[2rem] flex items-center">

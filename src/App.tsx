@@ -21,6 +21,7 @@ import WhatsAppWebPage from './pages/WhatsAppChat';
 import AutomationPage from './pages/Automation';
 import AIAgentsPage from './pages/AIAgents';
 import PlansPage from './pages/Plans';
+import { SalesFunnelDebug } from './components/debug/SalesFunnelDebug';
 
 // 🚀 DECLARAÇÃO GLOBAL PARA TYPESCRIPT
 declare global {
@@ -128,6 +129,14 @@ function AppLayoutRoutes() {
         element={
           <AppLayout fullHeight>
             <WhatsAppWebPage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/debug-sales-funnel" 
+        element={
+          <AppLayout>
+            <SalesFunnelDebug />
           </AppLayout>
         } 
       />

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AIAgent } from "@/types/aiAgent";
+import { AIAgent, FunnelStageConfig } from "@/types/aiAgent";
 import { 
   Target, 
   Phone, 
@@ -27,6 +27,8 @@ interface FunnelStage {
   title: string;
   color: string;
   order_position: number;
+  is_won: boolean;
+  is_lost: boolean;
   ai_stage_description: string;
   ai_notify_enabled: boolean;
   notify_phone: string;
@@ -97,7 +99,7 @@ export const FunnelConfigModal = ({
       if (funnelError) throw funnelError;
       setFunnelInfo(funnelData);
 
-      // Buscar estágios do funil
+      // Buscar estágios do funil (INCLUINDO is_won e is_lost para organização)
       const { data: stagesData, error: stagesError } = await supabase
         .from('kanban_stages')
         .select(`
@@ -105,6 +107,8 @@ export const FunnelConfigModal = ({
           title, 
           color, 
           order_position,
+          is_won,
+          is_lost,
           ai_stage_description,
           ai_notify_enabled,
           notify_phone,
@@ -121,7 +125,7 @@ export const FunnelConfigModal = ({
           console.log('🔄 Tentando carregar estágios sem campos AI...');
           const { data: basicStagesData, error: basicStagesError } = await supabase
             .from('kanban_stages')
-            .select('id, title, color, order_position, funnel_id')
+            .select('id, title, color, order_position, is_won, is_lost, funnel_id')
             .eq('funnel_id', funnelId)
             .order('order_position', { ascending: true });
 
@@ -130,30 +134,66 @@ export const FunnelConfigModal = ({
           // Mapear para formato esperado com campos AI vazios
           const stagesWithDefaults = basicStagesData?.map(stage => ({
             ...stage,
+            is_won: stage.is_won || false,
+            is_lost: stage.is_lost || false,
             ai_stage_description: '',
             ai_notify_enabled: false,
             notify_phone: ''
           })) || [];
 
-          setFunnelStages(stagesWithDefaults);
-          console.log('✅ Estágios básicos carregados:', stagesWithDefaults.length);
+          // APLICAR ORGANIZAÇÃO FIXA aos estágios básicos também
+          const organizedBasicStages = organizeStagesInFixedOrder(stagesWithDefaults);
+          setFunnelStages(organizedBasicStages);
+          console.log('✅ Estágios básicos carregados e organizados:', organizedBasicStages.length);
         } else {
           throw stagesError;
         }
       } else {
         console.log('✅ Estágios carregados:', stagesData?.length || 0);
-        setFunnelStages(stagesData || []);
+        
+        // APLICAR ORGANIZAÇÃO FIXA aos estágios
+        const organizedStages = organizeStagesInFixedOrder(stagesData || []);
+        setFunnelStages(organizedStages);
       }
 
-      // Mapear dados para o estado local
+      // NOVO: Tentar carregar dados consolidados do ai_agents.funnel_configuration primeiro
+      let consolidatedDescriptions: Record<string, string> = {};
+      
+      try {
+        console.log('🔍 Tentando carregar dados consolidados do ai_agents...');
+        const { data: agentData, error: agentError } = await supabase
+          .from('ai_agents')
+          .select('funnel_configuration')
+          .eq('id', agent?.id || '')
+          .single();
+
+        if (!agentError && agentData?.funnel_configuration && Array.isArray(agentData.funnel_configuration)) {
+          console.log('✅ Dados consolidados encontrados:', agentData.funnel_configuration);
+          agentData.funnel_configuration.forEach((config: FunnelStageConfig) => {
+            consolidatedDescriptions[config.stage_id] = config.description || '';
+          });
+          console.log('📋 Descrições consolidadas mapeadas:', Object.keys(consolidatedDescriptions).length);
+        }
+      } catch (error) {
+        console.log('⚠️ Erro ao carregar dados consolidados (fallback para kanban_stages):', error);
+      }
+
+      // Mapear dados para o estado local (com prioridade para dados consolidados)
       const descriptions: Record<string, string> = {};
       const notifications: Record<string, boolean> = {};
       const phones: Record<string, string> = {};
       
       stagesData?.forEach(stage => {
-        descriptions[stage.id] = stage.ai_stage_description || '';
+        // Priorizar descrição consolidada se existir, caso contrário usar da kanban_stages
+        descriptions[stage.id] = consolidatedDescriptions[stage.id] || stage.ai_stage_description || '';
         notifications[stage.id] = stage.ai_notify_enabled || false;
         phones[stage.id] = stage.notify_phone ? formatPhoneNumber(stage.notify_phone) : '';
+      });
+
+      console.log('📊 Estado final mapeado:', { 
+        descriptions: Object.keys(descriptions).length,
+        notifications: Object.keys(notifications).length, 
+        phones: Object.keys(phones).length 
       });
 
       setStageDescriptions(descriptions);
@@ -174,6 +214,19 @@ export const FunnelConfigModal = ({
 
   const formatPhoneNumber = (value: string) => {
     console.log('📞 formatPhoneNumber entrada:', value);
+    
+    // Se for link de grupo, retornar sem formatação
+    if (value.includes('chat.whatsapp.com') || value.includes('wa.me/') || value.includes('whatsapp.com/')) {
+      console.log('🔗 Link de grupo detectado, sem formatação');
+      return value;
+    }
+    
+    // Se já estiver no formato VPS (ID@g.us), não formatar
+    if (value.match(/^[A-Za-z0-9]+@g\.us$/)) {
+      console.log('📋 Formato VPS detectado, sem formatação');
+      return value;
+    }
+    
     // Permitir apenas números
     const numbers = value.replace(/\D/g, '');
     console.log('📞 Números extraídos:', numbers);
@@ -201,7 +254,31 @@ export const FunnelConfigModal = ({
     return cleanNumbers;
   };
 
+  // NOVA FUNÇÃO: Extrair ID do grupo WhatsApp e converter para formato VPS
+  const extractGroupIdFromLink = (link: string): string => {
+    console.log('🔗 Extraindo ID do grupo do link:', link);
+    
+    // Padrão para links do WhatsApp: https://chat.whatsapp.com/CODIGO?parametros
+    const match = link.match(/chat\.whatsapp\.com\/([A-Za-z0-9]+)/);
+    
+    if (match && match[1]) {
+      const groupId = match[1];
+      const formattedId = `${groupId}@g.us`;
+      console.log('✅ ID do grupo extraído:', formattedId);
+      return formattedId;
+    }
+    
+    console.log('❌ Não foi possível extrair ID do grupo');
+    return link; // Se não conseguir extrair, retorna o link original
+  };
+
   const formatPhoneForDatabase = (value: string) => {
+    // Se for link de grupo, extrair ID e converter para formato VPS
+    if (value.includes('chat.whatsapp.com') || value.includes('wa.me/') || value.includes('whatsapp.com/')) {
+      return extractGroupIdFromLink(value);
+    }
+    
+    // Formatação normal para números de telefone
     // Remove todos os caracteres não numéricos
     const numbers = value.replace(/\D/g, '');
     
@@ -221,6 +298,17 @@ export const FunnelConfigModal = ({
   };
 
   const validatePhone = (phone: string) => {
+    // Verificar se é um link de grupo do WhatsApp
+    if (phone.includes('chat.whatsapp.com') || phone.includes('wa.me/') || phone.includes('whatsapp.com/')) {
+      return true; // Links de grupo são válidos
+    }
+    
+    // Verificar se já está no formato ID@g.us (formato VPS)
+    if (phone.match(/^[A-Za-z0-9]+@g\.us$/)) {
+      return true; // Formato VPS válido
+    }
+    
+    // Validação normal para números de telefone
     const numbers = phone.replace(/\D/g, '');
     // Deve ter pelo menos 11 dígitos (DDD + número) ou 13 com código do país (55)
     return numbers.length >= 11;
@@ -228,6 +316,32 @@ export const FunnelConfigModal = ({
 
   const handleStagePhoneChange = (stageId: string, value: string) => {
     console.log('📱 handleStagePhoneChange chamado:', { stageId, value });
+    
+    // Se for link de grupo, converter automaticamente para formato VPS
+    if (value.includes('chat.whatsapp.com') || value.includes('wa.me/') || value.includes('whatsapp.com/')) {
+      console.log('🔗 Link de grupo detectado, convertendo para formato VPS...');
+      const vpsFormat = extractGroupIdFromLink(value);
+      console.log('✅ Formato VPS:', vpsFormat);
+      setStagePhones(prev => ({ ...prev, [stageId]: vpsFormat }));
+      
+      // Mostrar toast informativo
+      if (vpsFormat.includes('@g.us')) {
+        toast.success('Link convertido!', {
+          description: `Formato VPS: ${vpsFormat}`,
+          duration: 3000,
+        });
+      }
+      return;
+    }
+    
+    // Se já estiver no formato VPS, manter como está
+    if (value.match(/^[A-Za-z0-9]+@g\.us$/)) {
+      console.log('📋 Formato VPS detectado, mantendo como está');
+      setStagePhones(prev => ({ ...prev, [stageId]: value }));
+      return;
+    }
+    
+    // Formatação normal para números
     const formatted = formatPhoneNumber(value);
     console.log('📱 Telefone formatado:', { original: value, formatted });
     setStagePhones(prev => ({ ...prev, [stageId]: formatted }));
@@ -250,8 +364,8 @@ export const FunnelConfigModal = ({
     // Validar telefones dos estágios com notificação ativa
     for (const stage of funnelStages) {
       if (stageNotifications[stage.id] && stagePhones[stage.id] && !validatePhone(stagePhones[stage.id])) {
-        toast.error('Telefone inválido', {
-          description: `Digite um telefone válido para o estágio "${stage.title}" (mínimo 11 dígitos)`,
+        toast.error('Contato inválido', {
+          description: `Digite um telefone válido (mínimo 11 dígitos) ou link de grupo para o estágio "${stage.title}"`,
         });
         return;
       }
@@ -260,24 +374,54 @@ export const FunnelConfigModal = ({
     setIsSaving(true);
 
     try {
-      console.log('💾 Salvando configurações individuais por estágio...');
+      console.log('💾 NOVO FLUXO: Salvando em DOIS locais - kanban_stages + ai_agents.funnel_configuration...');
 
-      // Salvar configurações de cada estágio (excluindo automáticos)
-      const stageUpdates = funnelStages
-        .filter(stage => stage.title !== 'Entrada de Leads' && stage.title !== 'Em atendimento')
-        .map(stage => ({
+      // 1. PREPARAR DADOS para kanban_stages (INCLUINDO LIMPEZA de estágios fixos)
+      const stageUpdates = funnelStages.map(stage => {
+        const stageType = getStageType(stage);
+        
+        // LIMPAR descrições para estágios automáticos e finais
+        const shouldClearDescription = stageType === 'automatic' || stageType === 'won' || stageType === 'lost';
+        
+        return {
           id: stage.id,
-          ai_stage_description: stageDescriptions[stage.id] || '',
+          ai_stage_description: shouldClearDescription ? '' : (stageDescriptions[stage.id] || ''),
           ai_notify_enabled: stageNotifications[stage.id] || false,
           notify_phone: (stageNotifications[stage.id] && stagePhones[stage.id]) 
             ? formatPhoneForDatabase(stagePhones[stage.id]) 
             : '',
-        }));
+        };
+      });
 
-      console.log('📝 Dados que serão salvos:', stageUpdates.map(u => ({
-        id: u.id,
-        ai_notify_enabled: u.ai_notify_enabled,
-        notify_phone: u.notify_phone ? 'PREENCHIDO' : 'VAZIO'
+      // 2. PREPARAR DADOS para ai_agents.funnel_configuration (JSONB consolidado COM LIMPEZA)
+      const funnelConfiguration: FunnelStageConfig[] = funnelStages
+        .map(stage => {
+          const stageType = getStageType(stage);
+          const shouldClearDescription = stageType === 'automatic' || stageType === 'won' || stageType === 'lost';
+          
+          return {
+            stage_id: stage.id,
+            order: stage.order_position,
+            name: stage.title,
+            description: shouldClearDescription ? '' : (stageDescriptions[stage.id] || '')
+          };
+        });
+
+      console.log('📝 Dados kanban_stages (com limpeza):', stageUpdates.map(u => {
+        const stage = funnelStages.find(s => s.id === u.id);
+        const stageType = stage ? getStageType(stage) : 'unknown';
+        return {
+          title: stage?.title || 'unknown',
+          type: stageType,
+          ai_stage_description: u.ai_stage_description ? 'PREENCHIDO' : 'LIMPO',
+          ai_notify_enabled: u.ai_notify_enabled,
+          notify_phone: u.notify_phone ? 'PREENCHIDO' : 'VAZIO'
+        };
+      }));
+
+      console.log('📊 Configuração consolidada (com limpeza):', funnelConfiguration.map(c => ({
+        name: c.name,
+        description: c.description ? 'PREENCHIDO' : 'LIMPO'
       })));
 
       for (const update of stageUpdates) {
@@ -319,9 +463,32 @@ export const FunnelConfigModal = ({
         }
       }
 
+      // 3. SALVAR CONSOLIDADO na tabela ai_agents.funnel_configuration
+      console.log('💾 ETAPA 2: Salvando configuração consolidada na ai_agents...');
+      console.log('📊 Dados JSONB para funnel_configuration:', funnelConfiguration);
+
+      const { error: agentError } = await supabase
+        .from('ai_agents')
+        .update({
+          funnel_configuration: funnelConfiguration,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', agent.id);
+
+      if (agentError) {
+        console.error('❌ Erro ao salvar na ai_agents:', agentError);
+        toast.error('Erro ao salvar configuração consolidada', {
+          description: 'As configurações dos estágios foram salvas, mas houve erro na consolidação',
+          duration: 4000,
+        });
+        // Não falhar completamente, pois os estágios foram salvos
+      } else {
+        console.log('✅ Configuração consolidada salva na ai_agents com sucesso!');
+      }
+
       toast.success('Configuração do funil salva com sucesso', {
-        description: '💾 Todas as alterações foram persistidas',
-        duration: 2000,
+        description: '💾 Dados salvos em kanban_stages + ai_agents.funnel_configuration',
+        duration: 3000,
       });
 
       // Chamar onSave do parent para atualizar estado
@@ -349,6 +516,68 @@ export const FunnelConfigModal = ({
   const getStageEmoji = (position: number) => {
     const emojis = ['🎯', '👀', '📋', '💬', '🤝', '✅', '🏆', '🎉'];
     return emojis[position - 1] || '📌';
+  };
+
+  // NOVA FUNÇÃO: Organizar estágios na ordem fixa
+  const organizeStagesInFixedOrder = (stages: FunnelStage[]) => {
+    console.log('🔄 Organizando estágios na ordem fixa...');
+    console.log('📊 Estágios recebidos:', stages.map(s => ({ 
+      title: s.title, 
+      order: s.order_position, 
+      is_won: s.is_won, 
+      is_lost: s.is_lost 
+    })));
+
+    // Definir categorias de estágios
+    const entradaStage = stages.find(s => s.title === 'Entrada de Leads');
+    const atendimentoStage = stages.find(s => s.title === 'Em atendimento');
+    const ganhosStages = stages.filter(s => s.is_won === true);
+    const perdidosStages = stages.filter(s => s.is_lost === true);
+    
+    console.log('📋 Categorização:', {
+      entrada: entradaStage ? entradaStage.title : 'NÃO ENCONTRADO',
+      atendimento: atendimentoStage ? atendimentoStage.title : 'NÃO ENCONTRADO', 
+      ganhos: ganhosStages.map(s => s.title),
+      perdidos: perdidosStages.map(s => s.title)
+    });
+    
+    // Estágios personalizados (não são entrada, atendimento, ganhos ou perdidos)
+    const personalizadosStages = stages.filter(s => 
+      s.title !== 'Entrada de Leads' && 
+      s.title !== 'Em atendimento' && 
+      !s.is_won && 
+      !s.is_lost
+    ).sort((a, b) => a.order_position - b.order_position);
+
+    // Montar ordem final
+    const organizedStages: FunnelStage[] = [];
+    
+    if (entradaStage) organizedStages.push(entradaStage);
+    if (atendimentoStage) organizedStages.push(atendimentoStage);
+    organizedStages.push(...personalizadosStages);
+    organizedStages.push(...ganhosStages);
+    organizedStages.push(...perdidosStages);
+
+    console.log('✅ Estágios organizados:', organizedStages.map(s => ({ 
+      title: s.title, 
+      type: s.title === 'Entrada de Leads' || s.title === 'Em atendimento' ? 'AUTOMÁTICO' :
+            s.is_won ? 'GANHO' : s.is_lost ? 'PERDIDO' : 'PERSONALIZADO'
+    })));
+
+    return organizedStages;
+  };
+
+  // NOVA FUNÇÃO: Identificar tipo do estágio
+  const getStageType = (stage: FunnelStage): 'automatic' | 'custom' | 'won' | 'lost' => {
+    if (stage.title === 'Entrada de Leads' || stage.title === 'Em atendimento') {
+      return 'automatic';
+    } else if (stage.is_won) {
+      return 'won';
+    } else if (stage.is_lost) {
+      return 'lost';  
+    } else {
+      return 'custom';
+    }
   };
 
   // Estado: Nenhum funil selecionado
@@ -432,10 +661,10 @@ export const FunnelConfigModal = ({
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {funnelStages.map((stage, index) => {
-                      // Pular configuração para as duas primeiras etapas (automáticas)
-                      const isAutomaticStage = stage.title === 'Entrada de Leads' || stage.title === 'Em atendimento';
+                      const stageType = getStageType(stage);
                       
-                      if (isAutomaticStage) {
+                      // ESTÁGIOS AUTOMÁTICOS: Entrada de Leads e Em atendimento
+                      if (stageType === 'automatic') {
                         return (
                           <div 
                             key={stage.id}
@@ -445,25 +674,68 @@ export const FunnelConfigModal = ({
                               <div className="flex items-center gap-3">
                                 <div 
                                   className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                                  style={{ backgroundColor: stage.color || '#e0e0e0' }}
+                                  style={{ backgroundColor: stage.color || '#4ade80' }}
                                 >
                                   {index + 1}
                                 </div>
                                 <div>
                                   <h4 className="font-semibold text-green-800 flex items-center gap-2">
-                                    {getStageEmoji(stage.order_position)} {stage.title}
+                                    {stage.title === 'Entrada de Leads' ? '🎯' : '👋'} {stage.title}
                                   </h4>
-                                  <p className="text-xs text-green-600">Configuração automática - A IA já entende este estágio</p>
+                                  <p className="text-xs text-green-600">✅ Configuração automática - A IA já entende este estágio</p>
                                 </div>
                               </div>
-                              <div className="text-green-600">
-                                ✅ Automático
+                              <div className="text-green-600 font-medium">
+                                Automático
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // ESTÁGIOS GANHOS E PERDIDOS: Sem configuração de descrição
+                      if (stageType === 'won' || stageType === 'lost') {
+                        return (
+                          <div 
+                            key={stage.id}
+                            className={`p-4 backdrop-blur-sm border rounded-lg ${
+                              stageType === 'won' 
+                                ? 'bg-blue-50/80 border-blue-200/60' 
+                                : 'bg-red-50/80 border-red-200/60'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div 
+                                  className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                                  style={{ backgroundColor: stage.color || (stageType === 'won' ? '#3b82f6' : '#ef4444') }}
+                                >
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <h4 className={`font-semibold flex items-center gap-2 ${
+                                    stageType === 'won' ? 'text-blue-800' : 'text-red-800'
+                                  }`}>
+                                    {stageType === 'won' ? '🏆' : '💔'} {stage.title}
+                                  </h4>
+                                  <p className={`text-xs ${
+                                    stageType === 'won' ? 'text-blue-600' : 'text-red-600'
+                                  }`}>
+                                    ✅ A IA já entende este estágio
+                                  </p>
+                                </div>
+                              </div>
+                              <div className={`font-medium ${
+                                stageType === 'won' ? 'text-blue-600' : 'text-red-600'
+                              }`}>
+                                {stageType === 'won' ? 'Ganho' : 'Perdido'}
                               </div>
                             </div>
                           </div>
                         );
                       }
                       
+                      // ESTÁGIOS PERSONALIZADOS: Com configuração completa
                       return (
                       <div 
                         key={stage.id}
@@ -523,18 +795,18 @@ export const FunnelConfigModal = ({
                           <div className="space-y-2 p-3 bg-green-50/50 border border-green-200/50 rounded-lg">
                             <Label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                               <Phone className="h-4 w-4 text-green-600" />
-                              📱 Telefone para notificações deste estágio
+                              📱 Telefone ou Link de Grupo (auto-converte para VPS)
                             </Label>
                             <Input
                               value={stagePhones[stage.id] || ''}
                               onChange={(e) => handleStagePhoneChange(stage.id, e.target.value)}
-                              placeholder="55 (62) 99999-9999"
+                              placeholder="55 (62) 99999-9999 ou https://chat.whatsapp.com/... (→ ID@g.us)"
                               className="bg-white/60 backdrop-blur-sm border border-green-300/50 focus:border-green-500 rounded-lg"
                             />
                             {stagePhones[stage.id] && !validatePhone(stagePhones[stage.id]) && (
                               <div className="flex items-center gap-2 text-xs text-red-600">
                                 <AlertCircle className="h-3 w-3" />
-                                Digite um telefone válido (mínimo 11 dígitos)
+                                Digite um telefone válido (mínimo 11 dígitos) ou link de grupo do WhatsApp
                               </div>
                             )}
                           </div>
