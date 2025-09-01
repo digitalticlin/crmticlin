@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Loader2, Users, UserPlus, Crown, Settings, Shield } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { useTeamAuxiliaryData } from "@/hooks/settings/useTeamAuxiliaryData";

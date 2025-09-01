@@ -13,7 +13,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { useSalesFunnelContext } from "./funnel/SalesFunnelProvider";
+import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
 import { useStageManagement } from "@/hooks/salesFunnel/useStageManagement";
 import { toast } from "sonner";
 
@@ -38,7 +38,7 @@ export const AddColumnDialog = ({ onAddColumn }: AddColumnDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const { selectedFunnel, refetchStages } = useSalesFunnelContext();
+  const { selectedFunnel, refetchStages } = useSalesFunnelDirect();
   const { addColumn } = useStageManagement();
 
   const handleAddColumn = async () => {

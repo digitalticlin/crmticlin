@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useSalesFunnelContext } from "../SalesFunnelProvider";
+import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
 import { StagesList } from "./config/StagesList";
 import { CreateStageForm } from "./config/CreateStageForm";
 
@@ -9,7 +9,7 @@ interface FunnelConfigModalProps {
 }
 
 export const FunnelConfigModal = ({ isOpen, onClose }: FunnelConfigModalProps) => {
-  const { columns, updateColumn, deleteColumn, addColumn, refetchStages } = useSalesFunnelContext();
+  const { columns, updateColumn, deleteColumn, addColumn, refetchStages } = useSalesFunnelDirect();
 
   // Wrapper functions to ensure proper async handling
   const handleUpdateStage = async (stage: any) => {

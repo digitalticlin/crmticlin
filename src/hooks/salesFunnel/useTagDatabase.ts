@@ -114,7 +114,7 @@ export function useTagDatabase() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tags"] });
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      // TEMPORÁRIO: Removido invalidateQueries de leads para evitar loop infinito
       toast.success("Tag removida com sucesso!");
     },
     onError: (error) => {

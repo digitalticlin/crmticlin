@@ -1,36 +1,110 @@
-banBoard] ✅ Colunas validadas (FASES 2+3 + Clone): 5
-KanbanBoard.tsx:72 [KanbanBoard] 🎯 FASES 2+3 + Clone - Renderizando board com clone visual
-StableDragDropWrapper.tsx:23 [StableDragDropWrapper] 🔄 RADICAL - Wrapper otimizado com clone visual
-StableDragDropWrapper.tsx:93 [StableDragDropWrapper] 🎯 RADICAL - Inicializando DragDropContext com clone visual
-SalesFunnelProvider.tsx:59 [SalesFunnelContext] ✅ Contexto acessado com sucesso
-MassMoveModal.tsx:36 [MassMoveModal] 📦 Props recebidas: {isOpen: false, selectedLeads: 0, leadsData: Array(0)}
-useSalesFunnelDirect.ts:181 [useSalesFunnelDirect] 🏗️ Construindo colunas Kanban: {stagesCount: 7, leadsCount: 0}
-SalesFunnelContextProvider.tsx:240 [SalesFunnelContextProvider] 🔄 Renderizando contexto OTIMIZADO
-useSalesFunnelDirect.ts:23 [useSalesFunnelDirect] 🚀 Hook iniciado para usuário: digitalticlin@gmail.com isAdmin: true
-useSalesFunnelDirect.ts:157 [useSalesFunnelDirect] 📊 Estado atual: {selectedFunnelId: 'c018b005-f15a-4374-a054-d28a1c9596d2', funnelsCount: 1, stagesCount: 7, leadsCount: 0, columnsCount: 5, …}
-SalesFunnelContextProvider.tsx:327 [SalesFunnelContextProvider] ✅ Fornecendo contexto OTIMIZADO estável
-useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
-SalesFunnelProvider.tsx:59 [SalesFunnelContext] ✅ Contexto acessado com sucesso
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
-KanbanBoard.tsx:39 [KanbanBoard] 🚀 FASES 2+3 - Renderizando com arquitetura otimizada + clone visual: {columnsReceived: 5, isArray: true}
-KanbanBoard.tsx:58 [KanbanBoard] ✅ Colunas validadas (FASES 2+3 + Clone): 5
-KanbanBoard.tsx:72 [KanbanBoard] 🎯 FASES 2+3 + Clone - Renderizando board com clone visual
-StableDragDropWrapper.tsx:23 [StableDragDropWrapper] 🔄 RADICAL - Wrapper otimizado com clone visual
-StableDragDropWrapper.tsx:93 [StableDragDropWrapper] 🎯 RADICAL - Inicializando DragDropContext com clone visual
-SalesFunnelProvider.tsx:59 [SalesFunnelContext] ✅ Contexto acessado com sucesso
-MassMoveModal.tsx:36 [MassMoveModal] 📦 Props recebidas: {isOpen: false, selectedLeads: 0, leadsData: Array(0)}
-useSalesFunnelDirect.ts:181 [useSalesFunnelDirect] 🏗️ Construindo colunas Kanban: {stagesCount: 7, leadsCount: 0}
-SalesFunnelContextProvider.tsx:240 [SalesFunnelContextProvider] 🔄 Renderizando contexto OTIMIZADO
-useSalesFunnelDirect.ts:23 [useSalesFunnelDirect] 🚀 Hook iniciado para usuário: digitalticlin@gmail.com isAdmin: true
-useSalesFunnelDirect.ts:157 [useSalesFunnelDirect] 📊 Estado atual: {selectedFunnelId: 'c018b005-f15a-4374-a054-d28a1c9596d2', funnelsCount: 1, stagesCount: 7, leadsCount: 0, columnsCount: 5, …}
-SalesFunnelContextProvider.tsx:327 [SalesFunnelContextProvider] ✅ Fornecendo contexto OTIMIZADO estável
-useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
-SalesFunnelProvider.tsx:59 [SalesFunnelContext] ✅ Contexto acessado com sucesso
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
-KanbanBoard.tsx:39 [KanbanBoard] 🚀 FASES 2+3 - Renderizando com arquitetura otimizada + clone visual: {columnsReceived: 5, isArray: true}
-KanbanBoard.tsx:58 [KanbanBoard] ✅ Colunas validadas (FASES 2+3 + Clone): 5
-KanbanBoard.tsx:72 [KanbanBoard] 🎯 FASES 2+3 + Clone - Renderizando board com clone visual
-StableDragDropWrapper.tsx:23 [StableDragDropWrapper] 🔄 RADICAL - Wrapper otimizado com clone visual
-StableDragDropWrapper.tsx:93 [StableDragDropWrapper] 🎯 RADICAL - Inicializando DragDropContext com clone visual
-SalesFunnelProvider.tsx:59 [SalesFunnelContext] ✅ Contexto acessado com sucesso
-MassMoveModal.tsx:36 [MassMoveModal] 📦 Props recebidas: {isOpen: false, selectedLeads: 0, leadsData
+[TeamSettings] User data: {id: '712e7708-2299-4a00-9128-577c8f113ca4', aud: 'authenticated', role: 'authenticated', email: 'digitalticlin@gmail.com', email_confirmed_at: '2025-06-21T15:22:33.613637Z', …}
+TeamSettings.tsx:20 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false
+useTeamManagement.ts:108  POST https://rhjgagzstjzynvrakdyj.supabase.co/auth/v1/admin/users 403 (Forbidden)
+(anonymous) @ @supabase_supabase-js.js?v=1af45239:4355
+_handleRequest2 @ @supabase_supabase-js.js?v=1af45239:4610
+_request @ @supabase_supabase-js.js?v=1af45239:4600
+createUser @ @supabase_supabase-js.js?v=1af45239:4788
+mutationFn @ useTeamManagement.ts:108
+fn @ @tanstack_react-query.js?v=1af45239:1236
+run @ @tanstack_react-query.js?v=1af45239:513
+start @ @tanstack_react-query.js?v=1af45239:555
+execute @ @tanstack_react-query.js?v=1af45239:1272
+await in execute
+mutate @ @tanstack_react-query.js?v=1af45239:2691
+handleCreateMember @ TeamSettings.tsx:109
+handleSubmit @ AddMemberModal.tsx:75
+callCallback2 @ chunk-276SZO74.js?v=1af45239:3674
+invokeGuardedCallbackDev @ chunk-276SZO74.js?v=1af45239:3699
+invokeGuardedCallback @ chunk-276SZO74.js?v=1af45239:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=1af45239:3736
+executeDispatch @ chunk-276SZO74.js?v=1af45239:7014
+processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=1af45239:7034
+processDispatchQueue @ chunk-276SZO74.js?v=1af45239:7043
+dispatchEventsForPlugins @ chunk-276SZO74.js?v=1af45239:7051
+(anonymous) @ chunk-276SZO74.js?v=1af45239:7174
+batchedUpdates$1 @ chunk-276SZO74.js?v=1af45239:18913
+batchedUpdates @ chunk-276SZO74.js?v=1af45239:3579
+dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=1af45239:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=1af45239:5478
+dispatchEvent @ chunk-276SZO74.js?v=1af45239:5472
+dispatchDiscreteEvent @ chunk-276SZO74.js?v=1af45239:5449Understand this error
+useTeamManagement.ts:120 [TeamManagement] ❌ Erro ao criar usuário no Auth: AuthApiError: User not allowed
+    at handleError2 (@supabase_supabase-js.js?v=1af45239:4575:9)
+    at async _handleRequest2 (@supabase_supabase-js.js?v=1af45239:4616:5)
+    at async _request (@supabase_supabase-js.js?v=1af45239:4600:16)
+    at async GoTrueAdminApi.createUser (@supabase_supabase-js.js?v=1af45239:4788:14)
+    at async Object.mutationFn (useTeamManagement.ts:108:52)
+mutationFn @ useTeamManagement.ts:120
+await in mutationFn
+fn @ @tanstack_react-query.js?v=1af45239:1236
+run @ @tanstack_react-query.js?v=1af45239:513
+start @ @tanstack_react-query.js?v=1af45239:555
+execute @ @tanstack_react-query.js?v=1af45239:1272
+await in execute
+mutate @ @tanstack_react-query.js?v=1af45239:2691
+handleCreateMember @ TeamSettings.tsx:109
+handleSubmit @ AddMemberModal.tsx:75
+callCallback2 @ chunk-276SZO74.js?v=1af45239:3674
+invokeGuardedCallbackDev @ chunk-276SZO74.js?v=1af45239:3699
+invokeGuardedCallback @ chunk-276SZO74.js?v=1af45239:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=1af45239:3736
+executeDispatch @ chunk-276SZO74.js?v=1af45239:7014
+processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=1af45239:7034
+processDispatchQueue @ chunk-276SZO74.js?v=1af45239:7043
+dispatchEventsForPlugins @ chunk-276SZO74.js?v=1af45239:7051
+(anonymous) @ chunk-276SZO74.js?v=1af45239:7174
+batchedUpdates$1 @ chunk-276SZO74.js?v=1af45239:18913
+batchedUpdates @ chunk-276SZO74.js?v=1af45239:3579
+dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=1af45239:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=1af45239:5478
+dispatchEvent @ chunk-276SZO74.js?v=1af45239:5472
+dispatchDiscreteEvent @ chunk-276SZO74.js?v=1af45239:5449Understand this error
+useTeamManagement.ts:293 Erro ao criar membro: Error: Erro na autenticação: User not allowed
+    at Object.mutationFn (useTeamManagement.ts:121:15)
+onError @ useTeamManagement.ts:293
+execute @ @tanstack_react-query.js?v=1af45239:1301
+await in execute
+mutate @ @tanstack_react-query.js?v=1af45239:2691
+handleCreateMember @ TeamSettings.tsx:109
+handleSubmit @ AddMemberModal.tsx:75
+callCallback2 @ chunk-276SZO74.js?v=1af45239:3674
+invokeGuardedCallbackDev @ chunk-276SZO74.js?v=1af45239:3699
+invokeGuardedCallback @ chunk-276SZO74.js?v=1af45239:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=1af45239:3736
+executeDispatch @ chunk-276SZO74.js?v=1af45239:7014
+processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=1af45239:7034
+processDispatchQueue @ chunk-276SZO74.js?v=1af45239:7043
+dispatchEventsForPlugins @ chunk-276SZO74.js?v=1af45239:7051
+(anonymous) @ chunk-276SZO74.js?v=1af45239:7174
+batchedUpdates$1 @ chunk-276SZO74.js?v=1af45239:18913
+batchedUpdates @ chunk-276SZO74.js?v=1af45239:3579
+dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=1af45239:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=1af45239:5478
+dispatchEvent @ chunk-276SZO74.js?v=1af45239:5472
+dispatchDiscreteEvent @ chunk-276SZO74.js?v=1af45239:5449Understand this error
+TeamSettings.tsx:123 [TeamSettings] Erro ao criar membro: Error: Erro na autenticação: User not allowed
+    at Object.mutationFn (useTeamManagement.ts:121:15)
+handleCreateMember @ TeamSettings.tsx:123
+await in handleCreateMember
+handleSubmit @ AddMemberModal.tsx:75
+callCallback2 @ chunk-276SZO74.js?v=1af45239:3674
+invokeGuardedCallbackDev @ chunk-276SZO74.js?v=1af45239:3699
+invokeGuardedCallback @ chunk-276SZO74.js?v=1af45239:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=1af45239:3736
+executeDispatch @ chunk-276SZO74.js?v=1af45239:7014
+processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=1af45239:7034
+processDispatchQueue @ chunk-276SZO74.js?v=1af45239:7043
+dispatchEventsForPlugins @ chunk-276SZO74.js?v=1af45239:7051
+(anonymous) @ chunk-276SZO74.js?v=1af45239:7174
+batchedUpdates$1 @ chunk-276SZO74.js?v=1af45239:18913
+batchedUpdates @ chunk-276SZO74.js?v=1af45239:3579
+dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=1af45239:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=1af45239:5478
+dispatchEvent @ chunk-276SZO74.js?v=1af45239:5472
+dispatchDiscreteEvent @ chunk-276SZO74.js?v=1af45239:5449Understand this error
+AddMemberModal.tsx:77 [AddMemberModal] Resultado do onSubmit: false
+AddMemberModal.tsx:92 [AddMemberModal] Falha ao criar membro
+TeamSettings.tsx:14 [TeamSettings] Component rendering
+TeamSettings.tsx:17 [TeamSettings] User data: {id: '712e7708-2299-4a00-9128-577c8f113ca4', aud: 'authenticated', role: 'authenticated', email: 'digitalticlin@gmail.com', email_confirmed_at: '2025-06-21T15:22:33.613637Z', …}
+TeamSettings.tsx:20 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false

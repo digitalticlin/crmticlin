@@ -8,7 +8,7 @@ import { RealClientDetails } from "@/components/clients/RealClientDetails";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useCreateClientMutation } from "@/hooks/clients/mutations";
 import { ClientData } from "@/hooks/clients/types";
-import { useSalesFunnelContext } from "../SalesFunnelProvider";
+import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
 
 interface FunnelActionButtonsProps {
   isAdmin: boolean;
@@ -20,7 +20,7 @@ export const FunnelActionButtons = ({ isAdmin }: FunnelActionButtonsProps) => {
   const [isFunnelConfigOpen, setIsFunnelConfigOpen] = useState(false);
   
   const { companyId } = useCompanyData();
-  const { selectedFunnel, stages, refetchLeads } = useSalesFunnelContext();
+  const { selectedFunnel, stages, refetchLeads } = useSalesFunnelDirect();
   const createClientMutation = useCreateClientMutation(companyId);
 
   const handleCreateLead = async (data: Partial<ClientData>) => {

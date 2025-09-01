@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSalesFunnelContext } from "./SalesFunnelProvider";
+import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
 import { KanbanBoard } from "../KanbanBoard";
 import { FunnelLoadingState } from "./FunnelLoadingState";
 import { FunnelEmptyState } from "./FunnelEmptyState";
@@ -32,6 +32,7 @@ export function SalesFunnelContent() {
   // ✅ Hook isolado para seleção em massa (sem Provider) - FUNCIONANDO
   const massSelection = useMassSelection();
   
+  // 🚀 HOOKS ISOLADOS - ESCALÁVEL PARA MILHARES DE USUÁRIOS
   const {
     loading,
     error,
@@ -52,9 +53,16 @@ export function SalesFunnelContent() {
     updateLeadAssignedUser,
     updateLeadName,
     toggleTagOnLead,
+    moveLeadToStage,
     refetchLeads,
-    refetchStages
-  } = useSalesFunnelContext();
+    refetchStages,
+    addColumn,
+    updateColumn,
+    deleteColumn,
+    availableTags,
+    wonStageId,
+    lostStageId
+  } = useSalesFunnelDirect();
 
   const { isAdmin } = useUserRole();
   const [activeTab, setActiveTab] = useState("funnel");
@@ -75,11 +83,7 @@ export function SalesFunnelContent() {
   const [massTagModalOpen, setMassTagModalOpen] = useState(false);
   const [massAssignUserModalOpen, setMassAssignUserModalOpen] = useState(false);
 
-  // Identificar estágios ganho/perdido usando useMemo
-  const { wonStageId, lostStageId } = useMemo(() => ({
-    wonStageId: stages?.find(s => s.is_won)?.id,
-    lostStageId: stages?.find(s => s.is_lost)?.id
-  }), [stages]);
+  // 🚀 wonStageId e lostStageId já vêm do hook isolado
 
   // Calcular estatísticas para o header usando useMemo
   const stats = useMemo(() => ({
@@ -88,8 +92,7 @@ export function SalesFunnelContent() {
     lostLeads: leads.filter(l => l.columnId === lostStageId).length
   }), [leads, wonStageId, lostStageId]);
 
-  // Estado global para tags
-  const [availableTags, setAvailableTags] = useState([]);
+  // 🚀 availableTags já vem do hook isolado - removido estado duplicado
 
   // Usuários disponíveis derivados dos leads atuais (para filtro "Responsável")
   const availableUsers = useMemo(() => {
@@ -158,26 +161,7 @@ export function SalesFunnelContent() {
     setColumns(newColumns);
   }, [setColumns]);
 
-  // Função para carregar todas as tags disponíveis
-  const fetchAvailableTags = useCallback(async () => {
-    try {
-      const { data: tags, error } = await supabase
-        .from('tags')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      setAvailableTags(tags);
-    } catch (error) {
-      console.error('Erro ao carregar tags:', error);
-      toast.error('Erro ao carregar tags disponíveis');
-    }
-  }, []);
-
-  // Carregar tags ao montar o componente
-  useEffect(() => {
-    fetchAvailableTags();
-  }, [fetchAvailableTags]);
+  // 🚀 Tags carregadas diretamente pelo hook isolado - removido código duplicado
 
   // Handlers para as ações do controle bar
   const handleAddColumn = useCallback(() => {
@@ -343,25 +327,20 @@ export function SalesFunnelContent() {
     setMassAssignUserModalOpen(true);
   }, []);
 
-  // Handler para refresh após ações em massa
+  // Handler para refresh após ações em massa - OTIMIZADO
   const handleMassActionSuccess = useCallback(async () => {
     try {
-      // Executar refresh dos dados em paralelo
+      // 🚀 Real-time já atualiza automaticamente - apenas confirmar
       await Promise.all([
         refetchLeads(),
         refetchStages()
       ]);
-      
-      // Recarregar as tags disponíveis também
-      await fetchAvailableTags();
+      console.log('[SalesFunnelContent] ✅ Refresh pós ação em massa - Real-time ativo');
     } catch (error) {
       console.error('Erro no refresh após ação em massa:', error);
-      // Se falhar, fazer um refresh completo da página como fallback
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      toast.error('Erro ao atualizar dados - tente novamente');
     }
-  }, [refetchLeads, refetchStages, fetchAvailableTags]);
+  }, [refetchLeads, refetchStages]);
 
   // Obter todos os leads para o MassSelectionToolbar
   const allLeads = useMemo(() => {
@@ -447,6 +426,7 @@ export function SalesFunnelContent() {
                 onOpenLeadDetail={openLeadDetail}
                 onOpenChat={handleOpenChatWithLead}
                 onMoveToWonLost={handleMoveToWonLost}
+                onMoveLeadToStage={moveLeadToStage}
                 wonStageId={wonStageId}
                 lostStageId={lostStageId}
                 massSelection={massSelection}
@@ -505,7 +485,10 @@ export function SalesFunnelContent() {
         isOpen={isTagManagementModalOpen}
         onClose={() => setIsTagManagementModalOpen(false)}
         availableTags={availableTags}
-        onTagsChange={fetchAvailableTags}
+        onTagsChange={() => {
+          // Tags atualizadas automaticamente via hook useTagDatabase
+          console.log('[SalesFunnelContent] Tags atualizadas automaticamente via Real-time');
+        }}
       />
 
       <FunnelConfigModal

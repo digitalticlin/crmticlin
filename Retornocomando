@@ -1,48 +1,17 @@
-  ✅ OPÇÃO RECOMENDADA: FORK + QUEUES
+Arquivos criados/editados para implementação do sistema de encaminhamento:
 
-  - Suporte: ✅ SIM, milhares de instâncias WhatsApp
-  - Arquitetura: 1 processo principal + N workers
-  - Performance: Superior para alta concorrência
+Novos arquivos criados:
 
-  🏗️ ARQUITETURA PROPOSTA:
+src/types/whatsapp/forward.ts - Tipos específicos para encaminhamento
+src/services/whatsapp/forwardService.ts - Serviço de encaminhamento
+src/hooks/whatsapp/forward/useForwardMessage.ts - Hook principal
+src/hooks/whatsapp/forward/useContactSelection.ts - Hook de seleção
+src/components/chat/whatsapp/forward/ForwardMessageModal.tsx - Modal principal
+src/components/chat/whatsapp/forward/ContactSelectionList.tsx - Lista de contatos
+src/components/chat/whatsapp/forward/ContactSelectionItem.tsx - Item de contato
+src/components/chat/whatsapp/forward/ForwardMessagePreview.tsx - Preview da mensagem
+src/components/chat/whatsapp/forward/SelectedContactsPreview.tsx - Preview dos selecionados
+Arquivos editados:
 
-  ┌─────────────────────────────────────────────────────────┐
-  │                 PM2 FORK MODE                           │
-  ├─────────────────────────────────────────────────────────┤
-  │ PROCESSO PRINCIPAL (server.js)                         │
-  │ • Gerencia TODAS instâncias WhatsApp (sem conflito)    │
-  │ • Recebe mensagens → Envia para QUEUES                 │
-  │ • 1 processo = 1 conexão por número (estável)          │
-  └─────────────────────────────────────────────────────────┘
-                              ↓
-  ┌─────────────────────────────────────────────────────────┐
-  │                  REDIS/BULL QUEUES                     │
-  ├─────────────────────────────────────────────────────────┤
-  │ MESSAGE_QUEUE    │ WEBHOOK_QUEUE    │ BROADCAST_QUEUE   │
-  │ • Processar msgs │ • Enviar webhooks│ • Envios em massa │
-  │ • Rate limiting  │ • Retry logic    │ • Agendamentos    │
-  └─────────────────────────────────────────────────────────┘
-                              ↓
-  ┌─────────────────────────────────────────────────────────┐
-  │                 WORKERS SEPARADOS                       │
-  ├─────────────────────────────────────────────────────────┤
-  │ WORKER 1         │ WORKER 2         │ WORKER N          │
-  │ • Process msgs   │ • Send webhooks  │ • Handle uploads  │
-  │ • 2-4 CPU cores  │ • HTTP requests  │ • File processing │
-  └─────────────────────────────────────────────────────────┘
-
-  ⚡ VANTAGENS PARA MILHARES DE INSTÂNCIAS:
-
-  1. 📱 WhatsApp Stability
-    - ✅ 1 processo = sem conflitos Baileys
-    - ✅ 1 conexão por número = estável
-    - ✅ Reconexão individual (não afeta outras)
-  2. 🚀 Performance Escalável
-    - ✅ Queues processam 50K+ msgs/minuto
-    - ✅ Workers independentes (crash-isolated)
-    - ✅ Rate limiting automático
-    - ✅ Batch processing inteligente
-  3. 💾 Uso Eficiente de Recursos
-    - ✅ RAM: ~200MB processo principal + 50MB/worker
-    - ✅ CPU: Distribuído entre workers
-    - ✅ I/O: Non-blocking via queues
+src/components/chat/whatsapp/messages/components/MessageActions.tsx - Adicionada opção "Encaminhar"
+src/components/chat/whatsapp/WhatsAppChatContainer.tsx - Integração do sistema

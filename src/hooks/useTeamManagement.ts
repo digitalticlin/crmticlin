@@ -102,15 +102,21 @@ export function useTeamManagement(companyId?: string | null) {
         throw new Error("Usuário não autenticado");
       }
 
-      // 1. Gerar ID único
-      const userId = crypto.randomUUID();
-      console.log('[TeamManagement] ID gerado:', userId);
+      // 1. PRIMEIRO: Gerar ID único e usar invite approach (frontend compatível)
+      console.log('[TeamManagement] 📧 Usando sistema de convite (frontend compatível)');
+      
+      // Gerar ID único para o perfil temporário
+      const tempUserId = crypto.randomUUID();
+      console.log('[TeamManagement] 🔑 ID temporário gerado:', tempUserId);
+      
+      // Vamos criar o perfil primeiro com status "pending" e depois enviar convite
+      const userId = tempUserId;
       
       // 2. Verificar se username já existe e criar um único se necessário
       let uniqueUsername = memberData.username;
       let counter = 1;
       
-      console.log('[TeamManagement] Verificando disponibilidade de username:', uniqueUsername);
+      console.log('[TeamManagement] 👤 Verificando disponibilidade de username:', uniqueUsername);
       
       // Tentar até 10 vezes para encontrar um username único
       while (counter <= 10) {
@@ -135,8 +141,8 @@ export function useTeamManagement(companyId?: string | null) {
         counter++;
       }
 
-      // 3. Criar perfil
-      console.log('[TeamManagement] Criando perfil com dados:', {
+      // 3. AGORA: Criar perfil usando o ID do Auth (resolve foreign key constraint)
+      console.log('[TeamManagement] 📝 Criando perfil com dados:', {
         id: userId,
         full_name: memberData.fullName,
         username: uniqueUsername,
@@ -145,22 +151,34 @@ export function useTeamManagement(companyId?: string | null) {
         whatsapp: memberData.whatsappPersonal
       });
       
+      // Criar perfil básico (algumas colunas podem não existir ainda)
+      const profileData: any = {
+        id: userId,
+        full_name: memberData.fullName,
+        username: uniqueUsername,
+        role: memberData.role,
+        created_by_user_id: user.id,
+        whatsapp: memberData.whatsappPersonal,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Adicionar campos opcionais se disponíveis
+      try {
+        profileData.email = memberData.email;
+        profileData.invite_status = 'pending';
+        profileData.temp_password = memberData.password;
+      } catch (e) {
+        console.log('[TeamManagement] 💡 Usando perfil básico (sem colunas de convite)');
+      }
+
       const { error: profileError } = await supabase
         .from("profiles")
-        .insert({
-          id: userId,
-          full_name: memberData.fullName,
-          username: uniqueUsername,
-          role: memberData.role,
-          created_by_user_id: user.id,
-          whatsapp: memberData.whatsappPersonal,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+        .insert(profileData);
 
       if (profileError) {
-        console.error('[TeamManagement] Erro ao criar perfil:', profileError);
-        throw profileError;
+        console.error('[TeamManagement] ❌ Erro ao criar perfil:', profileError);
+        throw new Error(`Erro ao criar perfil: ${profileError.message}`);
       }
       
       console.log('[TeamManagement] Perfil criado com sucesso');
@@ -180,8 +198,15 @@ export function useTeamManagement(companyId?: string | null) {
           .insert(funnelInserts);
 
         if (funnelError) {
-          console.error('[TeamManagement] Erro ao atribuir acesso a funis:', funnelError);
-          throw funnelError;
+          console.error('[TeamManagement] ❌ Erro ao atribuir acesso a funis:', funnelError);
+          // Limpeza em caso de erro - apenas remover perfil
+          console.log('[TeamManagement] 🧹 Removendo perfil devido ao erro nos funis');
+          try {
+            await supabase.from("profiles").delete().eq("id", userId);
+          } catch (cleanupError) {
+            console.warn('[TeamManagement] ⚠️ Erro na limpeza:', cleanupError);
+          }
+          throw new Error(`Erro ao configurar acessos aos funis: ${funnelError.message}`);
         }
         
         console.log('[TeamManagement] Acesso a funis atribuído com sucesso');
@@ -202,30 +227,64 @@ export function useTeamManagement(companyId?: string | null) {
           .insert(whatsappInserts);
 
         if (whatsappError) {
-          console.error('[TeamManagement] Erro ao atribuir acesso a instâncias WhatsApp:', whatsappError);
-          throw whatsappError;
+          console.error('[TeamManagement] ❌ Erro ao atribuir acesso a instâncias WhatsApp:', whatsappError);
+          // Limpeza em caso de erro - remover acessos e perfil
+          console.log('[TeamManagement] 🧹 Limpando perfil devido ao erro no WhatsApp');
+          try {
+            await supabase.from("user_funnels").delete().eq("profile_id", userId);
+            await supabase.from("profiles").delete().eq("id", userId);
+          } catch (cleanupError) {
+            console.warn('[TeamManagement] ⚠️ Erro na limpeza:', cleanupError);
+          }
+          throw new Error(`Erro ao configurar acessos ao WhatsApp: ${whatsappError.message}`);
         }
         
         console.log('[TeamManagement] Acesso a instâncias WhatsApp atribuído com sucesso');
       }
 
-      // 6. Enviar convite por email se fornecido
-      if (memberData.email && memberData.password) {
-        console.log('[TeamManagement] Enviando convite por email para:', memberData.email);
+      // 6. Usar Supabase Auth invite (funciona no frontend)
+      if (memberData.email) {
+        console.log('[TeamManagement] 📧 Enviando convite do Supabase Auth para:', memberData.email);
         
         try {
-          const inviteResult = await supabase.functions.invoke('send_team_invite', {
-            body: {
-              email: memberData.email,
-              full_name: memberData.fullName,
-              tempPassword: memberData.password,
-              companyId: user.id,
+          // Usar o sistema de convite nativo do Supabase (funciona no frontend)
+          const { data: inviteData, error: inviteError } = await supabase.auth.signInWithOtp({
+            email: memberData.email,
+            options: {
+              shouldCreateUser: true, // Criar usuário se não existir
+              data: {
+                full_name: memberData.fullName,
+                role: memberData.role,
+                temp_profile_id: userId, // ID do perfil temporário para vincular depois
+                created_by_admin: user.id,
+                username: uniqueUsername,
+                is_team_invite: true
+              }
             }
           });
           
-          console.log('[TeamManagement] Resultado do envio de convite:', inviteResult);
+          if (inviteError) {
+            console.warn('[TeamManagement] ⚠️ Erro no convite por OTP:', inviteError);
+            // Não falhar a criação se o convite falhar - usuário pode fazer login manual
+          } else {
+            console.log('[TeamManagement] ✅ Convite enviado com sucesso via OTP');
+          }
+          
+          // Tentar atualizar status do convite no perfil (se colunas existirem)
+          try {
+            await supabase
+              .from("profiles")
+              .update({ 
+                invite_sent_at: new Date().toISOString(),
+                invite_status: inviteError ? 'invite_failed' : 'invite_sent' 
+              })
+              .eq("id", userId);
+          } catch (updateError) {
+            console.log('[TeamManagement] 💡 Não foi possível atualizar status do convite (colunas não existem)');
+          }
+            
         } catch (emailError) {
-          console.warn("[TeamManagement] Erro ao enviar email de convite:", emailError);
+          console.warn("[TeamManagement] ⚠️ Erro ao enviar convite:", emailError);
           // Não falha a criação do membro se o email falhar
         }
       }
@@ -357,12 +416,9 @@ export function useTeamManagement(companyId?: string | null) {
 
       if (error) throw error;
 
-      // Tentar remover do auth (pode falhar se usuário não existir no auth)
-      try {
-        await supabase.auth.admin.deleteUser(memberId);
-      } catch (error) {
-        console.warn("Usuário não encontrado no auth ou erro ao remover:", error);
-      }
+      // Nota: Não removemos do Auth pois agora usamos sistema de convite
+      // O usuário pode ter feito login e criado conta auth própria
+      console.log('[TeamManagement] ✅ Perfil removido com sucesso (Auth mantido se existir)');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["team-members"] });

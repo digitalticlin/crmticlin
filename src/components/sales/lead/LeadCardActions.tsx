@@ -2,7 +2,7 @@
 import { CheckCircle, XCircle, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useSalesFunnelContext } from "../funnel/SalesFunnelProvider";
+// Removido provider - usando props diretas
 
 interface LeadCardActionsProps {
   leadId?: string;
@@ -25,7 +25,7 @@ export const LeadCardActions = ({
   lostStageId,
   isWonLostView = false
 }: LeadCardActionsProps) => {
-  const { refetchLeads, refetchStages } = useSalesFunnelContext();
+  // Usando callbacks das props - removido contexto
 
   const moveLeadToStage = async (stageId: string, statusText: string) => {
     if (!leadId || !stageId) return;
@@ -40,9 +40,8 @@ export const LeadCardActions = ({
       
       toast.success(`Lead marcado como ${statusText}!`);
       
-      // Refresh automaticamente para atualizar a interface
-      await refetchLeads();
-      await refetchStages();
+      // Real-time subscriptions atualizam automaticamente
+      // Não precisa de refresh manual
       
       console.log(`Lead ${leadId} movido para estágio ${stageId}`);
     } catch (error) {
