@@ -16,19 +16,28 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { EditMemberModal } from "./EditMemberModal";
 
 interface ModernTeamMembersListProps {
   members: TeamMember[];
   onRemoveMember: (memberId: string) => void;
+  onEditMember?: (memberId: string, data: any) => Promise<boolean>;
+  allWhatsApps?: any[];
+  allFunnels?: any[];
   loading?: boolean;
 }
 
 export const ModernTeamMembersList = ({
   members,
   onRemoveMember,
+  onEditMember,
+  allWhatsApps = [],
+  allFunnels = [],
   loading = false
 }: ModernTeamMembersListProps) => {
   const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
+  const [memberToEdit, setMemberToEdit] = useState<TeamMember | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const getRoleInfo = (role: string) => {
     switch (role) {
@@ -197,13 +206,19 @@ export const ModernTeamMembersList = ({
 
               {/* Ações */}
               <div className="flex items-center gap-2 ml-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-xl text-gray-700"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
+                {onEditMember && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-xl text-gray-700"
+                    onClick={() => {
+                      setMemberToEdit(member);
+                      setEditModalOpen(true);
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                )}
 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -244,6 +259,19 @@ export const ModernTeamMembersList = ({
           </div>
         );
       })}
+      
+      {/* Modal de Edição */}
+      {onEditMember && (
+        <EditMemberModal
+          open={editModalOpen}
+          onOpenChange={setEditModalOpen}
+          member={memberToEdit}
+          onSubmit={onEditMember}
+          loading={false}
+          allWhatsApps={allWhatsApps}
+          allFunnels={allFunnels}
+        />
+      )}
     </div>
   );
 };

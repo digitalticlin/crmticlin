@@ -246,16 +246,46 @@ export function useTeamManagement(companyId?: string | null) {
         console.log('[TeamManagement] Acesso a instâncias WhatsApp atribuído com sucesso');
       }
 
-      // 6. Enviar convite por email (futuro: integrar serviço de email real)
+      // 6. Enviar convite por email usando configuração existente do Supabase
       console.log('[TeamManagement] 📧 Enviando convite por email para:', memberData.email);
       
-      // Criar URL do convite
-      const inviteUrl = `${window.location.origin}/invite/${inviteToken}`;
+      // Criar URL do convite (usar domínio de produção)
+      const baseUrl = window.location.hostname === 'localhost' 
+        ? window.location.origin 
+        : 'https://app.ticlin.com.br';
+      const inviteUrl = `${baseUrl}/invite/${inviteToken}`;
       console.log('[TeamManagement] 🔗 Link do convite:', inviteUrl);
       
-      // TODO: Integrar com serviço de email real (SendGrid, Resend, etc.)
-      // Por enquanto, simular sucesso e mostrar o link no console
-      const emailSent = true; // Substituir pela chamada real do serviço
+      // Usar o sistema de convite nativo do Supabase (configurado no Dashboard)
+      let emailSent = false;
+      
+      try {
+        console.log('[TeamManagement] 📧 Enviando convite via template existente do Supabase...');
+        
+        const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
+          memberData.email,
+          {
+            data: {
+              full_name: memberData.fullName,
+              role: safeRole,
+              temp_profile_id: tempProfileId,
+              invite_token: inviteToken,
+              created_by: user.id
+            },
+            redirectTo: inviteUrl
+          }
+        );
+        
+        if (!inviteError) {
+          emailSent = true;
+          console.log('[TeamManagement] ✅ Convite enviado via template configurado no Dashboard');
+        } else {
+          console.warn('[TeamManagement] ⚠️ Erro no envio de convite:', inviteError);
+        }
+        
+      } catch (emailError) {
+        console.warn('[TeamManagement] ⚠️ Erro geral no envio:', emailError);
+      }
       
       if (emailSent) {
         // Atualizar status para convite enviado
@@ -425,6 +455,119 @@ export function useTeamManagement(companyId?: string | null) {
     },
   });
 
+  const editMember = useMutation({
+    mutationFn: async ({ 
+      memberId, 
+      memberData 
+    }: { 
+      memberId: string; 
+      memberData: {
+        full_name: string;
+        email?: string;
+        role: "operational" | "manager" | "admin";
+        assignedWhatsAppIds: string[];
+        assignedFunnelIds: string[];
+        whatsapp_personal?: string;
+      }
+    }) => {
+      if (!user?.id) throw new Error("Usuário não autenticado");
+
+      console.log('[TeamManagement] 📝 Editando membro:', memberId, memberData);
+
+      // 1. Validação de segurança: impedir criação de admin por não-admin
+      let safeRole = memberData.role;
+      if (memberData.role === 'admin' && user?.role !== 'admin') {
+        console.warn('[TeamManagement] ⚠️ Tentativa de tornar admin por não-admin, forçando role operational');
+        safeRole = 'operational';
+      }
+
+      // 2. Atualizar dados básicos do perfil
+      const profileUpdateData: any = {
+        full_name: memberData.full_name,
+        role: safeRole,
+        whatsapp: memberData.whatsapp_personal,
+        updated_at: new Date().toISOString()
+      };
+
+      if (memberData.email) {
+        profileUpdateData.email = memberData.email;
+      }
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update(profileUpdateData)
+        .eq("id", memberId)
+        .eq("created_by_user_id", user.id);
+
+      if (profileError) {
+        console.error('[TeamManagement] ❌ Erro ao atualizar perfil:', profileError);
+        throw new Error(`Erro ao atualizar dados: ${profileError.message}`);
+      }
+
+      console.log('[TeamManagement] ✅ Dados básicos atualizados');
+
+      // 3. Se mudou para admin ou manager, remover acessos específicos
+      if (safeRole === 'admin' || safeRole === 'manager') {
+        await supabase.from("user_whatsapp_numbers").delete().eq("profile_id", memberId);
+        await supabase.from("user_funnels").delete().eq("profile_id", memberId);
+        console.log('[TeamManagement] ✅ Acessos removidos (admin/manager têm acesso total)');
+        return;
+      }
+
+      // 4. Para operacionais, gerenciar acessos específicos
+      
+      // Remover acessos existentes
+      await supabase.from("user_whatsapp_numbers").delete().eq("profile_id", memberId);
+      await supabase.from("user_funnels").delete().eq("profile_id", memberId);
+
+      // Adicionar novos acessos aos funis
+      if (memberData.assignedFunnelIds.length > 0) {
+        const funnelInserts = memberData.assignedFunnelIds.map(funnelId => ({
+          profile_id: memberId,
+          funnel_id: funnelId,
+          created_by_user_id: user.id,
+        }));
+
+        const { error: funnelError } = await supabase
+          .from("user_funnels")
+          .insert(funnelInserts);
+
+        if (funnelError) {
+          console.error('[TeamManagement] ❌ Erro ao atribuir funis:', funnelError);
+          throw new Error(`Erro ao configurar acessos aos funis: ${funnelError.message}`);
+        }
+      }
+
+      // Adicionar novos acessos ao WhatsApp
+      if (memberData.assignedWhatsAppIds.length > 0) {
+        const whatsappInserts = memberData.assignedWhatsAppIds.map(whatsappId => ({
+          profile_id: memberId,
+          whatsapp_number_id: whatsappId,
+          created_by_user_id: user.id,
+        }));
+
+        const { error: whatsappError } = await supabase
+          .from("user_whatsapp_numbers")
+          .insert(whatsappInserts);
+
+        if (whatsappError) {
+          console.error('[TeamManagement] ❌ Erro ao atribuir WhatsApp:', whatsappError);
+          throw new Error(`Erro ao configurar acessos ao WhatsApp: ${whatsappError.message}`);
+        }
+      }
+
+      console.log('[TeamManagement] ✅ Membro editado com sucesso');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-members"] });
+      toast.success("Membro editado com sucesso!");
+    },
+    onError: (error) => {
+      console.error("Erro ao editar membro:", error);
+      toast.error("Erro ao editar membro da equipe");
+    },
+  });
+
   // Hook para obter funis e instâncias que o usuário atual tem acesso
   const { data: userAccessibleFunnels = [] } = useQuery({
     queryKey: ["user-accessible-funnels", user?.id],
@@ -490,6 +633,7 @@ export function useTeamManagement(companyId?: string | null) {
     userAccessibleWhatsApp,
     isLoading,
     createTeamMember,
+    editMember,
     updateMemberAccess,
     updateMemberRole,
     removeMember,

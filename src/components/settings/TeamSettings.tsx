@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { useTeamAuxiliaryData } from "@/hooks/settings/useTeamAuxiliaryData";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
-import { TeamMembersList } from "./team/TeamMembersList";
+import { ModernTeamMembersList } from "./team/ModernTeamMembersList";
 import { AddMemberModal } from "./team/AddMemberModal";
 import { AddMemberButton } from "./team/AddMemberButton";
 
@@ -22,6 +22,7 @@ export default function TeamSettings() {
     teamMembers,
     isLoading,
     createTeamMember,
+    editMember,
     removeMember,
   } = useTeamManagement(user?.id);
 
@@ -206,9 +207,21 @@ export default function TeamSettings() {
           </button>
         </div>
 
-        <TeamMembersList 
+        <ModernTeamMembersList 
           members={teamMembersFiltered}
           onRemoveMember={removeMember.mutateAsync}
+          onEditMember={async (memberId: string, data: any) => {
+            try {
+              await editMember.mutateAsync({ memberId, memberData: data });
+              return true;
+            } catch (error) {
+              console.error('[TeamSettings] Erro ao editar membro:', error);
+              return false;
+            }
+          }}
+          allWhatsApps={allWhatsApps}
+          allFunnels={allFunnels}
+          loading={isLoading}
         />
       </div>
 
