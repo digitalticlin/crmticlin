@@ -2,7 +2,6 @@
 import { ReactNode, useEffect } from "react";
 import { DragDropContext } from "react-beautiful-dnd";
 import { AdvancedErrorTracker } from "./AdvancedErrorTracker";
-import { DragCloneLayer } from "../drag/DragCloneLayer";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import "@/utils/suppressDragDropWarnings";
@@ -11,27 +10,58 @@ interface StableDragDropWrapperProps {
   children: ReactNode;
   onDragStart?: (initial: any) => void;
   onDragEnd?: (result: any) => void;
-  cloneState?: any; // Estado do clone passado do hook
 }
 
 export const StableDragDropWrapper = ({ 
   children, 
   onDragStart = () => {},
-  onDragEnd = () => {},
-  cloneState
+  onDragEnd = () => {}
 }: StableDragDropWrapperProps) => {
   console.log('[StableDragDropWrapper] 🔄 RADICAL - Wrapper otimizado com clone visual');
 
-  // Rastrear continuamente a posição do mouse para ancoragem exata no início do drag
+  // Rastrear posição do clique inicial
   useEffect(() => {
-    const track = (e: MouseEvent) => {
+    let initialClickOffset: { x: number; y: number } | null = null;
+    
+    const handleMouseDown = (e: MouseEvent) => {
+      // Salvar posição do clique
       (window as any).__lastMouse = { x: e.clientX, y: e.clientY };
     };
-    window.addEventListener('mousemove', track, { passive: true });
-    window.addEventListener('mousedown', track, { passive: true });
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const draggingCard = document.querySelector('[data-rbd-drag-handle-dragging="true"]') as HTMLElement;
+      if (draggingCard) {
+        // Calcular offset apenas na primeira vez
+        if (!initialClickOffset) {
+          const rect = draggingCard.getBoundingClientRect();
+          const lastMouse = (window as any).__lastMouse;
+          if (lastMouse) {
+            initialClickOffset = {
+              x: lastMouse.x - rect.left,
+              y: lastMouse.y - rect.top
+            };
+          }
+        }
+        
+        // Manter card na posição do clique
+        if (initialClickOffset) {
+          draggingCard.style.left = `${e.clientX - initialClickOffset.x}px`;
+          draggingCard.style.top = `${e.clientY - initialClickOffset.y}px`;
+          draggingCard.style.position = 'fixed';
+          draggingCard.style.zIndex = '99999';
+        }
+      } else {
+        // Reset quando drag termina
+        initialClickOffset = null;
+      }
+    };
+    
+    window.addEventListener('mousedown', handleMouseDown, { passive: true });
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    
     return () => {
-      window.removeEventListener('mousemove', track);
-      window.removeEventListener('mousedown', track);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
     };
   }, []);
 
@@ -100,41 +130,31 @@ export const StableDragDropWrapper = ({
       >
         <DragDropContext
           onDragStart={(initial) => {
-            console.log('[StableDragDropWrapper] 🟢 RADICAL - Drag iniciado com clone:', initial.draggableId);
+            console.log('[StableDragDropWrapper] 🟢 Drag iniciado:', initial.draggableId);
             
-            // RADICAL: Centralizar TODA a manipulação DOM aqui
+            // Configurar ambiente básico para drag
             const body = document.body;
-            
-            // Prevenir seleção durante drag (removido overflow-hidden para manter scroll horizontal)
-            // body.style.overflow = 'hidden'; // REMOVIDO para permitir scroll horizontal
             body.style.userSelect = 'none';
-            body.style.webkitUserSelect = 'none';
             body.style.cursor = 'grabbing';
-            
-            // Classe para CSS global
             body.classList.add('rbd-dragging');
-            // Auto-scroll APENAS durante drag
+            
+            // Auto-scroll durante drag
             window.addEventListener('mousemove', handleGlobalMouseMove, { passive: false });
             
             onDragStart(initial);
           }}
           onDragEnd={(result) => {
-            console.log('[StableDragDropWrapper] 🟢 RADICAL - Drag finalizado com clone:', result.draggableId, '->', result.destination?.droppableId);
+            console.log('[StableDragDropWrapper] 🟢 Drag finalizado:', result.draggableId, '->', result.destination?.droppableId);
             
-            // RADICAL: Restaurar comportamento da página IMEDIATAMENTE
+            // Restaurar comportamento da página
             const body = document.body;
-            
-            // body.style.overflow = ''; // REMOVIDO pois não foi setado
             body.style.userSelect = '';
-            body.style.webkitUserSelect = '';
             body.style.cursor = '';
-            
-            // Remover classes
             body.classList.remove('rbd-dragging');
+            
             // Remover listener de auto-scroll
             window.removeEventListener('mousemove', handleGlobalMouseMove);
             
-            // Chamar handler
             onDragEnd(result);
           }}
           onDragUpdate={() => { 
@@ -143,8 +163,7 @@ export const StableDragDropWrapper = ({
         >
           {children}
           
-          {/* Camada de Clone Visual - renderizada como portal */}
-          {cloneState && <DragCloneLayer cloneState={cloneState} />}
+          {/* Clone customizado removido - usando apenas o nativo */}
         </DragDropContext>
       </AdvancedErrorTracker>
     );

@@ -59,8 +59,8 @@ export const KanbanBoard = ({
     return filtered;
   }, [columns]);
 
-  // Hook de drag and drop TOTALMENTE otimizado + Clone Visual
-  const { isDragging, onDragStart, onDragEnd, cloneState } = useDragAndDropOptimized({ 
+  // Hook de drag and drop - SEM clone customizado
+  const { isDragging, onDragStart, onDragEnd } = useDragAndDropOptimized({ 
     columns: validatedColumns, 
     onColumnsChange, 
     onMoveToWonLost, 
@@ -99,7 +99,6 @@ export const KanbanBoard = ({
           <StableDragDropWrapper 
             onDragStart={onDragStart} 
             onDragEnd={onDragEnd}
-            cloneState={cloneState}
           >
             <BoardContentOptimized
               columns={validatedColumns}

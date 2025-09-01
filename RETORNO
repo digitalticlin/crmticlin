@@ -1,39 +1,9 @@
-useTeamManagement.ts:109  POST https://rhjgagzstjzynvrakdyj.supabase.co/auth/v1/admin/users 403 (Forbidden)
-(anonymous) @ @supabase_supabase-js.js?v=1af45239:4355
-_handleRequest2 @ @supabase_supabase-js.js?v=1af45239:4610
-_request @ @supabase_supabase-js.js?v=1af45239:4600
-createUser @ @supabase_supabase-js.js?v=1af45239:4788
-mutationFn @ useTeamManagement.ts:109
-fn @ @tanstack_react-query.js?v=1af45239:1236
-run @ @tanstack_react-query.js?v=1af45239:513
-start @ @tanstack_react-query.js?v=1af45239:555
-execute @ @tanstack_react-query.js?v=1af45239:1272
-await in execute
-mutate @ @tanstack_react-query.js?v=1af45239:2691
-handleCreateMember @ TeamSettings.tsx:109
-handleSubmit @ AddMemberModal.tsx:75
-callCallback2 @ chunk-276SZO74.js?v=1af45239:3674
-invokeGuardedCallbackDev @ chunk-276SZO74.js?v=1af45239:3699
-invokeGuardedCallback @ chunk-276SZO74.js?v=1af45239:3733
-invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=1af45239:3736
-executeDispatch @ chunk-276SZO74.js?v=1af45239:7014
-processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=1af45239:7034
-processDispatchQueue @ chunk-276SZO74.js?v=1af45239:7043
-dispatchEventsForPlugins @ chunk-276SZO74.js?v=1af45239:7051
-(anonymous) @ chunk-276SZO74.js?v=1af45239:7174
-batchedUpdates$1 @ chunk-276SZO74.js?v=1af45239:18913
-batchedUpdates @ chunk-276SZO74.js?v=1af45239:3579
-dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=1af45239:7173
-dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=1af45239:5478
-dispatchEvent @ chunk-276SZO74.js?v=1af45239:5472
-dispatchDiscreteEvent @ chunk-276SZO74.js?v=1af45239:5449Understand this error
-useTeamManagement.ts:121 [TeamManagement] ❌ Erro ao criar usuário no Auth: AuthApiError: User not allowed
-    at handleError2 (@supabase_supabase-js.js?v=1af45239:4575:9)
-    at async _handleRequest2 (@supabase_supabase-js.js?v=1af45239:4616:5)
-    at async _request (@supabase_supabase-js.js?v=1af45239:4600:16)
-    at async GoTrueAdminApi.createUser (@supabase_supabase-js.js?v=1af45239:4788:14)
-    at async Object.mutationFn (useTeamManagement.ts:109:52)
-mutationFn @ useTeamManagement.ts:121
+[useTeamManagement] ✅ Perfil criado: 4a8525bc-377d-41bd-8008-09c99414e222
+useTeamManagement.ts:165 [useTeamManagement] 📧 Enviando convite nativo do Supabase...
+useTeamManagement.ts:166 [useTeamManagement] 🔗 URL da edge function: https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/send_native_invite
+settings:1 Access to fetch at 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/send_native_invite' from origin 'http://localhost:8080' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status.Understand this error
+useTeamManagement.ts:171  POST https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/send_native_invite net::ERR_FAILED
+mutationFn @ useTeamManagement.ts:171
 await in mutationFn
 fn @ @tanstack_react-query.js?v=1af45239:1236
 run @ @tanstack_react-query.js?v=1af45239:513
@@ -41,7 +11,7 @@ start @ @tanstack_react-query.js?v=1af45239:555
 execute @ @tanstack_react-query.js?v=1af45239:1272
 await in execute
 mutate @ @tanstack_react-query.js?v=1af45239:2691
-handleCreateMember @ TeamSettings.tsx:109
+handleCreateMember @ TeamSettings.tsx:110
 handleSubmit @ AddMemberModal.tsx:75
 callCallback2 @ chunk-276SZO74.js?v=1af45239:3674
 invokeGuardedCallbackDev @ chunk-276SZO74.js?v=1af45239:3699
@@ -58,13 +28,17 @@ dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=1af45239:7173
 dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=1af45239:5478
 dispatchEvent @ chunk-276SZO74.js?v=1af45239:5472
 dispatchDiscreteEvent @ chunk-276SZO74.js?v=1af45239:5449Understand this error
-useTeamManagement.ts:312 Erro ao criar membro: Error: Erro ao criar usuário: User not allowed
-    at Object.mutationFn (useTeamManagement.ts:122:15)
-onError @ useTeamManagement.ts:312
-execute @ @tanstack_react-query.js?v=1af45239:1301
+useTeamManagement.ts:215 [useTeamManagement] ❌ Erro no sistema nativo: TypeError: Failed to fetch
+    at Object.mutationFn (useTeamManagement.ts:171:32)
+mutationFn @ useTeamManagement.ts:215
+await in mutationFn
+fn @ @tanstack_react-query.js?v=1af45239:1236
+run @ @tanstack_react-query.js?v=1af45239:513
+start @ @tanstack_react-query.js?v=1af45239:555
+execute @ @tanstack_react-query.js?v=1af45239:1272
 await in execute
 mutate @ @tanstack_react-query.js?v=1af45239:2691
-handleCreateMember @ TeamSettings.tsx:109
+handleCreateMember @ TeamSettings.tsx:110
 handleSubmit @ AddMemberModal.tsx:75
 callCallback2 @ chunk-276SZO74.js?v=1af45239:3674
 invokeGuardedCallbackDev @ chunk-276SZO74.js?v=1af45239:3699
@@ -81,25 +55,38 @@ dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=1af45239:7173
 dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=1af45239:5478
 dispatchEvent @ chunk-276SZO74.js?v=1af45239:5472
 dispatchDiscreteEvent @ chunk-276SZO74.js?v=1af45239:5449Understand this error
-TeamSettings.tsx:123 [TeamSettings] Erro ao criar membro: Error: Erro ao criar usuário: User not allowed
-    at Object.mutationFn (useTeamManagement.ts:122:15)
-handleCreateMember @ TeamSettings.tsx:123
-await in handleCreateMember
-handleSubmit @ AddMemberModal.tsx:75
-callCallback2 @ chunk-276SZO74.js?v=1af45239:3674
-invokeGuardedCallbackDev @ chunk-276SZO74.js?v=1af45239:3699
-invokeGuardedCallback @ chunk-276SZO74.js?v=1af45239:3733
-invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=1af45239:3736
-executeDispatch @ chunk-276SZO74.js?v=1af45239:7014
-processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=1af45239:7034
-processDispatchQueue @ chunk-276SZO74.js?v=1af45239:7043
-dispatchEventsForPlugins @ chunk-276SZO74.js?v=1af45239:7051
-(anonymous) @ chunk-276SZO74.js?v=1af45239:7174
-batchedUpdates$1 @ chunk-276SZO74.js?v=1af45239:18913
-batchedUpdates @ chunk-276SZO74.js?v=1af45239:3579
-dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=1af45239:7173
-dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=1af45239:5478
-dispatchEvent @ chunk-276SZO74.js?v=1af45239:5472
-dispatchDiscreteEvent @ chunk-276SZO74.js?v=1af45239:5449Understand this error
-AddMemberModal.tsx:77 [AddMemberModal] Resultado do onSubmit: false
-AddMemberModal.tsx:92 [AddMemberModal] Falha ao criar membro
+useTeamManagement.ts:227 [useTeamManagement] ✅ Membro criado com sucesso
+useTeamManagement.ts:47 [useTeamManagement] 📋 Buscando membros da equipe para empresa: 712e7708-2299-4a00-9128-577c8f113ca4
+TeamSettings.tsx:121 [TeamSettings] Membro criado com sucesso: {id: '4a8525bc-377d-41bd-8008-09c99414e222', full_name: 'Nathi dias', username: 'nathirosa26', document_id: null, whatsapp: '6299999999', …}
+AddMemberModal.tsx:77 [AddMemberModal] Resultado do onSubmit: true
+AddMemberModal.tsx:80 [AddMemberModal] Membro criado com sucesso, limpando formulário
+TeamSettings.tsx:14 [TeamSettings] Component rendering
+TeamSettings.tsx:17 [TeamSettings] User data: {id: '712e7708-2299-4a00-9128-577c8f113ca4', aud: 'authenticated', role: 'authenticated', email: 'digitalticlin@gmail.com', email_confirmed_at: '2025-06-21T15:22:33.613637Z', …}
+TeamSettings.tsx:20 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false
+TeamSettings.tsx:14 [TeamSettings] Component rendering
+TeamSettings.tsx:17 [TeamSettings] User data: {id: '712e7708-2299-4a00-9128-577c8f113ca4', aud: 'authenticated', role: 'authenticated', email: 'digitalticlin@gmail.com', email_confirmed_at: '2025-06-21T15:22:33.613637Z', …}
+TeamSettings.tsx:20 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false
+useTeamManagement.ts:69 [useTeamManagement] ✅ Membros encontrados: 2
+@supabase_supabase-js.js?v=1af45239:3916  GET https://rhjgagzstjzynvrakdyj.supabase.co/rest/v1/user_funnel_access?select=funnel_id&profile_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 404 (Not Found)
+(anonymous) @ @supabase_supabase-js.js?v=1af45239:3916
+(anonymous) @ @supabase_supabase-js.js?v=1af45239:3937
+fulfilled @ @supabase_supabase-js.js?v=1af45239:3889
+Promise.then
+step @ @supabase_supabase-js.js?v=1af45239:3902
+(anonymous) @ @supabase_supabase-js.js?v=1af45239:3904
+__awaiter6 @ @supabase_supabase-js.js?v=1af45239:3886
+(anonymous) @ @supabase_supabase-js.js?v=1af45239:3927
+then @ @supabase_supabase-js.js?v=1af45239:89Understand this error
+@supabase_supabase-js.js?v=1af45239:3916  GET https://rhjgagzstjzynvrakdyj.supabase.co/rest/v1/user_funnel_access?select=funnel_id&profile_id=eq.4a8525bc-377d-41bd-8008-09c99414e222 404 (Not Found)
+(anonymous) @ @supabase_supabase-js.js?v=1af45239:3916
+(anonymous) @ @supabase_supabase-js.js?v=1af45239:3937
+fulfilled @ @supabase_supabase-js.js?v=1af45239:3889
+Promise.then
+step @ @supabase_supabase-js.js?v=1af45239:3902
+(anonymous) @ @supabase_supabase-js.js?v=1af45239:3904
+__awaiter6 @ @supabase_supabase-js.js?v=1af45239:3886
+(anonymous) @ @supabase_supabase-js.js?v=1af45239:3927
+then @ @supabase_supabase-js.js?v=1af45239:89Understand this error
+TeamSettings.tsx:14 [TeamSettings] Component rendering
+TeamSettings.tsx:17 [TeamSettings] User data: {id: '712e7708-2299-4a00-9128-577c8f113ca4', aud: 'authenticated', role: 'authenticated', email: 'digitalticlin@gmail.com', email_confirmed_at: '2025-06-21T15:22:33.613637Z', …}
+TeamSettings.tsx:20 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false

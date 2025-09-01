@@ -380,7 +380,7 @@ export function SalesFunnelContent() {
   return (
     <div className="flex flex-col h-full w-full relative">
       {/* Barra de Controles compacta e sticky */}
-      <div className="sticky top-0 z-10 px-6 py-4 bg-white/80 backdrop-blur-md border-b border-white/20">
+      <div className="sticky top-0 z-10 px-6 py-4 backdrop-blur-md border-b border-white/20">
         <ModernFunnelControlBar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
