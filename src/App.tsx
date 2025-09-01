@@ -21,6 +21,7 @@ import WhatsAppWebPage from './pages/WhatsAppChat';
 import AutomationPage from './pages/Automation';
 import AIAgentsPage from './pages/AIAgents';
 import PlansPage from './pages/Plans';
+import { AcceptInvite } from './components/invite/AcceptInvite';
 
 // 🚀 DECLARAÇÃO GLOBAL PARA TYPESCRIPT
 declare global {
@@ -232,6 +233,7 @@ function App() {
                   {/* Rotas públicas - fora do layout */}
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
+                  <Route path="/invite/:token" element={<AcceptInvite />} />
                   
                   {/* Rotas protegidas - dentro do layout SPA */}
                   <Route 
