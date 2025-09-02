@@ -1,10 +1,13 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { DndKanbanWrapper, useDndKanban } from '@/components/dnd';
 import { DndKanbanColumnWrapper } from './DndKanbanColumnWrapper';
 import { DataErrorBoundary } from './funnel/DataErrorBoundary';
 import { KanbanColumn as IKanbanColumn, KanbanLead } from '@/types/kanban';
 import { MassSelectionReturn } from '@/hooks/useMassSelection';
-import { DragEndEvent } from '@dnd-kit/core';
+import { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { LeadCard } from './LeadCard';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface DndKanbanBoardWrapperProps {
   columns: IKanbanColumn[];
@@ -44,6 +47,9 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
   enableDnd = false,
   className
 }) => {
+  // Estado para o drag overlay
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [draggedLead, setDraggedLead] = useState<KanbanLead | null>(null);
 
   // Converter colunas para formato do useDndKanban
   const dndColumns = columns.map(column => ({
@@ -56,12 +62,12 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
       ...lead
     }))
   }));
+  
 
   // Hook do DnD (só usado se enableDnd = true)
   const dndKanban = useDndKanban({
     initialColumns: dndColumns,
-    onItemMove: useCallback((itemId: string, fromColumnId: string, toColumnId: string, newIndex: number) => {
-      
+    onItemMove: useCallback(async (itemId: string, fromColumnId: string, toColumnId: string, newIndex: number) => {
       // Encontrar o lead
       const fromColumn = columns.find(col => col.id === fromColumnId);
       const lead = fromColumn?.leads.find(l => l.id === itemId);
@@ -71,7 +77,15 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
         return;
       }
 
-      // Criar novas colunas com o lead movido
+      console.log('[DndKanbanBoardWrapper] 🔄 Movendo lead:', {
+        leadId: itemId,
+        leadName: lead.name,
+        fromStage: fromColumnId,
+        toStage: toColumnId,
+        newIndex
+      });
+
+      // Atualizar UI imediatamente (otimistic update)
       const newColumns = columns.map(column => {
         if (column.id === fromColumnId) {
           // Remover da coluna origem
@@ -93,10 +107,78 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
       });
 
       onColumnsChange(newColumns);
+
+      // Persistir no Supabase
+      try {
+        const { error } = await supabase
+          .from('leads')
+          .update({ 
+            kanban_stage_id: toColumnId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', itemId);
+
+        if (error) {
+          console.error('[DndKanbanBoardWrapper] ❌ Erro ao persistir mudança de etapa:', error);
+          toast.error('Erro ao salvar mudança de etapa');
+          
+          // Reverter UI em caso de erro
+          onColumnsChange(columns);
+          return;
+        }
+
+        console.log('[DndKanbanBoardWrapper] ✅ Mudança de etapa persistida no Supabase');
+        
+        // Encontrar nome da nova etapa
+        const toColumn = columns.find(col => col.id === toColumnId);
+        const stageName = toColumn?.title || 'Nova etapa';
+        
+        toast.success(`Lead "${lead.name}" movido para: ${stageName}`);
+        
+        // Disparar evento para atualizar outros componentes em tempo real
+        window.dispatchEvent(new CustomEvent('leadStageChanged', {
+          detail: { 
+            leadId: itemId, 
+            newStageId: toColumnId, 
+            newStageName: stageName,
+            fromStageId: fromColumnId
+          }
+        }));
+
+      } catch (error) {
+        console.error('[DndKanbanBoardWrapper] ❌ Erro inesperado ao persistir:', error);
+        toast.error('Erro inesperado ao salvar mudança');
+        
+        // Reverter UI em caso de erro
+        onColumnsChange(columns);
+      }
     }, [columns, onColumnsChange])
   });
 
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const { active } = event;
+    const activeId = active.id as string;
+    
+    // Encontrar o lead sendo arrastado
+    let foundLead: KanbanLead | null = null;
+    for (const column of columns) {
+      const lead = column.leads.find(l => l.id === activeId);
+      if (lead) {
+        foundLead = lead;
+        break;
+      }
+    }
+    
+    setActiveId(activeId);
+    setDraggedLead(foundLead);
+  }, [columns]);
+
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    // Limpar estado do drag
+    setActiveId(null);
+    setDraggedLead(null);
+    
+    // Processar o drag end
     dndKanban.handleDragEnd(event);
   }, [dndKanban]);
 
@@ -151,7 +233,24 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
       <DataErrorBoundary context={`Kanban Board - DnD ${enableDnd ? 'Enabled' : 'Disabled'}`}>
         {enableDnd ? (
           <DndKanbanWrapper 
+            onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            dragOverlay={draggedLead ? (
+              <div className="opacity-90 scale-105 rotate-2">
+                <LeadCard 
+                  lead={draggedLead}
+                  onClick={() => {}}
+                  onOpenChat={onOpenChat ? () => onOpenChat(draggedLead) : undefined}
+                  onMoveToWon={onMoveToWonLost ? () => onMoveToWonLost(draggedLead, "won") : undefined}
+                  onMoveToLost={onMoveToWonLost ? () => onMoveToWonLost(draggedLead, "lost") : undefined}
+                  onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(draggedLead) : undefined}
+                  isWonLostView={isWonLostView}
+                  wonStageId={wonStageId}
+                  lostStageId={lostStageId}
+                  massSelection={massSelection}
+                />
+              </div>
+            ) : null}
             className="flex-1"
           >
             {boardContent}

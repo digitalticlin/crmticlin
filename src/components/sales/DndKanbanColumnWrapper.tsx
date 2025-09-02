@@ -3,6 +3,8 @@ import { DndDropZone } from '@/components/dnd';
 import { DndLeadCardWrapper } from './DndLeadCardWrapper';
 import { KanbanColumn as KanbanColumnType, KanbanLead } from '@/types/kanban';
 import { MassSelectionReturn } from '@/hooks/useMassSelection';
+import { AIToggleSwitchEnhanced } from './ai/AIToggleSwitchEnhanced';
+import { useAIStageControl } from '@/hooks/salesFunnel/useAIStageControl';
 
 interface DndKanbanColumnWrapperProps {
   column: KanbanColumnType;
@@ -38,6 +40,24 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
   className,
   maxVisibleLeads = 25
 }) => {
+  const { toggleAI, isLoading: isTogglingAI } = useAIStageControl();
+
+  // Verificar se é etapa GANHO ou PERDIDO (não devem ter controle de IA)
+  const isWonLostStage = column.title === "GANHO" || column.title === "PERDIDO";
+
+  // Handler para toggle AI
+  const handleAIToggle = (enabled: boolean) => {
+    console.log('[DndKanbanColumnWrapper] 🎛️ Toggle AI:', {
+      columnId: column.id,
+      columnTitle: column.title,
+      currentEnabled: column.ai_enabled === true,
+      newEnabled: enabled
+    });
+    
+    if (!isWonLostStage) {
+      toggleAI(column.id, column.ai_enabled === true);
+    }
+  };
   // Limitar leads para performance
   const visibleLeads = column.leads.slice(0, maxVisibleLeads);
   const hasMoreLeads = column.leads.length > maxVisibleLeads;
@@ -76,6 +96,19 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
             {column.leads.length}
           </span>
         </div>
+        
+        {/* Toggle de IA - Não mostrar para etapas GANHO e PERDIDO */}
+        {!isWonLostStage && (
+          <AIToggleSwitchEnhanced
+            enabled={column.ai_enabled === true}
+            onToggle={handleAIToggle}
+            isLoading={isTogglingAI}
+            size="sm"
+            variant="compact"
+            showLabel={true}
+            className="flex-shrink-0"
+          />
+        )}
       </div>
 
       {/* Color bar - aparência original */}

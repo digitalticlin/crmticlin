@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -37,6 +37,15 @@ export const useDndKanban = ({
   onColumnReorder
 }: UseDndKanbanProps): UseDndKanbanReturn => {
   const [columns, setColumns] = useState<KanbanColumn[]>(initialColumns);
+  
+  // Sincronizar com colunas externas quando mudarem (otimizado para evitar loops)
+  useEffect(() => {
+    // Verificar se realmente mudou para evitar loops
+    const hasChanged = JSON.stringify(columns) !== JSON.stringify(initialColumns);
+    if (hasChanged) {
+      setColumns(initialColumns);
+    }
+  }, [initialColumns]);
 
   // Encontrar item e sua coluna
   const findItemAndColumn = useCallback((itemId: string, searchColumns: KanbanColumn[] = columns) => {
@@ -120,6 +129,7 @@ export const useDndKanban = ({
       if (activeData) {
         // É um item sendo movido
         const overColumn = currentColumns.find(col => col.id === overId);
+        
         if (overColumn) {
           if (activeData.column.id === overId) {
             return currentColumns; // Mesma coluna, não fazer nada

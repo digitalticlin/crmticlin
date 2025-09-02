@@ -49,15 +49,23 @@ export const DndLeadCardWrapper: React.FC<DndLeadCardWrapperProps> = ({
     );
   }
 
-  // Com DnD habilitado
+  // Com DnD habilitado - usar onOpenChat se disponível, senão usar onClick original
+  const handleCardClick = () => {
+    if (leadCardProps.onOpenChat) {
+      leadCardProps.onOpenChat();
+    } else {
+      leadCardProps.onClick();
+    }
+  };
+
   return (
     <DndDraggableCard
       id={lead.id}
       data={dndData}
       className={className}
-      onClick={leadCardProps.onClick}
+      onClick={handleCardClick}
     >
-      <LeadCard lead={lead} {...{...leadCardProps, onClick: undefined}} />
+      <LeadCard lead={lead} {...{...leadCardProps, onClick: handleCardClick}} />
     </DndDraggableCard>
   );
 };

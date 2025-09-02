@@ -52,15 +52,23 @@ export const LeadCard = ({
   const isLost = isWonLostView && lead.columnId === lostStageId;
   
   const handleCardClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     // Se estiver em modo seleção e não clicou no checkbox
     if (isSelectionMode && !(e.target as HTMLElement).closest('.selection-checkbox')) {
       toggleLead(lead.id);
       return;
     }
     
-    // Comportamento normal
-    if (onOpenChat) onOpenChat();
-    else onClick();
+    // Comportamento normal - priorizar onOpenChat
+    if (onOpenChat) {
+      console.log('[LeadCard] 💬 Abrindo chat para lead:', lead.name);
+      onOpenChat();
+    } else {
+      console.log('[LeadCard] 👆 Executando onClick para lead:', lead.name);
+      onClick();
+    }
   };
 
   const handleCheckboxClick = (e: React.MouseEvent) => {

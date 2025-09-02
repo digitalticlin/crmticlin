@@ -127,7 +127,7 @@ export const AIToggleSwitchEnhanced = ({
           "font-medium whitespace-nowrap transition-colors duration-200",
           currentVariant.text
         )}>
-          {label} {enabled ? "ON" : "OFF"}
+          {enabled ? label : ""}
         </span>
       )}
 

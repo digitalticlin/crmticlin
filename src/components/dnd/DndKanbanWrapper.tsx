@@ -1,11 +1,13 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import './dnd-kanban.css';
 
 interface DndKanbanWrapperProps {
   children: React.ReactNode;
+  onDragStart?: (event: DragStartEvent) => void;
   onDragEnd: (event: DragEndEvent) => void;
+  dragOverlay?: React.ReactNode;
   className?: string;
 }
 
@@ -18,7 +20,9 @@ const SCROLL_CONFIG = {
 
 export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
   children,
+  onDragStart,
   onDragEnd,
+  dragOverlay,
   className
 }) => {
   const [scrollDirection, setScrollDirection] = useState<'left' | 'right' | null>(null);
@@ -87,8 +91,11 @@ export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
     };
   }, [scrollDirection, isDragging, performScroll]);
 
-  const handleDragStart = (event: any) => {
+  const handleDragStart = (event: DragStartEvent) => {
     setIsDragging(true);
+    if (onDragStart) {
+      onDragStart(event);
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -141,9 +148,8 @@ export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
         )}
       </div>
       
-      <DragOverlay>
-        {/* Overlay será preenchido pelo componente que usa este wrapper */}
-        {null}
+      <DragOverlay dropAnimation={{ duration: 500, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+        {dragOverlay}
       </DragOverlay>
     </DndContext>
   );

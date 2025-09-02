@@ -33,11 +33,12 @@ export const DndDraggableCard: React.FC<DndDraggableCardProps> = ({
   });
 
   const isCurrentDrag = active?.id === id;
+  const isBeingDragged = isDragging && isCurrentDrag;
   const isDragStarted = useRef(false);
   const mouseDownPos = useRef({ x: 0, y: 0 });
 
-  // Transform para seguir o cursor
-  const style = transform ? {
+  // Transform para seguir o cursor (não aplicar quando é drag overlay)
+  const style = transform && !isCurrentDrag ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
@@ -47,23 +48,27 @@ export const DndDraggableCard: React.FC<DndDraggableCardProps> = ({
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const dx = e.clientX - mouseDownPos.current.x;
-    const dy = e.clientY - mouseDownPos.current.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    
-    // Se moveu mais de 5px, considerar como drag
-    if (distance > 5) {
-      isDragStarted.current = true;
+    if (!isDragStarted.current) {
+      const dx = e.clientX - mouseDownPos.current.x;
+      const dy = e.clientY - mouseDownPos.current.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Se moveu mais de 5px, considerar como drag
+      if (distance > 5) {
+        isDragStarted.current = true;
+      }
     }
   }, []);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
-    // Só processar click se não foi um drag
-    if (!isDragStarted.current && onClick && !disabled) {
+    // Processar click imediatamente se não houve movimento
+    if (onClick && !disabled && !isDragStarted.current) {
+      console.log('[DndDraggableCard] 🖱️ Click detectado:', { id, isDragStarted: isDragStarted.current });
+      e.preventDefault();
       e.stopPropagation();
       onClick();
     }
-  }, [id, onClick, disabled]);
+  }, [onClick, disabled, id]);
 
   return (
     <div
@@ -77,8 +82,11 @@ export const DndDraggableCard: React.FC<DndDraggableCardProps> = ({
         isDragging && !isCurrentDrag && "drag-card--ghost",
         isCurrentDrag && "drag-card--dragging",
         
+        // Ocultar card original quando sendo arrastado (drag overlay ativo)
+        isBeingDragged && "opacity-0",
+        
         // Visual feedback durante drag
-        isCurrentDrag && "cursor-grabbing",
+        isCurrentDrag && !isBeingDragged && "cursor-grabbing",
         !disabled && !isDragging && "cursor-grab",
         
         // Estado disabled
