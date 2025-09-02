@@ -1,0 +1,38 @@
+/* DnD Kanban - CSS Simplificado */
+
+/* Container principal */
+.kanban-dnd-container {
+  scroll-behavior: smooth;
+}
+
+/* Auto-scroll visual feedback */
+.scroll-indicator--left {
+  box-shadow: inset 30px 0 20px rgba(59, 130, 246, 0.15);
+}
+
+.scroll-indicator--right {
+  box-shadow: inset -30px 0 20px rgba(59, 130, 246, 0.15);
+}
+
+/* Drop Zone */
+.dnd-drop-zone {
+  position: relative;
+}
+
+.drop-zone--over {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border: 2px dashed #3b82f6 !important;
+  border-radius: 12px;
+}
+
+/* Draggable Card */
+.drag-card--dragging {
+  transform: scale(1.05) rotate(2deg) !important;
+  z-index: 999;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.2));
+}
+
+.drag-card--ghost {
+  opacity: 0.4 !important;
+  transform: scale(0.95) !important;
+}

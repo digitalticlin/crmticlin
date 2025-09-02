@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import { FixedSizeList as List } from "react-window";
-import { Draggable } from "react-beautiful-dnd";
 import { LeadCard } from "../LeadCard";
 import { KanbanLead } from "@/types/kanban";
 
@@ -44,23 +43,17 @@ export const VirtualizedLeadsList: React.FC<VirtualizedLeadsListProps> = React.m
 
     return (
       <div style={style}>
-        <Draggable key={lead.id} draggableId={lead.id} index={index}>
-          {(provided, snapshot) => (
-            <LeadCard
-              lead={lead}
-              provided={provided}
-              onClick={() => onOpenLeadDetail(lead)}
-              onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
-              onMoveToWon={onMoveToWon ? () => onMoveToWon(lead) : undefined}
-              onMoveToLost={onMoveToLost ? () => onMoveToLost(lead) : undefined}
-              onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
-              isWonLostView={isWonLostView}
-              wonStageId={wonStageId}
-              lostStageId={lostStageId}
-              isDragging={snapshot.isDragging}
-            />
-          )}
-        </Draggable>
+        <LeadCard
+          lead={lead}
+          onClick={() => onOpenLeadDetail(lead)}
+          onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
+          onMoveToWon={onMoveToWon ? () => onMoveToWon(lead) : undefined}
+          onMoveToLost={onMoveToLost ? () => onMoveToLost(lead) : undefined}
+          onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
+          isWonLostView={isWonLostView}
+          wonStageId={wonStageId}
+          lostStageId={lostStageId}
+        />
       </div>
     );
   };
@@ -69,24 +62,19 @@ export const VirtualizedLeadsList: React.FC<VirtualizedLeadsListProps> = React.m
   if (limitedLeads.length <= 10) {
     return (
       <>
-        {limitedLeads.map((lead, index) => (
-          <Draggable key={lead.id} draggableId={lead.id} index={index}>
-            {(provided, snapshot) => (
-              <LeadCard
-                lead={lead}
-                provided={provided}
-                onClick={() => onOpenLeadDetail(lead)}
-                onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
-                onMoveToWon={onMoveToWon ? () => onMoveToWon(lead) : undefined}
-                onMoveToLost={onMoveToLost ? () => onMoveToLost(lead) : undefined}
-                onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
-                isWonLostView={isWonLostView}
-                wonStageId={wonStageId}
-                lostStageId={lostStageId}
-                isDragging={snapshot.isDragging}
-              />
-            )}
-          </Draggable>
+        {limitedLeads.map((lead) => (
+          <LeadCard
+            key={lead.id}
+            lead={lead}
+            onClick={() => onOpenLeadDetail(lead)}
+            onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
+            onMoveToWon={onMoveToWon ? () => onMoveToWon(lead) : undefined}
+            onMoveToLost={onMoveToLost ? () => onMoveToLost(lead) : undefined}
+            onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
+            isWonLostView={isWonLostView}
+            wonStageId={wonStageId}
+            lostStageId={lostStageId}
+          />
         ))}
       </>
     );

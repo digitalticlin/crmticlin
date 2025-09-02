@@ -1,6 +1,5 @@
-import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
+import { KanbanLead } from "@/types/kanban";
 import { cn } from "@/lib/utils";
-import { DraggableProvided } from "react-beautiful-dnd";
 import { LeadCardContent } from "./lead/LeadCardContent";
 import { LeadCardTags } from "./lead/LeadCardTags";
 import { LeadCardActions } from "./lead/LeadCardActions";
@@ -10,15 +9,12 @@ import { MassSelectionReturn } from "@/hooks/useMassSelection";
 
 interface LeadCardProps {
   lead: KanbanLead;
-  provided: DraggableProvided;
   onClick: () => void;
   onOpenChat?: () => void;
   onMoveToWon?: () => void;
   onMoveToLost?: () => void;
   onReturnToFunnel?: () => void;
   isWonLostView?: boolean;
-  isDragging?: boolean;
-  isClone?: boolean;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   wonStageId?: string;
@@ -28,15 +24,12 @@ interface LeadCardProps {
 
 export const LeadCard = ({
   lead,
-  provided,
   onClick,
   onOpenChat,
   onMoveToWon,
   onMoveToLost,
   onReturnToFunnel,
   isWonLostView = false,
-  isDragging = false,
-  isClone = false,
   onMouseEnter,
   onMouseLeave,
   wonStageId,
@@ -77,9 +70,6 @@ export const LeadCard = ({
 
   return (
     <div
-      ref={provided.innerRef}
-      {...provided.draggableProps}
-      {...provided.dragHandleProps}
       className={cn(
         // Base do card - design glassmórfico
         "bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg mb-2 rounded-xl p-2 cursor-pointer group",
@@ -95,10 +85,9 @@ export const LeadCard = ({
         // Estado selecionado - borda azul destacada
         isSelected && "ring-2 ring-blue-500 border-blue-300 bg-blue-50/20"
       )}
-      style={provided.draggableProps.style}
-      onClick={!isDragging ? handleCardClick : undefined}
-      onMouseEnter={!isDragging ? onMouseEnter : undefined}
-      onMouseLeave={!isDragging ? onMouseLeave : undefined}
+      onClick={handleCardClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       {/* Checkbox de seleção - aparece apenas no modo seleção */}
       {isSelectionMode && (

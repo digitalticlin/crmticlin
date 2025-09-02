@@ -555,6 +555,7 @@ export function SalesFunnelContent() {
         />
       </MassActionWrapper>
 
+
     </div>
   );
 }

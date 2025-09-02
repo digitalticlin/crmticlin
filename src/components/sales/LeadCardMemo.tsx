@@ -1,20 +1,16 @@
 
 import React from "react";
 import { KanbanLead } from "@/types/kanban";
-import { DraggableProvided } from "react-beautiful-dnd";
 import { LeadCard } from "./LeadCard";
 
 interface LeadCardMemoProps {
   lead: KanbanLead;
-  provided: DraggableProvided;
   onClick: () => void;
   onOpenChat?: () => void;
   onMoveToWon?: () => void;
   onMoveToLost?: () => void;
   onReturnToFunnel?: () => void;
   isWonLostView?: boolean;
-  isDragging?: boolean;
-  isClone?: boolean;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
   wonStageId?: string;
@@ -51,7 +47,6 @@ export const LeadCardMemo = React.memo<LeadCardMemoProps>(
       );
 
     const stateChanged =
-      prevProps.isDragging !== nextProps.isDragging ||
       prevProps.isWonLostView !== nextProps.isWonLostView ||
       prevProps.wonStageId !== nextProps.wonStageId ||
       prevProps.lostStageId !== nextProps.lostStageId;

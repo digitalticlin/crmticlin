@@ -1,10 +1,9 @@
 
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { MassSelectionReturn } from "@/hooks/useMassSelection";
-import { useDragAndDropOptimized } from "@/hooks/kanban/useDragAndDropOptimized";
 import { BoardContentOptimized } from "./kanban/BoardContentOptimized";
-import { StableDragDropWrapper } from "./funnel/StableDragDropWrapper";
 import { DataErrorBoundary } from "./funnel/DataErrorBoundary";
+import { DndKanbanBoardWrapper } from "./DndKanbanBoardWrapper";
 import { useMemo } from "react";
 
 interface KanbanBoardProps {
@@ -36,11 +35,6 @@ export const KanbanBoard = ({
   lostStageId,
   massSelection
 }: KanbanBoardProps) => {
-  console.log('[KanbanBoard] 🚀 FASES 2+3 - Renderizando com arquitetura otimizada + clone visual:', {
-    columnsReceived: columns?.length || 0,
-    isArray: Array.isArray(columns)
-  });
-
   // Validar colunas uma vez com memoização
   const validatedColumns = useMemo(() => {
     if (!Array.isArray(columns)) {
@@ -55,21 +49,11 @@ export const KanbanBoard = ({
       Array.isArray(col.leads)
     );
 
-    console.log('[KanbanBoard] ✅ Colunas validadas (FASES 2+3 + Clone):', filtered.length);
     return filtered;
   }, [columns]);
 
-  // Hook de drag and drop - SEM clone customizado
-  const { isDragging, onDragStart, onDragEnd } = useDragAndDropOptimized({ 
-    columns: validatedColumns, 
-    onColumnsChange, 
-    onMoveToWonLost, 
-    isWonLostView
-  });
-
   const isEmpty = !validatedColumns || validatedColumns.length === 0;
 
-  console.log('[KanbanBoard] 🎯 FASES 2+3 + Clone - Renderizando board com clone visual');
 
 
   return (
@@ -96,24 +80,21 @@ export const KanbanBoard = ({
             </div>
           </div>
         ) : (
-          <StableDragDropWrapper 
-            onDragStart={onDragStart} 
-            onDragEnd={onDragEnd}
-          >
-            <BoardContentOptimized
-              columns={validatedColumns}
-              onOpenLeadDetail={onOpenLeadDetail}
-              onColumnUpdate={onColumnUpdate}
-              onColumnDelete={onColumnDelete}
-              onOpenChat={onOpenChat}
-              onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
-              onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
-              isWonLostView={isWonLostView}
-              wonStageId={wonStageId}
-              lostStageId={lostStageId}
-              massSelection={massSelection}
-            />
-          </StableDragDropWrapper>
+          <DndKanbanBoardWrapper
+            columns={validatedColumns}
+            onColumnsChange={onColumnsChange}
+            onOpenLeadDetail={onOpenLeadDetail}
+            onColumnUpdate={onColumnUpdate}
+            onColumnDelete={onColumnDelete}
+            onOpenChat={onOpenChat}
+            onMoveToWonLost={onMoveToWonLost}
+            onReturnToFunnel={onReturnToFunnel}
+            isWonLostView={isWonLostView}
+            wonStageId={wonStageId}
+            lostStageId={lostStageId}
+            massSelection={massSelection}
+            enableDnd={true}
+          />
         )}
       </DataErrorBoundary>
     </div>

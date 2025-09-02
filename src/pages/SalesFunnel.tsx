@@ -9,6 +9,7 @@ export default function SalesFunnel() {
       <ErrorBoundary>
         <SalesFunnelContent />
       </ErrorBoundary>
+      
     </div>
   );
 }

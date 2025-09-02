@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Droppable, Draggable } from "react-beautiful-dnd";
 import { MoreVertical, Edit, Trash2, Plus, Lock, CheckSquare, Square, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -411,64 +410,42 @@ export function KanbanColumn({
         style={{ backgroundColor: column.color || "#e0e0e0" }}
       />
 
-      {/* Droppable com scroll infinito otimizado */}
-      <Droppable droppableId={column.id} type="lead">
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            className={cn(
-              "flex-1 rounded-xl px-0.5 pt-1 pb-0 kanban-column-scrollbar overflow-y-auto overflow-x-hidden",
-              snapshot.isDraggingOver && "bg-blue-50/50 border-2 border-dashed border-blue-400/70 transition-all duration-150"
-            )}
-            style={{
-              minHeight: "400px",
-              maxHeight: "calc(100svh - 190px)",
-              scrollbarColor: "#ffffff66 transparent"
-            }}
-            onScroll={handleScroll}
-          >
-            {/* Renderizar leads visíveis */}
-            {visibleLeads.map((lead, leadIndex) => (
-              <Draggable key={lead.id} draggableId={lead.id} index={leadIndex}>
-                {(provided, snapshot) => (
-                  <LeadCard
-                    lead={lead}
-                    provided={provided}
-                    onClick={() => onOpenLeadDetail(lead)}
-                    onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
-                    onMoveToWon={onMoveToWonLost ? () => onMoveToWonLost(lead, "won") : undefined}
-                    onMoveToLost={onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined}
-                    onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
-                    isWonLostView={isWonLostView}
-                    wonStageId={wonStageId}
-                    lostStageId={lostStageId}
-                    isDragging={snapshot.isDragging}
-                    massSelection={massSelection}
-                  />
-                )}
-              </Draggable>
-            ))}
-            {provided.placeholder}
-            
-            {/* Indicadores de scroll */}
-            <ScrollIndicators
-              isLoading={isLoadingMore}
-              hasMore={hasMore}
-              visibleCount={visibleLeads.length}
-              totalCount={column.leads.length}
-              onLoadMore={loadMore}
-            />
-            
-            {/* Indicador de drop otimizado */}
-            {snapshot.isDraggingOver && column.leads.length === 0 && (
-              <div className="flex items-center justify-center h-20 text-blue-500/70 text-sm font-medium border-2 border-dashed border-blue-300/50 rounded-lg bg-blue-50/30">
-                ↓ Solte o card aqui ↓
-              </div>
-            )}
-          </div>
-        )}
-      </Droppable>
+      {/* Lista de leads sem drag and drop */}
+      <div
+        className="flex-1 rounded-xl px-0.5 pt-1 pb-0 kanban-column-scrollbar overflow-y-auto overflow-x-hidden"
+        style={{
+          minHeight: "400px",
+          maxHeight: "calc(100svh - 190px)",
+          scrollbarColor: "#ffffff66 transparent"
+        }}
+        onScroll={handleScroll}
+      >
+        {/* Renderizar leads visíveis */}
+        {visibleLeads.map((lead) => (
+          <LeadCard
+            key={lead.id}
+            lead={lead}
+            onClick={() => onOpenLeadDetail(lead)}
+            onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
+            onMoveToWon={onMoveToWonLost ? () => onMoveToWonLost(lead, "won") : undefined}
+            onMoveToLost={onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined}
+            onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
+            isWonLostView={isWonLostView}
+            wonStageId={wonStageId}
+            lostStageId={lostStageId}
+            massSelection={massSelection}
+          />
+        ))}
+        
+        {/* Indicadores de scroll */}
+        <ScrollIndicators
+          isLoading={isLoadingMore}
+          hasMore={hasMore}
+          visibleCount={visibleLeads.length}
+          totalCount={column.leads.length}
+          onLoadMore={loadMore}
+        />
+      </div>
     </div>
   );
 }
