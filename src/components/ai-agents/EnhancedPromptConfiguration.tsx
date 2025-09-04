@@ -262,7 +262,8 @@ export const EnhancedPromptConfiguration = ({
         
         // Usar uma única função que atualiza ambos os campos atomicamente
         // IMPORTANTE: Passar false para isInternalLoad para marcar como mudança do usuário
-        onPromptDataChange(fieldKey, value.description, `${fieldKey}_examples`, value.examples, false);
+        onPromptDataChange(fieldKey, value.description);
+        onPromptDataChange(`${fieldKey}_examples`, value.examples);
       } else if (fieldKey === 'flow' && Array.isArray(value)) {
         // Para o campo flow, converter array de strings para array de objetos FlowStepEnhanced
         console.log('📝 Campo flow detectado - convertendo para formato FlowStepEnhanced');
@@ -272,11 +273,11 @@ export const EnhancedPromptConfiguration = ({
           content: content,
           isExpanded: false
         }));
-        onPromptDataChange(fieldKey, flowSteps, undefined, undefined, false);
+        onPromptDataChange(fieldKey, flowSteps);
       } else {
         console.log('📝 Campo simples detectado - atualizando valor único');
         // IMPORTANTE: Passar false para isInternalLoad para marcar como mudança do usuário
-        onPromptDataChange(fieldKey, value, undefined, undefined, false);
+        onPromptDataChange(fieldKey, value);
       }
       
       console.log('📝 Estado local atualizado, salvando no banco imediatamente...');
@@ -284,16 +285,16 @@ export const EnhancedPromptConfiguration = ({
       // Calcular o novo estado que será passado para o salvamento
       let freshPromptData = { ...promptData };
       if (fieldKey === 'funnel_stages') {
-        freshPromptData = { ...freshPromptData, [fieldKey]: value.stages };
+        freshPromptData = { ...freshPromptData, [fieldKey]: value.stages } as any;
       } else if (value && typeof value === 'object' && 'description' in value) {
-        freshPromptData = { ...freshPromptData, [fieldKey]: value.description, [`${fieldKey}_examples`]: value.examples || [] };
+        freshPromptData = { ...freshPromptData, [fieldKey]: value.description, [`${fieldKey}_examples`]: value.examples || [] } as any;
       } else if (fieldKey === 'flow' && Array.isArray(value)) {
         // Para o campo flow, garantir que é salvo como array de objetos
         const flowSteps = value.map((content: string, index: number) => ({
-          step: index + 1,
-          title: `Passo ${index + 1}`,
-          content: content,
-          isExpanded: false
+          id: `step_${index + 1}`,
+          description: content,
+          examples: [],
+          order: index + 1
         }));
         freshPromptData = { ...freshPromptData, [fieldKey]: flowSteps };
       } else {
@@ -636,7 +637,7 @@ export const EnhancedPromptConfiguration = ({
           stepNumber={editingStep ? editingStep.index + 1 : 1}
         />
       )}
-      {console.log('🔍 FlowStepConfigModal renderizando:', editingStep !== null)}
+      {/* Debug log moved to useEffect or outside JSX */}
 
       {/* Botões de ação - BUG 2 FIX: Remover botão "Salvar Configuração" redundante */}
       <div className="flex justify-end gap-2 pt-4 border-t border-white/30">

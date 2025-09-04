@@ -437,7 +437,15 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       
       const promptDataToSave = {
         agent_id: finalTargetAgent.id,
-        ...dataToSave
+        ...dataToSave,
+        // Adicionar campos obrigatórios com valores padrão para evitar erro TypeScript
+        products_services_examples: dataToSave.products_services_examples || [],
+        rules_guidelines_examples: dataToSave.rules_guidelines_examples || [],
+        prohibitions_examples: dataToSave.prohibitions_examples || [],
+        client_objections_examples: dataToSave.client_objections_examples || [],
+        phrase_tips: dataToSave.phrase_tips || '',
+        phrase_tips_examples: dataToSave.phrase_tips_examples || [],
+        funnel_configuration: dataToSave.funnel_configuration || []
       };
       
       console.log('📝 DADOS DO PROMPT PARA SALVAR - DETALHADO:');

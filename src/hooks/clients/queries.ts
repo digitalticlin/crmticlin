@@ -152,9 +152,9 @@ export const useFilterOptions = (userId: string | null) => {
       // Buscar usuários responsáveis
       const { data: usersData } = await supabase
         .from("profiles")
-        .select("id, name")
-        .eq("company_id", userId) // Ajustar conforme a estrutura real de usuários
-        .order("name");
+        .select("id, full_name")
+        .eq("created_by_user_id", userId) // Corrigir: usar created_by_user_id baseado no schema
+        .order("full_name");
 
       // Buscar funis
       const { data: funnelsData } = await supabase
@@ -205,7 +205,7 @@ export const useFilterOptions = (userId: string | null) => {
       return {
         tags: tagsData || [],
         companies: [...new Set((companiesData || []).map(c => c.company).filter(Boolean))],
-        responsibleUsers: usersData || [],
+        responsibleUsers: (usersData || []).map(u => ({ id: u.id, name: u.full_name })),
         funnelIds: funnelsData || [],
         funnelStages: stagesData || [],
         states: [...new Set((statesData || []).map(s => s.state).filter(Boolean))],

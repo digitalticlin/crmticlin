@@ -115,16 +115,16 @@ export function AcceptInvite() {
       console.log('[AcceptInvite] Aceitando convite de forma segura...');
       
       const { data: acceptResult, error: acceptError } = await supabase.rpc(
-        'accept_team_invite_safely',
+        'accept_team_invite_safely' as any,
         {
           p_invite_token: token,
           p_auth_user_id: authData.user.id
         }
       );
 
-      if (acceptError || !acceptResult?.success) {
+      if (acceptError || !(acceptResult as any)?.success) {
         console.error('[AcceptInvite] Erro ao aceitar convite:', acceptError, acceptResult);
-        toast.error(acceptResult?.error || 'Erro ao finalizar convite');
+        toast.error((acceptResult as any)?.error || 'Erro ao finalizar convite');
         
         // Rollback: deletar usuário criado no Auth se falhar
         try {
@@ -139,11 +139,11 @@ export function AcceptInvite() {
 
       // Mostrar resumo dos acessos atribuídos
       const accessSummary = [];
-      if (acceptResult.assigned_funnels > 0) {
-        accessSummary.push(`${acceptResult.assigned_funnels} funil(is)`);
+      if ((acceptResult as any).assigned_funnels > 0) {
+        accessSummary.push(`${(acceptResult as any).assigned_funnels} funil(is)`);
       }
-      if (acceptResult.assigned_whatsapp > 0) {
-        accessSummary.push(`${acceptResult.assigned_whatsapp} instância(s) WhatsApp`);
+      if ((acceptResult as any).assigned_whatsapp > 0) {
+        accessSummary.push(`${(acceptResult as any).assigned_whatsapp} instância(s) WhatsApp`);
       }
       
       const accessMessage = accessSummary.length > 0 

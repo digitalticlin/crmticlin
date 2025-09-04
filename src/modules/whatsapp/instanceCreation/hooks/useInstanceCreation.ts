@@ -72,6 +72,11 @@ export const useInstanceCreation = (onSuccess?: (result: CreateInstanceResult) =
           id: toastId,
           description: result.error || 'Tente novamente em alguns segundos'
         });
+        
+        // Auto-resetar após 3 segundos para permitir retry
+        setTimeout(() => {
+          setCreationState('idle');
+        }, 3000);
       }
 
       return result;
@@ -85,6 +90,11 @@ export const useInstanceCreation = (onSuccess?: (result: CreateInstanceResult) =
         id: toastId,
         description: 'Verifique sua conexão e tente novamente'
       });
+      
+      // Auto-resetar após 3 segundos para permitir retry
+      setTimeout(() => {
+        setCreationState('idle');
+      }, 3000);
       
       return null;
     }

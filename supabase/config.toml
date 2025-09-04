@@ -1,6 +1,9 @@
 
 project_id = "rhjgagzstjzynvrakdyj"
 
+[functions.whatsapp_instance_delete]
+verify_jwt = false
+
 [functions.webhook_qr_receiver]
 verify_jwt = false
 

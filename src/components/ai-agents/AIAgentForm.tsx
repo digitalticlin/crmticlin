@@ -50,7 +50,7 @@ export const AIAgentForm = ({ agent, onSave, onCancel, onFormChange }: AIAgentFo
         const [funnelsRes, instancesRes, agentsRes] = await Promise.all([
           supabase.from('funnels').select('id, name'),
           supabase.from('whatsapp_instances').select('id, instance_name, profile_name'),
-          supabase.from('ai_agents').select('id, name, funnel_id, whatsapp_number_id')
+          supabase.from('ai_agents').select('id, name, type, status, funnel_id, whatsapp_number_id, messages_count, created_by_user_id, created_at, updated_at')
         ]);
 
         if (funnelsRes.data) setFunnels(funnelsRes.data);
