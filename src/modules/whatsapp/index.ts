@@ -3,9 +3,12 @@
 export { InstanceCreationService } from './instanceCreation/lib/instanceCreation';
 export { InstanceApi } from './instanceCreation/api/instanceApi';
 export { useInstanceCreation } from './instanceCreation/hooks/useInstanceCreation';
-export { useQRCodeModal } from './instanceCreation/hooks/useQRCodeModal';
 export { CreateInstanceButton } from './instanceCreation/components/CreateInstanceButton';
-export { QRCodeModal } from './instanceCreation/components/QRCodeModal';
+
+// New Hook-based Architecture 
+export { useQRModal } from './hooks/useQRModal';
+export { QRCodeModal } from './components/QRCodeModal';
+export { qrModalManager } from './core/QRModalManager';
 
 // Types
 export type { 

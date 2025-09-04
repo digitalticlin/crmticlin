@@ -800,7 +800,7 @@ app.post('/instance/:instanceId/mark-read-conversation', authenticateToken, asyn
 
   try {
     console.log(`${logPrefix} 📱 Usuário ${user_id || 'N/A'} abriu conversa com ${phone}`);
-    
+
     const result = await readMessagesWorker.markAsReadWhenOpenConversation(instanceId, phone, user_id);
 
     if (result.success) {
@@ -852,7 +852,7 @@ app.post('/instance/:instanceId/mark-read-messages', authenticateToken, async (r
 
   try {
     console.log(`${logPrefix} 🎯 Marcando ${message_ids.length} mensagens específicas como lidas`);
-    
+
     const chatJid = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
     const result = await readMessagesWorker.markSpecificMessagesAsRead(instanceId, chatJid, message_ids);
 
@@ -893,7 +893,7 @@ app.post('/instance/:instanceId/mark-read-messages', authenticateToken, async (r
 app.get('/read-messages-stats', authenticateToken, (req, res) => {
   try {
     const stats = readMessagesWorker.getQueueStats();
-    
+
     res.json({
       success: true,
       stats,
@@ -914,7 +914,7 @@ app.get('/read-messages-stats', authenticateToken, (req, res) => {
 app.delete('/read-messages-queue', authenticateToken, (req, res) => {
   try {
     const result = readMessagesWorker.clearQueue();
-    
+
     res.json({
       success: true,
       message: 'Fila de read messages limpa',
@@ -1325,7 +1325,7 @@ app.post('/queue/add-broadcast', authenticateToken, async (req, res) => {
   try {
     const contactsArray = Array.isArray(contacts) ? contacts : [contacts];
     const rateLimit = rateLimitMs || 2000; // 2s padrão entre envios
-    
+
     console.log(`📢 [BROADCAST] Processando ${contactsArray.length} contatos com rate limit de ${rateLimit}ms`);
 
     const results = [];
@@ -1356,7 +1356,7 @@ app.post('/queue/add-broadcast', authenticateToken, async (req, res) => {
           if (mediaUrl.startsWith('data:')) {
             const base64Data = mediaUrl.split(',')[1];
             const buffer = Buffer.from(base64Data, 'base64');
-            
+
             switch (mediaType.toLowerCase()) {
               case 'image':
                 messageResult = await instance.socket.sendMessage(formattedPhone, {
@@ -1501,7 +1501,7 @@ app.post('/queue/mark-as-read', authenticateToken, async (req, res) => {
     // Usar ReadMessagesWorker se disponível
     if (readMessagesWorker) {
       const result = await readMessagesWorker.markSpecificMessagesAsRead(instanceId, chatJid, messageIdsArray);
-      
+
       if (result.success) {
         res.json({
           success: true,
@@ -1644,7 +1644,7 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
              console.log('📱 [QUEUE] Convertendo DataURL para Buffer...');
              const base64Data = mediaUrl.split(',')[1];
              const buffer = Buffer.from(base64Data, 'base64');
-             
+
              if (isGroup) {
                // ✅ ENVIO OTIMIZADO PARA GRUPOS
                messageResult = await Promise.race([
@@ -1656,7 +1656,7 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
                      linkPreview: false
                    }
                  }),
-                 new Promise((_, reject) => 
+                 new Promise((_, reject) =>
                    setTimeout(() => reject(new Error(`Timeout sending image to group (${sendTimeout}ms)`)), sendTimeout)
                  )
                ]);
@@ -1665,7 +1665,7 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
                  instance.socket.sendMessage(formattedPhone, {
                    image: buffer
                  }),
-                 new Promise((_, reject) => 
+                 new Promise((_, reject) =>
                    setTimeout(() => reject(new Error(`Timeout sending image to contact (${sendTimeout}ms)`)), sendTimeout)
                  )
                ]);
@@ -1682,7 +1682,7 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
                      linkPreview: false
                    }
                  }),
-                 new Promise((_, reject) => 
+                 new Promise((_, reject) =>
                    setTimeout(() => reject(new Error(`Timeout sending image to group (${sendTimeout}ms)`)), sendTimeout)
                  )
                ]);
@@ -1691,7 +1691,7 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
                  instance.socket.sendMessage(formattedPhone, {
                    image: { url: mediaUrl }
                  }),
-                 new Promise((_, reject) => 
+                 new Promise((_, reject) =>
                    setTimeout(() => reject(new Error(`Timeout sending image to contact (${sendTimeout}ms)`)), sendTimeout)
                  )
                ]);
@@ -1747,14 +1747,14 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
                     linkPreview: false
                   }
                 }),
-                new Promise((_, reject) => 
+                new Promise((_, reject) =>
                   setTimeout(() => reject(new Error(`Timeout sending audio to group (${sendTimeout}ms)`)), sendTimeout)
                 )
               ]);
             } else {
               messageResult = await Promise.race([
                 instance.socket.sendMessage(formattedPhone, audioOptions),
-                new Promise((_, reject) => 
+                new Promise((_, reject) =>
                   setTimeout(() => reject(new Error(`Timeout sending audio to contact (${sendTimeout}ms)`)), sendTimeout)
                 )
               ]);
@@ -1768,7 +1768,7 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
             console.log('📹 [QUEUE] Convertendo vídeo DataURL para Buffer...');
             const base64Data = mediaUrl.split(',')[1];
             const buffer = Buffer.from(base64Data, 'base64');
-            
+
             if (isGroup) {
               messageResult = await Promise.race([
                 instance.socket.sendMessage(formattedPhone, {
@@ -1780,7 +1780,7 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
                     linkPreview: false
                   }
                 }),
-                new Promise((_, reject) => 
+                new Promise((_, reject) =>
                   setTimeout(() => reject(new Error(`Timeout sending video to group (${sendTimeout}ms)`)), sendTimeout)
                 )
               ]);
@@ -1790,7 +1790,7 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
                   video: buffer,
                   fileName: 'video.mp4'
                 }),
-                new Promise((_, reject) => 
+                new Promise((_, reject) =>
                   setTimeout(() => reject(new Error(`Timeout sending video to contact (${sendTimeout}ms)`)), sendTimeout)
                 )
               ]);
@@ -1821,7 +1821,7 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
                     linkPreview: false
                   }
                 }),
-                new Promise((_, reject) => 
+                new Promise((_, reject) =>
                   setTimeout(() => reject(new Error(`Timeout sending document to group (${sendTimeout}ms)`)), sendTimeout)
                 )
               ]);
@@ -1832,7 +1832,7 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
                   fileName: 'documento.pdf',
                   mimetype: mimeType
                 }),
-                new Promise((_, reject) => 
+                new Promise((_, reject) =>
                   setTimeout(() => reject(new Error(`Timeout sending document to contact (${sendTimeout}ms)`)), sendTimeout)
                 )
               ]);
@@ -1850,14 +1850,14 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
                   linkPreview: false
                 }
               }),
-              new Promise((_, reject) => 
+              new Promise((_, reject) =>
                 setTimeout(() => reject(new Error(`Timeout sending fallback text to group (${sendTimeout}ms)`)), sendTimeout)
               )
             ]);
           } else {
             messageResult = await Promise.race([
               instance.socket.sendMessage(formattedPhone, { text: message }),
-              new Promise((_, reject) => 
+              new Promise((_, reject) =>
                 setTimeout(() => reject(new Error(`Timeout sending fallback text to contact (${sendTimeout}ms)`)), sendTimeout)
               )
             ]);
@@ -1866,12 +1866,12 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
     } else {
       // Mensagem de texto com configuração otimizada para grupos
       console.log(`💬 [QUEUE] Enviando mensagem de texto ${isGroup ? '(GRUPO)' : '(CONTATO)'} - Timeout: ${sendTimeout}ms`);
-      
+
       if (isGroup) {
         // ✅ CONFIGURAÇÃO OTIMIZADA PARA GRUPOS - EVITA VALIDAÇÃO AUTOMÁTICA
         messageResult = await Promise.race([
-          instance.socket.sendMessage(formattedPhone, { 
-            text: message 
+          instance.socket.sendMessage(formattedPhone, {
+            text: message
           }, {
             // Opções para evitar validações automáticas do Baileys
             messageOptions: {
@@ -1879,7 +1879,7 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
               linkPreview: false
             }
           }),
-          new Promise((_, reject) => 
+          new Promise((_, reject) =>
             setTimeout(() => reject(new Error(`Timeout sending to group (${sendTimeout}ms)`)), sendTimeout)
           )
         ]);
@@ -1887,7 +1887,7 @@ app.post('/queue/add-message', authenticateToken, async (req, res) => {
         // Envio normal para contatos individuais
         messageResult = await Promise.race([
           instance.socket.sendMessage(formattedPhone, { text: message }),
-          new Promise((_, reject) => 
+          new Promise((_, reject) =>
             setTimeout(() => reject(new Error(`Timeout sending to contact (${sendTimeout}ms)`)), sendTimeout)
           )
         ]);

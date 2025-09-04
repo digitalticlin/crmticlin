@@ -4,7 +4,6 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
-import { QRCodeModalProvider } from './modules/whatsapp/instanceCreation/hooks/useQRCodeModal';
 import { BigQueryOptimizer } from './utils/immediate-bigquery-fix';
 import { supabase } from './integrations/supabase/client'; // 🚀 IMPORTAR SUPABASE
 import './utils/debug-messages-test'; // 🔧 IMPORTAR SCRIPTS DE DEBUG
@@ -228,7 +227,6 @@ function App() {
         <Router>
           <AuthProvider>
             <SidebarProvider>
-              <QRCodeModalProvider>
                 <Routes>
                   {/* Rotas públicas - fora do layout */}
                   <Route path="/login" element={<Login />} />
@@ -245,7 +243,6 @@ function App() {
                     } 
                   />
                 </Routes>
-              </QRCodeModalProvider>
             </SidebarProvider>
           </AuthProvider>
         </Router>

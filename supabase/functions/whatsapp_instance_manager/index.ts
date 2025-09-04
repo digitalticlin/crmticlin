@@ -92,9 +92,9 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case 'create_instance': {
-        console.log(`[${executionId}] 🚀 Criando instância com parâmetros:`, { instanceName, action });
+        console.log(`[${executionId}] 🚀 NOVA ABORDAGEM: VPS primeiro, banco depois`);
 
-        // CORREÇÃO: Determinar nome base - usar instanceName fornecido ou gerar baseado no email
+        // NOVO: Determinar nome base - usar email completo (sem caracteres especiais)
         let baseInstanceName: string;
         
         if (instanceName && instanceName.trim()) {
@@ -102,9 +102,9 @@ Deno.serve(async (req) => {
           baseInstanceName = instanceName.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
           console.log(`[${executionId}] 📝 Usando nome fornecido como base: ${baseInstanceName}`);
         } else {
-          // Se não foi fornecido, gerar baseado no email do usuário
-          baseInstanceName = user.email?.split('@')[0]?.toLowerCase()?.replace(/[^a-zA-Z0-9]/g, '') || 'user';
-          console.log(`[${executionId}] 🔄 Gerando nome baseado no email: ${baseInstanceName}`);
+          // ✅ USAR EMAIL COMPLETO REMOVENDO APENAS CARACTERES ESPECIAIS
+          baseInstanceName = user.email?.toLowerCase()?.replace(/[^a-zA-Z0-9]/g, '') || 'user';
+          console.log(`[${executionId}] 📧 Gerando nome baseado no EMAIL COMPLETO: ${baseInstanceName} (original: ${user.email})`);
         }
         
         // Verificar instâncias existentes para gerar numeração sequencial
@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
           .ilike('instance_name', `${baseInstanceName}%`);
 
         const existingNames = existingInstances?.map(i => i.instance_name) || [];
-        console.log(`[${executionId}] 📋 Instâncias existentes encontradas: ${existingNames.length}`);
+        console.log(`[${executionId}] 📋 Instâncias existentes encontradas: ${existingNames.length}`, existingNames);
         
         // Gerar nome sequencial (baseInstanceName, baseInstanceName1, baseInstanceName2...)
         let intelligentName = baseInstanceName;
@@ -123,45 +123,19 @@ Deno.serve(async (req) => {
         while (existingNames.includes(intelligentName)) {
           intelligentName = `${baseInstanceName}${counter}`;
           counter++;
-          console.log(`[${executionId}] 🔄 Tentando: ${intelligentName}`);
+          console.log(`[${executionId}] 🔄 Tentando: ${intelligentName} (evitando: ${existingNames.join(', ')})`);
         }
 
         console.log(`[${executionId}] 🎯 Nome final determinado: ${intelligentName}`);
 
-        // ETAPA 1: Salvar no banco de dados PRIMEIRO
-        const instanceRecord = {
-          instance_name: intelligentName,  // CORREÇÃO: Usar nome inteligente
-          vps_instance_id: intelligentName,  // CORREÇÃO: Usar mesmo nome para VPS
-          created_by_user_id: user.id,
-          connection_type: 'web',
-          server_url: VPS_CONFIG.baseUrl,
-          web_status: 'connecting',
-          connection_status: 'connecting',
-          qr_code: null,
-          created_at: new Date().toISOString()
-        };
-
-        console.log(`[${executionId}] 💾 Salvando no banco de dados...`);
-        const { data: savedInstance, error: saveError } = await supabase
-          .from('whatsapp_instances')
-          .insert(instanceRecord)
-          .select()
-          .single();
-
-        if (saveError) {
-          console.error(`[${executionId}] ❌ Erro ao salvar:`, saveError);
-          throw new Error(`Erro ao salvar instância: ${saveError.message}`);
-        }
-
-        console.log(`[${executionId}] ✅ Instância salva no banco: ${savedInstance.id}`);
-
-        // ETAPA 2: Criar na VPS - CORREÇÃO: Usar payload correto conforme server.js
+        // ETAPA 1: Criar na VPS PRIMEIRO
         const vpsPayload = {
           instanceId: intelligentName,  // CORREÇÃO: Campo correto esperado pela VPS
-          createdByUserId: user.id      // CORREÇÃO: Campo opcional mas útil
+          createdByUserId: user.id,     // CORREÇÃO: Campo opcional mas útil
+          webhookUrl: VPS_CONFIG.webhookUrl  // CORREÇÃO: Garantir que webhook está configurado
         };
 
-        console.log(`[${executionId}] 🌐 Criando na VPS:`, vpsPayload);
+        console.log(`[${executionId}] 🌐 Criando na VPS PRIMEIRO:`, vpsPayload);
 
         try {
           const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.createInstance}`, {
@@ -179,40 +153,67 @@ Deno.serve(async (req) => {
           if (!vpsResponse.ok) {
             const errorText = await vpsResponse.text();
             console.error(`[${executionId}] ❌ VPS falhou:`, errorText);
-            
-            // Marcar como erro mas manter no banco
-            await supabase
-              .from('whatsapp_instances')
-              .update({
-                web_status: 'vps_error',
-                connection_status: 'disconnected'
-              })
-              .eq('id', savedInstance.id);
-
             throw new Error(`Falha ao criar instância na VPS: HTTP ${vpsResponse.status} - ${errorText}`);
           }
 
           const vpsData = await vpsResponse.json();
-          console.log(`[${executionId}] ✅ VPS criou instância:`, vpsData);
+          console.log(`[${executionId}] ✅ VPS criou instância com sucesso:`, vpsData);
 
-          // Atualizar status após sucesso na VPS
-          const { data: updatedInstance } = await supabase
+          // ETAPA 2: Salvar no banco SOMENTE após sucesso na VPS
+          const instanceRecord = {
+            instance_name: intelligentName,
+            vps_instance_id: intelligentName,  // Usar o ID confirmado pela VPS
+            created_by_user_id: user.id,
+            connection_type: 'web',
+            server_url: VPS_CONFIG.baseUrl,
+            web_status: 'waiting_qr',  // Status inicial correto
+            connection_status: 'pending_qr',  // Status inicial correto
+            qr_code: null,
+            created_at: new Date().toISOString()
+            // CORREÇÃO: Removido vps_data que não existe na tabela
+          };
+
+          console.log(`[${executionId}] 💾 Salvando no banco após sucesso na VPS...`);
+          const { data: savedInstance, error: saveError } = await supabase
             .from('whatsapp_instances')
-            .update({
-              web_status: 'waiting_scan',
-              connection_status: 'connecting',
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', savedInstance.id)
+            .insert(instanceRecord)
             .select()
             .single();
 
+          if (saveError) {
+            console.error(`[${executionId}] ❌ Erro ao salvar no banco:`, saveError);
+            
+            // IMPORTANTE: VPS foi criada mas banco falhou - tentar limpar VPS
+            try {
+              console.log(`[${executionId}] 🧹 Tentando limpar instância órfã na VPS...`);
+              await fetch(`${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.deleteInstance}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+                  'x-api-token': VPS_CONFIG.authToken
+                },
+                body: JSON.stringify({ instanceId: intelligentName }),
+                signal: AbortSignal.timeout(10000)
+              });
+            } catch (cleanupError) {
+              console.error(`[${executionId}] ⚠️ Falha ao limpar VPS:`, cleanupError);
+            }
+            
+            throw new Error(`VPS criada mas falha ao salvar no banco: ${saveError.message}`);
+          }
+
+          console.log(`[${executionId}] ✅ Instância salva no banco: ${savedInstance.id}`);
+
+          // SUCESSO COMPLETO
           return new Response(JSON.stringify({
             success: true,
-            instance: updatedInstance || savedInstance,
+            instance: savedInstance,
             vpsInstanceId: intelligentName,
             intelligentName: intelligentName,
-            message: 'Instância criada com sucesso no banco e VPS',
+            message: 'Instância criada com sucesso na VPS e banco',
+            mode: 'created',  // Indica que foi criada, não reutilizada
+            vpsData: vpsData,
             executionId
           }), {
             headers: {
@@ -222,32 +223,105 @@ Deno.serve(async (req) => {
           });
 
         } catch (vpsError: any) {
-          console.error(`[${executionId}] ❌ Erro na VPS:`, vpsError.message);
+          console.error(`[${executionId}] ❌ Erro na VPS - não salvando no banco:`, vpsError.message);
           
-          // Marcar como erro mas manter no banco
-          await supabase
-            .from('whatsapp_instances')
-            .update({
-              web_status: 'vps_error',
-              connection_status: 'disconnected'
-            })
-            .eq('id', savedInstance.id);
-
-          // Retornar sucesso parcial (banco OK, VPS falhou)
-          return new Response(JSON.stringify({
-            success: true,
-            instance: savedInstance,
-            vpsInstanceId: intelligentName,
-            intelligentName: intelligentName,
-            message: 'Instância criada no banco, mas VPS falhou',
-            vpsError: vpsError.message,
-            executionId
-          }), {
-            headers: {
-              ...corsHeaders,
-              'Content-Type': 'application/json'
+          // ✅ FALLBACK: Se for conflito (409), tentar com numeração
+          if (vpsError.message.includes('409') || vpsError.message.includes('já existe')) {
+            console.log(`[${executionId}] 🔄 VPS conflito detectado - tentando numeração automática...`);
+            
+            // Forçar numeração sequencial mesmo se banco não tem registros
+            let retryName = `${baseInstanceName}1`;
+            let retryCounter = 1;
+            let maxRetries = 10; // Máximo 10 tentativas
+            
+            while (retryCounter <= maxRetries) {
+              try {
+                console.log(`[${executionId}] 🔄 Tentativa ${retryCounter}: ${retryName}`);
+                
+                const retryVpsPayload = {
+                  instanceId: retryName,
+                  createdByUserId: user.id,
+                  webhookUrl: VPS_CONFIG.webhookUrl
+                };
+                
+                const retryVpsResponse = await fetch(`${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.createInstance}`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+                    'x-api-token': VPS_CONFIG.authToken,
+                    'User-Agent': 'Supabase-Edge-Function/1.0'
+                  },
+                  body: JSON.stringify(retryVpsPayload),
+                  signal: AbortSignal.timeout(VPS_CONFIG.timeout)
+                });
+                
+                if (retryVpsResponse.ok) {
+                  const retryVpsData = await retryVpsResponse.json();
+                  console.log(`[${executionId}] ✅ VPS sucesso na tentativa ${retryCounter}: ${retryName}`, retryVpsData);
+                  
+                  // Salvar no banco com nome que funcionou
+                  const retryInstanceRecord = {
+                    instance_name: retryName,
+                    vps_instance_id: retryName,
+                    created_by_user_id: user.id,
+                    connection_type: 'web',
+                    server_url: VPS_CONFIG.baseUrl,
+                    web_status: 'waiting_qr',
+                    connection_status: 'pending_qr',
+                    qr_code: null,
+                    created_at: new Date().toISOString()
+                  };
+                  
+                  const { data: retrySavedInstance, error: retrySaveError } = await supabase
+                    .from('whatsapp_instances')
+                    .insert(retryInstanceRecord)
+                    .select()
+                    .single();
+                  
+                  if (retrySaveError) {
+                    console.error(`[${executionId}] ❌ Erro ao salvar retry no banco:`, retrySaveError);
+                    throw new Error(`Retry: VPS criada mas falha ao salvar no banco: ${retrySaveError.message}`);
+                  }
+                  
+                  console.log(`[${executionId}] ✅ Retry: Instância salva no banco: ${retrySavedInstance.id}`);
+                  
+                  // SUCESSO COM RETRY
+                  return new Response(JSON.stringify({
+                    success: true,
+                    instance: retrySavedInstance,
+                    vpsInstanceId: retryName,
+                    intelligentName: retryName,
+                    message: `Instância criada com numeração automática: ${retryName}`,
+                    mode: 'created_with_retry',
+                    vpsData: retryVpsData,
+                    retryAttempt: retryCounter,
+                    executionId
+                  }), {
+                    headers: {
+                      ...corsHeaders,
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                }
+                
+                // Se ainda deu erro, tentar próximo número
+                retryCounter++;
+                retryName = `${baseInstanceName}${retryCounter}`;
+                
+              } catch (retryError) {
+                console.log(`[${executionId}] ⚠️ Tentativa ${retryCounter} falhou, tentando próximo...`);
+                retryCounter++;
+                retryName = `${baseInstanceName}${retryCounter}`;
+              }
             }
-          });
+            
+            // Se esgotou tentativas
+            throw new Error(`Falha na VPS: Máximo de ${maxRetries} tentativas esgotado - ${vpsError.message}`);
+          }
+          
+          // Erro não é conflito - falha definitiva
+          throw new Error(`Falha na VPS: ${vpsError.message}`);
         }
       }
 

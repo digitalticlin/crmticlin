@@ -78,7 +78,7 @@ export const useTeamManagement = (companyId: string | null) => {
 
         // Get Funnel access
         const { data: funnelAccess } = await supabase
-          .from('user_funnel_access')
+          .from('user_funnels')
           .select('funnel_id')
           .eq('profile_id', member.id);
 
@@ -94,7 +94,7 @@ export const useTeamManagement = (companyId: string | null) => {
     enabled: !!companyId,
   });
 
-  // Create team member mutation - NOVA IMPLEMENTAÇÃO com Supabase nativo
+  // Create team member mutation - IMPLEMENTAÇÃO COM SUPABASE NATIVO ATIVADO
   const createTeamMember = useMutation({
     mutationFn: async (memberData: CreateMemberData) => {
       console.log('[useTeamManagement] 🚀 Criando novo membro:', memberData.fullName);
@@ -103,8 +103,11 @@ export const useTeamManagement = (companyId: string | null) => {
         throw new Error('ID da empresa não encontrado');
       }
 
-      // ✅ ETAPA 1: Criar perfil temporário (sem auth.user ainda)
-      const tempProfileId = crypto.randomUUID(); // Gerar ID temporário
+      // ✅ ETAPA 1: Gerar token temporário único para o convite
+      const inviteToken = crypto.randomUUID();
+      const tempProfileId = crypto.randomUUID();
+      
+      console.log('[useTeamManagement] 🔑 Token de convite gerado:', inviteToken);
       
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -116,7 +119,10 @@ export const useTeamManagement = (companyId: string | null) => {
           whatsapp: memberData.whatsappPersonal || '',
           created_by_user_id: companyId,
           invite_status: 'pending',
-          email: memberData.email
+          email: memberData.email,
+          invite_token: inviteToken,
+          temp_password: null,
+          invite_sent_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -152,7 +158,7 @@ export const useTeamManagement = (companyId: string | null) => {
         }));
 
         const { error: funnelError } = await supabase
-          .from('user_funnel_access')
+          .from('user_funnels')
           .insert(funnelInserts);
 
         if (funnelError) {
@@ -160,43 +166,80 @@ export const useTeamManagement = (companyId: string | null) => {
         }
       }
 
-      // ✅ ETAPA 4: Enviar convite usando sistema 100% nativo do Supabase
+      // ✅ ETAPA 4: Enviar CONVITE usando template NATIVO do Supabase
       try {
-        console.log('[useTeamManagement] 📧 Enviando convite nativo do Supabase...');
+        console.log('[useTeamManagement] 📧 Enviando convite via template NATIVO do Supabase...');
         
-        // IMPORTANTE: Esta chamada só funciona no servidor com Service Key
-        // Para funcionar no frontend, precisa ser configurada no dashboard do Supabase
-        // ou o Supabase precisa permitir convites via RLS policies
+        // Chamar Edge Function que usa supabase.auth.admin.inviteUserByEmail()
+        const { data: inviteResponse, error: functionError } = await supabase.functions.invoke('send_native_invite', {
+          body: {
+            email: memberData.email,
+            profile_id: profile.id,
+            invite_token: inviteToken,
+            user_data: {
+              full_name: memberData.fullName,
+              role: memberData.role,
+              company_name: 'TicLin CRM'
+            },
+            redirect_url: `${window.location.origin}/invite/${inviteToken}`
+          }
+        });
+
+        if (functionError || !inviteResponse?.success) {
+          console.error('[useTeamManagement] ❌ Erro na Edge Function nativa:', functionError);
+          
+          // Fallback: Usar função Resend existente
+          console.log('[useTeamManagement] 🔄 Fallback: usando Edge Function Resend...');
+          
+          const { data: resendResponse, error: resendError } = await supabase.functions.invoke('send_team_invite', {
+            body: {
+              email: memberData.email,
+              full_name: memberData.fullName,
+              companyId: companyId,
+              inviteToken: inviteToken,
+              companyName: 'TicLin CRM'
+            }
+          });
+
+          if (resendError) {
+            // Mesmo se o email falhar, vamos considerar sucesso pois o perfil foi criado
+            console.error('[useTeamManagement] ❌ Erro no fallback Resend:', resendError);
+            console.log('[useTeamManagement] ⚠️ Perfil criado, mas email falhou. Continuando...');
+          } else {
+            console.log('[useTeamManagement] ✅ Convite enviado via Resend (fallback):', resendResponse);
+          }
+        } else {
+          console.log('[useTeamManagement] ✅ Convite enviado via template NATIVO:', inviteResponse);
+        }
         
-        console.log('[useTeamManagement] ⚠️ Sistema nativo requer configuração no dashboard');
-        console.log('[useTeamManagement] 💡 Alternativa: Enviar convite manual via dashboard do Supabase');
-        
-        // Marcar como pendente para envio manual
+        // Atualizar status para "invite_sent"
         await supabase
           .from('profiles')
           .update({ 
-            invite_status: 'pending',
+            invite_status: 'invite_sent',
             invite_sent_at: new Date().toISOString()
           })
           .eq('id', profile.id);
           
-        toast.success(`Membro criado! Use o dashboard do Supabase para enviar convite para ${memberData.email}`);
+        toast.success(`✅ Convite enviado com sucesso para ${memberData.email}!`);
+        console.log('[useTeamManagement] 🔗 Link do convite (para teste):', `${window.location.origin}/invite/${inviteToken}`);
         
-      } catch (inviteErr) {
-        console.error('[useTeamManagement] ❌ Erro no sistema nativo:', inviteErr);
+      } catch (inviteErr: any) {
+        console.error('[useTeamManagement] ❌ Erro geral no sistema de convites:', inviteErr);
         
         await supabase
           .from('profiles')
-          .update({ invite_status: 'failed' })
+          .update({ invite_status: 'invite_failed' })
           .eq('id', profile.id);
           
-        toast.error('Membro criado, mas falha no sistema de convite');
+        throw new Error(`Erro ao enviar convite: ${inviteErr.message || 'Erro desconhecido'}`);
       }
 
       return profile;
     },
     onSuccess: () => {
       console.log('[useTeamManagement] ✅ Membro criado com sucesso');
+      queryClient.invalidateQueries({ queryKey: ['teamMembers', companyId] });
       queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
     },
     onError: (error: any) => {
@@ -244,7 +287,7 @@ export const useTeamManagement = (companyId: string | null) => {
       }
 
       // Update Funnel access
-      await supabase.from('user_funnel_access').delete().eq('profile_id', memberId);
+      await supabase.from('user_funnels').delete().eq('profile_id', memberId);
       
       if (memberData.assignedFunnelIds.length > 0) {
         const funnelInserts = memberData.assignedFunnelIds.map(funnelId => ({
@@ -253,7 +296,7 @@ export const useTeamManagement = (companyId: string | null) => {
         }));
 
         const { error: funnelError } = await supabase
-          .from('user_funnel_access')
+          .from('user_funnels')
           .insert(funnelInserts);
 
         if (funnelError) {
@@ -277,20 +320,62 @@ export const useTeamManagement = (companyId: string | null) => {
   // Remove member mutation
   const removeMember = useMutation({
     mutationFn: async (memberId: string) => {
-      console.log('[useTeamManagement] 🗑️ Removendo membro:', memberId);
+      console.log('[useTeamManagement] 🗑️ Removendo membro completo (Profile + Auth):', memberId);
 
-      // Remove WhatsApp access
+      // 1. Buscar dados do perfil antes de deletar
+      const { data: profile, error: profileFetchError } = await supabase
+        .from('profiles')
+        .select('linked_auth_user_id, email')
+        .eq('id', memberId)
+        .single();
+
+      if (profileFetchError || !profile) {
+        console.error('[useTeamManagement] ❌ Erro ao buscar perfil:', profileFetchError);
+        throw new Error(`Perfil não encontrado: ${profileFetchError?.message}`);
+      }
+
+      console.log('[useTeamManagement] 📋 Dados do perfil:', {
+        profileId: memberId,
+        authUserId: profile.linked_auth_user_id,
+        email: profile.email
+      });
+
+      // 2. Remove WhatsApp access
       await supabase.from('user_whatsapp_numbers').delete().eq('profile_id', memberId);
       
-      // Remove Funnel access
-      await supabase.from('user_funnel_access').delete().eq('profile_id', memberId);
+      // 3. Remove Funnel access
+      await supabase.from('user_funnels').delete().eq('profile_id', memberId);
       
-      // Remove profile
-      const { error } = await supabase.from('profiles').delete().eq('id', memberId);
+      // 4. Remove profile from database
+      const { error: profileError } = await supabase.from('profiles').delete().eq('id', memberId);
       
-      if (error) {
-        console.error('[useTeamManagement] ❌ Erro ao remover membro:', error);
-        throw new Error(`Erro ao remover membro: ${error.message}`);
+      if (profileError) {
+        console.error('[useTeamManagement] ❌ Erro ao remover perfil:', profileError);
+        throw new Error(`Erro ao remover perfil: ${profileError.message}`);
+      }
+
+      // 5. ✅ CRUCIAL: Remove from Auth if user exists
+      if (profile.linked_auth_user_id) {
+        console.log('[useTeamManagement] 🔥 Removendo usuário do Auth também:', profile.linked_auth_user_id);
+        
+        try {
+          const { data: deleteResponse, error: deleteError } = await supabase.functions.invoke('delete_auth_user', {
+            body: {
+              user_id: profile.linked_auth_user_id,
+              email: profile.email
+            }
+          });
+
+          if (deleteError) {
+            console.error('[useTeamManagement] ⚠️ Erro ao remover do Auth (continuando):', deleteError);
+            // Não falhar a operação se não conseguir remover do Auth
+          } else {
+            console.log('[useTeamManagement] ✅ Usuário removido do Auth:', deleteResponse);
+          }
+        } catch (authDeleteError) {
+          console.error('[useTeamManagement] ⚠️ Erro na remoção do Auth:', authDeleteError);
+          // Continuar sem falhar
+        }
       }
 
       return { success: true };

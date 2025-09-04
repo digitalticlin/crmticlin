@@ -21,28 +21,70 @@ export const useAccessControl = (): AccessControl => {
 
   // Buscar funis que o usuário tem acesso
   const { data: userFunnels = [], isLoading: funnelsLoading } = useQuery({
-    queryKey: ["user-funnel-access", user?.id],
+    queryKey: ["user-funnel-access", user?.id, permissions.role],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Se for admin ou manager, tem acesso a todos os funis
+      console.log('[useAccessControl] 🔍 Buscando acessos a funis:', {
+        userId: user.id,
+        role: permissions.role
+      });
+
+      // Se for admin ou manager, tem acesso a todos os funis da organização
       if (permissions.role === 'admin' || permissions.role === 'manager') {
-        const { data: allFunnels, error } = await supabase
+        // Para admins/managers: primeiro buscar funis criados diretamente
+        const { data: ownedFunnels, error: ownedError } = await supabase
           .from("funnels")
           .select("id")
           .eq("created_by_user_id", user.id);
+          
+        if (ownedError) {
+          console.error('[useAccessControl] ❌ Erro ao buscar funis próprios:', ownedError);
+          throw ownedError;
+        }
+        
+        console.log('[useAccessControl] 📊 Funis próprios encontrados:', ownedFunnels?.length || 0);
 
-        if (error) throw error;
-        return allFunnels?.map(f => f.id) || [];
+        // Para admins: também buscar funis onde foram atribuídos membros da equipe
+        if (permissions.role === 'admin') {
+          const { data: teamMembers, error: teamError } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("created_by_user_id", user.id);
+            
+          if (!teamError && teamMembers && teamMembers.length > 0) {
+            const teamMemberIds = teamMembers.map(m => m.id);
+            
+            const { data: teamFunnels, error: teamFunnelsError } = await supabase
+              .from("user_funnels")
+              .select("funnel_id")
+              .in("profile_id", teamMemberIds);
+              
+            if (!teamFunnelsError && teamFunnels) {
+              const teamFunnelIds = teamFunnels.map(tf => tf.funnel_id);
+              const allFunnelIds = [...(ownedFunnels?.map(f => f.id) || []), ...teamFunnelIds];
+              return [...new Set(allFunnelIds)]; // Remove duplicates
+            }
+          }
+        }
+        
+        return ownedFunnels?.map(f => f.id) || [];
       }
 
       // Para operacionais, buscar apenas funis atribuídos
+      console.log('[useAccessControl] 👤 Buscando funis atribuídos para usuário operacional:', user.id);
+      
       const { data: userFunnelAccess, error } = await supabase
         .from("user_funnels")
         .select("funnel_id")
         .eq("profile_id", user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useAccessControl] ❌ Erro ao buscar funis atribuídos:', error);
+        throw error;
+      }
+      
+      console.log('[useAccessControl] 📊 Funis atribuídos encontrados:', userFunnelAccess?.length || 0);
       return userFunnelAccess?.map(uf => uf.funnel_id) || [];
     },
     enabled: !!user?.id && !permissionsLoading && !!permissions.role,
@@ -54,15 +96,43 @@ export const useAccessControl = (): AccessControl => {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Se for admin ou manager, tem acesso a todas as instâncias
+      // Se for admin ou manager, tem acesso a todas as instâncias da organização
       if (permissions.role === 'admin' || permissions.role === 'manager') {
-        const { data: allWhatsApp, error } = await supabase
+        // Para admins/managers: primeiro buscar instâncias criadas diretamente
+        const { data: ownedWhatsApp, error: ownedError } = await supabase
           .from("whatsapp_instances")
           .select("id")
           .eq("created_by_user_id", user.id);
+          
+        if (ownedError) {
+          console.error('[useAccessControl] ❌ Erro ao buscar instâncias próprias:', ownedError);
+          throw ownedError;
+        }
 
-        if (error) throw error;
-        return allWhatsApp?.map(w => w.id) || [];
+        // Para admins: também buscar instâncias onde foram atribuídos membros da equipe
+        if (permissions.role === 'admin') {
+          const { data: teamMembers, error: teamError } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("created_by_user_id", user.id);
+            
+          if (!teamError && teamMembers && teamMembers.length > 0) {
+            const teamMemberIds = teamMembers.map(m => m.id);
+            
+            const { data: teamWhatsApp, error: teamWhatsAppError } = await supabase
+              .from("user_whatsapp_numbers")
+              .select("whatsapp_number_id")
+              .in("profile_id", teamMemberIds);
+              
+            if (!teamWhatsAppError && teamWhatsApp) {
+              const teamWhatsAppIds = teamWhatsApp.map(tw => tw.whatsapp_number_id);
+              const allWhatsAppIds = [...(ownedWhatsApp?.map(w => w.id) || []), ...teamWhatsAppIds];
+              return [...new Set(allWhatsAppIds)]; // Remove duplicates
+            }
+          }
+        }
+        
+        return ownedWhatsApp?.map(w => w.id) || [];
       }
 
       // Para operacionais, buscar apenas instâncias atribuídas

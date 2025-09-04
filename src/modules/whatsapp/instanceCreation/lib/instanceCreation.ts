@@ -7,9 +7,9 @@ export class InstanceCreationService {
     try {
       console.log('[InstanceCreationService] 🚀 Criando instância via estrutura modular:', params);
       
-      // Gerar nome inteligente se não fornecido
+      // CORREÇÃO: Usar email completo se não fornecido nome específico
       const intelligentName = params.instanceName || 
-        params.userEmail.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
+        params.userEmail.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
       
       // Chamar API modular
       const result = await InstanceApi.createInstance({

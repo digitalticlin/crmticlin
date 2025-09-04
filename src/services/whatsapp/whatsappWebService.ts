@@ -53,9 +53,11 @@ export class WhatsAppWebService {
 
   static async deleteInstance(instanceId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data, error } = await supabase.functions.invoke('whatsapp_instance_delete', {
-        body: { instanceId }
-      });
+      // ✅ CORREÇÃO: Deletar diretamente do banco, trigger cuida da VPS
+      const { error } = await supabase
+        .from('whatsapp_instances')
+        .delete()
+        .eq('id', instanceId);
 
       if (error) throw error;
 

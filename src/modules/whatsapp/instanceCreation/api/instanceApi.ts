@@ -12,8 +12,8 @@ export class InstanceApi {
         EDGE_FUNCTION_CONFIG.name,
         {
           body: {
-            action: 'create_instance',
-            instanceName: params.instanceName || 'whatsapp_instance'
+            action: 'create_instance'
+            // CORREÇÃO: Não enviar instanceName para a edge decidir baseada no email
           }
         }
       );

@@ -86,7 +86,7 @@ export function CustomizableKPIGrid() {
     });
   }, [forceUpdate, visibleKPIs]);
 
-  if (configLoading || kpisLoading) {
+  if (configLoading || kpisLoading || !kpis) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -122,7 +122,7 @@ export function CustomizableKPIGrid() {
     >
       {visibleKPIs.map((kpiKey, index) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
-        const value = kpis[kpiKey as keyof typeof kpis];
+        const value = kpis ? kpis[kpiKey as keyof typeof kpis] : 0;
         
         // ETAPA 1: Usar estado otimista para feedback instantâneo
         const currentState = getCurrentState();

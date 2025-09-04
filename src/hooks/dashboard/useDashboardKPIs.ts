@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAccessControl } from "@/hooks/useAccessControl";
 
 interface KPIData {
   novos_leads: number;
@@ -15,10 +16,18 @@ interface KPIData {
 
 export function useDashboardKPIs(periodFilter: string) {
   const { user } = useAuth();
+  const { userFunnels, canViewAllFunnels, isLoading: accessLoading } = useAccessControl();
 
   return useQuery({
-    queryKey: ['dashboard-kpis', user?.id, periodFilter],
+    queryKey: ['dashboard-kpis', user?.id, periodFilter, userFunnels, canViewAllFunnels],
     queryFn: async (): Promise<KPIData> => {
+      console.log('[useDashboardKPIs] 🔍 Iniciando consulta KPIs:', {
+        userId: user?.id,
+        periodFilter,
+        userFunnels,
+        canViewAllFunnels,
+        accessLoading
+      });
       if (!user?.id) {
         return {
           novos_leads: 0,
@@ -36,6 +45,48 @@ export function useDashboardKPIs(periodFilter: string) {
       startDate.setDate(startDate.getDate() - days);
 
       try {
+        // Determinar funis que o usuário pode acessar
+        let accessibleFunnels: string[] = [];
+        
+        console.log('[useDashboardKPIs] 🔍 Verificando acessos:', {
+          canViewAllFunnels,
+          userFunnelsLength: userFunnels.length,
+          userFunnels
+        });
+        
+        if (canViewAllFunnels) {
+          // Admin/Manager: buscar todos os funis criados pelo usuário
+          const { data: allFunnels, error: funnelsError } = await supabase
+            .from('funnels')
+            .select('id')
+            .eq('created_by_user_id', user.id);
+          
+          if (funnelsError) {
+            console.error('[useDashboardKPIs] ❌ Erro ao buscar funis próprios:', funnelsError);
+            throw funnelsError;
+          }
+          accessibleFunnels = (allFunnels || []).map(f => f.id);
+          console.log('[useDashboardKPIs] ✅ Funis próprios encontrados:', accessibleFunnels.length);
+        } else {
+          // Operacional: usar apenas funis atribuídos
+          accessibleFunnels = userFunnels;
+          console.log('[useDashboardKPIs] ✅ Usuário operacional - funis atribuídos:', accessibleFunnels.length);
+        }
+
+        // Se não tem acesso a nenhum funil, retornar zeros
+        if (accessibleFunnels.length === 0) {
+          console.log('[useDashboardKPIs] ⚠️ Nenhum funil acessível - retornando zeros');
+          return {
+            novos_leads: 0,
+            total_leads: 0,
+            taxa_conversao: 0,
+            taxa_perda: 0,
+            valor_pipeline: 0,
+            ticket_medio: 0,
+            tempo_resposta: 0,
+          };
+        }
+
         // Estágios ativos (não ganho, não perdido)
         const { data: activeStages, error: stagesError } = await supabase
           .from('kanban_stages')
@@ -46,30 +97,29 @@ export function useDashboardKPIs(periodFilter: string) {
         if (stagesError) throw stagesError;
         const activeStageIds = (activeStages || []).map(s => s.id);
 
-        // Contagem total de leads (sem baixar todos)
+        // Contagem total de leads (filtrada por funis acessíveis)
         const { count: totalLeadsCount, error: totalCountError } = await supabase
           .from('leads')
           .select('id', { count: 'exact', head: true })
-          .eq('created_by_user_id', user.id)
-          .not('funnel_id', 'is', null)
+          .in('funnel_id', accessibleFunnels)
           .in('kanban_stage_id', activeStageIds);
 
         if (totalCountError) throw totalCountError;
 
-        // Novos leads no período (sem filtrar por estágio)
+        // Novos leads no período (filtrada por funis acessíveis)
         const { data: newLeads, error: newLeadsError } = await supabase
           .from('leads')
           .select('id')
-          .eq('created_by_user_id', user.id)
+          .in('funnel_id', accessibleFunnels)
           .gte('created_at', startDate.toISOString());
 
         if (newLeadsError) throw newLeadsError;
 
-        // Deals no período (para conversão, perda e ticket médio)
+        // Deals no período (filtrada por funis acessíveis)
         const { data: deals, error: dealsError } = await supabase
           .from('deals')
-          .select('status, value, date')
-          .eq('created_by_user_id', user.id)
+          .select('status, value, date, funnel_id')
+          .in('funnel_id', accessibleFunnels)
           .gte('date', startDate.toISOString());
 
         if (dealsError) throw dealsError;
@@ -83,15 +133,14 @@ export function useDashboardKPIs(periodFilter: string) {
         const taxaConversao = totalDeals > 0 ? Math.round((wonDeals / totalDeals) * 100) : 0;
         const taxaPerda = totalDeals > 0 ? Math.round((lostDeals / totalDeals) * 100) : 0;
 
-        // Somatório de purchase_value de forma paginada para evitar limite de 1000 (somente ativos em funil)
+        // Somatório de purchase_value de forma paginada para evitar limite de 1000 (filtrada por funis acessíveis)
         let valorPipeline = 0;
         const PAGE_SIZE = 1000;
         for (let offset = 0; ; offset += PAGE_SIZE) {
           const { data: pageData, error: pageError } = await supabase
             .from('leads')
             .select('purchase_value')
-            .eq('created_by_user_id', user.id)
-            .not('funnel_id', 'is', null)
+            .in('funnel_id', accessibleFunnels)
             .in('kanban_stage_id', activeStageIds)
             .range(offset, offset + PAGE_SIZE - 1);
 
@@ -125,6 +174,15 @@ export function useDashboardKPIs(periodFilter: string) {
         };
       }
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !accessLoading,
+    initialData: {
+      novos_leads: 0,
+      total_leads: 0,
+      taxa_conversao: 0,
+      taxa_perda: 0,
+      valor_pipeline: 0,
+      ticket_medio: 0,
+      tempo_resposta: 0,
+    },
   });
 }

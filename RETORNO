@@ -1,203 +1,181 @@
-[LeadCardContent] Debug lead data: {name: '+55 62 9249-4567', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 62 9249-4567', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 62 9249-4567', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 93393-658', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 93393-658', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 93393-658', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 82307-903', purchaseValue: undefined, purchase_value: undefined, unreadCount: 2, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 82307-903', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 82307-903', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 2, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 82156-433', purchaseValue: undefined, purchase_value: undefined, unreadCount: 12, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 82156-433', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 82156-433', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 12, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 62 9264-0092', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 62 9264-0092', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 62 9264-0092', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 99149-918', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 99149-918', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 99149-918', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '', purchaseValue: undefined, purchase_value: undefined, unreadCount: 1, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/518457458_…fULrVE2b9Q&oe=68C3307C&_nc_sid=5e03e0&_nc_cat=102', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/518457458_…fULrVE2b9Q&oe=68C3307C&_nc_sid=5e03e0&_nc_cat=102', unreadCount: 1, …}
-useDndKanban.ts:43 🔄 [useDndKanban] Syncing with external columns: (5) [{…}, {…}, {…}, {…}, {…}]
-DndKanbanBoardWrapper.tsx:60 🔄 [DndKanbanBoardWrapper] Converted columns: (5) [{…}, {…}, {…}, {…}, {…}]
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '', purchaseValue: undefined, purchase_value: undefined, unreadCount: 14, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/534421660_…I0Jy4ojRGA&oe=68C34017&_nc_sid=5e03e0&_nc_cat=108', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/534421660_…I0Jy4ojRGA&oe=68C34017&_nc_sid=5e03e0&_nc_cat=108', unreadCount: 14, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 86440-002', purchaseValue: undefined, purchase_value: undefined, unreadCount: 1, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 86440-002', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 86440-002', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/466444523_…UPx-zuwvFA&oe=68C33F6D&_nc_sid=5e03e0&_nc_cat=101', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/466444523_…UPx-zuwvFA&oe=68C33F6D&_nc_sid=5e03e0&_nc_cat=101', unreadCount: 1, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: 'Dr Eneas Marinho\n\nMarinho Associados', purchaseValue: undefined, purchase_value: undefined, unreadCount: 5, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: 'Dr Eneas Marinho\n\nMarinho Associados', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: 'Dr Eneas Marinho\n\nMarinho Associados', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/421524161_…K1H1Vvx8WA&oe=68C33059&_nc_sid=5e03e0&_nc_cat=107', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/421524161_…K1H1Vvx8WA&oe=68C33059&_nc_sid=5e03e0&_nc_cat=107', unreadCount: 5, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: 'Amanda Bárbara', purchaseValue: undefined, purchase_value: undefined, unreadCount: 4, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: 'Amanda Bárbara', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: 'Amanda Bárbara', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/491868882_…hxJZwBY5fQ&oe=68C32C24&_nc_sid=5e03e0&_nc_cat=103', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/491868882_…hxJZwBY5fQ&oe=68C32C24&_nc_sid=5e03e0&_nc_cat=103', unreadCount: 4, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 85576-233', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 85576-233', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 85576-233', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/468726830_…Ev3Ax4cpOg&oe=68C2F78E&_nc_sid=5e03e0&_nc_cat=105', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/468726830_…Ev3Ax4cpOg&oe=68C2F78E&_nc_sid=5e03e0&_nc_cat=105', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (49) 91219-300', purchaseValue: undefined, purchase_value: undefined, unreadCount: 11, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (49) 91219-300', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (49) 91219-300', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/473397973_…4iiYmeEpdA&oe=68C33F59&_nc_sid=5e03e0&_nc_cat=102', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/473397973_…4iiYmeEpdA&oe=68C33F59&_nc_sid=5e03e0&_nc_cat=102', unreadCount: 11, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 98007-548', purchaseValue: undefined, purchase_value: undefined, unreadCount: 1, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 98007-548', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 98007-548', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/491873299_…oKNszQQAPA&oe=68C32A54&_nc_sid=5e03e0&_nc_cat=102', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/491873299_…oKNszQQAPA&oe=68C32A54&_nc_sid=5e03e0&_nc_cat=102', unreadCount: 1, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 8603-2824', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 8603-2824', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 8603-2824', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 81316-387', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 81316-387', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 81316-387', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/457748065_…iQLUhRwG2Q&oe=68C305E1&_nc_sid=5e03e0&_nc_cat=109', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/457748065_…iQLUhRwG2Q&oe=68C305E1&_nc_sid=5e03e0&_nc_cat=109', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 85355-663', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 85355-663', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 85355-663', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/471733639_…mY31TJQwbQ&oe=68C31BA5&_nc_sid=5e03e0&_nc_cat=106', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/471733639_…mY31TJQwbQ&oe=68C31BA5&_nc_sid=5e03e0&_nc_cat=106', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 95506-505', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 95506-505', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 95506-505', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/462364848_…YzVYtOZvJw&oe=68C2FE36&_nc_sid=5e03e0&_nc_cat=101', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/462364848_…YzVYtOZvJw&oe=68C2FE36&_nc_sid=5e03e0&_nc_cat=101', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (13) 99648-7080', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (13) 99648-7080', assignedUser: undefined, ownerName: undefined, owner_id: undefined, created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (13) 99648-7080', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/456412521_…3XU_TeGW0g&oe=68C3027C&_nc_sid=5e03e0&_nc_cat=108', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/456412521_…3XU_TeGW0g&oe=68C3027C&_nc_sid=5e03e0&_nc_cat=108', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 82373-998', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 82373-998', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 82373-998', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/491870354_…vzcKBf_CdQ&oe=68C2A9CA&_nc_sid=5e03e0&_nc_cat=108', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/491870354_…vzcKBf_CdQ&oe=68C2A9CA&_nc_sid=5e03e0&_nc_cat=108', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 81806-472', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 81806-472', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 81806-472', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/491840921_…4sCvjrmZYA&oe=68C301B5&_nc_sid=5e03e0&_nc_cat=106', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/491840921_…4sCvjrmZYA&oe=68C301B5&_nc_sid=5e03e0&_nc_cat=106', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: 'João Marinho', purchaseValue: undefined, purchase_value: undefined, unreadCount: 9, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: 'João Marinho', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: 'João Marinho', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/491887457_…B3tJrQB5xg&oe=68C2EC03&_nc_sid=5e03e0&_nc_cat=110', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/491887457_…B3tJrQB5xg&oe=68C2EC03&_nc_sid=5e03e0&_nc_cat=110', unreadCount: 9, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 8136-0526', purchaseValue: undefined, purchase_value: undefined, unreadCount: 3, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 8136-0526', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 8136-0526', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 3, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (93) 51204-3575', purchaseValue: undefined, purchase_value: undefined, unreadCount: 2, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (93) 51204-3575', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (93) 51204-3575', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 2, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (35) 8835-1394', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (35) 8835-1394', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (35) 8835-1394', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 82196-466', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 82196-466', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 82196-466', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 62 9249-4567', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 62 9249-4567', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 62 9249-4567', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 93393-658', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 93393-658', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 93393-658', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 82307-903', purchaseValue: undefined, purchase_value: undefined, unreadCount: 2, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 82307-903', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 82307-903', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 2, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 82156-433', purchaseValue: undefined, purchase_value: undefined, unreadCount: 12, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 82156-433', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 82156-433', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 12, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 62 9264-0092', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 62 9264-0092', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 62 9264-0092', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 99149-918', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 99149-918', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 99149-918', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '', purchaseValue: undefined, purchase_value: undefined, unreadCount: 1, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/518457458_…fULrVE2b9Q&oe=68C3307C&_nc_sid=5e03e0&_nc_cat=102', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/518457458_…fULrVE2b9Q&oe=68C3307C&_nc_sid=5e03e0&_nc_cat=102', unreadCount: 1, …}
-useDndKanban.ts:43 🔄 [useDndKanban] Syncing with external columns: (5) [{…}, {…}, {…}, {…}, {…}]
-DndKanbanBoardWrapper.tsx:60 🔄 [DndKanbanBoardWrapper] Converted columns: (5) [{…}, {…}, {…}, {…}, {…}]
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '', purchaseValue: undefined, purchase_value: undefined, unreadCount: 14, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/534421660_…I0Jy4ojRGA&oe=68C34017&_nc_sid=5e03e0&_nc_cat=108', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/534421660_…I0Jy4ojRGA&oe=68C34017&_nc_sid=5e03e0&_nc_cat=108', unreadCount: 14, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 86440-002', purchaseValue: undefined, purchase_value: undefined, unreadCount: 1, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 86440-002', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 86440-002', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/466444523_…UPx-zuwvFA&oe=68C33F6D&_nc_sid=5e03e0&_nc_cat=101', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/466444523_…UPx-zuwvFA&oe=68C33F6D&_nc_sid=5e03e0&_nc_cat=101', unreadCount: 1, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: 'Dr Eneas Marinho\n\nMarinho Associados', purchaseValue: undefined, purchase_value: undefined, unreadCount: 5, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: 'Dr Eneas Marinho\n\nMarinho Associados', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: 'Dr Eneas Marinho\n\nMarinho Associados', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/421524161_…K1H1Vvx8WA&oe=68C33059&_nc_sid=5e03e0&_nc_cat=107', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/421524161_…K1H1Vvx8WA&oe=68C33059&_nc_sid=5e03e0&_nc_cat=107', unreadCount: 5, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: 'Amanda Bárbara', purchaseValue: undefined, purchase_value: undefined, unreadCount: 4, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: 'Amanda Bárbara', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: 'Amanda Bárbara', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/491868882_…hxJZwBY5fQ&oe=68C32C24&_nc_sid=5e03e0&_nc_cat=103', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/491868882_…hxJZwBY5fQ&oe=68C32C24&_nc_sid=5e03e0&_nc_cat=103', unreadCount: 4, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 85576-233', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 85576-233', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 85576-233', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/468726830_…Ev3Ax4cpOg&oe=68C2F78E&_nc_sid=5e03e0&_nc_cat=105', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/468726830_…Ev3Ax4cpOg&oe=68C2F78E&_nc_sid=5e03e0&_nc_cat=105', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (49) 91219-300', purchaseValue: undefined, purchase_value: undefined, unreadCount: 11, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (49) 91219-300', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (49) 91219-300', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/473397973_…4iiYmeEpdA&oe=68C33F59&_nc_sid=5e03e0&_nc_cat=102', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/473397973_…4iiYmeEpdA&oe=68C33F59&_nc_sid=5e03e0&_nc_cat=102', unreadCount: 11, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 98007-548', purchaseValue: undefined, purchase_value: undefined, unreadCount: 1, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 98007-548', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 98007-548', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/491873299_…oKNszQQAPA&oe=68C32A54&_nc_sid=5e03e0&_nc_cat=102', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/491873299_…oKNszQQAPA&oe=68C32A54&_nc_sid=5e03e0&_nc_cat=102', unreadCount: 1, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 8603-2824', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 8603-2824', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 8603-2824', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 81316-387', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 81316-387', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 81316-387', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/457748065_…iQLUhRwG2Q&oe=68C305E1&_nc_sid=5e03e0&_nc_cat=109', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/457748065_…iQLUhRwG2Q&oe=68C305E1&_nc_sid=5e03e0&_nc_cat=109', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 85355-663', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 85355-663', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 85355-663', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/471733639_…mY31TJQwbQ&oe=68C31BA5&_nc_sid=5e03e0&_nc_cat=106', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/471733639_…mY31TJQwbQ&oe=68C31BA5&_nc_sid=5e03e0&_nc_cat=106', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 95506-505', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 95506-505', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 95506-505', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/462364848_…YzVYtOZvJw&oe=68C2FE36&_nc_sid=5e03e0&_nc_cat=101', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/462364848_…YzVYtOZvJw&oe=68C2FE36&_nc_sid=5e03e0&_nc_cat=101', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (13) 99648-7080', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (13) 99648-7080', assignedUser: undefined, ownerName: undefined, owner_id: undefined, created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (13) 99648-7080', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/456412521_…3XU_TeGW0g&oe=68C3027C&_nc_sid=5e03e0&_nc_cat=108', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/456412521_…3XU_TeGW0g&oe=68C3027C&_nc_sid=5e03e0&_nc_cat=108', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 82373-998', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 82373-998', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 82373-998', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/491870354_…vzcKBf_CdQ&oe=68C2A9CA&_nc_sid=5e03e0&_nc_cat=108', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/491870354_…vzcKBf_CdQ&oe=68C2A9CA&_nc_sid=5e03e0&_nc_cat=108', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 81806-472', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 81806-472', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 81806-472', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/491840921_…4sCvjrmZYA&oe=68C301B5&_nc_sid=5e03e0&_nc_cat=106', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/491840921_…4sCvjrmZYA&oe=68C301B5&_nc_sid=5e03e0&_nc_cat=106', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: 'João Marinho', purchaseValue: undefined, purchase_value: undefined, unreadCount: 9, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: 'João Marinho', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: 'João Marinho', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/491887457_…B3tJrQB5xg&oe=68C2EC03&_nc_sid=5e03e0&_nc_cat=110', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/491887457_…B3tJrQB5xg&oe=68C2EC03&_nc_sid=5e03e0&_nc_cat=110', unreadCount: 9, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 8136-0526', purchaseValue: undefined, purchase_value: undefined, unreadCount: 3, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 8136-0526', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 8136-0526', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 3, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (93) 51204-3575', purchaseValue: undefined, purchase_value: undefined, unreadCount: 2, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (93) 51204-3575', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (93) 51204-3575', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 2, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (35) 8835-1394', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (35) 8835-1394', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (35) 8835-1394', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 82196-466', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 82196-466', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 82196-466', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 62 9249-4567', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 62 9249-4567', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 62 9249-4567', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 93393-658', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 93393-658', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 93393-658', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 82307-903', purchaseValue: undefined, purchase_value: undefined, unreadCount: 2, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 82307-903', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 82307-903', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 2, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 82156-433', purchaseValue: undefined, purchase_value: undefined, unreadCount: 12, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 82156-433', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 82156-433', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 12, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 62 9264-0092', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 62 9264-0092', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 62 9264-0092', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 99149-918', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 99149-918', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 99149-918', profile_pic_url: undefined, avatar: undefined, finalAvatarSrc: '/avatar-lead.png', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '', purchaseValue: undefined, purchase_value: undefined, unreadCount: 1, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/518457458_…fULrVE2b9Q&oe=68C3307C&_nc_sid=5e03e0&_nc_cat=102', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/518457458_…fULrVE2b9Q&oe=68C3307C&_nc_sid=5e03e0&_nc_cat=102', unreadCount: 1, …}
-useDndKanban.ts:43 🔄 [useDndKanban] Syncing with external columns: (5) [{…}, {…}, {…}, {…}, {…}]
-DndKanbanBoardWrapper.tsx:60 🔄 [DndKanbanBoardWrapper] Converted columns: (5) [{…}, {…}, {…}, {…}, {…}]
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '', purchaseValue: undefined, purchase_value: undefined, unreadCount: 14, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/534421660_…I0Jy4ojRGA&oe=68C34017&_nc_sid=5e03e0&_nc_cat=108', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/534421660_…I0Jy4ojRGA&oe=68C34017&_nc_sid=5e03e0&_nc_cat=108', unreadCount: 14, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 86440-002', purchaseValue: undefined, purchase_value: undefined, unreadCount: 1, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 86440-002', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 86440-002', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/466444523_…UPx-zuwvFA&oe=68C33F6D&_nc_sid=5e03e0&_nc_cat=101', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/466444523_…UPx-zuwvFA&oe=68C33F6D&_nc_sid=5e03e0&_nc_cat=101', unreadCount: 1, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: 'Dr Eneas Marinho\n\nMarinho Associados', purchaseValue: undefined, purchase_value: undefined, unreadCount: 5, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: 'Dr Eneas Marinho\n\nMarinho Associados', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: 'Dr Eneas Marinho\n\nMarinho Associados', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/421524161_…K1H1Vvx8WA&oe=68C33059&_nc_sid=5e03e0&_nc_cat=107', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/421524161_…K1H1Vvx8WA&oe=68C33059&_nc_sid=5e03e0&_nc_cat=107', unreadCount: 5, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: 'Amanda Bárbara', purchaseValue: undefined, purchase_value: undefined, unreadCount: 4, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: 'Amanda Bárbara', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: 'Amanda Bárbara', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/491868882_…hxJZwBY5fQ&oe=68C32C24&_nc_sid=5e03e0&_nc_cat=103', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/491868882_…hxJZwBY5fQ&oe=68C32C24&_nc_sid=5e03e0&_nc_cat=103', unreadCount: 4, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 85576-233', purchaseValue: undefined, purchase_value: undefined, unreadCount: 0, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 85576-233', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (62) 85576-233', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/468726830_…Ev3Ax4cpOg&oe=68C2F78E&_nc_sid=5e03e0&_nc_cat=105', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/468726830_…Ev3Ax4cpOg&oe=68C2F78E&_nc_sid=5e03e0&_nc_cat=105', unreadCount: 0, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (49) 91219-300', purchaseValue: undefined, purchase_value: undefined, unreadCount: 11, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (49) 91219-300', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
-LeadCardHeader.tsx:33 [LeadCardHeader] Debug profile pic & unread messages: {leadName: '+55 (49) 91219-300', profile_pic_url: 'https://pps.whatsapp.net/v/t61.24694-24/473397973_…4iiYmeEpdA&oe=68C33F59&_nc_sid=5e03e0&_nc_cat=102', avatar: undefined, finalAvatarSrc: 'https://pps.whatsapp.net/v/t61.24694-24/473397973_…4iiYmeEpdA&oe=68C33F59&_nc_sid=5e03e0&_nc_cat=102', unreadCount: 11, …}
-LeadCardContent.tsx:19 [LeadCardContent] Debug lead data: {name: '+55 (62) 98007-548', purchaseValue: undefined, purchase_value: undefined, unreadCount: 1, unread_count: undefined, …}
-LeadCardContent.tsx:47 [LeadCardContent] Debug lead data: {name: '+55 (62) 98007-548', assignedUser: '712e7708-2299-4a00-9128-577c8f113ca4', ownerName: undefined, owner_id: '712e7708-2299-4a00-9128-577c8f113ca4', created_by_user_id: undefined, …}
+[Profile Operations] ✅ Perfil carregado: Inácio Junior
+OptimizedSettingsSection.tsx:15 [Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - LAYOUT REORGANIZADO
+useWhatsAppWebInstances.ts:15 [WhatsApp Web Instances] 🔄 Carregando instâncias...
+useWhatsAppWebInstances.ts:122 [WhatsApp Web Instances] 📡 Configurando realtime para usuário: 712e7708-2299-4a00-9128-577c8f113ca4
+useWhatsAppWebInstances.ts:36 [WhatsApp Web Instances] ✅ 1 instâncias carregadas para usuário: digitalticlin@gmail.com
+OptimizedSettingsSection.tsx:15 [Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - LAYOUT REORGANIZADO
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CHANNEL_ERROR
+useConnectionStatusSync.ts:119 [ConnectionStatusSync] ❌ Erro no canal, tentando reconnection
+(anonymous) @ useConnectionStatusSync.ts:119
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2134
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:1786
+_matchReceive @ @supabase_supabase-js.js?v=c4156387:1786
+callback @ @supabase_supabase-js.js?v=c4156387:1760
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2366
+_trigger @ @supabase_supabase-js.js?v=c4156387:2351
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2086
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2366
+_trigger @ @supabase_supabase-js.js?v=c4156387:2351
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2848
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2848
+decode @ @supabase_supabase-js.js?v=c4156387:1499
+_onConnMessage @ @supabase_supabase-js.js?v=c4156387:2839
+conn.onmessage @ @supabase_supabase-js.js?v=c4156387:2833Understand this error
+useConnectionStatusSync.ts:82 [ConnectionStatusSync] 🔄 Tentativa de reconnection 1/5 em 1000ms
+AddNewConnectionCard.tsx:20 [AddNewConnectionCard] 🚀 NOVA ABORDAGEM: Usar callback para abrir modal
+AddNewConnectionCard.tsx:30 [AddNewConnectionCard] 🚀 Abrindo modal via callback com ID temporário: temp_1756981241142
+OptimizedSettingsSection.tsx:44 [Optimized Settings] 📱 Definindo modal ativo para: Criando instância...
+AddNewConnectionCard.tsx:35 [AddNewConnectionCard] 🛠️ Criando instância em background...
+useInstanceCreation.ts:39 [useInstanceCreation] 🚀 NOVA UX: Criando instância para: digitalticlin@gmail.com
+instanceCreation.ts:8 [InstanceCreationService] 🚀 Criando instância via estrutura modular: {instanceName: undefined, userEmail: 'digitalticlin@gmail.com'}
+instanceApi.ts:9 [InstanceApi] 🚀 Criando instância: {instanceName: 'digitalticlingmailcom', userEmail: 'digitalticlin@gmail.com', companyId: undefined}
+OptimizedSettingsSection.tsx:15 [Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - LAYOUT REORGANIZADO
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+QRCodeModal.tsx:65 [QRCodeModal] 🚀 Auto-opening modal for instanceId: temp_1756981241142
+useQRModal.ts:209 [useQRModal] 🚀 Tentando abrir modal para: temp_1756981241142 nome: Criando instância...
+QRModalManager.ts:67 [QRModalManager] 📱 Abrindo modal para: {instanceId: 'temp_1756981241142', instanceName: 'Criando instância...'}
+useQRModal.ts:144 [useQRModal] 📡 Configurando realtime para: temp_1756981241142
+useQRModal.ts:148 [useQRModal] 🕐 ID temporário, não configurando realtime ainda...
+useQRModal.ts:79 [useQRModal] 🔍 Verificando dados iniciais para: temp_1756981241142
+useQRModal.ts:83 [useQRModal] 🕐 ID temporário detectado, aguardando instância real...
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+chunk-RZ66K55W.js?v=c4156387:340 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+(anonymous) @ chunk-RZ66K55W.js?v=c4156387:340
+commitHookEffectListMount @ chunk-276SZO74.js?v=c4156387:16915
+commitPassiveMountOnFiber @ chunk-276SZO74.js?v=c4156387:18156
+commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=c4156387:18129
+commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=c4156387:18119
+commitPassiveMountEffects @ chunk-276SZO74.js?v=c4156387:18109
+flushPassiveEffectsImpl @ chunk-276SZO74.js?v=c4156387:19490
+flushPassiveEffects @ chunk-276SZO74.js?v=c4156387:19447
+commitRootImpl @ chunk-276SZO74.js?v=c4156387:19416
+commitRoot @ chunk-276SZO74.js?v=c4156387:19277
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=c4156387:18895
+flushSyncCallbacks @ chunk-276SZO74.js?v=c4156387:9119
+commitRootImpl @ chunk-276SZO74.js?v=c4156387:19432
+commitRoot @ chunk-276SZO74.js?v=c4156387:19277
+finishConcurrentRender @ chunk-276SZO74.js?v=c4156387:18805
+performConcurrentWorkOnRoot @ chunk-276SZO74.js?v=c4156387:18718
+workLoop @ chunk-276SZO74.js?v=c4156387:197
+flushWork @ chunk-276SZO74.js?v=c4156387:176
+performWorkUntilDeadline @ chunk-276SZO74.js?v=c4156387:384Understand this warning
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: SUBSCRIBED
+useConnectionStatusSync.ts:117 [ConnectionStatusSync] ✅ Conectado com sucesso
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: SUBSCRIBED
+useConnectionStatusSync.ts:117 [ConnectionStatusSync] ✅ Conectado com sucesso
+instanceApi.ts:31 [InstanceApi] ✅ Instância criada: 3a95e569-64f7-48a1-8056-237f63ce7069
+instanceCreation.ts:22 [InstanceCreationService] ✅ Instância criada via estrutura modular: {instanceName: 'digitalticlingmailcom', instanceId: '3a95e569-64f7-48a1-8056-237f63ce7069', status: 'pending'}
+useInstanceCreation.ts:47 [useInstanceCreation] ✅ VPS criada com sucesso: 3a95e569-64f7-48a1-8056-237f63ce7069
+AddNewConnectionCard.tsx:39 [AddNewConnectionCard] ✅ Instância criada, atualizando modal: 3a95e569-64f7-48a1-8056-237f63ce7069
+OptimizedSettingsSection.tsx:44 [Optimized Settings] 📱 Definindo modal ativo para: digitalticlingmailcom5
+OptimizedSettingsSection.tsx:54 [Optimized Settings] ✅ Nova instância criada, atualizando lista
+useWhatsAppWebInstances.ts:15 [WhatsApp Web Instances] 🔄 Carregando instâncias...
+OptimizedSettingsSection.tsx:15 [Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - LAYOUT REORGANIZADO
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useWhatsAppWebInstances.ts:36 [WhatsApp Web Instances] ✅ 2 instâncias carregadas para usuário: digitalticlin@gmail.com
+OptimizedSettingsSection.tsx:15 [Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - LAYOUT REORGANIZADO
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useWhatsAppWebInstances.ts:135 [WhatsApp Web Instances] 📱 Realtime update: {schema: 'public', table: 'whatsapp_instances', commit_timestamp: '2025-09-04T10:20:51.274Z', eventType: 'INSERT', new: {…}, …}
+useWhatsAppWebInstances.ts:15 [WhatsApp Web Instances] 🔄 Carregando instâncias...
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CHANNEL_ERROR
+useConnectionStatusSync.ts:119 [ConnectionStatusSync] ❌ Erro no canal, tentando reconnection
+(anonymous) @ useConnectionStatusSync.ts:119
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2134
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:1786
+_matchReceive @ @supabase_supabase-js.js?v=c4156387:1786
+callback @ @supabase_supabase-js.js?v=c4156387:1760
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2366
+_trigger @ @supabase_supabase-js.js?v=c4156387:2351
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2086
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2366
+_trigger @ @supabase_supabase-js.js?v=c4156387:2351
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2848
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2848
+decode @ @supabase_supabase-js.js?v=c4156387:1499
+_onConnMessage @ @supabase_supabase-js.js?v=c4156387:2839
+conn.onmessage @ @supabase_supabase-js.js?v=c4156387:2833Understand this error
+useConnectionStatusSync.ts:82 [ConnectionStatusSync] 🔄 Tentativa de reconnection 1/5 em 1000ms
+useWhatsAppWebInstances.ts:36 [WhatsApp Web Instances] ✅ 2 instâncias carregadas para usuário: digitalticlin@gmail.com
+OptimizedSettingsSection.tsx:15 [Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - LAYOUT REORGANIZADO
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: SUBSCRIBED
+useConnectionStatusSync.ts:117 [ConnectionStatusSync] ✅ Conectado com sucesso
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CHANNEL_ERROR
+useConnectionStatusSync.ts:119 [ConnectionStatusSync] ❌ Erro no canal, tentando reconnection
+(anonymous) @ useConnectionStatusSync.ts:119
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2134
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:1786
+_matchReceive @ @supabase_supabase-js.js?v=c4156387:1786
+callback @ @supabase_supabase-js.js?v=c4156387:1760
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2366
+_trigger @ @supabase_supabase-js.js?v=c4156387:2351
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2086
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2366
+_trigger @ @supabase_supabase-js.js?v=c4156387:2351
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2848
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2848
+decode @ @supabase_supabase-js.js?v=c4156387:1499
+_onConnMessage @ @supabase_supabase-js.js?v=c4156387:2839
+conn.onmessage @ @supabase_supabase-js.js?v=c4156387:2833Understand this error
+useConnectionStatusSync.ts:82 [ConnectionStatusSync] 🔄 Tentativa de reconnection 1/5 em 1000ms
+useWhatsAppWebInstances.ts:135 [WhatsApp Web Instances] 📱 Realtime update: {schema: 'public', table: 'whatsapp_instances', commit_timestamp: '2025-09-04T10:20:52.207Z', eventType: 'UPDATE', new: {…}, …}
+useWhatsAppWebInstances.ts:15 [WhatsApp Web Instances] 🔄 Carregando instâncias...
+useWhatsAppWebInstances.ts:36 [WhatsApp Web Instances] ✅ 2 instâncias carregadas para usuário: digitalticlin@gmail.com
+OptimizedSettingsSection.tsx:15 [Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - LAYOUT REORGANIZADO
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: SUBSCRIBED
+useConnectionStatusSync.ts:117 [ConnectionStatusSync] ✅ Conectado com sucesso
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CHANNEL_ERROR
+useConnectionStatusSync.ts:119 [ConnectionStatusSync] ❌ Erro no canal, tentando reconnection
+(anonymous) @ useConnectionStatusSync.ts:119
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2134
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:1786
+_matchReceive @ @supabase_supabase-js.js?v=c4156387:1786
+callback @ @supabase_supabase-js.js?v=c4156387:1760
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2366
+_trigger @ @supabase_supabase-js.js?v=c4156387:2351
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2086
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2366
+_trigger @ @supabase_supabase-js.js?v=c4156387:2351
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2848
+(anonymous) @ @supabase_supabase-js.js?v=c4156387:2848
+decode @ @supabase_supabase-js.js?v=c4156387:1499
+_onConnMessage @ @supabase_supabase-js.js?v=c4156387:2839
+conn.onmessage @ @supabase_supabase-js.js?v=c4156387:2833Understand this error
+useConnectionStatusSync.ts:82 [ConnectionStatusSync] 🔄 Tentativa de reconnection 1/5 em 1000ms
+useConnectionStatusSync.ts:97 [ConnectionStatusSync] 🔄 Removendo canal existente antes de recriar
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: SUBSCRIBED
+useConnectionStatusSync.ts:117 [ConnectionStatusSync] ✅ Conectado com sucesso

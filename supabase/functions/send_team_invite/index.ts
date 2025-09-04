@@ -16,8 +16,8 @@ serve(async (req)=>{
   try {
     const body = await req.json();
     console.log('[send_team_invite] Request body:', body);
-    const { email, full_name, tempPassword, companyId, inviteToken, companyName = "Ticlin" } = body;
-    const inviteUrl = `https://app.ticlin.com.br/invite/${inviteToken}`;
+    const { email, full_name, tempPassword, companyId, inviteToken, companyName = "Ticlin", inviteUrl: customInviteUrl, customMessage } = body;
+    const inviteUrl = customInviteUrl || `https://app.ticlin.com.br/invite/${inviteToken}`;
     console.log('[send_team_invite] Sending email with params:', {
       from: "Ticlin IA <app@ticlin.com.br>",
       to: [
@@ -48,9 +48,10 @@ serve(async (req)=>{
 
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 8px; color: white; text-align: center; margin-bottom: 30px;">
               <h2 style="margin: 0 0 10px 0; font-size: 24px;">Olá, ${full_name}!</h2>
-              <p style="margin: 0; font-size: 16px; opacity: 0.9;">Você foi convidado para se juntar à equipe <strong>${companyName}</strong> na plataforma Ticlin.</p>
+              <p style="margin: 0; font-size: 16px; opacity: 0.9;">${customMessage || `Você foi convidado para se juntar à equipe <strong>${companyName}</strong> na plataforma Ticlin.`}</p>
             </div>
 
+            ${tempPassword ? `
             <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
               <h3 style="color: #2563eb; margin-top: 0;">📋 Suas credenciais de acesso:</h3>
               <div style="background-color: white; padding: 15px; border-radius: 6px; border-left: 4px solid #2563eb;">
@@ -58,10 +59,19 @@ serve(async (req)=>{
                 <p style="margin: 5px 0;"><strong>🔑 Senha temporária:</strong> <code style="background-color: #e9ecef; padding: 4px 8px; border-radius: 4px; font-family: monospace;">${tempPassword}</code></p>
               </div>
             </div>
+            ` : `
+            <div style="background-color: #f0f9ff; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+              <h3 style="color: #2563eb; margin-top: 0;">🔐 Como acessar:</h3>
+              <div style="background-color: white; padding: 15px; border-radius: 6px; border-left: 4px solid #2563eb;">
+                <p style="margin: 5px 0;"><strong>📧 Seu email:</strong> ${email}</p>
+                <p style="margin: 5px 0;"><strong>🆕 Você criará sua senha</strong> no primeiro acesso ao clicar no botão abaixo.</p>
+              </div>
+            </div>
+            `}
 
             <div style="text-align: center; margin: 30px 0;">
               <a href="${inviteUrl}" style="display: inline-block; background-color: #4f46e5; color: white; text-decoration: none; padding: 15px 30px; border-radius: 8px; font-weight: bold; font-size: 16px;">
-                ✨ ACEITAR CONVITE E ACESSAR PLATAFORMA
+                ${tempPassword ? '✨ ACEITAR CONVITE E ACESSAR PLATAFORMA' : '🔐 ACEITAR CONVITE E CRIAR SENHA'}
               </a>
             </div>
             
@@ -72,9 +82,15 @@ serve(async (req)=>{
               </p>
             </div>
 
+            ${tempPassword ? `
             <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 6px; margin: 20px 0;">
               <p style="margin: 0; color: #856404;"><strong>🔐 Segurança:</strong> Por motivos de segurança, será necessário alterar sua senha no primeiro acesso.</p>
             </div>
+            ` : `
+            <div style="background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 0; color: #0c5460;"><strong>🔐 Segurança:</strong> Você criará uma senha segura no primeiro acesso. Mantenha suas credenciais em local seguro.</p>
+            </div>
+            `}
 
             <div style="border-top: 1px solid #e9ecef; padding-top: 20px; margin-top: 30px; text-align: center; color: #6c757d;">
               <p style="margin: 5px 0; font-size: 14px;">Se você não reconhece este convite, pode ignorar este email.</p>

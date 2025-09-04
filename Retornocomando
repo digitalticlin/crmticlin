@@ -1,12 +1,29 @@
-C:\Users\inaci>Invoke-RestMethod -Uri "https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/ai_message_consult" -Method
-'Invoke-RestMethod' não é reconhecido como um comando interno
-ou externo, um programa operável ou um arquivo em lotes.
-
-C:\Users\inaci>  POST -Headers @{"Authorization"="Bearer SUA_AI_AGENT_API_KEY"; "Content-Type"="application/json"} -Body
-'POST' não é reconhecido como um comando interno
-ou externo, um programa operável ou um arquivo em lotes.
-
-C:\Users\inaci>  '{"createdByUserId":"712e7708-2299-4a00-9128-577c8f113ca4","leadId":"test-lead-id","instanceId":"test-instanc
-A sintaxe do nome do arquivo, do nome do diretório ou do rótulo do volume está incorreta.
-
-C:\Users\inaci>  e-id","limit":15,"order":"desc"}'
+[delete_1756938898958_okoodm] 🔑 Tipo de chamada: SERVICE_ROLE (Database Trigger)
+[delete_1756938898958_okoodm] 🔧 Processando chamada do trigger com service role
+[delete_1756938898958_okoodm] ❌ userId obrigatório para chamadas de service role
+[Instance Delete] 🚀 Iniciando processamento - VERSÃO CORRIGIDA V2
+🗑️ [delete_1756938898958_okoodm] WHATSAPP INSTANCE DELETE - VERSÃO CORRIGIDA
+Listening on http://localhost:9999/
+booted (time: 32ms)
+Listening on http://localhost:9999/
+booted (time: 32ms)
+[delete_1756938882816_tz01p6] ❌ userId obrigatório para chamadas de service role
+🗑️ [delete_1756938882816_tz01p6] WHATSAPP INSTANCE DELETE - VERSÃO CORRIGIDA
+[Instance Delete] 🚀 Iniciando processamento - VERSÃO CORRIGIDA V2
+[delete_1756938882816_tz01p6] 🔑 Tipo de chamada: SERVICE_ROLE (Database Trigger)
+[delete_1756938882816_tz01p6] 🔧 Processando chamada do trigger com service role
+Listening on http://localhost:9999/
+booted (time: 34ms)
+Listening on http://localhost:9999/
+booted (time: 36ms)
+[delete_1756938800435_guqojb] 🔑 Tipo de chamada: SERVICE_ROLE (Database Trigger)
+[delete_1756938800435_guqojb] ❌ userId obrigatório para chamadas de service role
+[delete_1756938800435_guqojb] 🔧 Processando chamada do trigger com service role
+[Instance Delete] 🚀 Iniciando processamento - VERSÃO CORRIGIDA V2
+🗑️ [delete_1756938800435_guqojb] WHATSAPP INSTANCE DELETE - VERSÃO CORRIGIDA
+Listening on http://localhost:9999/
+booted (time: 32ms)
+Listening on http://localhost:9999/
+booted (time: 33ms)
+Listening on http://localhost:9999/
+booted (time: 44ms)

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, EyeOff, RefreshCw, UserPlus, Shield, Users, Crown } from "lucide-react";
+import { UserPlus, Shield, Users, Crown, Loader2 } from "lucide-react";
 import { MultiSelectWhatsApp } from "./MultiSelectWhatsApp";
 import { MultiSelectFunnels } from "./MultiSelectFunnels";
 
@@ -15,7 +15,6 @@ interface AddMemberModalProps {
   onSubmit: (data: {
     full_name: string;
     email: string;
-    password: string;
     role: "operational" | "manager";
     assignedWhatsAppIds: string[];
     assignedFunnelIds: string[];
@@ -38,29 +37,18 @@ export const AddMemberModal = ({
     full_name: "",
     email: "",
     whatsapp_personal: "",
-    password: "",
     role: "operational" as "operational" | "manager",
     assignedWhatsAppIds: [] as string[],
     assignedFunnelIds: [] as string[]
   });
 
-  const [showPassword, setShowPassword] = useState(false);
-
-  const generatePassword = () => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%";
-    let password = "";
-    for (let i = 0; i < 12; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setFormData(prev => ({ ...prev, password }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     console.log('[AddMemberModal] Form data before submit:', formData);
     
-    if (!formData.full_name.trim() || !formData.email.trim() || !formData.password.trim()) {
+    if (!formData.full_name.trim() || !formData.email.trim()) {
       console.log('[AddMemberModal] Validação falhou - campos obrigatórios ausentes');
       return;
     }
@@ -82,7 +70,6 @@ export const AddMemberModal = ({
         full_name: "",
         email: "",
         whatsapp_personal: "",
-        password: "",
         role: "operational",
         assignedWhatsAppIds: [],
         assignedFunnelIds: []
@@ -186,39 +173,6 @@ export const AddMemberModal = ({
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-gray-800 font-medium">Senha Temporária *</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={formData.password}
-                        onChange={(e) => handleChange("password", e.target.value)}
-                        placeholder="Senha para primeiro acesso"
-                        className="bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-xl pr-10"
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 hover:bg-white/20"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={generatePassword}
-                      className="bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-xl"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -322,12 +276,12 @@ export const AddMemberModal = ({
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || !formData.full_name.trim() || !formData.email.trim() || !formData.password.trim()}
+              disabled={loading || !formData.full_name.trim() || !formData.email.trim()}
               className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-xl shadow-glass hover:shadow-glass-lg transition-all duration-200"
             >
               {loading ? (
                 <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Criando...
                 </>
               ) : (

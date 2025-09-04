@@ -42,6 +42,7 @@ BEGIN
             'instanceId', OLD.id,
             'vps_instance_id', OLD.vps_instance_id,
             'instance_name', OLD.instance_name,
+            'userId', OLD.created_by_user_id,
             'trigger_source', 'database_delete_trigger'
           )::text
         ));

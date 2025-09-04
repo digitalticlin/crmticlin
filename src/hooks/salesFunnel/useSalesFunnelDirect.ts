@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStageManagement } from "./useStageManagement";
 import { useTagDatabase } from "./useTagDatabase";
+import { useAccessControl } from "@/hooks/useAccessControl";
 import { KanbanColumn, KanbanLead, KanbanTag } from "@/types/kanban";
 import { Funnel, KanbanStage } from "@/types/funnel";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export function useSalesFunnelDirect() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { userFunnels, canViewAllFunnels, isLoading: accessLoading } = useAccessControl();
   const [selectedFunnel, setSelectedFunnel] = useState<Funnel | null>(null);
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
@@ -27,31 +29,57 @@ export function useSalesFunnelDirect() {
     selectedFunnelId: selectedFunnel?.id
   });
 
-  // Database hooks - usando queries diretas COM filtro de usuário
+  // Database hooks - usando queries diretas COM filtro de acesso corrigido
   const { data: funnels = [], isLoading: funnelLoading, refetch: refetchFunnels } = useQuery({
-    queryKey: ['funnels', user?.id],
+    queryKey: ['funnels', user?.id, canViewAllFunnels, userFunnels],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id || accessLoading) return [];
       
-      console.log('[useSalesFunnelDirect] Buscando funis do usuário:', user.id);
+      console.log('[useSalesFunnelDirect] 🔍 Buscando funis acessíveis:', {
+        userId: user.id,
+        canViewAll: canViewAllFunnels,
+        userFunnelsCount: userFunnels.length
+      });
       
-      const { data, error } = await supabase
-        .from('funnels')
-        .select('*')
-        .eq('created_by_user_id', user.id)
-        .order('created_at', { ascending: true });
-      
-      if (error) {
-        console.error('[useSalesFunnelDirect] Erro ao buscar funis:', error);
+      try {
+        let accessibleFunnels: string[] = [];
+        
+        if (canViewAllFunnels) {
+          // Admin/Manager: buscar todos os funis criados por ele
+          const { data: ownedFunnels, error } = await supabase
+            .from('funnels')
+            .select('*')
+            .eq('created_by_user_id', user.id)
+            .order('created_at', { ascending: true });
+            
+          if (error) throw error;
+          console.log('[useSalesFunnelDirect] ✅ Funis próprios encontrados:', ownedFunnels?.length || 0);
+          return ownedFunnels || [];
+        } else {
+          // Operacional: buscar apenas funis atribuídos
+          if (userFunnels.length === 0) {
+            console.log('[useSalesFunnelDirect] ⚠️ Usuário sem funis atribuídos');
+            return [];
+          }
+          
+          const { data: assignedFunnels, error } = await supabase
+            .from('funnels')
+            .select('*')
+            .in('id', userFunnels)
+            .order('created_at', { ascending: true });
+            
+          if (error) throw error;
+          console.log('[useSalesFunnelDirect] ✅ Funis atribuídos encontrados:', assignedFunnels?.length || 0);
+          return assignedFunnels || [];
+        }
+      } catch (error) {
+        console.error('[useSalesFunnelDirect] ❌ Erro ao buscar funis:', error);
         throw error;
       }
-      
-      console.log('[useSalesFunnelDirect] Funis encontrados:', data?.length || 0);
-      return data || [];
     },
-    enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000, // 2 minutos de cache
-    gcTime: 5 * 60 * 1000 // 5 minutos no garbage collector
+    enabled: !!user?.id && !accessLoading,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000
   });
 
   const { data: stages = [], isLoading: stagesLoading, refetch: refetchStages } = useQuery({
@@ -75,17 +103,21 @@ export function useSalesFunnelDirect() {
   });
 
   const { data: leads = [], isLoading: leadsLoading, refetch: refetchLeads, error: leadsError } = useQuery({
-    queryKey: ['leads', selectedFunnel?.id, user?.id, isAdmin],
+    queryKey: ['leads', selectedFunnel?.id, user?.id, canViewAllFunnels],
     queryFn: async () => {
-      if (!selectedFunnel?.id || !user?.id) {
-        console.log('[useSalesFunnelDirect] ⏸️ Query BLOQUEADA - falta funnel ou user');
+      if (!selectedFunnel?.id || !user?.id || accessLoading) {
+        console.log('[useSalesFunnelDirect] ⏸️ Query BLOQUEADA - falta funnel ou user ou access carregando');
         return [];
       }
 
-      console.log('[useSalesFunnelDirect] 🔍 EXECUTANDO QUERY LEADS - Funil:', selectedFunnel.id, 'Usuario:', user.id, 'isAdmin:', isAdmin);
+      console.log('[useSalesFunnelDirect] 🔍 EXECUTANDO QUERY LEADS:', {
+        funnelId: selectedFunnel.id,
+        userId: user.id,
+        canViewAll: canViewAllFunnels
+      });
       
       try {
-        // 🚀 QUERY SUPER SIMPLIFICADA PARA EVITAR LOOPS
+        // Query simplificada usando a mesma lógica de acesso
         let query = supabase
           .from('leads')
           .select(`
@@ -98,39 +130,41 @@ export function useSalesFunnelDirect() {
           .eq('funnel_id', selectedFunnel.id)
           .in('conversation_status', ['active', 'closed']);
 
-        // FILTRO SIMPLIFICADO: Admin vê todos os seus leads, Team vê apenas leads responsáveis
-        if (isAdmin) {
+        // Filtro baseado nos mesmos princípios do useAccessControl
+        if (canViewAllFunnels) {
+          // Admin/Manager: todos os leads do funil criado por ele
           query = query.eq('created_by_user_id', user.id);
         } else {
-          query = query.or(`owner_id.eq.${user.id},created_by_user_id.eq.${user.id}`);
+          // Operacional: apenas leads atribuídos a ele
+          query = query.eq('owner_id', user.id);
         }
 
         const { data: allLeads, error } = await query
           .order('updated_at', { ascending: false });
           
         if (error) {
-          console.error('[useSalesFunnelDirect] ❌ ERRO QUERY:', error);
+          console.error('[useSalesFunnelDirect] ❌ ERRO QUERY LEADS:', error);
           throw error;
         }
         
         console.log('[useSalesFunnelDirect] ✅ LEADS ENCONTRADOS:', {
           count: allLeads?.length || 0,
-          funnel: selectedFunnel.id,
-          isAdmin,
+          funnelId: selectedFunnel.id,
+          canViewAll: canViewAllFunnels,
           first3: allLeads?.slice(0, 3)?.map(l => ({ id: l.id, name: l.name, stage: l.kanban_stage_id }))
         });
         
         return allLeads || [];
       } catch (error) {
         console.error('[useSalesFunnelDirect] ❌ ERRO CRÍTICO na query:', error);
-        return []; // Return empty array instead of throwing
+        return [];
       }
     },
-    enabled: !!selectedFunnel?.id && !!user?.id,
-    staleTime: 2 * 60 * 1000, // AUMENTADO para 2 minutos - evitar re-fetch desnecessário
-    gcTime: 5 * 60 * 1000,
-    retry: 1, // LIMITADO retry para evitar loops infinitos
-    retryDelay: 5000 // 5 seconds between retries
+    enabled: !!selectedFunnel?.id && !!user?.id && !accessLoading,
+    staleTime: 3 * 60 * 1000, // 3 minutos para reduzir refetch
+    gcTime: 10 * 60 * 1000, // 10 minutos
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000) // Exponential backoff
   });
 
   const { tags: availableTags } = useTagDatabase();
@@ -226,13 +260,24 @@ export function useSalesFunnelDirect() {
     setColumns(kanbanColumns);
   }, [kanbanColumns]);
 
-  // 🚀 REAL-TIME SUBSCRIPTIONS - ESCALÁVEL PARA MILHARES DE USUÁRIOS
+  // 🚀 REAL-TIME SUBSCRIPTIONS - OTIMIZADO para evitar loops
   useEffect(() => {
-    if (!user?.id || !selectedFunnel?.id) return;
+    if (!user?.id || !selectedFunnel?.id || accessLoading) return;
 
     console.log('[useSalesFunnelDirect] 🔄 Configurando Real-time subscriptions para funil:', selectedFunnel.id);
 
-    // Subscription para leads - APENAS do funil selecionado e usuário
+    // Usar throttle para evitar invalidações excessivas
+    let invalidationTimeout: NodeJS.Timeout | null = null;
+    
+    const throttledInvalidation = (queryKey: any[]) => {
+      if (invalidationTimeout) return;
+      
+      invalidationTimeout = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey });
+        invalidationTimeout = null;
+      }, 2000); // 2 segundos de throttle
+    };
+
     const leadsSubscription = supabase
       .channel(`leads-${selectedFunnel.id}-${user.id}`)
       .on(
@@ -244,9 +289,8 @@ export function useSalesFunnelDirect() {
           filter: `funnel_id=eq.${selectedFunnel.id}`
         },
         (payload) => {
-          console.log('[useSalesFunnelDirect] 🔄 Lead atualizado em tempo real:', payload);
-          // Invalidar cache para re-fetch automático
-          queryClient.invalidateQueries({ queryKey: ['leads', selectedFunnel.id, user.id, isAdmin] });
+          console.log('[useSalesFunnelDirect] 🔄 Lead atualizado:', payload.eventType);
+          throttledInvalidation(['leads', selectedFunnel.id, user.id, canViewAllFunnels]);
         }
       )
       .on(
@@ -258,17 +302,20 @@ export function useSalesFunnelDirect() {
           filter: `funnel_id=eq.${selectedFunnel.id}`
         },
         (payload) => {
-          console.log('[useSalesFunnelDirect] 🔄 Stage atualizado em tempo real:', payload);
-          queryClient.invalidateQueries({ queryKey: ['stages', selectedFunnel.id] });
+          console.log('[useSalesFunnelDirect] 🔄 Stage atualizado:', payload.eventType);
+          throttledInvalidation(['stages', selectedFunnel.id]);
         }
       )
       .subscribe();
 
     return () => {
       console.log('[useSalesFunnelDirect] 🛑 Desconectando Real-time subscriptions');
+      if (invalidationTimeout) {
+        clearTimeout(invalidationTimeout);
+      }
       supabase.removeChannel(leadsSubscription);
     };
-  }, [user?.id, selectedFunnel?.id, queryClient, isAdmin]);
+  }, [user?.id, selectedFunnel?.id, queryClient, canViewAllFunnels, accessLoading]);
 
   // Create funnel function - FIXED to return Promise<void>
   const createFunnel = useCallback(async (name: string, description?: string): Promise<void> => {
@@ -442,8 +489,8 @@ export function useSalesFunnelDirect() {
   const lostStageId = stages?.find(s => s.is_lost)?.id;
 
   return {
-    // Estado de carregamento
-    loading: funnelLoading || stagesLoading || leadsLoading,
+    // Estado de carregamento - incluir accessLoading para evitar render prematuro
+    loading: funnelLoading || stagesLoading || leadsLoading || accessLoading,
     error: leadsError,
 
     // Dados do funil

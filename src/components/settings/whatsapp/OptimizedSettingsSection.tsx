@@ -3,12 +3,11 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
 import { CreateInstanceButton } from "@/modules/whatsapp";
-import { QRCodeModal } from "@/modules/whatsapp/instanceCreation/components/QRCodeModal";
+import { QRCodeModal } from "@/modules/whatsapp";
 import { SimpleInstanceCard } from "./SimpleInstanceCard";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
-import { useQRCodeModal } from "@/modules/whatsapp/instanceCreation/hooks/useQRCodeModal";
+import { useQRModal } from "@/modules/whatsapp";
 import { useConnectionStatusSync } from "@/modules/whatsapp/connectionStatusSync";
-import { useInstanceCreation } from "@/modules/whatsapp/instanceCreation/hooks/useInstanceCreation";
 import { AddNewConnectionCard } from "./connection/AddNewConnectionCard";
 import { toast } from "sonner";
 
@@ -16,13 +15,8 @@ export const OptimizedSettingsSection = () => {
   console.log('[Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - LAYOUT REORGANIZADO');
 
   const { instances, isLoading, loadInstances, deleteInstance } = useWhatsAppWebInstances();
-  const { openModal } = useQRCodeModal();
+  const [activeModalInstance, setActiveModalInstance] = useState<{ id: string; name: string } | null>(null);
 
-  // CORREÇÃO: Usar hook de criação de instância para card "Nova Conexão"
-  const { createInstance, isCreating } = useInstanceCreation((result) => {
-    console.log('[Optimized Settings] ✅ Nova instância criada via card:', result);
-    loadInstances(); // Atualizar lista
-  });
 
   // CORREÇÃO: Connection Status Sync para atualizar lista automaticamente
   useConnectionStatusSync({
@@ -47,8 +41,13 @@ export const OptimizedSettingsSection = () => {
   });
 
   const handleShowQRModal = (instanceId: string, instanceName: string) => {
-    console.log('[Optimized Settings] 📱 Abrindo modal unificado para:', instanceName);
-    openModal(instanceId);
+    console.log('[Optimized Settings] 📱 Definindo modal ativo para:', instanceName);
+    setActiveModalInstance({ id: instanceId, name: instanceName });
+  };
+
+  const handleCloseModal = () => {
+    console.log('[Optimized Settings] 🚪 Fechando modal ativo e resetando estado');
+    setActiveModalInstance(null);
   };
 
   const handleInstanceCreated = () => {
@@ -61,10 +60,6 @@ export const OptimizedSettingsSection = () => {
     await deleteInstance(instanceId);
   };
 
-  const handleCreateInstance = async () => {
-    console.log('[Optimized Settings] 🚀 Criando nova instância via card "Nova Conexão"');
-    await createInstance();
-  };
 
   if (isLoading) {
     return (
@@ -97,12 +92,10 @@ export const OptimizedSettingsSection = () => {
                   O QR Code será gerado automaticamente!
                 </p>
                 
-                <CreateInstanceButton 
+                <AddNewConnectionCard 
                   onSuccess={handleInstanceCreated}
-                  size="lg"
-                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                    text-white font-semibold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl 
-                    transition-all duration-200"
+                  onModalRequest={handleShowQRModal}
+                  onModalClose={handleCloseModal}
                 />
               </CardContent>
             </Card>
@@ -120,9 +113,10 @@ export const OptimizedSettingsSection = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Card "Nova Conexão" como primeiro item do grid */}
             <div className="group transform transition-all duration-300 hover:scale-[1.02] hover:shadow-glass-lg">
-              <AddNewConnectionCard
-                onConnect={handleCreateInstance}
-                isConnecting={isCreating}
+              <AddNewConnectionCard 
+                onSuccess={handleInstanceCreated}
+                onModalRequest={handleShowQRModal}
+                onModalClose={handleCloseModal}
               />
             </div>
 
@@ -143,8 +137,14 @@ export const OptimizedSettingsSection = () => {
         </div>
       )}
 
-      {/* Modal QR Code Unificado */}
-      <QRCodeModal />
+      {/* Modal QR Code usando hook direto */}
+      {activeModalInstance && (
+        <QRCodeModal 
+          instanceId={activeModalInstance.id}
+          instanceName={activeModalInstance.name}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 };

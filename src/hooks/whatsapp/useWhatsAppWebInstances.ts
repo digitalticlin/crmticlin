@@ -58,20 +58,18 @@ export const useWhatsAppWebInstances = () => {
       // Remover imediatamente da UI para feedback instantâneo
       setInstances(prev => prev.filter(instance => instance.id !== instanceId));
       
-      const { data, error } = await supabase.functions.invoke('whatsapp_instance_delete', {
-        body: { instanceId }
-      });
+      // ✅ CORREÇÃO: Deletar diretamente do banco, trigger cuida da VPS
+      const { error } = await supabase
+        .from('whatsapp_instances')
+        .delete()
+        .eq('id', instanceId);
 
       if (error) throw error;
 
-      if (data?.success) {
-        console.log(`[WhatsApp Web Instances] ✅ Instância deletada completamente: ${instanceId}`);
-        console.log(`[WhatsApp Web Instances] 📊 Detalhes da deleção:`, data.details);
-        toast.success('Instância deletada com sucesso!');
-        // NÃO recarregar - já foi removida otimisticamente e confirmada pelo banco
-      } else {
-        throw new Error(data?.error || 'Erro na deleção');
-      }
+      console.log(`[WhatsApp Web Instances] ✅ Instância deletada do banco: ${instanceId}`);
+      console.log(`[WhatsApp Web Instances] 🔄 Trigger vai sincronizar com VPS automaticamente`);
+      toast.success('Instância deletada com sucesso!');
+      // NÃO recarregar - já foi removida otimisticamente e confirmada pelo banco
     } catch (error: any) {
       console.error(`[WhatsApp Web Instances] ❌ Erro ao deletar:`, error);
       toast.error(`Erro ao deletar instância: ${error.message}`);

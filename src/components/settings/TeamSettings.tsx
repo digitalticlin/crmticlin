@@ -98,7 +98,6 @@ export default function TeamSettings() {
   const handleCreateMember = async (data: {
     full_name: string;
     email: string;
-    password: string;
     role: "operational" | "manager";
     assignedWhatsAppIds: string[];
     assignedFunnelIds: string[];
@@ -111,7 +110,6 @@ export default function TeamSettings() {
         fullName: data.full_name,
         username: data.email.split('@')[0], // Extract username from email
         email: data.email,
-        password: data.password,
         role: data.role === "manager" ? "manager" : "operational",
         whatsappAccess: data.assignedWhatsAppIds,
         funnelAccess: data.assignedFunnelIds,

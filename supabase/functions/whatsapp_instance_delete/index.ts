@@ -47,27 +47,76 @@ serve(async (req: Request) => {
       });
     }
 
-    // ✅ CLIENTE SUPABASE COM RLS PARA VALIDAÇÃO
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: authHeader
+    // ✅ LER BODY UMA ÚNICA VEZ
+    const requestBody = await req.json();
+    console.log(`[${executionId}] 📦 Body recebido:`, JSON.stringify(requestBody, null, 2));
+    
+    // ✅ VERIFICAR TIPO DE TOKEN: SERVICE ROLE vs USER TOKEN
+    const isServiceRoleCall = authHeader.includes(supabaseServiceKey.substring(0, 20));
+    console.log(`[${executionId}] 🔑 Tipo de chamada:`, isServiceRoleCall ? 'SERVICE_ROLE (Database Trigger)' : 'USER_TOKEN (Frontend)');
+    
+    let userId: string;
+    
+    if (isServiceRoleCall) {
+      // ✅ CHAMADA DO TRIGGER - usar service role com permissões especiais
+      console.log(`[${executionId}] 🔧 Processando chamada do trigger com service role`);
+      
+      const { instanceId, trigger_source, userId: providedUserId } = requestBody;
+      
+      if (!providedUserId) {
+        console.log(`[${executionId}] 🔄 FALLBACK: userId não enviado pelo trigger, buscando no banco...`);
+        
+        // ✅ FALLBACK: Buscar userId da instância no banco
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: instanceData, error: fetchError } = await supabase
+          .from('whatsapp_instances')
+          .select('created_by_user_id')
+          .eq('id', instanceId)
+          .single();
+          
+        if (fetchError || !instanceData) {
+          console.error(`[${executionId}] ❌ Não foi possível buscar userId para instanceId: ${instanceId}`);
+          return new Response(JSON.stringify({
+            success: false,
+            error: 'Instância não encontrada para buscar userId',
+            executionId,
+            receivedBody: requestBody
+          }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
         }
+        
+        userId = instanceData.created_by_user_id;
+        console.log(`[${executionId}] ✅ FALLBACK: userId encontrado no banco: ${userId}`);
+      } else {
+        userId = providedUserId;
       }
-    });
-
-    // ✅ VALIDAÇÃO DO USUÁRIO ATUAL
-    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
-    if (authError || !user) {
-      console.error('[Instance Delete] ❌ Usuário não autenticado:', authError?.message);
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Usuário não autenticado',
-        executionId
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      
+    } else {
+      // ✅ CHAMADA DO FRONTEND - usar validação normal de usuário
+      const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: {
+            Authorization: authHeader
+          }
+        }
       });
+
+      const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+      if (authError || !user) {
+        console.error('[Instance Delete] ❌ Usuário não autenticado:', authError?.message);
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Usuário não autenticado',
+          executionId
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      userId = user.id;
     }
 
     // ✅ VERIFICAÇÃO DE TOKEN VPS
@@ -85,10 +134,13 @@ serve(async (req: Request) => {
 
     // ✅ CLIENTE SERVICE ROLE PARA OPERAÇÕES PRIVILEGIADAS
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const requestBody = await req.json();
+    
+    // ✅ OBTER DADOS DA REQUISIÇÃO - usar dados já lidos acima
     const { instanceId, trigger_source } = requestBody;
+    
     console.log(`🗑️ [${executionId}] Deletando instância: ${instanceId}`, 
-                trigger_source ? `(fonte: ${trigger_source})` : '');
+                trigger_source ? `(fonte: ${trigger_source})` : '',
+                `(userId: ${userId})`);
 
     if (!instanceId) {
       return new Response(JSON.stringify({ 
@@ -107,13 +159,13 @@ serve(async (req: Request) => {
       .from('whatsapp_instances')
       .select('*')
       .eq('id', instanceId)
-      .eq('created_by_user_id', user.id)
+      .eq('created_by_user_id', userId)
       .single();
 
     if (fetchError || !instance) {
       console.error(`❌ [${executionId}] Instância não encontrada para o usuário:`, {
         instanceId,
-        userId: user.id,
+        userId: userId,
         error: fetchError?.message
       });
       return new Response(JSON.stringify({ 
@@ -132,21 +184,20 @@ serve(async (req: Request) => {
       vps_instance_id: instance.vps_instance_id
     });
 
-    // 2. DELETAR DA VPS (se tiver vps_instance_id)
+    // 2. DELETAR DA VPS COMPLETAMENTE (incluindo pasta AUTH)
     let vpsDeleteSuccess = false;
     
     if (instance.vps_instance_id) {
-      console.log(`🌐 [${executionId}] Deletando da VPS: ${instance.vps_instance_id}`);
+      console.log(`🌐 [${executionId}] Deletando COMPLETAMENTE da VPS: ${instance.vps_instance_id}`);
       
       try {
-        // ✅ ENDPOINT VPS PADRONIZADO
+        // ✅ ENDPOINT CORRETO: DELETE /instance/:instanceId
         const vpsEndpoint = `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}`;
-        console.log(`🎯 [${executionId}] Endpoint VPS: ${vpsEndpoint}`);
+        console.log(`🎯 [${executionId}] Endpoint VPS CORRETO: ${vpsEndpoint}`);
         
         const vpsResponse = await fetch(vpsEndpoint, {
-          method: 'DELETE',
+          method: 'DELETE',  // ✅ MÉTODO CORRETO: DELETE
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
             'x-api-token': VPS_CONFIG.authToken,
             'User-Agent': 'Supabase-Edge-Function/1.0'
@@ -156,22 +207,43 @@ serve(async (req: Request) => {
 
         if (vpsResponse.ok) {
           const vpsData = await vpsResponse.json();
-          console.log(`✅ [${executionId}] VPS delete success:`, vpsData);
+          console.log(`✅ [${executionId}] VPS delete COMPLETO success:`, vpsData);
           vpsDeleteSuccess = true;
         } else {
           const errorText = await vpsResponse.text();
-          console.error(`❌ [${executionId}] VPS delete failed:`, {
+          console.error(`❌ [${executionId}] VPS delete COMPLETO failed:`, {
             status: vpsResponse.status,
             error: errorText,
             endpoint: vpsEndpoint
           });
-          // Continuar mesmo se VPS falhar - não é crítico
+          
+          // FALLBACK: Tentar logout se delete específico falhar
+          console.log(`🔄 [${executionId}] Tentando logout como fallback...`);
+          try {
+            const fallbackResponse = await fetch(`${VPS_CONFIG.baseUrl}/instance/logout`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+                'x-api-token': VPS_CONFIG.authToken
+              },
+              body: JSON.stringify({ instanceId: instance.vps_instance_id }),
+              signal: AbortSignal.timeout(30000)
+            });
+            
+            if (fallbackResponse.ok) {
+              console.log(`✅ [${executionId}] Fallback logout success`);
+              vpsDeleteSuccess = true;
+            }
+          } catch (fallbackError) {
+            console.error(`❌ [${executionId}] Fallback logout também falhou:`, fallbackError);
+          }
         }
       } catch (error: any) {
         console.error(`❌ [${executionId}] VPS delete error:`, {
           message: error.message,
           name: error.name,
-          endpoint: `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}`
+          endpoint: `${VPS_CONFIG.baseUrl}/instance/delete`
         });
         // Continuar mesmo se VPS falhar - não é crítico
       }
@@ -211,7 +283,7 @@ serve(async (req: Request) => {
       .from('whatsapp_instances')
       .delete()
       .eq('id', instanceId)
-      .eq('created_by_user_id', user.id); // Extra segurança
+      .eq('created_by_user_id', userId); // Extra segurança
     
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('DELETE timeout')), deleteTimeoutMs)

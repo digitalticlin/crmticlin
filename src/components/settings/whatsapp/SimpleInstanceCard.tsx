@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { WhatsAppWebInstance } from "@/types/whatsapp";
 
-import { GenerateQRButton } from "@/modules/whatsapp/qrCodeManagement/components/GenerateQRButton";
 
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
@@ -93,39 +92,55 @@ export const SimpleInstanceCard = ({
       
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
       
-      {/* Header: Nome completo em linha própria - padding reduzido */}
+      {/* Header: Status badge apenas */}
       <CardHeader className="pb-2 relative z-10 flex-shrink-0">
-        <div className="space-y-2">
-          {/* Nome da instância - linha completa */}
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2 w-full">
-            <Smartphone className="h-4 w-4 flex-shrink-0" />
-            <span className="text-base">{instance.instance_name}</span>
-          </h3>
-          
-          {/* Badge de status - posicionado abaixo */}
-          <div className="flex justify-start">
-            <Badge className={`${statusInfo.color}`}>
-              <StatusIcon className="h-3 w-3 mr-1" />
-              {statusInfo.text}
-            </Badge>
-          </div>
+        <div className="flex justify-center">
+          <Badge className={`${statusInfo.color}`}>
+            <StatusIcon className="h-3 w-3 mr-1" />
+            {statusInfo.text}
+          </Badge>
         </div>
       </CardHeader>
 
-      {/* Corpo Central: Informações principais - espaçamento reduzido */}
-      <CardContent className="flex-1 flex flex-col justify-center items-center text-center space-y-3 relative z-10 px-6">
-        <div className="space-y-2">
-          {/* Telefone se disponível */}
-          {instance.phone && (
-            <div className="flex items-center justify-center gap-2 text-gray-700">
-              <span className="text-lg font-medium">📱 {instance.phone}</span>
+      {/* Corpo Central: Profile info e telefone */}
+      <CardContent className="flex-1 flex flex-col justify-center items-center text-center space-y-4 relative z-10 px-6">
+        <div className="space-y-3">
+          {/* Profile Pic se conectado */}
+          {isConnected && instance.profile_pic_url && (
+            <div className="flex justify-center">
+              <img 
+                src={instance.profile_pic_url} 
+                alt="Profile"
+                className="w-16 h-16 rounded-full border-2 border-white shadow-lg"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+
+          {/* Profile Name se conectado */}
+          {isConnected && instance.profile_name && (
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-800">
+                {instance.profile_name}
+              </h3>
             </div>
           )}
           
-          {/* Descrição do status */}
-          <p className="text-sm text-gray-600 leading-relaxed">
-            {statusInfo.description}
-          </p>
+          {/* Telefone se disponível */}
+          {instance.phone && (
+            <div className="flex items-center justify-center gap-2 text-gray-700">
+              <span className="text-sm font-medium">📱 {instance.phone}</span>
+            </div>
+          )}
+          
+          {/* Descrição do status para não conectados */}
+          {!isConnected && (
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {statusInfo.description}
+            </p>
+          )}
           
           {/* Data de conexão */}
           {instance.date_connected && isConnected && (
@@ -140,15 +155,15 @@ export const SimpleInstanceCard = ({
       <div className="p-3 border-t border-white/10 relative z-10 flex-shrink-0">
         <div className="flex gap-1.5 justify-center">
           {needsQrCode && (
-            <GenerateQRButton
-              instanceId={instance.id}
-              instanceName={instance.instance_name}
-              onSuccess={() => console.log('QR Code gerado com sucesso')}
-              onModalOpen={onGenerateQR}
+            <Button
               variant="default"
               size="sm"
+              onClick={() => onGenerateQR(instance.id, instance.instance_name)}
               className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
-            />
+            >
+              <QrCode className="h-4 w-4 mr-1" />
+              Gerar QR
+            </Button>
           )}
           
           <AlertDialog>
@@ -166,7 +181,7 @@ export const SimpleInstanceCard = ({
               <AlertDialogHeader>
                 <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Tem certeza que deseja deletar a instância <strong>{instance.instance_name}</strong>? 
+                  Tem certeza que deseja deletar esta instância WhatsApp{instance.phone ? ` (${instance.phone})` : ''}? 
                   Esta ação não pode ser desfeita e removerá permanentemente:
                   <br />
                   • Conexão WhatsApp
