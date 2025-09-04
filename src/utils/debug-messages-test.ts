@@ -4,14 +4,15 @@
  * Execute este script no console do navegador para diagnosticar problemas
  */
 
+import { supabase } from '@/integrations/supabase/client';
+
 // 🚀 FUNCTION: Testar query direta de mensagens
 export const testMessagesQuery = async (leadId: string, instanceId?: string) => {
   console.log('🧪 TESTE: Query direta de mensagens');
   console.log('Lead ID:', leadId);
   console.log('Instance ID:', instanceId);
   
-  // Importar Supabase
-  const { supabase } = await import('@/integrations/supabase/client');
+  // Usando supabase importado
   
   try {
     // Query básica sem filtros
@@ -74,8 +75,6 @@ export const testMessagesQuery = async (leadId: string, instanceId?: string) => 
 export const testRealtimeConnection = async (leadId: string) => {
   console.log('\n🧪 TESTE: Conexão Realtime');
   
-  const { supabase } = await import('@/integrations/supabase/client');
-  
   const channel = supabase
     .channel(`test-messages-${leadId}`)
     .on('postgres_changes', {
@@ -106,8 +105,6 @@ export const testRealtimeConnection = async (leadId: string) => {
 export const checkTableStructure = async () => {
   console.log('\n🧪 TESTE: Estrutura da tabela messages');
   
-  const { supabase } = await import('@/integrations/supabase/client');
-  
   try {
     // Buscar uma mensagem exemplo
     const { data: sampleMessage, error } = await supabase
@@ -135,8 +132,6 @@ export const checkTableStructure = async () => {
 // 🚀 FUNCTION: Verificar leads existentes
 export const checkLeadsWithMessages = async () => {
   console.log('\n🧪 TESTE: Leads com mensagens');
-  
-  const { supabase } = await import('@/integrations/supabase/client');
   
   try {
     const { data: leadsWithMessages, error } = await supabase

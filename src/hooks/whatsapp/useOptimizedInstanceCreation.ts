@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreationState {
   isCreating: boolean;
@@ -48,7 +49,6 @@ export const useOptimizedInstanceCreation = () => {
       toast.loading(`Criando instância "${intelligentName}"...`, { id: 'creating-instance' });
 
       // ETAPA 2: Criar instância na VPS (aguardar confirmação COMPLETA)
-      const { supabase } = await import('@/integrations/supabase/client');
       
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {

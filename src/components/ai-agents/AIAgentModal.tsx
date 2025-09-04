@@ -14,6 +14,7 @@ import { FlowStepEnhanced, PQExample } from "@/types/aiAgent";
 import { Bot, MessageSquare, ListChecks, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { unstable_batchedUpdates } from "react-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AIAgentModalProps {
   isOpen: boolean;
@@ -350,7 +351,6 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
             console.log('📝 Criando agente com dados:', newAgentData);
             
             // Criar agente usando supabase diretamente
-            const { supabase } = await import('@/integrations/supabase/client');
             const { data: user } = await supabase.auth.getUser();
             
             if (!user.user) {

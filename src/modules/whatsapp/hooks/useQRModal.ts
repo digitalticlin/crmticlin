@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { qrModalManager } from '../core/QRModalManager';
-import { useConnectionStatusSync } from '../connectionStatusSync';
 
 interface UseQRModalOptions {
   instanceId?: string;
@@ -59,20 +58,7 @@ export const useQRModal = (options: UseQRModalOptions = {}): QRModalState & QRMo
     return qrCode.includes('base64') || qrCode.includes('data:image') || qrCode.length > 50;
   };
 
-  // Connection Status Sync - só ativo quando modal aberto
-  useConnectionStatusSync({
-    onConnectionDetected: (data) => {
-      if (data.instanceId === currentInstanceId && isOpen) {
-        console.log('[useQRModal] 🎉 Conexão detectada para instância atual!', data);
-        toast.success(`WhatsApp conectado com sucesso! 📱 ${data.phone || 'Número carregando...'}`);
-        closeModal();
-        
-        if (options.onConnectionDetected) {
-          options.onConnectionDetected(data);
-        }
-      }
-    }
-  });
+  // Connection Status Sync está implementado no realtime subscription abaixo
 
   // Verificação inicial de dados
   const checkInitialData = useCallback(async (instanceId: string) => {
@@ -166,6 +152,17 @@ export const useQRModal = (options: UseQRModalOptions = {}): QRModalState & QRMo
               const profileInfo = newData.profile_name ? ` (${newData.profile_name})` : '';
               
               toast.success(`WhatsApp conectado com sucesso!${phoneInfo}${profileInfo}`);
+              
+              // Chamar callback de conexão detectada
+              if (options.onConnectionDetected) {
+                options.onConnectionDetected({
+                  instanceId: instanceId,
+                  phone: newData.phone,
+                  profileName: newData.profile_name,
+                  status: newData.connection_status
+                });
+              }
+              
               closeModal();
               return;
             }
