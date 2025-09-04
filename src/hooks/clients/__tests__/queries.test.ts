@@ -1,5 +1,5 @@
 import { useFilteredClientsQuery } from '@/hooks/clients/queries';
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 
 // Mock do Supabase
 const mockFrom = jest.fn();
@@ -248,18 +248,3 @@ describe('useFilteredClientsQuery', () => {
     expect(mockLte).toHaveBeenCalled();
   });
 });
-
-// Helper para waitFor
-const waitFor = (callback: () => void) => {
-  return new Promise<void>((resolve) => {
-    const check = () => {
-      try {
-        callback();
-        resolve();
-      } catch (error) {
-        setTimeout(check, 10);
-      }
-    };
-    check();
-  });
-};
