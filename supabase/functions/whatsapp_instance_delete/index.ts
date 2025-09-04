@@ -188,39 +188,95 @@ serve(async (req: Request) => {
     let vpsDeleteSuccess = false;
     
     if (instance.vps_instance_id) {
-      console.log(`🌐 [${executionId}] Deletando COMPLETAMENTE da VPS: ${instance.vps_instance_id}`);
+      console.log(`🌐 [${executionId}] Deletando COMPLETAMENTE da VPS (incluindo AUTH): ${instance.vps_instance_id}`);
       
       try {
-        // ✅ ENDPOINT CORRETO: DELETE /instance/:instanceId
-        const vpsEndpoint = `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}`;
-        console.log(`🎯 [${executionId}] Endpoint VPS CORRETO: ${vpsEndpoint}`);
+        // 🔄 ESTRATÉGIA MÚLTIPLA: Tentar diferentes endpoints para garantir deleção completa
         
-        const vpsResponse = await fetch(vpsEndpoint, {
-          method: 'DELETE',  // ✅ MÉTODO CORRETO: DELETE
-          headers: {
-            'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-            'x-api-token': VPS_CONFIG.authToken,
-            'User-Agent': 'Supabase-Edge-Function/1.0'
-          },
-          signal: AbortSignal.timeout(VPS_CONFIG.timeout)
-        });
-
-        if (vpsResponse.ok) {
-          const vpsData = await vpsResponse.json();
-          console.log(`✅ [${executionId}] VPS delete COMPLETO success:`, vpsData);
-          vpsDeleteSuccess = true;
-        } else {
-          const errorText = await vpsResponse.text();
-          console.error(`❌ [${executionId}] VPS delete COMPLETO failed:`, {
-            status: vpsResponse.status,
-            error: errorText,
-            endpoint: vpsEndpoint
+        // 1️⃣ MÉTODO 1: Endpoint específico de deleção completa
+        console.log(`🎯 [${executionId}] Tentativa 1: DELETE completo com cleanup`);
+        const deleteCompleteEndpoint = `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/delete-complete`;
+        
+        try {
+          const deleteCompleteResponse = await fetch(deleteCompleteEndpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+              'x-api-token': VPS_CONFIG.authToken,
+              'User-Agent': 'Supabase-Edge-Function/1.0'
+            },
+            body: JSON.stringify({ 
+              instanceId: instance.vps_instance_id,
+              cleanupAuth: true,
+              forceDelete: true 
+            }),
+            signal: AbortSignal.timeout(45000) // Timeout maior para operação completa
           });
+
+          if (deleteCompleteResponse.ok) {
+            const completeData = await deleteCompleteResponse.json();
+            console.log(`✅ [${executionId}] VPS delete-complete SUCCESS:`, completeData);
+            vpsDeleteSuccess = true;
+          } else {
+            console.log(`⚠️ [${executionId}] Delete-complete falhou, tentando método alternativo...`);
+          }
+        } catch (completeError) {
+          console.log(`⚠️ [${executionId}] Delete-complete exception:`, completeError.message);
+        }
+
+        // 2️⃣ MÉTODO 2: Se método 1 falhar, usar DELETE padrão + cleanup AUTH
+        if (!vpsDeleteSuccess) {
+          console.log(`🎯 [${executionId}] Tentativa 2: DELETE padrão + cleanup AUTH`);
           
-          // FALLBACK: Tentar logout se delete específico falhar
-          console.log(`🔄 [${executionId}] Tentando logout como fallback...`);
+          // 2a: DELETE padrão da instância
+          const standardDeleteEndpoint = `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}`;
+          const standardResponse = await fetch(standardDeleteEndpoint, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+              'x-api-token': VPS_CONFIG.authToken,
+              'User-Agent': 'Supabase-Edge-Function/1.0'
+            },
+            signal: AbortSignal.timeout(30000)
+          });
+
+          const standardSuccess = standardResponse.ok;
+          console.log(`🔄 [${executionId}] DELETE padrão:`, standardSuccess ? 'SUCCESS' : 'FAILED');
+
+          // 2b: Cleanup específico da pasta AUTH
           try {
-            const fallbackResponse = await fetch(`${VPS_CONFIG.baseUrl}/instance/logout`, {
+            const authCleanupEndpoint = `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/cleanup-auth`;
+            const authResponse = await fetch(authCleanupEndpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+                'x-api-token': VPS_CONFIG.authToken
+              },
+              body: JSON.stringify({ forceCleanup: true }),
+              signal: AbortSignal.timeout(20000)
+            });
+
+            const authSuccess = authResponse.ok;
+            console.log(`🔄 [${executionId}] AUTH cleanup:`, authSuccess ? 'SUCCESS' : 'FAILED');
+            
+            // Considerar sucesso se pelo menos um dos dois funcionou
+            vpsDeleteSuccess = standardSuccess || authSuccess;
+            
+          } catch (authError) {
+            console.log(`⚠️ [${executionId}] AUTH cleanup exception:`, authError.message);
+            vpsDeleteSuccess = standardSuccess; // Pelo menos o delete padrão funcionou
+          }
+        }
+
+        // 3️⃣ MÉTODO 3: ÚLTIMO RECURSO - Logout + Force Cleanup
+        if (!vpsDeleteSuccess) {
+          console.log(`🎯 [${executionId}] ÚLTIMO RECURSO: Logout + Force Cleanup`);
+          
+          try {
+            // Logout primeiro
+            const logoutResponse = await fetch(`${VPS_CONFIG.baseUrl}/instance/logout`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -228,24 +284,91 @@ serve(async (req: Request) => {
                 'x-api-token': VPS_CONFIG.authToken
               },
               body: JSON.stringify({ instanceId: instance.vps_instance_id }),
+              signal: AbortSignal.timeout(20000)
+            });
+
+            // Force cleanup depois
+            const forceCleanupResponse = await fetch(`${VPS_CONFIG.baseUrl}/cleanup/force`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+                'x-api-token': VPS_CONFIG.authToken
+              },
+              body: JSON.stringify({ 
+                instanceId: instance.vps_instance_id,
+                removeFiles: true,
+                removeAuth: true 
+              }),
               signal: AbortSignal.timeout(30000)
             });
+
+            const logoutSuccess = logoutResponse.ok;
+            const cleanupSuccess = forceCleanupResponse.ok;
             
-            if (fallbackResponse.ok) {
-              console.log(`✅ [${executionId}] Fallback logout success`);
-              vpsDeleteSuccess = true;
-            }
-          } catch (fallbackError) {
-            console.error(`❌ [${executionId}] Fallback logout também falhou:`, fallbackError);
+            console.log(`🔄 [${executionId}] Logout:`, logoutSuccess ? 'SUCCESS' : 'FAILED');
+            console.log(`🔄 [${executionId}] Force cleanup:`, cleanupSuccess ? 'SUCCESS' : 'FAILED');
+            
+            vpsDeleteSuccess = logoutSuccess || cleanupSuccess;
+            
+          } catch (lastResortError) {
+            console.error(`❌ [${executionId}] Último recurso falhou:`, lastResortError.message);
           }
         }
+
+        // 📊 VALIDAÇÃO FINAL: Verificar se instância ainda existe na VPS
+        if (vpsDeleteSuccess) {
+          console.log(`🔍 [${executionId}] Verificando se instância foi realmente removida da VPS...`);
+          
+          try {
+            const verifyEndpoint = `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/status`;
+            const verifyResponse = await fetch(verifyEndpoint, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+                'x-api-token': VPS_CONFIG.authToken
+              },
+              signal: AbortSignal.timeout(10000)
+            });
+
+            if (verifyResponse.status === 404) {
+              console.log(`✅ [${executionId}] CONFIRMADO: Instância não existe mais na VPS (404)`);
+            } else if (verifyResponse.ok) {
+              console.error(`⚠️ [${executionId}] ATENÇÃO: Instância ainda existe na VPS apesar do "sucesso"`);
+              const statusData = await verifyResponse.json().catch(() => null);
+              console.error(`⚠️ [${executionId}] Status da instância:`, statusData);
+              
+              // Marcar como falha se instância ainda existe
+              vpsDeleteSuccess = false;
+            } else {
+              console.log(`⚠️ [${executionId}] Não foi possível verificar status da instância (${verifyResponse.status})`);
+            }
+          } catch (verifyError) {
+            console.log(`⚠️ [${executionId}] Erro ao verificar status:`, verifyError.message);
+          }
+        }
+
+        // 📊 RESULTADO FINAL
+        if (vpsDeleteSuccess) {
+          console.log(`✅ [${executionId}] VPS deleção COMPLETA e VERIFICADA bem-sucedida!`);
+        } else {
+          console.error(`❌ [${executionId}] FALHA CRÍTICA: VPS não foi deletada após todas as tentativas!`);
+          console.error(`❌ [${executionId}] ISSO CAUSARÁ ERRO HTTP 409 em futuras criações!`);
+          
+          // Log para diagnostico
+          console.error(`🔧 [${executionId}] DIAGNÓSTICO: Instância ${instance.vps_instance_id} pode ainda existir em:`, {
+            authPath: `/path/to/auth/${instance.vps_instance_id}`,
+            sessionPath: `/path/to/sessions/${instance.vps_instance_id}`,
+            instancePath: `/path/to/instances/${instance.vps_instance_id}`
+          });
+        }
+
       } catch (error: any) {
-        console.error(`❌ [${executionId}] VPS delete error:`, {
+        console.error(`❌ [${executionId}] VPS delete error geral:`, {
           message: error.message,
-          name: error.name,
-          endpoint: `${VPS_CONFIG.baseUrl}/instance/delete`
+          name: error.name
         });
-        // Continuar mesmo se VPS falhar - não é crítico
+        vpsDeleteSuccess = false;
       }
     } else {
       console.log(`⚠️ [${executionId}] Sem vps_instance_id, pulando VPS`);

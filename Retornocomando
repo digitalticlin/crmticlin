@@ -1,29 +1,53 @@
-[delete_1756938898958_okoodm] 🔑 Tipo de chamada: SERVICE_ROLE (Database Trigger)
-[delete_1756938898958_okoodm] 🔧 Processando chamada do trigger com service role
-[delete_1756938898958_okoodm] ❌ userId obrigatório para chamadas de service role
-[Instance Delete] 🚀 Iniciando processamento - VERSÃO CORRIGIDA V2
-🗑️ [delete_1756938898958_okoodm] WHATSAPP INSTANCE DELETE - VERSÃO CORRIGIDA
-Listening on http://localhost:9999/
+
+
+LOGS DA EDGE:
+
+shutdown
+❌ [exec_1756997585503_27tjr9] Erro na Edge Function: Falha na VPS: Máximo de 10 tentativas esgotado - Falha ao criar instância na VPS: HTTP 409 - {"success":false,"error":"Instância já existe","status":"error"}
+[exec_1756997585503_27tjr9] 🔄 Tentativa 10: digitalticlingmailcom10
+[exec_1756997585503_27tjr9] 🔄 Tentativa 9: digitalticlingmailcom9
+[exec_1756997585503_27tjr9] 🔄 Tentativa 8: digitalticlingmailcom8
+[exec_1756997585503_27tjr9] 🔄 Tentativa 7: digitalticlingmailcom7
+[exec_1756997585503_27tjr9] 🔄 Tentativa 6: digitalticlingmailcom6
+[exec_1756997585503_27tjr9] 🔄 Tentativa 5: digitalticlingmailcom5
+[exec_1756997585503_27tjr9] 🔄 Tentativa 4: digitalticlingmailcom4
+[exec_1756997585503_27tjr9] 🔄 Tentativa 3: digitalticlingmailcom3
+[exec_1756997585503_27tjr9] 🔄 Tentativa 2: digitalticlingmailcom2
+[exec_1756997585503_27tjr9] 🔄 VPS conflito detectado - tentando numeração automática...
+[exec_1756997585503_27tjr9] ❌ Erro na VPS - não salvando no banco: Falha ao criar instância na VPS: HTTP 409 - {"success":false,"error":"Instância já existe","status":"error"}
+[exec_1756997585503_27tjr9] 🔄 Tentativa 1: digitalticlingmailcom1
+[exec_1756997585503_27tjr9] ❌ VPS falhou: {"success":false,"error":"Instância já existe","status":"error"}
+[exec_1756997585503_27tjr9] 🌐 Criando na VPS PRIMEIRO: { instanceId: "digitalticlingmailcom", createdByUserId: "712e7708-2299-4a00-9128-577c8f113ca4", webhookUrl: "https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver" }
+[exec_1756997585503_27tjr9] 📋 Instâncias existentes encontradas: 0 []
+[exec_1756997585503_27tjr9] 🎯 Nome final determinado: digitalticlingmailcom
+[exec_1756997585503_27tjr9] Processando ação: create_instance para usuário: digitalticlin@gmail.com
+[exec_1756997585503_27tjr9] 📧 Gerando nome baseado no EMAIL COMPLETO: digitalticlingmailcom (original: digitalticlin@gmail.com)
+[exec_1756997585503_27tjr9] 🚀 NOVA ABORDAGEM: VPS primeiro, banco depois
+[Instance Manager] 🚀 Iniciando processamento - VERSÃO CORRIGIDA
+🚀 [exec_1756997585503_27tjr9] WhatsApp Instance Manager iniciado
 booted (time: 32ms)
-Listening on http://localhost:9999/
-booted (time: 32ms)
-[delete_1756938882816_tz01p6] ❌ userId obrigatório para chamadas de service role
-🗑️ [delete_1756938882816_tz01p6] WHATSAPP INSTANCE DELETE - VERSÃO CORRIGIDA
-[Instance Delete] 🚀 Iniciando processamento - VERSÃO CORRIGIDA V2
-[delete_1756938882816_tz01p6] 🔑 Tipo de chamada: SERVICE_ROLE (Database Trigger)
-[delete_1756938882816_tz01p6] 🔧 Processando chamada do trigger com service role
-Listening on http://localhost:9999/
-booted (time: 34ms)
-Listening on http://localhost:9999/
-booted (time: 36ms)
-[delete_1756938800435_guqojb] 🔑 Tipo de chamada: SERVICE_ROLE (Database Trigger)
-[delete_1756938800435_guqojb] ❌ userId obrigatório para chamadas de service role
-[delete_1756938800435_guqojb] 🔧 Processando chamada do trigger com service role
-[Instance Delete] 🚀 Iniciando processamento - VERSÃO CORRIGIDA V2
-🗑️ [delete_1756938800435_guqojb] WHATSAPP INSTANCE DELETE - VERSÃO CORRIGIDA
-Listening on http://localhost:9999/
-booted (time: 32ms)
-Listening on http://localhost:9999/
-booted (time: 33ms)
-Listening on http://localhost:9999/
-booted (time: 44ms)
+shutdown
+booted (time: 39ms)
+shutdown
+❌ [exec_1756997559512_tew152] Erro na Edge Function: Falha na VPS: Máximo de 10 tentativas esgotado - Falha ao criar instância na VPS: HTTP 409 - {"success":false,"error":"Instância já existe","status":"error"}
+[exec_1756997559512_tew152] 🔄 Tentativa 10: digitalticlingmailcom10
+[exec_1756997559512_tew152] 🔄 Tentativa 9: digitalticlingmailcom9
+[exec_1756997559512_tew152] 🔄 Tentativa 8: digitalticlingmailcom8
+[exec_1756997559512_tew152] 🔄 Tentativa 7: digitalticlingmailcom7
+[exec_1756997559512_tew152] 🔄 Tentativa 6: digitalticlingmailcom6
+[exec_1756997559512_tew152] 🔄 Tentativa 5: digitalticlingmailcom5
+[exec_1756997559512_tew152] 🔄 Tentativa 4: digitalticlingmailcom4
+[exec_1756997559512_tew152] 🔄 Tentativa 3: digitalticlingmailcom3
+[exec_1756997559512_tew152] 🔄 Tentativa 2: digitalticlingmailcom2
+[exec_1756997559512_tew152] 🔄 VPS conflito detectado - tentando numeração automática...
+[exec_1756997559512_tew152] 🔄 Tentativa 1: digitalticlingmailcom1
+[exec_1756997559512_tew152] ❌ Erro na VPS - não salvando no banco: Falha ao criar instância na VPS: HTTP 409 - {"success":false,"error":"Instância já existe","status":"error"}
+[exec_1756997559512_tew152] ❌ VPS falhou: {"success":false,"error":"Instância já existe","status":"error"}
+[exec_1756997559512_tew152] 📋 Instâncias existentes encontradas: 0 []
+[exec_1756997559512_tew152] 🎯 Nome final determinado: digitalticlingmailcom
+[exec_1756997559512_tew152] 🌐 Criando na VPS PRIMEIRO: { instanceId: "digitalticlingmailcom", createdByUserId: "712e7708-2299-4a00-9128-577c8f113ca4", webhookUrl: "https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver" }
+[exec_1756997559512_tew152] 🚀 NOVA ABORDAGEM: VPS primeiro, banco depois
+[exec_1756997559512_tew152] Processando ação: create_instance para usuário: digitalticlin@gmail.com
+[exec_1756997559512_tew152] 📧 Gerando nome baseado no EMAIL COMPLETO: digitalticlingmailcom (original: digitalticlin@gmail.com)
+[Instance Manager] 🚀 Iniciando processamento - VERSÃO CORRIGIDA
+🚀 [exec_1756997559512_tew152] WhatsApp Instance Manager iniciado

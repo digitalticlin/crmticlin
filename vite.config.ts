@@ -20,39 +20,25 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
+    minify: 'esbuild', // ESBuild é mais seguro que Terser para hoisting
     rollupOptions: {
+      treeshake: {
+        // Configuração conservadora de tree-shaking
+        preset: 'safest'
+      },
       output: {
-        manualChunks: (id) => {
-          // Vendor chunks
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react-vendor';
-            }
-            if (id.includes('@supabase') || id.includes('supabase')) {
-              return 'supabase-vendor';
-            }
-            if (id.includes('lucide') || id.includes('@radix-ui')) {
-              return 'ui-vendor';
-            }
-            return 'vendor'; // Other node_modules
-          }
-          
-          // Feature-based chunks
-          if (id.includes('whatsapp')) {
-            return 'whatsapp-features';
-          }
-          if (id.includes('dashboard')) {
-            return 'dashboard-features';
-          }
-          if (id.includes('salesFunnel') || id.includes('sales')) {
-            return 'sales-features';
-          }
-          if (id.includes('ai-agent')) {
-            return 'ai-features';
-          }
-        }
+        // Usar bundle único para evitar completamente problemas de ordem de inicialização
+        inlineDynamicImports: true,
+        manualChunks: undefined,
+        // Configurações para prevenir problemas de hoisting
+        hoistTransitiveImports: false
       }
     },
-    chunkSizeWarningLimit: 1000 // Increase limit to reduce warnings
+    chunkSizeWarningLimit: 10000,
+    // Configurações adicionais para resolver problemas de dependência
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    }
   }
 }));
