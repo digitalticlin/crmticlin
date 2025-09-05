@@ -88,8 +88,8 @@ export function SalesFunnelContent() {
   // Calcular estatísticas para o header usando useMemo
   const stats = useMemo(() => ({
     totalLeads: leads.length,
-    wonLeads: leads.filter(l => l.columnId === wonStageId).length,
-    lostLeads: leads.filter(l => l.columnId === lostStageId).length
+    wonLeads: leads.filter(l => l.kanban_stage_id === wonStageId).length,
+    lostLeads: leads.filter(l => l.kanban_stage_id === lostStageId).length
   }), [leads, wonStageId, lostStageId]);
 
   // 🚀 availableTags já vem do hook isolado - removido estado duplicado
@@ -97,7 +97,7 @@ export function SalesFunnelContent() {
   // Usuários disponíveis derivados dos leads atuais (para filtro "Responsável")
   const availableUsers = useMemo(() => {
     const unique = new Set<string>();
-    leads.forEach((l) => unique.add(l.assignedUser || ""));
+    leads.forEach((l) => unique.add(l.owner_id || ""));
     return Array.from(unique);
   }, [leads]);
 
@@ -361,7 +361,7 @@ export function SalesFunnelContent() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-red-600 mb-2">❌ {error}</p>
+          <p className="text-red-600 mb-2">❌ {String(error)}</p>
           <button 
             onClick={() => window.location.reload()}
             className="text-blue-600 hover:text-blue-800 underline"
@@ -426,7 +426,6 @@ export function SalesFunnelContent() {
                 onOpenLeadDetail={openLeadDetail}
                 onOpenChat={handleOpenChatWithLead}
                 onMoveToWonLost={handleMoveToWonLost}
-                onMoveLeadToStage={moveLeadToStage}
                 wonStageId={wonStageId}
                 lostStageId={lostStageId}
                 massSelection={massSelection}
@@ -457,7 +456,7 @@ export function SalesFunnelContent() {
             <div className="flex-1 min-h-0">
               <WonLostBoard
                 stages={stages}
-                leads={filterLeads(leads)}
+                leads={filterLeads(leads) as any}
                 onOpenLeadDetail={openLeadDetail}
                 onReturnToFunnel={handleReturnToFunnel}
                 onOpenChat={handleOpenChatWithLead}
@@ -485,7 +484,7 @@ export function SalesFunnelContent() {
         isOpen={isTagManagementModalOpen}
         onClose={() => setIsTagManagementModalOpen(false)}
         availableTags={availableTags}
-        onTagsChange={() => {
+        onTagsChange={async () => {
           // Tags atualizadas automaticamente via hook useTagDatabase
           console.log('[SalesFunnelContent] Tags atualizadas automaticamente via Real-time');
         }}

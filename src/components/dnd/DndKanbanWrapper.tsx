@@ -54,7 +54,7 @@ export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
   const handleDragMove = useCallback((event: DragMoveEvent) => {
     if (!isDragging) return;
 
-    const clientX = event.activatorEvent?.clientX || 0;
+    const clientX = (event.activatorEvent as any)?.clientX || 0;
     const viewport = window.innerWidth;
 
     let newDirection: 'left' | 'right' | null = null;

@@ -34,9 +34,9 @@ export default function FunnelChart({ className }: FunnelChartProps) {
         const count = stageReport?.count || 0;
         
         return {
-          name: stage.title,
+          name: stage.name,
           value: count,
-          color: stage.color || "#d3d800"
+          color: "#d3d800"
         };
       });
 

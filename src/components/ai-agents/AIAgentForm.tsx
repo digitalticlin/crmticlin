@@ -55,7 +55,7 @@ export const AIAgentForm = ({ agent, onSave, onCancel, onFormChange }: AIAgentFo
 
         if (funnelsRes.data) setFunnels(funnelsRes.data);
         if (instancesRes.data) setWhatsappInstances(instancesRes.data);
-        if (agentsRes.data) setExistingAgents(agentsRes.data);
+        if (agentsRes.data) setExistingAgents(agentsRes.data as AIAgent[]);
       } catch (error) {
         console.error('Error fetching data:', error);
       }

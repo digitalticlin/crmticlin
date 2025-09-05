@@ -40,11 +40,11 @@ export function ModernCampaignCreator({ onSuccess }: ModernCampaignCreatorProps)
     instanceId: "",
     message: "",
     mediaFile: null as File | null,
-    mediaType: "text" as const,
+    mediaType: "text" as "text" | "image" | "video" | "audio" | "document",
     fragments: [] as any[],
     selectedTags: [] as string[],
     schedule: {
-      type: "immediate" as const,
+      type: "immediate" as "immediate" | "scheduled",
       businessHours: false,
       startHour: 8,
       endHour: 18,
