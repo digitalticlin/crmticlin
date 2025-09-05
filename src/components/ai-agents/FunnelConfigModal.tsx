@@ -167,12 +167,12 @@ export const FunnelConfigModal = ({
           .eq('id', agent?.id || '')
           .single();
 
-        if (!agentError && agentData?.funnel_configuration && Array.isArray(agentData.funnel_configuration)) {
-          console.log('✅ Dados consolidados encontrados:', agentData.funnel_configuration);
-          agentData.funnel_configuration.forEach((config: FunnelStageConfig) => {
+        if (agentError || !agentData || !agentData.funnel_configuration) {
+          console.log('⚠️ Nenhuma configuração encontrada no agente');
+        } else {
+          agentData.funnel_configuration?.forEach((config: any) => {
             consolidatedDescriptions[config.stage_id] = config.description || '';
           });
-          console.log('📋 Descrições consolidadas mapeadas:', Object.keys(consolidatedDescriptions).length);
         }
       } catch (error) {
         console.log('⚠️ Erro ao carregar dados consolidados (fallback para kanban_stages):', error);

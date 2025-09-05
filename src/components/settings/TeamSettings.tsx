@@ -110,7 +110,7 @@ export default function TeamSettings() {
         fullName: data.full_name,
         username: data.email.split('@')[0], // Extract username from email
         email: data.email,
-        role: data.role === "manager" ? "manager" : "operational",
+        role: "operational" as const,
         whatsappAccess: data.assignedWhatsAppIds,
         funnelAccess: data.assignedFunnelIds,
         whatsappPersonal: data.whatsapp_personal,

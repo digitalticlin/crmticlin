@@ -36,13 +36,14 @@ export const useDefaultWhatsAppInstance = (userId: string | null) => {
 export const useClientsQuery = (userId: string | null, searchQuery: string = "") => {
   return useInfiniteQuery({
     queryKey: ["clients", userId, searchQuery],
+    initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }): Promise<{
       data: ClientData[];
       nextCursor: number | undefined;
       hasMore: boolean;
       totalCount: number;
     }> => {
-      if (!userId) return { data: [], nextCursor: undefined, hasMore: false };
+      if (!userId) return { data: [], nextCursor: undefined, hasMore: false, totalCount: 0 };
       
       console.log('[Clients Query] 📊 Carregando página:', {
         pageParam,
