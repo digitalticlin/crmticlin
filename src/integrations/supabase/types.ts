@@ -14,121 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
-      ai_agent_prompts: {
+      ai_agents: {
         Row: {
-          agent_function: string
-          agent_id: string
+          agent_function: string | null
           agent_objective: string | null
-          client_objections: string | null
-          client_objections_examples: Json | null
+          client_objections: Json | null
           communication_style: string | null
           communication_style_examples: Json | null
           company_info: string | null
           created_at: string
           created_by_user_id: string
           flow: Json | null
-          id: string
-          phrase_tips: string | null
-          phrase_tips_examples: Json | null
-          products_services: string | null
-          products_services_examples: Json | null
-          prohibitions: string | null
-          prohibitions_examples: Json | null
-          rules_guidelines: string | null
-          rules_guidelines_examples: Json | null
-          updated_at: string
-        }
-        Insert: {
-          agent_function: string
-          agent_id: string
-          agent_objective?: string | null
-          client_objections?: string | null
-          client_objections_examples?: Json | null
-          communication_style?: string | null
-          communication_style_examples?: Json | null
-          company_info?: string | null
-          created_at?: string
-          created_by_user_id: string
-          flow?: Json | null
-          id?: string
-          phrase_tips?: string | null
-          phrase_tips_examples?: Json | null
-          products_services?: string | null
-          products_services_examples?: Json | null
-          prohibitions?: string | null
-          prohibitions_examples?: Json | null
-          rules_guidelines?: string | null
-          rules_guidelines_examples?: Json | null
-          updated_at?: string
-        }
-        Update: {
-          agent_function?: string
-          agent_id?: string
-          agent_objective?: string | null
-          client_objections?: string | null
-          client_objections_examples?: Json | null
-          communication_style?: string | null
-          communication_style_examples?: Json | null
-          company_info?: string | null
-          created_at?: string
-          created_by_user_id?: string
-          flow?: Json | null
-          id?: string
-          phrase_tips?: string | null
-          phrase_tips_examples?: Json | null
-          products_services?: string | null
-          products_services_examples?: Json | null
-          prohibitions?: string | null
-          prohibitions_examples?: Json | null
-          rules_guidelines?: string | null
-          rules_guidelines_examples?: Json | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_agent_prompts_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "ai_agents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ai_agents: {
-        Row: {
-          created_at: string
-          created_by_user_id: string
+          funnel_configuration: Json | null
           funnel_id: string | null
-          global_notify_phone: string | null
           id: string
           messages_count: number
           name: string
+          products_services: string | null
+          prohibitions: Json | null
+          rules_guidelines: Json | null
           status: string
           type: string
           updated_at: string
           whatsapp_number_id: string | null
         }
         Insert: {
+          agent_function?: string | null
+          agent_objective?: string | null
+          client_objections?: Json | null
+          communication_style?: string | null
+          communication_style_examples?: Json | null
+          company_info?: string | null
           created_at?: string
           created_by_user_id: string
+          flow?: Json | null
+          funnel_configuration?: Json | null
           funnel_id?: string | null
-          global_notify_phone?: string | null
           id?: string
           messages_count?: number
           name: string
+          products_services?: string | null
+          prohibitions?: Json | null
+          rules_guidelines?: Json | null
           status?: string
           type: string
           updated_at?: string
           whatsapp_number_id?: string | null
         }
         Update: {
+          agent_function?: string | null
+          agent_objective?: string | null
+          client_objections?: Json | null
+          communication_style?: string | null
+          communication_style_examples?: Json | null
+          company_info?: string | null
           created_at?: string
           created_by_user_id?: string
+          flow?: Json | null
+          funnel_configuration?: Json | null
           funnel_id?: string | null
-          global_notify_phone?: string | null
           id?: string
           messages_count?: number
           name?: string
+          products_services?: string | null
+          prohibitions?: Json | null
+          rules_guidelines?: Json | null
           status?: string
           type?: string
           updated_at?: string
@@ -489,7 +439,15 @@ export type Database = {
           name?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "funnels_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kanban_stages: {
         Row: {
@@ -621,6 +579,7 @@ export type Database = {
           notes: string | null
           order_position: number | null
           owner_id: string | null
+          owner_id_backup: string | null
           phone: string
           profile_pic_media_cache_id: string | null
           profile_pic_url: string | null
@@ -659,6 +618,7 @@ export type Database = {
           notes?: string | null
           order_position?: number | null
           owner_id?: string | null
+          owner_id_backup?: string | null
           phone: string
           profile_pic_media_cache_id?: string | null
           profile_pic_url?: string | null
@@ -697,6 +657,7 @@ export type Database = {
           notes?: string | null
           order_position?: number | null
           owner_id?: string | null
+          owner_id_backup?: string | null
           phone?: string
           profile_pic_media_cache_id?: string | null
           profile_pic_url?: string | null
@@ -859,7 +820,7 @@ export type Database = {
       }
       messages: {
         Row: {
-          base64_data: string | null
+          ai_description: string | null
           content_hash: string | null
           created_at: string | null
           created_by_user_id: string
@@ -877,7 +838,7 @@ export type Database = {
           whatsapp_number_id: string | null
         }
         Insert: {
-          base64_data?: string | null
+          ai_description?: string | null
           content_hash?: string | null
           created_at?: string | null
           created_by_user_id: string
@@ -895,7 +856,7 @@ export type Database = {
           whatsapp_number_id?: string | null
         }
         Update: {
-          base64_data?: string | null
+          ai_description?: string | null
           content_hash?: string | null
           created_at?: string | null
           created_by_user_id?: string
@@ -1005,34 +966,73 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
           created_by_user_id: string | null
+          department: string | null
           document_id: string | null
+          email: string | null
           full_name: string
           id: string
+          invite_expires_at: string | null
+          invite_sent_at: string | null
+          invite_status: string | null
+          invite_token: string | null
+          is_active: boolean | null
+          last_login_at: string | null
+          linked_auth_user_id: string | null
+          phone: string | null
+          position: string | null
           role: Database["public"]["Enums"]["user_role"] | null
+          temp_password: string | null
           updated_at: string | null
           username: string | null
           whatsapp: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
           created_by_user_id?: string | null
+          department?: string | null
           document_id?: string | null
+          email?: string | null
           full_name: string
           id: string
+          invite_expires_at?: string | null
+          invite_sent_at?: string | null
+          invite_status?: string | null
+          invite_token?: string | null
+          is_active?: boolean | null
+          last_login_at?: string | null
+          linked_auth_user_id?: string | null
+          phone?: string | null
+          position?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          temp_password?: string | null
           updated_at?: string | null
           username?: string | null
           whatsapp?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
           created_by_user_id?: string | null
+          department?: string | null
           document_id?: string | null
+          email?: string | null
           full_name?: string
           id?: string
+          invite_expires_at?: string | null
+          invite_sent_at?: string | null
+          invite_status?: string | null
+          invite_token?: string | null
+          is_active?: boolean | null
+          last_login_at?: string | null
+          linked_auth_user_id?: string | null
+          phone?: string | null
+          position?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          temp_password?: string | null
           updated_at?: string | null
           username?: string | null
           whatsapp?: string | null
@@ -1297,69 +1297,6 @@ export type Database = {
         }
         Relationships: []
       }
-      whatsapp_instances_backup: {
-        Row: {
-          connection_status: string | null
-          connection_type: string | null
-          created_at: string | null
-          created_by_user_id: string | null
-          date_connected: string | null
-          date_disconnected: string | null
-          id: string | null
-          instance_name: string | null
-          n8n_webhook_url: string | null
-          phone: string | null
-          profile_name: string | null
-          profile_pic_url: string | null
-          qr_code: string | null
-          server_url: string | null
-          session_data: Json | null
-          updated_at: string | null
-          vps_instance_id: string | null
-          web_status: string | null
-        }
-        Insert: {
-          connection_status?: string | null
-          connection_type?: string | null
-          created_at?: string | null
-          created_by_user_id?: string | null
-          date_connected?: string | null
-          date_disconnected?: string | null
-          id?: string | null
-          instance_name?: string | null
-          n8n_webhook_url?: string | null
-          phone?: string | null
-          profile_name?: string | null
-          profile_pic_url?: string | null
-          qr_code?: string | null
-          server_url?: string | null
-          session_data?: Json | null
-          updated_at?: string | null
-          vps_instance_id?: string | null
-          web_status?: string | null
-        }
-        Update: {
-          connection_status?: string | null
-          connection_type?: string | null
-          created_at?: string | null
-          created_by_user_id?: string | null
-          date_connected?: string | null
-          date_disconnected?: string | null
-          id?: string | null
-          instance_name?: string | null
-          n8n_webhook_url?: string | null
-          phone?: string | null
-          profile_name?: string | null
-          profile_pic_url?: string | null
-          qr_code?: string | null
-          server_url?: string | null
-          session_data?: Json | null
-          updated_at?: string | null
-          vps_instance_id?: string | null
-          web_status?: string | null
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
@@ -1368,6 +1305,12 @@ export type Database = {
       _preserve_name: {
         Args: { existing: string; incoming: string }
         Returns: string
+      }
+      accept_team_invite_safely: {
+        Args:
+          | { p_auth_user_id: string; p_invite_token: string }
+          | { p_auth_user_id: string; p_invite_token: string }
+        Returns: Json
       }
       bytea_to_text: {
         Args: { data: string }
@@ -1397,6 +1340,47 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      disable_cron_jobs: {
+        Args: { job_ids: number[] }
+        Returns: string[]
+      }
+      emergency_disable_cron: {
+        Args: { p_jobid: number }
+        Returns: string
+      }
+      fix_all_leads_ownership: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      fix_existing_leads_owner_id: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      format_brazilian_phone: {
+        Args: { input_phone: string }
+        Returns: Json
+      }
+      get_funnel_owner: {
+        Args: { funnel_id_param: string }
+        Returns: string
+      }
+      get_instance_owner: {
+        Args: { p_admin_user_id: string; p_instance_id: string }
+        Returns: string
+      }
+      get_instance_owner_with_fallback: {
+        Args: { p_admin_user_id: string; p_instance_id: string }
+        Returns: string
+      }
+      get_profile_pic_queue_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          newest_message: string
+          oldest_message: string
+          queue_name: string
+          queue_size: number
+        }[]
+      }
       get_user_broadcast_campaigns: {
         Args: { p_user_id: string }
         Returns: {
@@ -1419,6 +1403,10 @@ export type Database = {
           total_recipients: number
           updated_at: string
         }[]
+      }
+      get_whatsapp_owner: {
+        Args: { whatsapp_id_param: string }
+        Returns: string
       }
       gtrgm_compress: {
         Args: { "": unknown }
@@ -1565,6 +1553,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      process_profile_pic_download_queue: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          failed_count: number
+          processed_count: number
+          queue_size: number
+        }[]
+      }
+      process_profile_pic_queue: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          failed_count: number
+          processed_count: number
+          queue_size: number
+        }[]
+      }
       read_media_queue: {
         Args: { p_qty?: number }
         Returns: {
@@ -1572,6 +1576,18 @@ export type Database = {
           message: Json
           msg_id: number
         }[]
+      }
+      reassign_funnel_leads: {
+        Args: { p_funnel_id: string; p_new_owner_id?: string }
+        Returns: Json
+      }
+      reassign_whatsapp_leads: {
+        Args: { p_new_owner_id?: string; p_whatsapp_id: string }
+        Returns: Json
+      }
+      remove_user_completely: {
+        Args: { user_email: string }
+        Returns: Json
       }
       save_message_simple: {
         Args: {
@@ -1605,23 +1621,45 @@ export type Database = {
         }
         Returns: Json
       }
-      save_whatsapp_message_complete: {
+      save_whatsapp_message_ai_agent: {
         Args: {
-          p_contact_name: string
-          p_external_message_id: string
-          p_formatted_phone: string
-          p_from_me: boolean
-          p_instance_id: string
-          p_media_type: string
-          p_media_url: string
+          p_contact_name?: string
+          p_external_message_id?: string
+          p_media_type?: string
+          p_media_url?: string
           p_message_text: string
-          p_user_id: string
+          p_phone: string
+          p_vps_instance_id: string
         }
-        Returns: undefined
+        Returns: Json
       }
-      save_whatsapp_message_service_role: {
+      save_whatsapp_message_complete: {
+        Args:
+          | {
+              p_contact_name: string
+              p_external_message_id: string
+              p_formatted_phone: string
+              p_from_me: boolean
+              p_instance_id: string
+              p_media_type: string
+              p_media_url: string
+              p_message_text: string
+              p_user_id: string
+            }
+          | {
+              p_contact_name?: string
+              p_external_message_id?: string
+              p_from_me: boolean
+              p_media_type?: string
+              p_media_url?: string
+              p_message_text: string
+              p_phone: string
+              p_vps_instance_id: string
+            }
+        Returns: Json
+      }
+      save_whatsapp_message_complete_v2: {
         Args: {
-          p_base64_data?: string
           p_contact_name?: string
           p_external_message_id?: string
           p_from_me: boolean
@@ -1629,6 +1667,20 @@ export type Database = {
           p_media_url?: string
           p_message_text: string
           p_phone: string
+          p_vps_instance_id: string
+        }
+        Returns: Json
+      }
+      save_whatsapp_message_service_role: {
+        Args: {
+          p_contact_name?: string
+          p_external_message_id?: string
+          p_from_me: boolean
+          p_media_type?: string
+          p_media_url?: string
+          p_message_text: string
+          p_phone: string
+          p_profile_pic_url?: string
           p_vps_instance_id: string
         }
         Returns: Json
@@ -1655,9 +1707,19 @@ export type Database = {
         Args: { "": string }
         Returns: string[]
       }
+      sync_lead_ownership: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          admin_fallback: number
+          funnel_assignments: number
+          leads_synced: number
+          total_leads: number
+          whatsapp_assignments: number
+        }[]
+      }
       sync_whatsapp_instances: {
         Args: Record<PropertyKey, never>
-        Returns: string
+        Returns: undefined
       }
       test_leads_access: {
         Args: Record<PropertyKey, never>
@@ -1674,6 +1736,14 @@ export type Database = {
       test_media_system: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      test_owner_assignment: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          details: string
+          result: string
+          test_case: string
+        }[]
       }
       text_to_bytea: {
         Args: { data: string }
@@ -1725,7 +1795,7 @@ export type Database = {
     Enums: {
       media_type: "text" | "image" | "video" | "audio" | "document"
       message_status: "sent" | "delivered" | "read" | "failed" | "received"
-      user_role: "admin" | "operational" | "manager"
+      user_role: "admin" | "operational"
     }
     CompositeTypes: {
       http_header: {
@@ -1871,7 +1941,7 @@ export const Constants = {
     Enums: {
       media_type: ["text", "image", "video", "audio", "document"],
       message_status: ["sent", "delivered", "read", "failed", "received"],
-      user_role: ["admin", "operational", "manager"],
+      user_role: ["admin", "operational"],
     },
   },
 } as const

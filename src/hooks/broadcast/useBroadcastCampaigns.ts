@@ -49,7 +49,8 @@ export const useBroadcastCampaigns = () => {
       setCampaigns((data || []).map(campaign => ({
         ...campaign,
         target_type: campaign.target_type as 'all' | 'tags' | 'funnel' | 'stage' | 'custom',
-        schedule_type: campaign.schedule_type as 'immediate' | 'scheduled' | 'recurring'
+        schedule_type: campaign.schedule_type as 'immediate' | 'scheduled' | 'recurring',
+        status: campaign.status as 'draft' | 'running' | 'paused' | 'completed' | 'failed'
       })));
     } catch (err: any) {
       console.error('Error fetching campaigns:', err);

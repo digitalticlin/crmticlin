@@ -636,9 +636,7 @@ export const EnhancedPromptConfiguration = ({
           stepNumber={editingStep ? editingStep.index + 1 : 1}
          />
       ) : null}
-      {/* Debug log moved to useEffect or outside JSX */}
 
-      {/* Botões de ação - BUG 2 FIX: Remover botão "Salvar Configuração" redundante */}
       <div className="flex justify-end gap-2 pt-4 border-t border-white/30">
         <Button 
           type="button" 

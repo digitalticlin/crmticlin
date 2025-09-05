@@ -114,38 +114,41 @@ export function AcceptInvite() {
       // 2. Usar função segura para aceitar convite
       console.log('[AcceptInvite] Aceitando convite de forma segura...');
       
-      // Função RPC ainda não implementada - usando update direto
-      const { error: acceptError } = await supabase
-        .from('profiles')
-        .update({ 
-          linked_auth_user_id: authData.user.id 
-        })
-        .eq('invite_token', token);
+      // Usar função RPC agora implementada
+      const { data: acceptResult, error: acceptError } = await supabase.rpc(
+        'accept_team_invite_safely',
+        {
+          p_invite_token: token,
+          p_auth_user_id: authData.user.id
+        }
+      );
 
-      console.log('[AcceptInvite] 🔍 Resultado do update do perfil:');
-      console.log('[AcceptInvite] acceptError:', acceptError);
-      
       if (acceptError) {
-        console.error('[AcceptInvite] ❌ Erro técnico no update:', acceptError);
-        toast.error(`Erro técnico: ${acceptError.message}`);
+        console.error('[AcceptInvite] ❌ Erro ao aceitar convite:', acceptError);
+        toast.error('Erro ao aceitar convite');
+        return;
+      }
+
+      if (!(acceptResult as any)?.success) {
+        console.error('[AcceptInvite] ❌ Erro na vinculação:', (acceptResult as any)?.error);
+        toast.error((acceptResult as any)?.error || 'Erro ao aceitar convite');
         return;
       }
 
       console.log('[AcceptInvite] ✅ Convite aceito com sucesso');
       toast.success('Conta criada com sucesso!');
       
-      // NÃO fazer login automático - redirecionar para tela de login
-      console.log('[AcceptInvite] ✅ Redirecionando para login (SEM auto-login)');
+      // Redirecionar para login
       toast.success('Conta criada! Faça login com suas credenciais.', {
         duration: 3000
       });
       
-      // Redirecionar para login com as credenciais preenchidas
+      // Redirecionar para login  
       setTimeout(() => {
         navigate('/login', { 
           state: { 
-            message: `Conta criada com sucesso!${accessMessage} Use suas credenciais para fazer login.`,
-            email: inviteData.email 
+            message: 'Conta criada com sucesso! Use suas credenciais para fazer login.',
+            email: inviteData?.email 
           } 
         });
       }, 2000);

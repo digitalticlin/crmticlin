@@ -24,16 +24,26 @@ export const useAIAgentPrompts = (agentId?: string) => {
 
       if (error) throw error;
       
-      // Convert ai_agents record para formato AIAgentPrompt compatível
+      // Convert ai_agents record para formato AIAgentPrompt compatível  
       const typedPrompt: AIAgentPrompt = {
         id: data.id,
         agent_id: data.id,
-        agent_function: (data as any).agent_function || '',
-        agent_objective: (data as any).agent_objective || '',
-        communication_style: (data as any).communication_style || '',
-        communication_style_examples: Array.isArray((data as any).communication_style_examples) ? (data as any).communication_style_examples : [],
-        company_info: (data as any).company_info || '',
-        products_services: (data as any).products_services || '',
+        agent_function: data.agent_function || '',
+        agent_objective: data.agent_objective || '',
+        communication_style: data.communication_style || '',
+        communication_style_examples: Array.isArray(data.communication_style_examples) ? data.communication_style_examples as any[] : [],
+        company_info: data.company_info || '',
+        products_services: data.products_services || '',
+        products_services_examples: [],
+        rules_guidelines: Array.isArray(data.rules_guidelines) ? data.rules_guidelines as any[] : [],
+        rules_guidelines_examples: [],
+        prohibitions: Array.isArray(data.prohibitions) ? data.prohibitions as any[] : [],
+        prohibitions_examples: [],
+        client_objections: Array.isArray(data.client_objections) ? data.client_objections as any[] : [],
+        client_objections_examples: [],
+        phrase_tips: '',
+        phrase_tips_examples: [],
+        flow: Array.isArray(data.flow) ? data.flow as any[] : [],
         products_services_examples: [], // Campo legacy - mantido para compatibilidade
         rules_guidelines: Array.isArray(data.rules_guidelines) ? data.rules_guidelines : [],
         rules_guidelines_examples: [], // Campo legacy - mantido para compatibilidade
