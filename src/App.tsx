@@ -8,6 +8,7 @@ import { BigQueryOptimizer } from './utils/immediate-bigquery-fix';
 import { supabase } from './integrations/supabase/client'; // 🚀 IMPORTAR SUPABASE
 import './utils/debug-messages-test'; // 🔧 IMPORTAR SCRIPTS DE DEBUG
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import { AdminGuard } from './components/auth/AdminGuard';
 import { PortalErrorBoundary } from './components/error/PortalErrorBoundary';
 import { AppLayout } from './components/layout/AppLayout';
 import Dashboard from './pages/Dashboard';
@@ -102,9 +103,11 @@ function AppLayoutRoutes() {
       <Route 
         path="/ai-agents" 
         element={
-          <AppLayout>
-            <AIAgentsPage />
-          </AppLayout>
+          <AdminGuard>
+            <AppLayout>
+              <AIAgentsPage />
+            </AppLayout>
+          </AdminGuard>
         } 
       />
       <Route 
@@ -118,9 +121,11 @@ function AppLayoutRoutes() {
       <Route 
         path="/settings" 
         element={
-          <AppLayout>
-            <SettingsPage />
-          </AppLayout>
+          <AdminGuard>
+            <AppLayout>
+              <SettingsPage />
+            </AppLayout>
+          </AdminGuard>
         } 
       />
       <Route 

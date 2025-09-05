@@ -16,6 +16,7 @@ class ConnectionManager {
     this.connectionAttempts = new Map();
     this.sentMessagesCache = new Map(); // Cache para rastrear mensagens enviadas via API
     this.profilePicCache = new Map(); // Cache simples por telefone (TTL)
+    this.reconnectionTimeouts = new Map(); // NOVO: Rastrear timeouts de reconexão
 
     console.log('🔌 ConnectionManager inicializado');
   }
@@ -173,7 +174,15 @@ class ConnectionManager {
 
           console.log(`${logPrefix} 🔄 Reagendando reconexão em 15 segundos... (${currentAttempts + 1}/3)`);
 
-          setTimeout(async () => {
+          // NOVO: Salvar referência do timeout para poder cancelar na deleção
+          const timeoutId = setTimeout(async () => {
+            // Verificar se instância ainda existe antes de reconectar
+            if (!this.instances[instanceId]) {
+              console.log(`${logPrefix} ⚠️ Instância foi deletada, cancelando reconexão`);
+              this.reconnectionTimeouts.delete(instanceId);
+              return;
+            }
+            
             try {
               await this.createInstance(instanceId, instance.createdByUserId, true);
             } catch (error) {
@@ -181,7 +190,13 @@ class ConnectionManager {
               instance.status = 'error';
               instance.error = error.message;
             }
+            
+            // Limpar timeout após execução
+            this.reconnectionTimeouts.delete(instanceId);
           }, 15000);
+          
+          // Salvar referência do timeout
+          this.reconnectionTimeouts.set(instanceId, timeoutId);
         } else {
           console.log(`${logPrefix} ⚠️ Máximo de tentativas atingido ou logout`);
           instance.status = lastDisconnect?.error?.output?.statusCode === DisconnectReason.loggedOut ? 'logged_out' : 'error';

@@ -6,7 +6,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRole?: "admin" | "manager" | "operational";
+  requiredRole?: "admin" | "operational";
 }
 
 const ProtectedRoute = React.memo(({ children, requiredRole }: ProtectedRouteProps) => {
@@ -61,8 +61,6 @@ const ProtectedRoute = React.memo(({ children, requiredRole }: ProtectedRoutePro
       switch (requiredRole) {
         case 'admin':
           return role === 'admin';
-        case 'manager':
-          return role === 'admin' || role === 'manager';
         case 'operational':
           return true; // Todos os usuários autenticados podem acessar
         default:

@@ -255,7 +255,7 @@ export function useSalesFunnelDirect() {
     });
   }, [stages, leads, selectedFunnel?.id]); // DEPENDÊNCIAS FIXAS para evitar loop infinito
 
-  // Atualizar columns apenas quando kanbanColumns mudar
+  // Atualizar columns apenas quando kanbanColumns mudar - SEM dependência em columns
   useEffect(() => {
     setColumns(kanbanColumns);
   }, [kanbanColumns]);

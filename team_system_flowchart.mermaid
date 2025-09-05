@@ -1,0 +1,113 @@
+flowchart TD
+    A[Sistema Atual Funcionando] --> B{Implementação Segura}
+    
+    %% FASE 1: Backend Schema
+    B --> C[FASE 1: Schema Backend]
+    C --> C1[Adicionar owner_id aos leads]
+    C1 --> C2[Sincronizar leads existentes]
+    C2 --> C3[Criar função sync_lead_ownership]
+    
+    %% FASE 2: Triggers
+    C3 --> D[FASE 2: Triggers Automáticos]
+    D --> D1[Trigger funnel assignment]
+    D --> D2[Trigger WhatsApp assignment]
+    D1 --> D3[UPDATE leads SET owner_id]
+    D2 --> D3
+    
+    %% FASE 3: RLS Policies
+    D3 --> E[FASE 3: RLS Policies]
+    E --> E1[Policy: leads por owner_id]
+    E --> E2[Policy: messages por lead ownership]
+    E1 --> E3[Operacional vê só seus leads]
+    E2 --> E3
+    
+    %% FASE 4: Frontend Auth
+    E3 --> F[FASE 4: useAuth Hook]
+    F --> F1[Buscar profile com role]
+    F1 --> F2[isAdmin / isManager / isOperational]
+    F2 --> F3[Contexto de permissões]
+    
+    %% FASE 5: Route Guards
+    F3 --> G[FASE 5: Route Guards]
+    G --> G1[RoleGuard Component]
+    G --> G2[AdminGuard Component]
+    G1 --> G3[Proteger rotas administrativas]
+    G2 --> G3
+    
+    %% FASE 6: Dashboard
+    G3 --> H[FASE 6: Dashboard Contextual]
+    H --> H1{Role do usuário?}
+    H1 --> H2[Admin: Ver tudo]
+    H1 --> H3[Manager: Ver tudo]
+    H1 --> H4[Operacional: Ver só seus leads]
+    
+    %% FASE 7: Leads Page
+    H2 --> I[FASE 7: Leads Page Filtros]
+    H3 --> I
+    H4 --> I
+    I --> I1[useLeads com filtro owner_id]
+    I1 --> I2[Query baseada na role]
+    
+    %% FASE 8: WhatsApp Chat
+    I2 --> J[FASE 8: WhatsApp Filtros]
+    J --> J1[useWhatsAppContacts filtrado]
+    J1 --> J2[Conversas do operacional]
+    
+    %% Sistema Funcionando
+    J2 --> K[✅ Sistema Completo]
+    
+    %% FLUXOS OPERACIONAIS
+    K --> L[FLUXOS OPERACIONAIS]
+    
+    %% Admin Flow
+    L --> M[Admin Logado]
+    M --> M1[TeamSettings Existente]
+    M1 --> M2[Convidar operacional via send_team_invite]
+    M2 --> M3[Vincular a funil/WhatsApp]
+    M3 --> M4[Trigger: owner_id atualizado automaticamente]
+    
+    %% Operacional Flow  
+    L --> N[Operacional Logado]
+    N --> N1[Dashboard: só seus leads]
+    N1 --> N2[Leads: filtrado por owner_id]
+    N2 --> N3[WhatsApp: só conversas vinculadas]
+    
+    %% Convite Flow (JÁ EXISTE)
+    L --> O[Fluxo de Convite Existente]
+    O --> O1[send_native_invite Edge Function]
+    O1 --> O2[AcceptInvite.tsx]
+    O2 --> O3[accept_team_invite_safely RPC]
+    O3 --> O4[Usuário ativo no sistema]
+    
+    %% Assignment Change Flow
+    L --> P[Mudança de Assignment]
+    P --> P1[Admin altera user_funnels]
+    P1 --> P2[Trigger automático]
+    P2 --> P3[UPDATE leads owner_id]
+    P3 --> P4[Antigo operacional perde acesso]
+    P4 --> P5[Novo operacional ganha acesso]
+    
+    %% Security Flow
+    L --> Q[Fluxo de Segurança]
+    Q --> Q1[RLS Policy Check]
+    Q1 --> Q2{É admin?}
+    Q2 --> Q3[SIM: Acesso total]
+    Q2 --> Q4[NÃO: Filtrar por owner_id]
+    Q4 --> Q5[Apenas leads vinculados]
+    
+    %% Data Integrity
+    L --> R[Integridade dos Dados]
+    R --> R1[Leads existentes mantidos]
+    R1 --> R2[Sistema de convites preservado]
+    R2 --> R3[TeamSettings continua funcionando]
+    R3 --> R4[Edge Functions intactas]
+    
+    %% Styles
+    style A fill:#e8f5e8
+    style K fill:#e8f5e8
+    style M fill:#e1f5fe
+    style N fill:#f3e5f5
+    style O fill:#fff3e0
+    style P fill:#ffebee
+    style Q fill:#f1f8e9
+    style R fill:#fce4ec

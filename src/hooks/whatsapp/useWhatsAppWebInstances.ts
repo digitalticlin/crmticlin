@@ -53,23 +53,26 @@ export const useWhatsAppWebInstances = () => {
 
   const deleteInstance = useCallback(async (instanceId: string) => {
     try {
-      console.log(`[WhatsApp Web Instances] 🗑️ Deletando instância: ${instanceId}`);
+      console.log(`[WhatsApp Web Instances] 🗑️ Deletando instância VIA EDGE FUNCTION: ${instanceId}`);
       
       // Remover imediatamente da UI para feedback instantâneo
       setInstances(prev => prev.filter(instance => instance.id !== instanceId));
       
-      // ✅ CORREÇÃO: Deletar diretamente do banco, trigger cuida da VPS
-      const { error } = await supabase
-        .from('whatsapp_instances')
-        .delete()
-        .eq('id', instanceId);
+      // ✅ CORREÇÃO: Usar Edge Function para deleção completa (VPS + Banco)
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_delete', {
+        body: { instanceId }
+      });
 
       if (error) throw error;
 
-      console.log(`[WhatsApp Web Instances] ✅ Instância deletada do banco: ${instanceId}`);
-      console.log(`[WhatsApp Web Instances] 🔄 Trigger vai sincronizar com VPS automaticamente`);
-      toast.success('Instância deletada com sucesso!');
-      // NÃO recarregar - já foi removida otimisticamente e confirmada pelo banco
+      if (!data?.success) {
+        throw new Error(data?.error || 'Falha na deleção pela Edge Function');
+      }
+
+      console.log(`[WhatsApp Web Instances] ✅ Instância deletada via Edge Function: ${instanceId}`);
+      console.log(`[WhatsApp Web Instances] 🎯 Detalhes:`, data.details);
+      toast.success('Instância deletada completamente!');
+      // NÃO recarregar - já foi removida otimisticamente e confirmada pela Edge
     } catch (error: any) {
       console.error(`[WhatsApp Web Instances] ❌ Erro ao deletar:`, error);
       toast.error(`Erro ao deletar instância: ${error.message}`);

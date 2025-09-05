@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export type UserRole = "admin" | "operational" | "manager";
+export type UserRole = "admin" | "operational";
 
 interface UserPermissions {
   canViewAllData: boolean;
@@ -72,20 +72,6 @@ export const useUserPermissions = () => {
               canViewReports: true,
               role,
               allowedPages: ["dashboard", "sales-funnel", "chat", "clients", "settings", "team", "ai-agents"]
-            };
-            break;
-          case "manager":
-            // Manager: Can manage most things but not team members
-            newPermissions = {
-              canViewAllData: true,
-              canDeleteData: true,
-              canManageTeam: false,
-              canAccessSettings: true,
-              canManageFunnels: true,
-              canManageWhatsApp: true,
-              canViewReports: true,
-              role,
-              allowedPages: ["dashboard", "sales-funnel", "chat", "clients", "settings", "ai-agents"]
             };
             break;
           case "operational":

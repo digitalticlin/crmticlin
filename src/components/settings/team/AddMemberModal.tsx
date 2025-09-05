@@ -176,7 +176,7 @@ export const AddMemberModal = ({
               </div>
             </div>
 
-            {/* Nível de Acesso */}
+            {/* Nível de Acesso - FIXO como Operacional */}
             <div className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl p-6 transition-all duration-300 hover:bg-white/50">
               <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <Shield className="h-5 w-5 text-yellow-500" />
@@ -184,36 +184,16 @@ export const AddMemberModal = ({
               </h3>
               
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="role" className="text-gray-800 font-medium">Função no Sistema</Label>
-                  <Select value={formData.role} onValueChange={(value: "operational" | "manager") => handleChange("role", value)}>
-                    <SelectTrigger className="bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-xl">
-                      <SelectValue placeholder="Selecione o nível" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white/90 backdrop-blur-md border border-white/30 rounded-xl shadow-glass">
-                      <SelectItem value="manager" className="focus:bg-white/60">
-                        <div className="flex items-center gap-2">
-                          <Crown className="h-4 w-4 text-yellow-600" />
-                          <span className="font-medium">GESTOR</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="operational" className="focus:bg-white/60">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-blue-600" />
-                          <span className="font-medium">OPERACIONAL</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Descrição do Nível */}
-                <div className="bg-white/20 backdrop-blur-sm border border-white/20 rounded-xl p-4">
+                {/* Nível fixo como Operacional */}
+                <div className="bg-blue-50/60 backdrop-blur-sm border border-blue-200/60 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <roleInfo.icon className={`h-5 w-5 ${roleInfo.color}`} />
-                    <span className="font-bold text-gray-800">{roleInfo.label}</span>
+                    <Users className="h-5 w-5 text-blue-600" />
+                    <span className="font-bold text-blue-800">OPERACIONAL</span>
+                    <span className="ml-auto text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Padrão</span>
                   </div>
-                  <p className="text-sm text-gray-700">{roleInfo.description}</p>
+                  <p className="text-sm text-blue-700">
+                    Acesso limitado aos funis e instâncias WhatsApp específicas atribuídas pelo administrador.
+                  </p>
                 </div>
               </div>
             </div>

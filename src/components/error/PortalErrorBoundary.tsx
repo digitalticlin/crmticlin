@@ -16,7 +16,19 @@ export class PortalErrorBoundary extends Component<Props, State> {
   };
 
   public static getDerivedStateFromError(error: Error): State {
-    // Update state so the next render will show the fallback UI
+    // For DOM Portal errors, don't set error state to avoid render breaks
+    if (
+      error.message?.includes('removeChild') ||
+      error.message?.includes('Portal') ||
+      error.message?.includes('insertBefore') ||
+      error.message?.includes('The node to be removed is not a child') ||
+      error.message?.includes('The node before which the new node is to be inserted is not a child')
+    ) {
+      console.warn('[PortalErrorBoundary] Portal DOM error ignored in getDerivedStateFromError:', error.message);
+      return { hasError: false };
+    }
+    
+    // Update state so the next render will show the fallback UI for other errors
     console.error('[PortalErrorBoundary] Portal error captured:', error);
     return { hasError: true, error };
   }
@@ -26,16 +38,15 @@ export class PortalErrorBoundary extends Component<Props, State> {
     if (
       error.message?.includes('removeChild') ||
       error.message?.includes('Portal') ||
-      error.message?.includes('The node to be removed is not a child')
+      error.message?.includes('insertBefore') ||
+      error.message?.includes('The node to be removed is not a child') ||
+      error.message?.includes('The node before which the new node is to be inserted is not a child')
     ) {
       console.warn('[PortalErrorBoundary] Portal DOM error handled:', error.message);
       
-      // CRÍTICO: NÃO fazer auto-recover que corrompe estados
-      // setTimeout(() => {
-      //   this.setState({ hasError: false, error: undefined });
-      // }, 100);
+      // Reset error state immediately for DOM Portal errors
+      this.setState({ hasError: false, error: undefined });
       
-      // Apenas log o erro, mas não quebrar o estado do componente
       console.warn('[PortalErrorBoundary] Portal error handled gracefully, continuing...');
       
       return;

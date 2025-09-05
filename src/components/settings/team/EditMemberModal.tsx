@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Edit, Shield, Users, Crown, Phone, Mail, User } from "lucide-react";
+import { Edit, Shield, Phone, Mail, User } from "lucide-react";
 import { MultiSelectWhatsApp } from "./MultiSelectWhatsApp";
 import { MultiSelectFunnels } from "./MultiSelectFunnels";
 import { TeamMember } from "@/hooks/useTeamManagement";
@@ -16,7 +16,7 @@ interface EditMemberModalProps {
   onSubmit: (memberId: string, data: {
     full_name: string;
     email?: string;
-    role: "operational" | "manager" | "admin";
+    role: "operational";
     assignedWhatsAppIds: string[];
     assignedFunnelIds: string[];
     whatsapp_personal?: string;
@@ -39,7 +39,7 @@ export const EditMemberModal = ({
     full_name: "",
     email: "",
     whatsapp_personal: "",
-    role: "operational" as "operational" | "manager" | "admin",
+    role: "operational" as "operational",
     assignedWhatsAppIds: [] as string[],
     assignedFunnelIds: [] as string[]
   });
@@ -51,7 +51,7 @@ export const EditMemberModal = ({
         full_name: member.full_name || "",
         email: member.email || "",
         whatsapp_personal: member.whatsapp || "",
-        role: member.role as "operational" | "manager" | "admin",
+        role: "operational" as "operational",
         assignedWhatsAppIds: member.whatsapp_access || [],
         assignedFunnelIds: member.funnel_access || []
       });
@@ -60,8 +60,6 @@ export const EditMemberModal = ({
 
   const handleSubmit = async () => {
     if (!member) return;
-
-    console.log('[EditMemberModal] Enviando dados:', formData);
 
     const success = await onSubmit(member.id, {
       full_name: formData.full_name,
@@ -72,41 +70,12 @@ export const EditMemberModal = ({
       whatsapp_personal: formData.whatsapp_personal || undefined,
     });
 
-    console.log('[EditMemberModal] Resultado do onSubmit:', success);
-
     if (success) {
-      // Reset form
-      setFormData({
-        full_name: "",
-        email: "",
-        whatsapp_personal: "",
-        role: "operational",
-        assignedWhatsAppIds: [],
-        assignedFunnelIds: []
-      });
       onOpenChange(false);
-      console.log('[EditMemberModal] Membro editado com sucesso');
-    } else {
-      console.log('[EditMemberModal] Falha ao editar membro');
-    }
-  };
-
-  const getRoleInfo = (role: string) => {
-    switch (role) {
-      case "admin":
-        return { label: "Administrador", icon: Crown, color: "text-yellow-700" };
-      case "manager":
-        return { label: "Gestor", icon: Shield, color: "text-purple-700" };
-      case "operational":
-        return { label: "Operacional", icon: User, color: "text-blue-700" };
-      default:
-        return { label: "Operacional", icon: User, color: "text-blue-700" };
     }
   };
 
   if (!member) return null;
-
-  const currentRoleInfo = getRoleInfo(formData.role);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -171,47 +140,23 @@ export const EditMemberModal = ({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role" className="text-gray-700 font-medium">Função *</Label>
-                <Select value={formData.role} onValueChange={(value: "operational" | "manager" | "admin") => setFormData({ ...formData, role: value })}>
-                  <SelectTrigger className="bg-white/60 backdrop-blur-sm border border-white/40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white/90 backdrop-blur-md border border-white/30">
-                    <SelectItem value="operational" className="hover:bg-blue-50/60">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-blue-600" />
-                        <span>Operacional</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="manager" className="hover:bg-purple-50/60">
-                      <div className="flex items-center gap-2">
-                        <Shield className="h-4 w-4 text-purple-600" />
-                        <span>Gestor</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="admin" className="hover:bg-yellow-50/60">
-                      <div className="flex items-center gap-2">
-                        <Crown className="h-4 w-4 text-yellow-600" />
-                        <span>Administrador</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-lg p-2">
-                  <p className="text-xs text-gray-600 flex items-center gap-1">
-                    <currentRoleInfo.icon className={`h-3 w-3 ${currentRoleInfo.color}`} />
-                    {formData.role === "admin" && "Acesso total incluindo gestão de equipe"}
-                    {formData.role === "manager" && "Acesso total exceto gestão de equipe"}
-                    {formData.role === "operational" && "Acesso limitado aos recursos vinculados"}
+                <Label htmlFor="role" className="text-gray-700 font-medium">Função</Label>
+                <div className="bg-blue-50/60 backdrop-blur-sm border border-blue-200/60 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <User className="h-5 w-5 text-blue-600" />
+                    <span className="font-bold text-blue-800">OPERACIONAL</span>
+                    <span className="ml-auto text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Fixo</span>
+                  </div>
+                  <p className="text-sm text-blue-700">
+                    Acesso limitado aos funis e instâncias WhatsApp específicas atribuídas pelo administrador.
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Acessos - Apenas para Operacionais */}
-          {formData.role === "operational" && (
+          {/* Acessos Específicos */}
+          {
             <div className="bg-white/40 backdrop-blur-sm border border-white/30 rounded-xl p-4 space-y-4">
               <h3 className="font-bold text-gray-900 flex items-center gap-2">
                 <Shield className="h-4 w-4" />
@@ -223,8 +168,8 @@ export const EditMemberModal = ({
                   <Label className="text-gray-700 font-medium">Acesso aos Funis</Label>
                   <MultiSelectFunnels
                     allFunnels={allFunnels}
-                    selectedFunnelIds={formData.assignedFunnelIds}
-                    onFunnelChange={(funnelIds) => setFormData({ ...formData, assignedFunnelIds: funnelIds })}
+                    selectedIds={formData.assignedFunnelIds}
+                    onSelectionChange={(funnelIds) => setFormData({ ...formData, assignedFunnelIds: funnelIds })}
                   />
                 </div>
 
@@ -232,29 +177,14 @@ export const EditMemberModal = ({
                   <Label className="text-gray-700 font-medium">Acesso às Instâncias WhatsApp</Label>
                   <MultiSelectWhatsApp
                     allWhatsApps={allWhatsApps}
-                    selectedWhatsAppIds={formData.assignedWhatsAppIds}
-                    onWhatsAppChange={(whatsAppIds) => setFormData({ ...formData, assignedWhatsAppIds: whatsAppIds })}
+                    selectedIds={formData.assignedWhatsAppIds}
+                    onSelectionChange={(whatsAppIds) => setFormData({ ...formData, assignedWhatsAppIds: whatsAppIds })}
                   />
                 </div>
               </div>
             </div>
-          )}
+          }
 
-          {/* Nota para Gestores e Admins */}
-          {(formData.role === "admin" || formData.role === "manager") && (
-            <div className="bg-blue-50/60 backdrop-blur-sm border border-blue-200/60 rounded-xl p-4">
-              <div className="flex items-center gap-2 text-blue-700">
-                <currentRoleInfo.icon className="h-4 w-4" />
-                <span className="font-medium">Acesso Elevado</span>
-              </div>
-              <p className="text-sm text-blue-600 mt-1">
-                {formData.role === "admin" 
-                  ? "Este membro terá acesso total ao sistema, incluindo gestão de equipe." 
-                  : "Este membro terá acesso total ao sistema, exceto gestão de equipe."
-                }
-              </p>
-            </div>
-          )}
         </div>
 
         <DialogFooter className="pt-6 gap-3">

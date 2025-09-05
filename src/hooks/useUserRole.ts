@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const useUserRole = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState<"admin" | "operational" | "manager">("operational");
+  const [role, setRole] = useState<"admin" | "operational">("operational");
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -47,7 +47,7 @@ export const useUserRole = () => {
           return;
         }
 
-        const userRole = profile.role as "admin" | "operational" | "manager";
+        const userRole = profile.role as "admin" | "operational";
         const userIsAdmin = userRole === 'admin';
 
         console.log('[useUserRole] ✅ Role real encontrada:', {

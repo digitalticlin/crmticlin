@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { useCompanyData } from "@/hooks/useCompanyData";
-import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
+import { useDashboardFunnelData } from "@/hooks/dashboard/useDashboardFunnelData";
 import { useFunnelDashboard } from "@/hooks/salesFunnel/useFunnelDashboard";
-import { useStageDatabase } from "@/hooks/salesFunnel/useStageDatabase";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp } from "lucide-react";
@@ -14,10 +13,11 @@ interface FunnelChartProps {
 
 export default function FunnelChart({ className }: FunnelChartProps) {
   const { companyId } = useCompanyData();
-  const { selectedFunnel } = useSalesFunnelDirect();
-  const { report, loading } = useFunnelDashboard(selectedFunnel?.id || "");
-  const { stages } = useStageDatabase(selectedFunnel?.id);
+  const { selectedFunnel, stages, loading: funnelLoading } = useDashboardFunnelData();
+  const { report, loading: reportLoading } = useFunnelDashboard(selectedFunnel?.id || "");
   const [funnelData, setFunnelData] = useState<any[]>([]);
+
+  const loading = funnelLoading || reportLoading;
 
   useEffect(() => {
     if (!report || !stages.length) {

@@ -127,62 +127,7 @@ export default function TeamSettings() {
 
   return (
     <div className="space-y-8 pb-8">
-      {/* 1º Card: Visão Geral da Equipe */}
-      <div className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-2xl p-8 transition-all duration-300 hover:bg-white/50 animate-fade-in">
-        <div className="flex items-center space-x-4 mb-6">
-          <div className="p-3 bg-white/30 backdrop-blur-sm rounded-xl border border-white/40 shadow-glass">
-            <Users className="h-6 w-6 text-yellow-500" />
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-gray-800">Visão Geral da Equipe</h3>
-            <p className="text-gray-700 font-medium">Estatísticas e informações gerais</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white/30 backdrop-blur-sm border border-white/30 shadow-glass rounded-xl p-6 transition-all duration-300 hover:bg-white/40">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-500/20 rounded-lg">
-                <Users className="h-5 w-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-700 font-medium">Total de Membros</p>
-                <p className="text-2xl font-bold text-gray-800">{teamMembersFiltered.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/30 backdrop-blur-sm border border-white/30 shadow-glass rounded-xl p-6 transition-all duration-300 hover:bg-white/40">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-purple-500/20 rounded-lg">
-                <Crown className="h-5 w-5 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-700 font-medium">Gestores</p>
-                <p className="text-2xl font-bold text-gray-800">
-                  {teamMembersFiltered.filter(m => m.role === 'manager').length}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/30 backdrop-blur-sm border border-white/30 shadow-glass rounded-xl p-6 transition-all duration-300 hover:bg-white/40">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <Settings className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-700 font-medium">Operacionais</p>
-                <p className="text-2xl font-bold text-gray-800">
-                  {teamMembersFiltered.filter(m => m.role === 'operational').length}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2º Card: Lista de Membros da Equipe */}
+      {/* Card: Lista de Membros da Equipe */}
       <div className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-2xl p-8 transition-all duration-300 hover:bg-white/50 animate-fade-in" style={{ animationDelay: "100ms" }}>
         <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0 mb-6">
           <div className="flex items-center space-x-4">
@@ -210,7 +155,14 @@ export default function TeamSettings() {
           onRemoveMember={removeMember.mutateAsync}
           onEditMember={async (memberId: string, data: any) => {
             try {
-              await editMember.mutateAsync({ memberId, memberData: data });
+              console.log('[TeamSettings] ===== EDITANDO MEMBRO =====');
+              console.log('[TeamSettings] Member ID:', memberId);
+              console.log('[TeamSettings] Dados recebidos:', data);
+              
+              const result = await editMember.mutateAsync({ memberId, memberData: data });
+              
+              console.log('[TeamSettings] Resultado da mutation:', result);
+              console.log('[TeamSettings] Edição bem-sucedida!');
               return true;
             } catch (error) {
               console.error('[TeamSettings] Erro ao editar membro:', error);

@@ -21,22 +21,46 @@ export function MultiSelectFunnels({
   onSelectionChange,
   allFunnels,
 }: MultiSelectFunnelsProps) {
+  // Garantir que os arrays nunca sejam undefined
+  const safeFunnels = allFunnels || [];
+  const safeSelectedIds = selectedIds || [];
+  
+  console.log('[MultiSelectFunnels] ===== RENDER =====');
+  console.log('[MultiSelectFunnels] selectedIds recebido:', selectedIds);
+  console.log('[MultiSelectFunnels] allFunnels recebido:', allFunnels);
+  console.log('[MultiSelectFunnels] safeFunnels (length):', safeFunnels.length);
+  console.log('[MultiSelectFunnels] safeSelectedIds:', safeSelectedIds);
+
   const handleSelect = (id: string) => {
-    if (!selectedIds.includes(id)) {
-      onSelectionChange([...selectedIds, id]);
+    console.log('[MultiSelectFunnels] ===== SELECIONANDO FUNIL =====');
+    console.log('[MultiSelectFunnels] ID selecionado:', id);
+    console.log('[MultiSelectFunnels] IDs atuais:', safeSelectedIds);
+    
+    if (!safeSelectedIds.includes(id)) {
+      const newIds = [...safeSelectedIds, id];
+      console.log('[MultiSelectFunnels] Novos IDs após adição:', newIds);
+      onSelectionChange(newIds);
+    } else {
+      console.log('[MultiSelectFunnels] ID já está selecionado, ignorando');
     }
   };
 
   const handleRemove = (id: string) => {
-    onSelectionChange(selectedIds.filter((fId) => fId !== id));
+    console.log('[MultiSelectFunnels] ===== REMOVENDO FUNIL =====');
+    console.log('[MultiSelectFunnels] ID para remover:', id);
+    console.log('[MultiSelectFunnels] IDs antes da remoção:', safeSelectedIds);
+    
+    const newIds = safeSelectedIds.filter((fId) => fId !== id);
+    console.log('[MultiSelectFunnels] Novos IDs após remoção:', newIds);
+    onSelectionChange(newIds);
   };
 
   return (
     <div>
       <Label className="block mb-1 text-white">Funis permitidos</Label>
       <div className="flex flex-wrap gap-2 mb-2">
-        {selectedIds.map(id => {
-          const option = allFunnels.find(f => f.id === id);
+        {safeSelectedIds.map(id => {
+          const option = safeFunnels.find(f => f.id === id);
           if (!option) return null;
           return (
             <Badge
@@ -57,8 +81,8 @@ export function MultiSelectFunnels({
           <SelectValue placeholder="Selecionar funil" />
         </SelectTrigger>
         <SelectContent className="glass-morphism bg-white/40 border-white/20 text-black z-50">
-          {allFunnels
-            .filter(f => !selectedIds.includes(f.id))
+          {safeFunnels
+            .filter(f => !safeSelectedIds.includes(f.id))
             .map(f => (
               <SelectItem
                 key={f.id}
@@ -68,7 +92,7 @@ export function MultiSelectFunnels({
                 {f.name}
               </SelectItem>
             ))}
-          {allFunnels.length === 0 && (
+          {safeFunnels.length === 0 && (
             <SelectItem value="none" disabled className="text-black">Nenhum disponível</SelectItem>
           )}
         </SelectContent>

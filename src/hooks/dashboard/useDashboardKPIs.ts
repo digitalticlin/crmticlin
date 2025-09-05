@@ -45,28 +45,36 @@ export function useDashboardKPIs(periodFilter: string) {
       startDate.setDate(startDate.getDate() - days);
 
       try {
+        // DIAGNÓSTICO COMPLETO
+        console.log('[useDashboardKPIs] 🚀 === INÍCIO DIAGNÓSTICO COMPLETO ===');
+        console.log('[useDashboardKPIs] 👤 Dados do usuário:', {
+          userId: user?.id,
+          periodFilter,
+          days: parseInt(periodFilter),
+          startDate: startDate.toISOString()
+        });
+        console.log('[useDashboardKPIs] 🔐 Controle de acesso:', {
+          canViewAllFunnels,
+          userFunnelsLength: userFunnels.length,
+          userFunnels,
+          accessLoading
+        });
+
         // Determinar funis que o usuário pode acessar
         let accessibleFunnels: string[] = [];
         
-        console.log('[useDashboardKPIs] 🔍 Verificando acessos:', {
-          canViewAllFunnels,
-          userFunnelsLength: userFunnels.length,
-          userFunnels
-        });
-        
         if (canViewAllFunnels) {
-          // Admin/Manager: buscar todos os funis criados pelo usuário
+          // Admin: buscar TODOS os funis da organização (sem filtro de created_by_user_id)
           const { data: allFunnels, error: funnelsError } = await supabase
             .from('funnels')
-            .select('id')
-            .eq('created_by_user_id', user.id);
+            .select('id');
           
           if (funnelsError) {
-            console.error('[useDashboardKPIs] ❌ Erro ao buscar funis próprios:', funnelsError);
+            console.error('[useDashboardKPIs] ❌ Erro ao buscar todos os funis:', funnelsError);
             throw funnelsError;
           }
           accessibleFunnels = (allFunnels || []).map(f => f.id);
-          console.log('[useDashboardKPIs] ✅ Funis próprios encontrados:', accessibleFunnels.length);
+          console.log('[useDashboardKPIs] ✅ Todos os funis encontrados (admin):', accessibleFunnels.length);
         } else {
           // Operacional: usar apenas funis atribuídos
           accessibleFunnels = userFunnels;
@@ -75,7 +83,9 @@ export function useDashboardKPIs(periodFilter: string) {
 
         // Se não tem acesso a nenhum funil, retornar zeros
         if (accessibleFunnels.length === 0) {
-          console.log('[useDashboardKPIs] ⚠️ Nenhum funil acessível - retornando zeros');
+          console.log('[useDashboardKPIs] ⚠️ === NENHUM FUNIL ACESSÍVEL ===');
+          console.log('[useDashboardKPIs] ❌ Verificar se funis existem no banco!');
+          console.log('[useDashboardKPIs] ❌ Verificar se RLS está permitindo acesso!');
           return {
             novos_leads: 0,
             total_leads: 0,
@@ -97,6 +107,12 @@ export function useDashboardKPIs(periodFilter: string) {
         if (stagesError) throw stagesError;
         const activeStageIds = (activeStages || []).map(s => s.id);
 
+        console.log('[useDashboardKPIs] 📊 Consultando leads com:', {
+          accessibleFunnels,
+          activeStageIds: activeStageIds.length,
+          startDate: startDate.toISOString()
+        });
+
         // Contagem total de leads (filtrada por funis acessíveis)
         const { count: totalLeadsCount, error: totalCountError } = await supabase
           .from('leads')
@@ -104,7 +120,11 @@ export function useDashboardKPIs(periodFilter: string) {
           .in('funnel_id', accessibleFunnels)
           .in('kanban_stage_id', activeStageIds);
 
-        if (totalCountError) throw totalCountError;
+        if (totalCountError) {
+          console.error('[useDashboardKPIs] ❌ Erro na contagem total:', totalCountError);
+          throw totalCountError;
+        }
+        console.log('[useDashboardKPIs] ✅ Total leads encontrados:', totalLeadsCount);
 
         // Novos leads no período (filtrada por funis acessíveis)
         const { data: newLeads, error: newLeadsError } = await supabase
@@ -115,14 +135,23 @@ export function useDashboardKPIs(periodFilter: string) {
 
         if (newLeadsError) throw newLeadsError;
 
-        // Deals no período (filtrada por funis acessíveis)
+        // Deals no período (JOIN com leads para acessar funnel_id)
         const { data: deals, error: dealsError } = await supabase
           .from('deals')
-          .select('status, value, date, funnel_id')
-          .in('funnel_id', accessibleFunnels)
+          .select(`
+            status, 
+            value, 
+            date,
+            leads!inner(funnel_id)
+          `)
+          .in('leads.funnel_id', accessibleFunnels)
           .gte('date', startDate.toISOString());
 
-        if (dealsError) throw dealsError;
+        if (dealsError) {
+          console.error('[useDashboardKPIs] ❌ Erro ao buscar deals:', dealsError);
+          throw dealsError;
+        }
+        console.log('[useDashboardKPIs] ✅ Deals encontrados:', deals?.length || 0);
 
         const totalLeads = totalLeadsCount || 0;
         const novosLeads = newLeads?.length || 0;
@@ -132,6 +161,17 @@ export function useDashboardKPIs(periodFilter: string) {
 
         const taxaConversao = totalDeals > 0 ? Math.round((wonDeals / totalDeals) * 100) : 0;
         const taxaPerda = totalDeals > 0 ? Math.round((lostDeals / totalDeals) * 100) : 0;
+
+        console.log('[useDashboardKPIs] 📈 === RESULTADOS CALCULADOS ===');
+        console.log('[useDashboardKPIs] 📊 Dados brutos:', {
+          totalLeads,
+          novosLeads,
+          wonDeals,
+          lostDeals,
+          totalDeals,
+          newLeadsData: newLeads?.length,
+          dealsData: deals?.length
+        });
 
         // Somatório de purchase_value de forma paginada para evitar limite de 1000 (filtrada por funis acessíveis)
         let valorPipeline = 0;
@@ -152,7 +192,7 @@ export function useDashboardKPIs(periodFilter: string) {
         const ticketMedio = wonDeals > 0 ? 
           (deals?.filter(d => d.status === 'won').reduce((sum, d) => sum + (Number(d.value) || 0), 0) || 0) / wonDeals : 0;
 
-        return {
+        const finalResult = {
           novos_leads: novosLeads,
           total_leads: totalLeads,
           taxa_conversao: taxaConversao,
@@ -161,6 +201,12 @@ export function useDashboardKPIs(periodFilter: string) {
           ticket_medio: ticketMedio,
           tempo_resposta: 45, // Valor fixo por enquanto
         };
+
+        console.log('[useDashboardKPIs] 🎯 === RESULTADO FINAL ===');
+        console.log('[useDashboardKPIs] ✅ KPIs calculados:', finalResult);
+        console.log('[useDashboardKPIs] 🏁 === FIM DIAGNÓSTICO ===');
+
+        return finalResult;
       } catch (error) {
         console.error('Erro ao buscar KPIs:', error);
         return {

@@ -1,15 +1,7 @@
-shutdown
-✅ [delete_1756996688471_6ca81v] VPS delete COMPLETO success: { success: true, message: "Instância removida com sucesso", instanceId: "digitalticlingmailcom10", timestamp: "2025-09-04T14:38:08.545Z" }
-🗄️ [delete_1756996688471_6ca81v] Deletando do banco...
-⚠️ [delete_1756996688471_6ca81v] Requisição veio do trigger - pulando deleção no banco para evitar loop
-✅ [delete_1756996688471_6ca81v] Instância encontrada: { id: "d809d6f0-2cd1-44d4-a7eb-e559375d6341", name: "digitalticlingmailcom10", vps_instance_id: "digitalticlingmailcom10" }
-🎯 [delete_1756996688471_6ca81v] Endpoint VPS CORRETO: http://vpswhatsapp.ticlin.com.br/instance/digitalticlingmailcom10
-🌐 [delete_1756996688471_6ca81v] Deletando COMPLETAMENTE da VPS: digitalticlingmailcom10
-🔍 [delete_1756996688471_6ca81v] Buscando instância no banco...
-🗑️ [delete_1756996688471_6ca81v] Deletando instância: d809d6f0-2cd1-44d4-a7eb-e559375d6341 (fonte: database_delete_trigger) (userId: 712e7708-2299-4a00-9128-577c8f113ca4)
-[delete_1756996688471_6ca81v] 📦 Body recebido: { "userId": "712e7708-2299-4a00-9128-577c8f113ca4", "instanceId": "d809d6f0-2cd1-44d4-a7eb-e559375d6341", "instance_name": "digitalticlingmailcom10", "trigger_source": "database_delete_trigger", "vps_instance_id": "digitalticlingmailcom10" }
-[delete_1756996688471_6ca81v] 🔑 Tipo de chamada: SERVICE_ROLE (Database Trigger)
-[delete_1756996688471_6ca81v] 🔧 Processando chamada do trigger com service role
-[Instance Delete] 🚀 Iniciando processamento - VERSÃO CORRIGIDA V2
-🗑️ [delete_1756996688471_6ca81v] WHATSAPP INSTANCE DELETE - VERSÃO CORRIGIDA
-Listening on http://localhost:9999/
+[send_native_invite] ❌ Error: Error: Falha ao enviar convite: {"code":"NOT_FOUND","message":"Requested function was not found"} at Server.<anonymous> (file:///tmp/user_fn_rhjgagzstjzynvrakdyj_23362a67-9d0c-4ba1-a914-a46bb2bfece0_14/source/index.ts:58:13) at eventLoopTick (ext:core/01_core.js:175:7) at async Server.#respond (https://deno.land/std@0.190.0/http/server.ts:220:18)
+[send_native_invite] ❌ Erro no envio de email: {"code":"NOT_FOUND","message":"Requested function was not found"}
+[send_native_invite] 📝 Dados do usuário: { email: "inaciodomrua@gmail.com", full_name: "inacio", role: "operational", company_name: "TicLin CRM" }
+[send_native_invite] 🔗 Link do convite (deve ir para /invite): http://localhost:8081/invite/ff6e1747-2924-47a9-b0e6-118c8be7b686/ff6e1747-2924-47a9-b0e6-118c8be7b686
+[send_native_invite] 📧 Enviando convite APENAS via template Resend (sem template nativo)...
+[send_native_invite] 📧 Request body: { email: "inaciodomrua@gmail.com", profile_id: "b6827afa-de0b-441f-ae08-34e89ca50887", invite_token: "ff6e1747-2924-47a9-b0e6-118c8be7b686", user_data: { full_name: "inacio", role: "operational", company_name: "TicLin CRM" }, redirect_url: "http://localhost:8081/invite/ff6e1747-2924-47a9-b0e6-118c8be7b686" }
+[send_native_invite] 🚀 Function called with method: POST

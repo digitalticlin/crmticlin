@@ -8,7 +8,7 @@ export interface TeamMember {
   full_name: string;
   email?: string;
   username?: string;
-  role: "admin" | "manager" | "operational";
+  role: "admin" | "operational";
   whatsapp?: string;
   whatsapp_access?: string[];
   funnel_access?: string[];
@@ -20,7 +20,7 @@ interface CreateMemberData {
   fullName: string;
   username: string;
   email: string;
-  role: "manager" | "operational";
+  role: "operational";
   whatsappAccess: string[];
   funnelAccess: string[];
   whatsappPersonal?: string;
@@ -29,7 +29,7 @@ interface CreateMemberData {
 interface EditMemberData {
   full_name: string;
   email?: string;
-  role: "operational" | "manager" | "admin";
+  role: "operational" | "admin";
   assignedWhatsAppIds: string[];
   assignedFunnelIds: string[];
   whatsapp_personal?: string;
@@ -138,7 +138,8 @@ export const useTeamManagement = (companyId: string | null) => {
       if (memberData.whatsappAccess.length > 0) {
         const whatsappInserts = memberData.whatsappAccess.map(whatsappId => ({
           profile_id: profile.id,
-          whatsapp_number_id: whatsappId
+          whatsapp_number_id: whatsappId,
+          created_by_user_id: companyId
         }));
 
         const { error: whatsappError } = await supabase
@@ -154,7 +155,8 @@ export const useTeamManagement = (companyId: string | null) => {
       if (memberData.funnelAccess.length > 0) {
         const funnelInserts = memberData.funnelAccess.map(funnelId => ({
           profile_id: profile.id,
-          funnel_id: funnelId
+          funnel_id: funnelId,
+          created_by_user_id: companyId
         }));
 
         const { error: funnelError } = await supabase
@@ -250,7 +252,11 @@ export const useTeamManagement = (companyId: string | null) => {
   // Edit member mutation
   const editMember = useMutation({
     mutationFn: async ({ memberId, memberData }: { memberId: string; memberData: EditMemberData }) => {
-      console.log('[useTeamManagement] ✏️ Editando membro:', memberId);
+      console.log('[useTeamManagement] ===== EDIT MEMBER MUTATION =====');
+      console.log('[useTeamManagement] ✏️ Editando membro ID:', memberId);
+      console.log('[useTeamManagement] Dados recebidos:', memberData);
+      console.log('[useTeamManagement] assignedWhatsAppIds:', memberData.assignedWhatsAppIds);
+      console.log('[useTeamManagement] assignedFunnelIds:', memberData.assignedFunnelIds);
 
       // Update profile
       const { error: profileError } = await supabase
@@ -269,45 +275,97 @@ export const useTeamManagement = (companyId: string | null) => {
       }
 
       // Update WhatsApp access
-      await supabase.from('user_whatsapp_numbers').delete().eq('profile_id', memberId);
+      console.log('[useTeamManagement] ===== ATUALIZANDO WHATSAPP ACCESS =====');
+      console.log('[useTeamManagement] 🗑️ Deletando WhatsApps existentes para membro:', memberId);
+      
+      const { error: deleteWhatsAppError } = await supabase.from('user_whatsapp_numbers').delete().eq('profile_id', memberId);
+      if (deleteWhatsAppError) {
+        console.error('[useTeamManagement] Erro ao deletar WhatsApps existentes:', deleteWhatsAppError);
+      } else {
+        console.log('[useTeamManagement] ✅ WhatsApps existentes deletados');
+      }
       
       if (memberData.assignedWhatsAppIds.length > 0) {
+        console.log('[useTeamManagement] 📝 Inserindo novos WhatsApps:', memberData.assignedWhatsAppIds);
+        
         const whatsappInserts = memberData.assignedWhatsAppIds.map(whatsappId => ({
           profile_id: memberId,
-          whatsapp_number_id: whatsappId
+          whatsapp_number_id: whatsappId,
+          created_by_user_id: companyId
         }));
+        
+        console.log('[useTeamManagement] Dados para insert WhatsApp:', whatsappInserts);
 
         const { error: whatsappError } = await supabase
           .from('user_whatsapp_numbers')
           .insert(whatsappInserts);
 
         if (whatsappError) {
-          console.error('[useTeamManagement] ❌ Erro ao atualizar WhatsApp:', whatsappError);
+          console.error('[useTeamManagement] ❌ Erro ao inserir WhatsApp:', whatsappError);
+        } else {
+          console.log('[useTeamManagement] ✅ WhatsApps inseridos com sucesso');
         }
+      } else {
+        console.log('[useTeamManagement] 📝 Nenhum WhatsApp para inserir');
       }
 
       // Update Funnel access
-      await supabase.from('user_funnels').delete().eq('profile_id', memberId);
+      console.log('[useTeamManagement] ===== ATUALIZANDO FUNNEL ACCESS =====');
+      console.log('[useTeamManagement] 🗑️ Deletando funis existentes para membro:', memberId);
+      
+      const { error: deleteFunnelError } = await supabase.from('user_funnels').delete().eq('profile_id', memberId);
+      if (deleteFunnelError) {
+        console.error('[useTeamManagement] Erro ao deletar funis existentes:', deleteFunnelError);
+      } else {
+        console.log('[useTeamManagement] ✅ Funis existentes deletados');
+      }
       
       if (memberData.assignedFunnelIds.length > 0) {
+        console.log('[useTeamManagement] 📝 Inserindo novos funis:', memberData.assignedFunnelIds);
+        
         const funnelInserts = memberData.assignedFunnelIds.map(funnelId => ({
           profile_id: memberId,
-          funnel_id: funnelId
+          funnel_id: funnelId,
+          created_by_user_id: companyId
         }));
+        
+        console.log('[useTeamManagement] Dados para insert Funnel:', funnelInserts);
 
         const { error: funnelError } = await supabase
           .from('user_funnels')
           .insert(funnelInserts);
 
         if (funnelError) {
-          console.error('[useTeamManagement] ❌ Erro ao atualizar funis:', funnelError);
+          console.error('[useTeamManagement] ❌ Erro ao inserir funis:', funnelError);
+        } else {
+          console.log('[useTeamManagement] ✅ Funis inseridos com sucesso');
         }
+      } else {
+        console.log('[useTeamManagement] 📝 Nenhum funil para inserir');
       }
+
+      // Verificar se os dados foram salvos corretamente
+      console.log('[useTeamManagement] ===== VERIFICANDO DADOS SALVOS =====');
+      
+      const { data: savedWhatsApps } = await supabase
+        .from('user_whatsapp_numbers')
+        .select('whatsapp_number_id')
+        .eq('profile_id', memberId);
+        
+      const { data: savedFunnels } = await supabase
+        .from('user_funnels')
+        .select('funnel_id')
+        .eq('profile_id', memberId);
+        
+      console.log('[useTeamManagement] 🔍 WhatsApps salvos no banco:', savedWhatsApps?.map(w => w.whatsapp_number_id));
+      console.log('[useTeamManagement] 🔍 Funis salvos no banco:', savedFunnels?.map(f => f.funnel_id));
 
       return { success: true };
     },
     onSuccess: () => {
       console.log('[useTeamManagement] ✅ Membro editado com sucesso');
+      console.log('[useTeamManagement] 🔄 Invalidando queries para atualizar lista...');
+      queryClient.invalidateQueries({ queryKey: ['teamMembers', companyId] });
       queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
       toast.success('Membro atualizado com sucesso');
     },
@@ -356,7 +414,11 @@ export const useTeamManagement = (companyId: string | null) => {
 
       // 5. ✅ CRUCIAL: Remove from Auth if user exists
       if (profile.linked_auth_user_id) {
-        console.log('[useTeamManagement] 🔥 Removendo usuário do Auth também:', profile.linked_auth_user_id);
+        console.log('[useTeamManagement] 🔥 Removendo usuário do Auth também:', {
+          user_id: profile.linked_auth_user_id,
+          email: profile.email,
+          profile_id: memberId
+        });
         
         try {
           const { data: deleteResponse, error: deleteError } = await supabase.functions.invoke('delete_auth_user', {
@@ -366,16 +428,26 @@ export const useTeamManagement = (companyId: string | null) => {
             }
           });
 
+          console.log('[useTeamManagement] 🔍 Resultado da deleção do Auth:');
+          console.log('[useTeamManagement] deleteError:', deleteError);
+          console.log('[useTeamManagement] deleteResponse:', deleteResponse);
+
           if (deleteError) {
-            console.error('[useTeamManagement] ⚠️ Erro ao remover do Auth (continuando):', deleteError);
+            console.error('[useTeamManagement] ❌ ERRO CRÍTICO: Usuário NÃO foi removido do Auth!', deleteError);
+            toast.error('Usuário removido do perfil, mas PERMANECE no Auth. Contate o administrador.');
             // Não falhar a operação se não conseguir remover do Auth
           } else {
-            console.log('[useTeamManagement] ✅ Usuário removido do Auth:', deleteResponse);
+            console.log('[useTeamManagement] ✅ Usuário removido do Auth com sucesso:', deleteResponse);
+            toast.success('Usuário removido completamente (perfil + autenticação)');
           }
         } catch (authDeleteError) {
-          console.error('[useTeamManagement] ⚠️ Erro na remoção do Auth:', authDeleteError);
+          console.error('[useTeamManagement] ❌ EXCEÇÃO na remoção do Auth:', authDeleteError);
+          toast.error('Erro na remoção do Auth. Usuário pode permanecer no sistema.');
           // Continuar sem falhar
         }
+      } else {
+        console.log('[useTeamManagement] ℹ️ Usuário não tinha linked_auth_user_id - removendo apenas perfil');
+        toast.success('Perfil removido (usuário não estava vinculado ao Auth)');
       }
 
       return { success: true };

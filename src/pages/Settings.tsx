@@ -5,8 +5,13 @@ import { MessageSquare, User, Users } from "lucide-react";
 import { OptimizedSettingsSection } from "@/components/settings/whatsapp/OptimizedSettingsSection";
 import ProfileSettings from "@/components/settings/ProfileSettings";
 import TeamSettings from "@/components/settings/TeamSettings";
+import { AdminGuard } from "@/components/auth/AdminGuard";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 export default function Settings() {
+  const { permissions } = useUserPermissions();
+  const isAdmin = permissions.role === 'admin';
+
   return (
     <div className="w-full">
       <ModernPageHeader 
@@ -15,9 +20,9 @@ export default function Settings() {
       />
         
       <Tabs defaultValue="profile" className="w-full">
-        {/* Menu de abas reordenado: Perfil, WhatsApp, Equipe */}
+        {/* Menu de abas reordenado: Perfil, WhatsApp, Equipe (apenas para admin) */}
         <div className="flex justify-center mb-6">
-          <TabsList className="w-full max-w-2xl bg-white/80 backdrop-blur-sm border border-white/30 grid grid-cols-3 text-sm sm:text-base">
+          <TabsList className={`w-full max-w-2xl bg-white/80 backdrop-blur-sm border border-white/30 text-sm sm:text-base ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'} grid`}>
             <TabsTrigger 
               value="profile"
               className="flex items-center gap-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700"
@@ -32,13 +37,15 @@ export default function Settings() {
               <MessageSquare className="h-4 w-4" />
               WhatsApp
             </TabsTrigger>
-            <TabsTrigger 
-              value="team"
-              className="flex items-center gap-2 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
-            >
-              <Users className="h-4 w-4" />
-              Equipe
-            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger 
+                value="team"
+                className="flex items-center gap-2 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
+              >
+                <Users className="h-4 w-4" />
+                Equipe
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
@@ -51,9 +58,13 @@ export default function Settings() {
           <OptimizedSettingsSection />
         </TabsContent>
 
-        <TabsContent value="team" className="space-y-6 pb-8">
-          <TeamSettings />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="team" className="space-y-6 pb-8">
+            <AdminGuard showDeniedMessage={false}>
+              <TeamSettings />
+            </AdminGuard>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

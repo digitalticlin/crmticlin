@@ -21,22 +21,46 @@ export function MultiSelectWhatsApp({
   onSelectionChange,
   allWhatsApps,
 }: MultiSelectWhatsAppProps) {
+  // Garantir que os arrays nunca sejam undefined
+  const safeWhatsApps = allWhatsApps || [];
+  const safeSelectedIds = selectedIds || [];
+  
+  console.log('[MultiSelectWhatsApp] ===== RENDER =====');
+  console.log('[MultiSelectWhatsApp] selectedIds recebido:', selectedIds);
+  console.log('[MultiSelectWhatsApp] allWhatsApps recebido:', allWhatsApps);
+  console.log('[MultiSelectWhatsApp] safeWhatsApps (length):', safeWhatsApps.length);
+  console.log('[MultiSelectWhatsApp] safeSelectedIds:', safeSelectedIds);
+
   const handleSelect = (id: string) => {
-    if (!selectedIds.includes(id)) {
-      onSelectionChange([...selectedIds, id]);
+    console.log('[MultiSelectWhatsApp] ===== SELECIONANDO WHATSAPP =====');
+    console.log('[MultiSelectWhatsApp] ID selecionado:', id);
+    console.log('[MultiSelectWhatsApp] IDs atuais:', safeSelectedIds);
+    
+    if (!safeSelectedIds.includes(id)) {
+      const newIds = [...safeSelectedIds, id];
+      console.log('[MultiSelectWhatsApp] Novos IDs após adição:', newIds);
+      onSelectionChange(newIds);
+    } else {
+      console.log('[MultiSelectWhatsApp] ID já está selecionado, ignorando');
     }
   };
 
   const handleRemove = (id: string) => {
-    onSelectionChange(selectedIds.filter((wId) => wId !== id));
+    console.log('[MultiSelectWhatsApp] ===== REMOVENDO WHATSAPP =====');
+    console.log('[MultiSelectWhatsApp] ID para remover:', id);
+    console.log('[MultiSelectWhatsApp] IDs antes da remoção:', safeSelectedIds);
+    
+    const newIds = safeSelectedIds.filter((wId) => wId !== id);
+    console.log('[MultiSelectWhatsApp] Novos IDs após remoção:', newIds);
+    onSelectionChange(newIds);
   };
 
   return (
     <div>
       <Label className="block mb-1 text-white">Instâncias WhatsApp permitidas</Label>
       <div className="flex flex-wrap gap-2 mb-2">
-        {selectedIds.map(id => {
-          const option = allWhatsApps.find(w => w.id === id);
+        {safeSelectedIds.map(id => {
+          const option = safeWhatsApps.find(w => w.id === id);
           if (!option) return null;
           return (
             <Badge
@@ -57,8 +81,8 @@ export function MultiSelectWhatsApp({
           <SelectValue placeholder="Selecionar instância" />
         </SelectTrigger>
         <SelectContent className="glass-morphism bg-white/40 border-white/20 text-black z-50">
-          {allWhatsApps
-            .filter(w => !selectedIds.includes(w.id))
+          {safeWhatsApps
+            .filter(w => !safeSelectedIds.includes(w.id))
             .map(w => (
               <SelectItem
                 key={w.id}
@@ -68,7 +92,7 @@ export function MultiSelectWhatsApp({
                 {w.instance_name}
               </SelectItem>
             ))}
-          {allWhatsApps.length === 0 && (
+          {safeWhatsApps.length === 0 && (
             <SelectItem value="none" disabled className="text-black">Nenhuma disponível</SelectItem>
           )}
         </SelectContent>
