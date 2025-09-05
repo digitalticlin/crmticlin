@@ -456,10 +456,18 @@ export function SalesFunnelContent() {
             <div className="flex-1 min-h-0">
               <WonLostBoard
                 stages={stages}
-                leads={filterLeads(leads) as any}
+                leads={filterLeads(leads).map(lead => ({
+                  ...lead,
+                  lastMessage: lead.last_message || '',
+                  lastMessageTime: lead.last_message_time || '',
+                  tags: [],
+                  unreadCount: lead.unread_count || 0,
+                  created_at: lead.created_at || '',
+                  funnel_id: lead.funnel_id || ''
+                })) as any}
                 onOpenLeadDetail={openLeadDetail}
                 onReturnToFunnel={handleReturnToFunnel}
-                onOpenChat={handleOpenChatWithLead}
+                onOpenChat={(lead) => handleOpenChatWithLead(lead)}
                 wonStageId={wonStageId}
                 lostStageId={lostStageId}
                 searchTerm={searchTerm}

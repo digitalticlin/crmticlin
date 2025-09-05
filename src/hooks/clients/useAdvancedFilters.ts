@@ -116,7 +116,7 @@ export const useAdvancedFilters = () => {
     if (filters.funnelStages.length > 0) {
       const stageNames = filters.funnelStages.map(stageId => {
         const stage = filterOptionsQuery.data?.funnelStages.find(s => s.id === stageId);
-        return stage?.name || stageId;
+        return (stage as any)?.title || (stage as any)?.name || stageId;
       }).join(', ');
       activeFilters.push({
         type: 'funnelStages',

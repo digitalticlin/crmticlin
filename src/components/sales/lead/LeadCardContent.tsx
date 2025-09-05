@@ -49,7 +49,7 @@ export const LeadCardContent = ({ lead, isWonLostView = false, lostStageId }: Le
     assignedUser: lead.assignedUser,
     ownerName: lead.ownerName,
     owner_id: lead.owner_id,
-    created_by_user_id: lead.created_by_user_id,
+    created_by_user_id: (lead as any).created_by_user_id,
     responsibleUser: responsibleUser
   });
 

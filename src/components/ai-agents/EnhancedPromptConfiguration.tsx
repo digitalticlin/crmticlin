@@ -619,13 +619,12 @@ export const EnhancedPromptConfiguration = ({
       })}
 
 
-      {/* Modal de configuração de passos do fluxo */}
-      {editingStep !== null && (
+        /* Conteúdo renderizado condicionalmente - operador ternário corrigido */
+        {editingStep !== null ? (
         <FlowStepConfigModal
           key={`flow-step-modal-${editingStep?.index || 'new'}-${forceRender}`}
           isOpen={true}
           onClose={() => {
-            console.log('🚪 FlowStepConfigModal - Fechando modal');
             setEditingStep(null);
           }}
           onSave={async (step: FlowStepEnhanced) => {
@@ -635,8 +634,8 @@ export const EnhancedPromptConfiguration = ({
           }}
           step={editingStep?.step || null}
           stepNumber={editingStep ? editingStep.index + 1 : 1}
-        />
-      )}
+         />
+      ) : null}
       {/* Debug log moved to useEffect or outside JSX */}
 
       {/* Botões de ação - BUG 2 FIX: Remover botão "Salvar Configuração" redundante */}

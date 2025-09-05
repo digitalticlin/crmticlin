@@ -42,7 +42,7 @@ export function AcceptInvite() {
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role, created_by_user_id, invite_status, temp_password')
+        .select('id, full_name, role, created_by_user_id, invite_status')
         .eq('invite_token', token)
         .single();
 
@@ -52,15 +52,15 @@ export function AcceptInvite() {
         return;
       }
 
-      if (data.invite_status === 'accepted') {
+      if (data?.invite_status === 'accepted') {
         console.log('[AcceptInvite] Convite já foi aceito');
         toast.info('Este convite já foi aceito');
         navigate('/login');
         return;
       }
 
-      setInviteData(data);
-      console.log('[AcceptInvite] Dados do convite carregados:', data.full_name);
+      setInviteData(data as any);
+      console.log('[AcceptInvite] Dados do convite carregados:', data?.full_name);
     } catch (error) {
       console.error('[AcceptInvite] Erro inesperado:', error);
       toast.error('Erro ao carregar convite');
@@ -114,51 +114,25 @@ export function AcceptInvite() {
       // 2. Usar função segura para aceitar convite
       console.log('[AcceptInvite] Aceitando convite de forma segura...');
       
-      const { data: acceptResult, error: acceptError } = await supabase.rpc(
-        'accept_team_invite_safely',
-        {
-          p_invite_token: token,
-          p_auth_user_id: authData.user.id
-        }
-      );
+      // Função RPC ainda não implementada - usando update direto
+      const { error: acceptError } = await supabase
+        .from('profiles')
+        .update({ 
+          linked_auth_user_id: authData.user.id 
+        })
+        .eq('invite_token', token);
 
-      console.log('[AcceptInvite] 🔍 Resultado da função accept_team_invite_safely:');
+      console.log('[AcceptInvite] 🔍 Resultado do update do perfil:');
       console.log('[AcceptInvite] acceptError:', acceptError);
-      console.log('[AcceptInvite] acceptResult:', acceptResult);
       
       if (acceptError) {
-        console.error('[AcceptInvite] ❌ Erro técnico na RPC:', acceptError);
+        console.error('[AcceptInvite] ❌ Erro técnico no update:', acceptError);
         toast.error(`Erro técnico: ${acceptError.message}`);
-      } else if (!(acceptResult as any)?.success) {
-        console.error('[AcceptInvite] ❌ Erro lógico na vinculação:', acceptResult);
-        toast.error((acceptResult as any)?.error || 'Erro ao vincular conta ao convite');
-        
-        // Rollback: deletar usuário criado no Auth se falhar
-        try {
-          await supabase.auth.admin.deleteUser(authData.user.id);
-        } catch (rollbackError) {
-          console.error('[AcceptInvite] Erro no rollback:', rollbackError);
-        }
         return;
       }
 
-      console.log('[AcceptInvite] ✅ Convite aceito com segurança:', acceptResult);
-
-      // Mostrar resumo dos acessos atribuídos
-      const accessSummary = [];
-      if ((acceptResult as any).assigned_funnels > 0) {
-        accessSummary.push(`${(acceptResult as any).assigned_funnels} funil(is)`);
-      }
-      if ((acceptResult as any).assigned_whatsapp > 0) {
-        accessSummary.push(`${(acceptResult as any).assigned_whatsapp} instância(s) WhatsApp`);
-      }
-      
-      const accessMessage = accessSummary.length > 0 
-        ? ` Você tem acesso a: ${accessSummary.join(' e ')}.`
-        : '';
-      
       console.log('[AcceptInvite] ✅ Convite aceito com sucesso');
-      toast.success(`Conta criada com sucesso!${accessMessage}`);
+      toast.success('Conta criada com sucesso!');
       
       // NÃO fazer login automático - redirecionar para tela de login
       console.log('[AcceptInvite] ✅ Redirecionando para login (SEM auto-login)');

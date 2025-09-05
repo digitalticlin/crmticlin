@@ -21,7 +21,7 @@ export const MessageFlowTester = () => {
   const { user } = useAuth();
   const { instances: webInstances } = useWhatsAppWebInstances();
   const activeInstance = webInstances.find(i => i.connection_status === 'ready' || i.connection_status === 'connected');
-  const { contacts } = useWhatsAppContacts(activeInstance?.id);
+  const { contacts } = useWhatsAppContacts({ activeInstanceId: activeInstance?.id });
   
   const [testSteps, setTestSteps] = useState<TestStep[]>([]);
   const [isRunning, setIsRunning] = useState(false);
