@@ -76,12 +76,14 @@ export function useDashboardFunnelData() {
       
       const { data, error } = await supabase
         .from('kanban_stages')
-        .select('id, name, order_position, is_won, is_lost, funnel_id')
+        .select(`id, title, order_position, is_won, is_lost, funnel_id`)
         .eq('funnel_id', selectedFunnel.id)
         .order('order_position', { ascending: true });
       
-      if (error) throw error;
-      return data || [];
+      return (data || []).map(stage => ({
+        ...stage,
+        name: stage.title
+      }));
     },
     enabled: !!selectedFunnel?.id,
     staleTime: 5 * 60 * 1000,

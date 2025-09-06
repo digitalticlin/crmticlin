@@ -464,8 +464,7 @@ export function SalesFunnelContent() {
                   unreadCount: lead.unread_count || 0,
                   created_at: lead.created_at || '',
                   funnel_id: lead.funnel_id || ''
-                })) as any}
-                onOpenLeadDetail={openLeadDetail}
+                }) as KanbanLead)}
                 onReturnToFunnel={handleReturnToFunnel}
                 onOpenChat={(lead) => handleOpenChatWithLead(lead)}
                 wonStageId={wonStageId}

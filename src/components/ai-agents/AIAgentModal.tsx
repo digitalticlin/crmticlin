@@ -482,7 +482,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       if (existingPrompt) {
         // Atualizar prompt existente
         console.log('🔄 Atualizando prompt existente:', existingPrompt.id);
-        const success = await updatePrompt(existingPrompt.id, promptDataToSave);
+        const success = await updatePrompt({ agent_id: existingPrompt.agent_id, ...promptDataToSave });
         console.log('💾 Resultado da atualização:', success);
         
         if (success) {
@@ -496,7 +496,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       } else {
         // Criar novo prompt
         console.log('➕ Criando novo prompt');
-        const newPrompt = await createPrompt(promptDataToSave);
+        const newPrompt = await createPrompt({ id: agent.id, ...agent } as AIAgent);
         console.log('💾 Resultado da criação:', newPrompt);
         
         if (newPrompt) {
