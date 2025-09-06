@@ -460,7 +460,7 @@ export function SalesFunnelContent() {
                   ...lead,
                   lastMessage: lead.last_message || '',
                   lastMessageTime: lead.last_message_time || '',
-                  tags: [],
+                  tags: lead.tags || [],
                   unreadCount: lead.unread_count || 0,
                   created_at: lead.created_at || '',
                   funnel_id: lead.funnel_id || ''

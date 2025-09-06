@@ -1,98 +1,85 @@
-
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { AIAgentPrompt, CreateAIAgentPromptData } from '@/types/aiAgent';
 import { toast } from 'sonner';
+import type { AIAgent, AIAgentPrompt, CreateAIAgentPromptData, PQExample, FlowStepEnhanced, FunnelStageConfig } from '@/types/aiAgent';
 
-export const useAIAgentPrompts = (agentId?: string) => {
-  const [prompts, setPrompts] = useState<AIAgentPrompt[]>([]);
+export function useAIAgentPrompts() {
   const [isLoading, setIsLoading] = useState(false);
 
-  // ATUALIZADO: Buscar dados diretamente da tabela ai_agents consolidada
-  const fetchPrompts = async (targetAgentId?: string) => {
-    if (!targetAgentId && !agentId) return;
-    
-    setIsLoading(true);
+  const createPromptFromAgent = async (agent: AIAgent): Promise<AIAgentPrompt> => {
     try {
-      console.log('🔄 [useAIAgentPrompts] Buscando dados do agente:', targetAgentId || agentId);
-      
+      console.log('🎯 [useAIAgentPrompts] Criando prompt a partir do agente:', agent);
+
+      // ✅ PRIMEIRO: Buscar dados existentes do agent na tabela ai_agents
       const { data, error } = await supabase
         .from('ai_agents')
         .select('*')
-        .eq('id', targetAgentId || agentId)
+        .eq('id', agent.id)
         .single();
 
-      if (error) throw error;
-      
-      // Convert ai_agents record para formato AIAgentPrompt compatível  
-      const typedPrompt: AIAgentPrompt = {
-        id: data.id,
-        agent_id: data.id,
-        agent_function: data.agent_function || '',
-        agent_objective: data.agent_objective || '',
-        communication_style: data.communication_style || '',
-        communication_style_examples: Array.isArray(data.communication_style_examples) ? data.communication_style_examples as any[] : [],
-        company_info: data.company_info || '',
-        products_services: data.products_services || '',
+      if (error) {
+        console.error('❌ [useAIAgentPrompts] Erro ao buscar dados do agente:', error);
+        throw error;
+      }
+
+      console.log('📊 [useAIAgentPrompts] Dados do agente encontrados:', data);
+
+      // ✅ SEGUNDO: Criar estrutura AIAgentPrompt com dados existentes
+      const promptData: AIAgentPrompt = {
+        id: agent.id,
+        agent_id: agent.id,
+        agent_function: (data.agent_function as string) || '',
+        agent_objective: (data.agent_objective as string) || '',
+        communication_style: (data.communication_style as string) || '',
+        communication_style_examples: Array.isArray(data.communication_style_examples) ? (data.communication_style_examples as unknown) as PQExample[] : [],
+        company_info: (data.company_info as string) || '',
+        products_services: (data.products_services as string) || '',
         products_services_examples: [],
-        rules_guidelines: Array.isArray(data.rules_guidelines) ? data.rules_guidelines as any[] : [],
+        rules_guidelines: Array.isArray(data.rules_guidelines) ? data.rules_guidelines as (string[] | PQExample[]) : [],
         rules_guidelines_examples: [],
-        prohibitions: Array.isArray(data.prohibitions) ? data.prohibitions as any[] : [],
+        prohibitions: Array.isArray(data.prohibitions) ? data.prohibitions as (string[] | PQExample[]) : [],
         prohibitions_examples: [],
-        client_objections: Array.isArray(data.client_objections) ? data.client_objections as any[] : [],
+        client_objections: Array.isArray(data.client_objections) ? data.client_objections as (string[] | PQExample[]) : [],
         client_objections_examples: [],
         phrase_tips: '',
         phrase_tips_examples: [],
-        flow: Array.isArray(data.flow) ? data.flow as any[] : [],
-        products_services_examples: [], // Campo legacy - mantido para compatibilidade
-        rules_guidelines: Array.isArray(data.rules_guidelines) ? data.rules_guidelines : [],
-        rules_guidelines_examples: [], // Campo legacy - mantido para compatibilidade
-        prohibitions: Array.isArray(data.prohibitions) ? data.prohibitions : [],
-        prohibitions_examples: [], // Campo legacy - mantido para compatibilidade
-        client_objections: Array.isArray(data.client_objections) ? data.client_objections : [],
-        client_objections_examples: [], // Campo legacy - mantido para compatibilidade
-        phrase_tips: '', // Campo legacy - mantido para compatibilidade
-        phrase_tips_examples: [], // Campo legacy - mantido para compatibilidade
-        flow: Array.isArray(data.flow) ? data.flow : [],
-        funnel_configuration: Array.isArray(data.funnel_configuration) ? data.funnel_configuration : [], // NOVO: Configuração do funil
+        flow: Array.isArray(data.flow) ? (data.flow as unknown) as FlowStepEnhanced[] : [],
         created_by_user_id: data.created_by_user_id,
         created_at: data.created_at,
         updated_at: data.updated_at
       };
-      
-      console.log('✅ [useAIAgentPrompts] Dados carregados:', typedPrompt);
-      setPrompts([typedPrompt]);
+
+      console.log('✅ [useAIAgentPrompts] Prompt criado com sucesso:', promptData);
+      return promptData;
+
     } catch (error) {
-      console.error('❌ [useAIAgentPrompts] Erro ao carregar prompts:', error);
-      toast.error('Erro ao carregar prompts do agente');
-    } finally {
-      setIsLoading(false);
+      console.error('❌ [useAIAgentPrompts] Erro ao criar prompt:', error);
+      throw error;
     }
   };
 
-  // CORRIGIDO: Criar/atualizar prompts diretamente na tabela ai_agents
-  const createPrompt = async (data: CreateAIAgentPromptData): Promise<AIAgentPrompt | null> => {
+  const updateAIAgentPrompt = async (data: Partial<CreateAIAgentPromptData>): Promise<AIAgent> => {
     try {
-      console.log('➕ [useAIAgentPrompts] createPrompt chamado com:', data);
-      
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) throw new Error('Usuário não autenticado');
+      console.log('💾 [useAIAgentPrompts] Iniciando atualização do agente:', data);
+      setIsLoading(true);
 
-      console.log('👤 [useAIAgentPrompts] Usuário autenticado:', user.user.id);
+      if (!data.agent_id) {
+        throw new Error('ID do agente é obrigatório para atualização');
+      }
 
-      // Preparar dados para atualizar na tabela ai_agents (estrutura consolidada)
+      // ✅ Preparar dados para ai_agents (cast explícito para Json)
       const formattedData = {
         agent_function: data.agent_function || '',
         agent_objective: data.agent_objective || '',
         communication_style: data.communication_style || '',
-        communication_style_examples: Array.isArray(data.communication_style_examples) ? data.communication_style_examples : [],
+        communication_style_examples: data.communication_style_examples as any || [],
         company_info: data.company_info || '',
         products_services: data.products_services || '',
-        rules_guidelines: Array.isArray(data.rules_guidelines) ? data.rules_guidelines : [],
-        prohibitions: Array.isArray(data.prohibitions) ? data.prohibitions : [],
-        client_objections: Array.isArray(data.client_objections) ? data.client_objections : [],
-        flow: Array.isArray(data.flow) ? data.flow : [],
-        funnel_configuration: Array.isArray(data.funnel_configuration) ? data.funnel_configuration : [], // NOVO: Suporte ao campo
+        rules_guidelines: data.rules_guidelines as any || [],
+        prohibitions: data.prohibitions as any || [],
+        client_objections: data.client_objections as any || [],
+        flow: data.flow as any || [],
+        funnel_configuration: data.funnel_configuration as any || [],
         updated_at: new Date().toISOString()
       };
 
@@ -117,236 +104,150 @@ export const useAIAgentPrompts = (agentId?: string) => {
         console.error('❌ [useAIAgentPrompts] Agente não retornado da operação');
         throw new Error('Agente não retornado da operação');
       }
+
+      console.log('✅ [useAIAgentPrompts] Agente atualizado com sucesso:', updatedAgent);
       
-      // Converter registro do banco para objeto AIAgentPrompt
-      const typedPrompt: AIAgentPrompt = {
+      // Converter dados do Supabase para o tipo AIAgent esperado
+      const convertedAgent: AIAgent = {
         id: updatedAgent.id,
-        agent_id: updatedAgent.id,
-        agent_function: updatedAgent.agent_function || '',
-        agent_objective: updatedAgent.agent_objective || '',
-        communication_style: updatedAgent.communication_style || '',
-        communication_style_examples: Array.isArray(updatedAgent.communication_style_examples) ? updatedAgent.communication_style_examples : [],
-        company_info: updatedAgent.company_info || '',
-        products_services: updatedAgent.products_services || '',
-        products_services_examples: [], // Campo legacy - mantido para compatibilidade
-        rules_guidelines: Array.isArray(updatedAgent.rules_guidelines) ? updatedAgent.rules_guidelines : [],
-        rules_guidelines_examples: [], // Campo legacy - mantido para compatibilidade  
-        prohibitions: Array.isArray(updatedAgent.prohibitions) ? updatedAgent.prohibitions : [],
-        prohibitions_examples: [], // Campo legacy - mantido para compatibilidade
-        client_objections: Array.isArray(updatedAgent.client_objections) ? updatedAgent.client_objections : [],
-        client_objections_examples: [], // Campo legacy - mantido para compatibilidade
-        phrase_tips: '', // Campo legacy - mantido para compatibilidade
-        phrase_tips_examples: [], // Campo legacy - mantido para compatibilidade
-        flow: Array.isArray(updatedAgent.flow) ? updatedAgent.flow : [],
-        funnel_configuration: Array.isArray(updatedAgent.funnel_configuration) ? updatedAgent.funnel_configuration : [], // NOVO: Configuração do funil
+        name: updatedAgent.name,
+        type: updatedAgent.type as 'attendance' | 'sales' | 'support' | 'custom',
+        status: updatedAgent.status as 'active' | 'inactive',
+        funnel_id: updatedAgent.funnel_id,
+        whatsapp_number_id: updatedAgent.whatsapp_number_id,
+        messages_count: updatedAgent.messages_count,
         created_by_user_id: updatedAgent.created_by_user_id,
         created_at: updatedAgent.created_at,
         updated_at: updatedAgent.updated_at
       };
-      
-      // Atualizar estado local
-      await fetchPrompts(data.agent_id);
-      return typedPrompt;
+
+      return convertedAgent;
+
     } catch (error) {
-      console.error('❌ [useAIAgentPrompts] Error creating AI agent prompt:', error);
+      console.error('❌ [useAIAgentPrompts] Erro no updateAIAgentPrompt:', error);
+      toast.error('Erro ao atualizar configuração do agente');
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // CORRIGIDO: Atualizar prompts diretamente na tabela ai_agents com logs detalhados
-  const updatePrompt = async (id: string, updates: Partial<AIAgentPrompt>): Promise<boolean> => {
+  const getAIAgentPrompt = async (agentId: string): Promise<AIAgentPrompt | null> => {
     try {
-      console.log('\n=== 🔄 [useAIAgentPrompts] UPDATE PROMPT INICIADO ===');
-      console.log('🆔 Agent ID:', id);
-      console.log('📝 Updates recebidos:', Object.keys(updates));
-      console.log('📊 Dados completos dos updates:', updates);
-      
-      const formattedUpdates: any = {};
-      
-      // ✅ CORREÇÃO PRINCIPAL: Mapear TODOS os campos corretamente
-      if (updates.agent_function !== undefined) {
-        formattedUpdates.agent_function = updates.agent_function;
-        console.log('📌 Mapeando agent_function:', updates.agent_function);
-      }
-      
-      if (updates.agent_objective !== undefined) {
-        formattedUpdates.agent_objective = updates.agent_objective;
-        console.log('📌 Mapeando agent_objective:', updates.agent_objective);
-      }
-      
-      if (updates.communication_style !== undefined) {
-        formattedUpdates.communication_style = updates.communication_style;
-        console.log('📌 Mapeando communication_style:', updates.communication_style);
-      }
-      
-      if (updates.communication_style_examples !== undefined) {
-        const examples = Array.isArray(updates.communication_style_examples) ? updates.communication_style_examples : [];
-        formattedUpdates.communication_style_examples = examples;
-        console.log('📌 Mapeando communication_style_examples:', examples.length, 'itens');
-      }
-      
-      if (updates.company_info !== undefined) {
-        formattedUpdates.company_info = updates.company_info;
-        console.log('📌 Mapeando company_info:', updates.company_info);
-      }
-      
-      if (updates.products_services !== undefined) {
-        formattedUpdates.products_services = updates.products_services;
-        console.log('📌 Mapeando products_services:', updates.products_services);
-      }
-      
-      // ✅ CORREÇÃO: Mapear arrays JSONB corretamente
-      if (updates.rules_guidelines !== undefined) {
-        const rules = Array.isArray(updates.rules_guidelines) ? updates.rules_guidelines : [];
-        formattedUpdates.rules_guidelines = rules;
-        console.log('📌 Mapeando rules_guidelines:', rules.length, 'itens');
-      }
-      
-      if (updates.prohibitions !== undefined) {
-        const prohibitions = Array.isArray(updates.prohibitions) ? updates.prohibitions : [];
-        formattedUpdates.prohibitions = prohibitions;
-        console.log('📌 Mapeando prohibitions:', prohibitions.length, 'itens');
-      }
-      
-      if (updates.client_objections !== undefined) {
-        const objections = Array.isArray(updates.client_objections) ? updates.client_objections : [];
-        formattedUpdates.client_objections = objections;
-        console.log('📌 Mapeando client_objections:', objections.length, 'itens');
-      }
-      
-      if (updates.flow !== undefined) {
-        const flow = Array.isArray(updates.flow) ? updates.flow : [];
-        formattedUpdates.flow = flow;
-        console.log('📌 Mapeando flow:', flow.length, 'itens');
-      }
-      
-      // NOVO: Mapear funnel_configuration
-      if (updates.funnel_configuration !== undefined) {
-        const funnelConfig = Array.isArray(updates.funnel_configuration) ? updates.funnel_configuration : [];
-        formattedUpdates.funnel_configuration = funnelConfig;
-        console.log('📌 Mapeando funnel_configuration:', funnelConfig.length, 'itens');
-      }
-      
-      // Adicionar updated_at
-      formattedUpdates.updated_at = new Date().toISOString();
-      
-      console.log('💾 [useAIAgentPrompts] Dados finais para Supabase:', formattedUpdates);
+      console.log('🔍 [useAIAgentPrompts] Buscando prompt do agente:', agentId);
 
-      // ✅ CORREÇÃO: Usar o ID correto e aguardar resposta
-      const { data, error } = await supabase
-        .from('ai_agents')
-        .update(formattedUpdates)
-        .eq('id', id)
-        .select();
-
-      console.log('📊 [useAIAgentPrompts] Resposta do Supabase:');
-      console.log('  - Data:', data ? `${data.length} registro(s) atualizado(s)` : 'null');
-      console.log('  - Error:', error || 'nenhum erro');
-
-      if (error) {
-        console.error('❌ [useAIAgentPrompts] Erro do Supabase:', error);
-        throw error;
-      }
-      
-      if (!data || data.length === 0) {
-        console.error('❌ [useAIAgentPrompts] Nenhum registro foi atualizado');
-        throw new Error('Nenhum registro foi atualizado - verifique se o ID do agente está correto');
-      }
-      
-      console.log('✅ [useAIAgentPrompts] UPDATE CONCLUÍDO COM SUCESSO!');
-      
-      // ✅ CORREÇÃO: Refrescar dados após salvamento para garantir sincronização
-      await fetchPrompts(id);
-      
-      console.log('=== FIM UPDATE PROMPT ===\n');
-      return true;
-    } catch (error) {
-      console.error('❌ [useAIAgentPrompts] Error updating AI agent prompt:', error);
-      toast.error('Erro ao salvar alterações', {
-        description: 'Tente novamente em alguns segundos'
-      });
-      throw error;
-    }
-  };
-
-  // ATUALIZADO: Buscar prompts diretamente da tabela ai_agents
-  const getPromptByAgentId = async (targetAgentId: string): Promise<AIAgentPrompt | null> => {
-    try {
-      console.log('\n=== 🔍 [useAIAgentPrompts] GET PROMPT BY AGENT ID ===');
-      console.log('🆔 Buscando dados do agente ID:', targetAgentId);
-      
       const { data, error } = await supabase
         .from('ai_agents')
         .select('*')
-        .eq('id', targetAgentId)
-        .maybeSingle();
+        .eq('id', agentId)
+        .single();
 
-      console.log('📊 [useAIAgentPrompts] Resposta da busca:', { data: data ? 'ENCONTRADO' : 'NÃO ENCONTRADO', error: error || 'NENHUM' });
-      
       if (error) {
-        console.error('❌ [useAIAgentPrompts] Erro ao buscar agente:', error);
-        throw error;
-      }
-      
-      if (!data) {
-        console.log('⚠️ [useAIAgentPrompts] Agente não encontrado');
-        console.log('=== FIM GET PROMPT (SEM DADOS) ===\n');
+        console.error('❌ [useAIAgentPrompts] Erro ao buscar prompt:', error);
         return null;
       }
-      
-      // Converter registro do agente para formato AIAgentPrompt
-      const typedPrompt: AIAgentPrompt = {
+
+      if (!data) {
+        console.log('⚠️ [useAIAgentPrompts] Nenhum prompt encontrado para o agente');
+        return null;
+      }
+
+      console.log('📊 [useAIAgentPrompts] Dados do agente encontrados:', data);
+
+      const promptData: AIAgentPrompt = {
         id: data.id,
         agent_id: data.id,
-        agent_function: data.agent_function || '',
-        agent_objective: data.agent_objective || '',
-        communication_style: data.communication_style || '',
-        communication_style_examples: Array.isArray(data.communication_style_examples) ? data.communication_style_examples : [],
-        company_info: data.company_info || '',
-        products_services: data.products_services || '',
-        products_services_examples: [], // Campo legacy - mantido para compatibilidade
-        rules_guidelines: Array.isArray(data.rules_guidelines) ? data.rules_guidelines : [],
-        rules_guidelines_examples: [], // Campo legacy - mantido para compatibilidade
-        prohibitions: Array.isArray(data.prohibitions) ? data.prohibitions : [],
-        prohibitions_examples: [], // Campo legacy - mantido para compatibilidade
-        client_objections: Array.isArray(data.client_objections) ? data.client_objections : [],
-        client_objections_examples: [], // Campo legacy - mantido para compatibilidade
-        phrase_tips: '', // Campo legacy - mantido para compatibilidade
-        phrase_tips_examples: [], // Campo legacy - mantido para compatibilidade
-        flow: Array.isArray(data.flow) ? data.flow : [],
-        funnel_configuration: Array.isArray(data.funnel_configuration) ? data.funnel_configuration : [], // NOVO: Configuração do funil
+        agent_function: (data.agent_function as string) || '',
+        agent_objective: (data.agent_objective as string) || '',
+        communication_style: (data.communication_style as string) || '',
+        communication_style_examples: Array.isArray(data.communication_style_examples) ? (data.communication_style_examples as unknown) as PQExample[] : [],
+        company_info: (data.company_info as string) || '',
+        products_services: (data.products_services as string) || '',
+        products_services_examples: [],
+        rules_guidelines: Array.isArray(data.rules_guidelines) ? data.rules_guidelines as (string[] | PQExample[]) : [],
+        rules_guidelines_examples: [],
+        prohibitions: Array.isArray(data.prohibitions) ? data.prohibitions as (string[] | PQExample[]) : [],
+        prohibitions_examples: [],
+        client_objections: Array.isArray(data.client_objections) ? data.client_objections as (string[] | PQExample[]) : [],
+        client_objections_examples: [],
+        phrase_tips: '',
+        phrase_tips_examples: [],
+        flow: Array.isArray(data.flow) ? (data.flow as unknown) as FlowStepEnhanced[] : [],
         created_by_user_id: data.created_by_user_id,
         created_at: data.created_at,
         updated_at: data.updated_at
       };
-      
-      console.log('✅ [useAIAgentPrompts] Dados do agente convertidos com sucesso');
-      console.log('=== FIM GET PROMPT (COM SUCESSO) ===\n');
-      return typedPrompt;
+
+      console.log('✅ [useAIAgentPrompts] Prompt encontrado:', promptData);
+      return promptData;
+
     } catch (error) {
-      console.error('❌ [useAIAgentPrompts] ERRO AO BUSCAR DADOS DO AGENTE:', error);
-      console.log('=== FIM GET PROMPT (COM ERRO) ===\n');
+      console.error('❌ [useAIAgentPrompts] Erro ao buscar prompt:', error);
       return null;
     }
   };
 
-  // Enhanced refetch function
-  const refetch = async (targetAgentId?: string) => {
-    await fetchPrompts(targetAgentId);
+  // ✅ NOVA: Função para salvar configuração de funil
+  const saveFunnelConfiguration = async (agentId: string, funnelConfig: FunnelStageConfig[]): Promise<void> => {
+    try {
+      console.log('🎯 [useAIAgentPrompts] Salvando configuração do funil:', { agentId, funnelConfig });
+
+      const { error } = await supabase
+        .from('ai_agents')
+        .update({
+          funnel_configuration: funnelConfig as any,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', agentId);
+
+      if (error) {
+        console.error('❌ [useAIAgentPrompts] Erro ao salvar configuração do funil:', error);
+        throw error;
+      }
+
+      console.log('✅ [useAIAgentPrompts] Configuração do funil salva com sucesso');
+      toast.success('Configuração do funil salva com sucesso');
+
+    } catch (error) {
+      console.error('❌ [useAIAgentPrompts] Erro ao salvar configuração do funil:', error);
+      toast.error('Erro ao salvar configuração do funil');
+      throw error;
+    }
   };
 
-  useEffect(() => {
-    if (agentId) {
-      fetchPrompts();
+  const getFunnelConfiguration = async (agentId: string): Promise<FunnelStageConfig[]> => {
+    try {
+      console.log('🔍 [useAIAgentPrompts] Buscando configuração do funil para agente:', agentId);
+
+      const { data, error } = await supabase
+        .from('ai_agents')
+        .select('funnel_configuration')
+        .eq('id', agentId)
+        .single();
+
+      if (error) {
+        console.error('❌ [useAIAgentPrompts] Erro ao buscar configuração do funil:', error);
+        return [];
+      }
+
+      const config = Array.isArray(data.funnel_configuration) ? 
+        (data.funnel_configuration as unknown) as FunnelStageConfig[] : [];
+
+      console.log('✅ [useAIAgentPrompts] Configuração do funil encontrada:', config);
+      return config;
+
+    } catch (error) {
+      console.error('❌ [useAIAgentPrompts] Erro ao buscar configuração do funil:', error);
+      return [];
     }
-  }, [agentId]);
+  };
 
   return {
-    prompts,
-    isLoading,
-    createPrompt,
-    updatePrompt,
-    getPromptByAgentId,
-    refetch
+    createPromptFromAgent,
+    updateAIAgentPrompt,
+    getAIAgentPrompt,
+    saveFunnelConfiguration,
+    getFunnelConfiguration,
+    isLoading
   };
-};
+}

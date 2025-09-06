@@ -471,7 +471,7 @@ export const FunnelConfigModal = ({
       const { error: agentError } = await supabase
         .from('ai_agents')
         .update({
-          funnel_configuration: funnelConfiguration,
+          funnel_configuration: funnelConfiguration as any,
           updated_at: new Date().toISOString()
         })
         .eq('id', agent.id);

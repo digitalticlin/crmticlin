@@ -28,7 +28,11 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   const [workingAgent, setWorkingAgent] = useState<AIAgent | null>(null);
   const [isMounted, setIsMounted] = useState(true);
   const [allowTabNavigation, setAllowTabNavigation] = useState(false); // Permitir navegação livre
-  const { getPromptByAgentId, createPrompt, updatePrompt } = useAIAgentPrompts();
+  const { 
+    getAIAgentPrompt: getPromptByAgentId, 
+    createPromptFromAgent: createPrompt, 
+    updateAIAgentPrompt: updatePrompt 
+  } = useAIAgentPrompts();
   
   // Centralized form data state with NEW database structure
   const [promptData, setPromptData] = useState({

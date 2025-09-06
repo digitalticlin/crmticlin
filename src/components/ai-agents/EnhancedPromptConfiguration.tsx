@@ -619,25 +619,25 @@ export const EnhancedPromptConfiguration = ({
       })}
 
 
-        /* Conteúdo renderizado condicionalmente - operador ternário corrigido */
         {editingStep !== null ? (
-        <FlowStepConfigModal
-          key={`flow-step-modal-${editingStep?.index || 'new'}-${forceRender}`}
-          isOpen={true}
-          onClose={() => {
-            setEditingStep(null);
-          }}
-          onSave={async (step: FlowStepEnhanced) => {
-            console.log('💾 FlowStepConfigModal - Salvando passo:', step);
-            await handleStepSave(step);
-            setEditingStep(null);
-          }}
-          step={editingStep?.step || null}
-          stepNumber={editingStep ? editingStep.index + 1 : 1}
-         />
-      ) : null}
+          <FlowStepConfigModal
+            key={`flow-step-modal-${editingStep?.index || 'new'}-${forceRender}`}
+            isOpen={true}
+            onClose={() => {
+              setEditingStep(null);
+            }}
+            onSave={async (step: FlowStepEnhanced) => {
+              console.log('💾 FlowStepConfigModal - Salvando passo:', step);
+              await handleStepSave(step);
+              setEditingStep(null);
+            }}
+            step={editingStep?.step || null}
+            stepNumber={editingStep ? editingStep.index + 1 : 1}
+           />
+        ) : null}
 
-      <div className="flex justify-end gap-2 pt-4 border-t border-white/30">
+        {/* Botões de ação */}
+        <div className="flex justify-end gap-2 pt-4 border-t border-white/30">
         <Button 
           type="button" 
           variant="outline" 
@@ -654,7 +654,6 @@ export const EnhancedPromptConfiguration = ({
       </div>
 
       {/* Modal de confirmação para deletar passo */}
-      {console.log('🔍 DeleteConfirmModal renderizando:', showDeleteConfirm.show)}
       {showDeleteConfirm.show && (
         <Dialog 
           key={`delete-confirm-modal-${showDeleteConfirm.index || 'none'}-${forceRender}`}

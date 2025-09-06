@@ -11,11 +11,16 @@ export interface WhatsAppInstance {
   instanceName: string;
   status: string;
   phone?: string;
+  phoneNumber?: string;
   profileName?: string;
+  connected?: boolean;
   deviceInfo?: {
     batteryLevel?: number;
     lastSeen?: string;
     model?: string;
+    deviceModel?: string;
+    whatsappVersion?: string;
+    lastConnectionTime?: string;
   };
 }
 
