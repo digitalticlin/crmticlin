@@ -454,25 +454,38 @@ export function SalesFunnelContent() {
             />
             {/* Board Won/Lost (pode rolar verticalmente dentro das etapas) */}
             <div className="flex-1 min-h-0">
-              <WonLostBoard
-                stages={stages}
-                leads={filterLeads(leads).map(lead => ({
-                  ...lead,
-                  lastMessage: lead.last_message || '',
-                  lastMessageTime: lead.last_message_time || '',
-                  tags: lead.tags || [],
-                  unreadCount: lead.unread_count || 0,
-                  created_at: lead.created_at || '',
-                  funnel_id: lead.funnel_id || ''
-                }) as KanbanLead)}
-                onReturnToFunnel={handleReturnToFunnel}
-                onOpenChat={(lead) => handleOpenChatWithLead(lead)}
-                wonStageId={wonStageId}
-                lostStageId={lostStageId}
-                searchTerm={searchTerm}
-                selectedTags={selectedTags}
-                selectedUser={selectedUser}
-              />
+            <WonLostBoard
+              stages={stages}
+              leads={filterLeads(leads.map(lead => ({
+                id: lead.id,
+                name: lead.name,
+                phone: lead.phone,
+                email: lead.email || '',
+                company: lead.company || '',
+                lastMessage: lead.last_message || '',
+                lastMessageTime: lead.last_message_time || '',
+                purchaseValue: lead.purchase_value || 0,
+                unreadCount: lead.unread_count || 0,
+                columnId: lead.kanban_stage_id || '',
+                assignedUser: lead.owner_id || '',
+                avatar: lead.profile_pic_url || '',
+                tags: [],
+                notes: lead.notes || '',
+                profile_pic_url: lead.profile_pic_url || '',
+                created_at: lead.created_at || '',
+                funnel_id: lead.funnel_id || '',
+                kanban_stage_id: lead.kanban_stage_id || '',
+                owner_id: lead.owner_id || ''
+              }) as KanbanLead))}
+              onOpenLeadDetail={openLeadDetail}
+              onReturnToFunnel={handleReturnToFunnel}
+              onOpenChat={(lead) => handleOpenChatWithLead(lead)}
+              wonStageId={wonStageId}
+              lostStageId={lostStageId}
+              searchTerm={searchTerm}
+              selectedTags={selectedTags}
+              selectedUser={selectedUser}
+            />
             </div>
           </div>
         )}

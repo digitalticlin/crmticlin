@@ -188,7 +188,7 @@ export const ModernTeamMembersList = ({
                     )}
 
                     {/* Nota para Gestores */}
-                    {(member.role === 'admin' || member.role === 'manager') && (
+                    {(member.role === 'admin' || member.role === 'operational') && (
                       <div className="mt-3">
                         <div className={`${roleInfo.bgColor} backdrop-blur-sm border border-white/30 rounded-lg p-2`}>
                           <p className="text-xs font-medium text-gray-700">
