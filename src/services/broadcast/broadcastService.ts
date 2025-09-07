@@ -78,12 +78,16 @@ export class BroadcastService {
       
       case 'tags':
         if (target.config.tag_ids && target.config.tag_ids.length > 0) {
-          query = query.in('id', 
-            supabase
-              .from('lead_tags')
-              .select('lead_id')
-              .in('tag_id', target.config.tag_ids)
-          );
+          // First get the lead IDs with the specified tags
+          const { data: leadTagsData } = await supabase
+            .from('lead_tags')
+            .select('lead_id')
+            .in('tag_id', target.config.tag_ids);
+          
+          const leadIds = leadTagsData?.map(lt => lt.lead_id) || [];
+          if (leadIds.length > 0) {
+            query = query.in('id', leadIds);
+          }
         }
         break;
       

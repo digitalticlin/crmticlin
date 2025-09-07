@@ -249,7 +249,7 @@ export const FieldConfigModalTemp = ({
       <FunnelConfigModal
         isOpen={isOpen}
         onClose={onClose}
-        onSave={onSave}
+        onSave={async (data) => await onSave(data)}
         title={title}
         icon={icon}
         agent={agent}

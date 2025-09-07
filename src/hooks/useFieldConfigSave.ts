@@ -6,7 +6,7 @@ import { AIAgentPrompt } from '@/types/aiAgent';
 
 export const useFieldConfigSave = (agentId: string) => {
   const [isSaving, setIsSaving] = useState(false);
-  const { updatePrompt, refetch } = useAIAgentPrompts();
+  const { updateAIAgentPrompt: updatePrompt } = useAIAgentPrompts();
 
   const saveFieldConfig = async (fieldKey: keyof AIAgentPrompt, value: any): Promise<boolean> => {
     if (!agentId) {
@@ -31,28 +31,18 @@ export const useFieldConfigSave = (agentId: string) => {
       
       console.log('📝 [useFieldConfigSave] Dados para update:', updateData);
       
-      // Executar update
-      const success = await updatePrompt(agentId, updateData);
+      // Executar update 
+      await updatePrompt({ agent_id: agentId, [fieldKey]: value });
       
-      if (success) {
-        console.log('✅ [useFieldConfigSave] Configuração salva com sucesso');
-        
-        // Mostrar feedback visual por 1.5 segundos
-        toast.success('Configuração salva!', {
-          duration: 1500,
-          description: 'As alterações foram aplicadas ao agente'
-        });
-        
-        // Aguardar um pouco e refrescar dados para garantir sincronização
-        setTimeout(async () => {
-          await refetch(agentId);
-          console.log('🔄 [useFieldConfigSave] Dados atualizados após salvamento');
-        }, 500);
-        
-        return true;
-      } else {
-        throw new Error('Falha no salvamento');
-      }
+      console.log('✅ [useFieldConfigSave] Configuração salva com sucesso');
+      
+      // Mostrar feedback visual por 1.5 segundos
+      toast.success('Configuração salva!', {
+        duration: 1500,
+        description: 'As alterações foram aplicadas ao agente'
+      });
+      
+      return true;
       
     } catch (error) {
       console.error('❌ [useFieldConfigSave] Erro ao salvar configuração:', error);

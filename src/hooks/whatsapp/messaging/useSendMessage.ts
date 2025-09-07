@@ -89,7 +89,7 @@ export const useSendMessage = ({
         instanceId: instanceIdToUse,
         phone: selectedContact.phone,
         message: text.trim(),
-        mediaType: mediaType || 'text',
+        mediaType: (mediaType || 'text') as 'text' | 'image' | 'video' | 'audio' | 'document',
         mediaUrl
       });
 

@@ -11,7 +11,7 @@ export interface DashboardConfigRow {
 export const dashboardConfigService = {
   async getConfig(userId: string): Promise<{ layoutConfig: LayoutConfig } | null> {
     const { data, error } = await supabase
-      .from<DashboardConfigRow>('dashboard_configs')
+      .from('dashboard_configs')
       .select('layout_config, updated_at, created_by_user_id')
       .eq('created_by_user_id', userId)
       .maybeSingle();
@@ -23,12 +23,12 @@ export const dashboardConfigService = {
 
     if (!data) return null;
 
-    return { layoutConfig: data.layout_config };
+    return { layoutConfig: (data.layout_config as unknown) as LayoutConfig };
   },
 
   async saveConfig(userId: string, config: LayoutConfig): Promise<void> {
     const { error } = await supabase
-      .from<DashboardConfigRow>('dashboard_configs')
+      .from('dashboard_configs')
       .upsert({
         user_id: userId,
         created_by_user_id: userId,

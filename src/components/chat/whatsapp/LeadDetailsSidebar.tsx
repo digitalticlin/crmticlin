@@ -488,7 +488,7 @@ export const LeadDetailsSidebar = ({
             <DealHistorySection 
               dealHistory={selectedContact.deals?.map(deal => ({
                 id: deal.id,
-                type: deal.status,
+                type: deal.status === 'won' ? 'win' : 'loss',
                 value: deal.value,
                 date: deal.date,
                 stage: deal.stage || 'Não informado',

@@ -42,7 +42,7 @@ export function AcceptInvite() {
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role, created_by_user_id, invite_status, temp_password')
+        .select('id, full_name, role, created_by_user_id, invite_status')
         .eq('invite_token', token)
         .single();
 
@@ -52,15 +52,15 @@ export function AcceptInvite() {
         return;
       }
 
-      if (data.invite_status === 'accepted') {
+      if (data?.invite_status === 'accepted') {
         console.log('[AcceptInvite] Convite já foi aceito');
         toast.info('Este convite já foi aceito');
         navigate('/login');
         return;
       }
 
-      setInviteData(data);
-      console.log('[AcceptInvite] Dados do convite carregados:', data.full_name);
+      setInviteData(data as any);
+      console.log('[AcceptInvite] Dados do convite carregados:', data?.full_name);
     } catch (error) {
       console.error('[AcceptInvite] Erro inesperado:', error);
       toast.error('Erro ao carregar convite');
@@ -114,6 +114,7 @@ export function AcceptInvite() {
       // 2. Usar função segura para aceitar convite
       console.log('[AcceptInvite] Aceitando convite de forma segura...');
       
+      // Usar função RPC agora implementada
       const { data: acceptResult, error: acceptError } = await supabase.rpc(
         'accept_team_invite_safely',
         {
@@ -122,56 +123,32 @@ export function AcceptInvite() {
         }
       );
 
-      console.log('[AcceptInvite] 🔍 Resultado da função accept_team_invite_safely:');
-      console.log('[AcceptInvite] acceptError:', acceptError);
-      console.log('[AcceptInvite] acceptResult:', acceptResult);
-      
       if (acceptError) {
-        console.error('[AcceptInvite] ❌ Erro técnico na RPC:', acceptError);
-        toast.error(`Erro técnico: ${acceptError.message}`);
-      } else if (!(acceptResult as any)?.success) {
-        console.error('[AcceptInvite] ❌ Erro lógico na vinculação:', acceptResult);
-        toast.error((acceptResult as any)?.error || 'Erro ao vincular conta ao convite');
-        
-        // Rollback: deletar usuário criado no Auth se falhar
-        try {
-          await supabase.auth.admin.deleteUser(authData.user.id);
-        } catch (rollbackError) {
-          console.error('[AcceptInvite] Erro no rollback:', rollbackError);
-        }
+        console.error('[AcceptInvite] ❌ Erro ao aceitar convite:', acceptError);
+        toast.error('Erro ao aceitar convite');
         return;
       }
 
-      console.log('[AcceptInvite] ✅ Convite aceito com segurança:', acceptResult);
+      if (!(acceptResult as any)?.success) {
+        console.error('[AcceptInvite] ❌ Erro na vinculação:', (acceptResult as any)?.error);
+        toast.error((acceptResult as any)?.error || 'Erro ao aceitar convite');
+        return;
+      }
 
-      // Mostrar resumo dos acessos atribuídos
-      const accessSummary = [];
-      if ((acceptResult as any).assigned_funnels > 0) {
-        accessSummary.push(`${(acceptResult as any).assigned_funnels} funil(is)`);
-      }
-      if ((acceptResult as any).assigned_whatsapp > 0) {
-        accessSummary.push(`${(acceptResult as any).assigned_whatsapp} instância(s) WhatsApp`);
-      }
-      
-      const accessMessage = accessSummary.length > 0 
-        ? ` Você tem acesso a: ${accessSummary.join(' e ')}.`
-        : '';
-      
       console.log('[AcceptInvite] ✅ Convite aceito com sucesso');
-      toast.success(`Conta criada com sucesso!${accessMessage}`);
+      toast.success('Conta criada com sucesso!');
       
-      // NÃO fazer login automático - redirecionar para tela de login
-      console.log('[AcceptInvite] ✅ Redirecionando para login (SEM auto-login)');
+      // Redirecionar para login
       toast.success('Conta criada! Faça login com suas credenciais.', {
         duration: 3000
       });
       
-      // Redirecionar para login com as credenciais preenchidas
+      // Redirecionar para login  
       setTimeout(() => {
         navigate('/login', { 
           state: { 
-            message: `Conta criada com sucesso!${accessMessage} Use suas credenciais para fazer login.`,
-            email: inviteData.email 
+            message: 'Conta criada com sucesso! Use suas credenciais para fazer login.',
+            email: inviteData?.email 
           } 
         });
       }, 2000);

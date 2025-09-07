@@ -21,7 +21,7 @@ export const FunnelConfigModal = ({ isOpen, onClose }: FunnelConfigModalProps) =
   };
 
   const handleCreateStage = async (title: string, color?: string) => {
-    await addColumn(title, color || "#3b82f6");
+    await addColumn(title);
   };
 
   return (

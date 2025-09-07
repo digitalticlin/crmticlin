@@ -113,10 +113,10 @@ class ReadMessagesService {
     try {
       // Buscar mensagens recebidas (from_me = false) da conversa
       const { data: messages, error } = await supabase
-        .from('whatsapp_messages')
-        .select('whatsapp_message_id, from_me, text')
+        .from('messages')
+        .select('external_message_id, from_me, text')
         .eq('lead_id', conversationId)
-        .eq('instance_id', instanceId)
+        .eq('whatsapp_number_id', instanceId)
         .eq('created_by_user_id', userId)
         .eq('from_me', false) // Apenas mensagens recebidas
         .order('created_at', { ascending: false })
@@ -128,8 +128,8 @@ class ReadMessagesService {
       }
 
       const messageIds = messages
-        ?.filter(msg => msg.whatsapp_message_id)
-        ?.map(msg => msg.whatsapp_message_id) || [];
+        ?.filter(msg => msg.external_message_id)
+        ?.map(msg => msg.external_message_id) || [];
 
       console.log('[ReadMessages] 📋 Mensagens encontradas:', {
         totalMessages: messages?.length || 0,

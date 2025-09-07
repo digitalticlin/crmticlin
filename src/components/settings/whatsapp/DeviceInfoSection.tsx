@@ -51,7 +51,7 @@ const DeviceInfoSection = ({ deviceInfo }: DeviceInfoSectionProps) => {
               <Smartphone className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground">Dispositivo:</span>
             </div>
-            <div className="font-medium">{deviceInfo.deviceModel || "Desconhecido"}</div>
+            <div className="font-medium">{deviceInfo.deviceModel || deviceInfo.model || "Desconhecido"}</div>
             
             <div className="flex items-center gap-1.5">
               <div className="flex items-center gap-1">
@@ -65,11 +65,6 @@ const DeviceInfoSection = ({ deviceInfo }: DeviceInfoSectionProps) => {
                 <Progress 
                   value={deviceInfo.batteryLevel} 
                   className="h-1.5 mt-1"
-                  indicatorClassName={
-                    deviceInfo.batteryLevel > 70 ? "bg-green-500" : 
-                    deviceInfo.batteryLevel > 30 ? "bg-yellow-500" : 
-                    "bg-red-500"
-                  }
                 />
               )}
             </div>
@@ -78,13 +73,13 @@ const DeviceInfoSection = ({ deviceInfo }: DeviceInfoSectionProps) => {
               <Info className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground">Versão:</span>
             </div>
-            <div className="font-medium">{deviceInfo.whatsappVersion || "Desconhecido"}</div>
+            <div className="font-medium">{"Desconhecido"}</div>
             
             <div className="flex items-center gap-1.5">
               <RefreshCw className="w-4 h-4 text-muted-foreground" />
               <span className="text-muted-foreground">Conexão:</span>
             </div>
-            <div className="font-medium">{formatDate(deviceInfo.lastConnectionTime)}</div>
+            <div className="font-medium">{formatDate(deviceInfo.lastSeen)}</div>
           </div>
         </div>
       )}

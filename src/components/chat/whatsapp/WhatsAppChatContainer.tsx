@@ -73,7 +73,7 @@ export function WhatsAppChatContainer() {
       isSending={isSendingMessage}
       onRefreshMessages={refreshMessages}
       onRefreshContacts={refreshContacts}
-      onSearch={searchContacts}
+      onSearchContacts={searchContacts}
       totalContactsAvailable={totalContactsAvailable}
     />
   );

@@ -371,7 +371,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
               documentId: leadData.document_id,
               notes: leadData.notes,
               purchaseValue: leadData.purchase_value,
-              assignedUser: leadData.owner?.full_name || leadData.owner_id,
+              assignedUser: leadData.owner_id || 'Não atribuído',
               lastMessage: leadData.last_message,
               lastMessageTime: leadData.last_message_time,
               unreadCount: leadData.unread_count && leadData.unread_count > 0 ? leadData.unread_count : undefined,

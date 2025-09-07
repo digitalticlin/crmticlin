@@ -172,7 +172,7 @@ export function useSalesFunnelOptimized() {
           notes: lead.notes || undefined,
           columnId: stage.id,
           purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
-          assignedUser: lead.owner?.full_name || lead.owner_id || undefined,
+          assignedUser: lead.owner_id || undefined,
           unreadCount: lead.unread_count || 0,
           avatar: undefined,
           profile_pic_url: lead.profile_pic_url || undefined,

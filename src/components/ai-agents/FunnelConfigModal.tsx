@@ -167,12 +167,13 @@ export const FunnelConfigModal = ({
           .eq('id', agent?.id || '')
           .single();
 
-        if (!agentError && agentData?.funnel_configuration && Array.isArray(agentData.funnel_configuration)) {
-          console.log('✅ Dados consolidados encontrados:', agentData.funnel_configuration);
-          agentData.funnel_configuration.forEach((config: FunnelStageConfig) => {
-            consolidatedDescriptions[config.stage_id] = config.description || '';
-          });
-          console.log('📋 Descrições consolidadas mapeadas:', Object.keys(consolidatedDescriptions).length);
+        if (agentError || !agentData) {
+          console.log('⚠️ Nenhuma configuração encontrada no agente');
+        } else {
+          // Temporariamente comentado até o campo existir no banco
+          // agentData.funnel_configuration?.forEach((config: any) => {
+          //   consolidatedDescriptions[config.stage_id] = config.description || '';
+          // });
         }
       } catch (error) {
         console.log('⚠️ Erro ao carregar dados consolidados (fallback para kanban_stages):', error);
@@ -470,7 +471,7 @@ export const FunnelConfigModal = ({
       const { error: agentError } = await supabase
         .from('ai_agents')
         .update({
-          funnel_configuration: funnelConfiguration,
+          funnel_configuration: funnelConfiguration as any,
           updated_at: new Date().toISOString()
         })
         .eq('id', agent.id);

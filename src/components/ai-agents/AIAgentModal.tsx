@@ -28,7 +28,11 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   const [workingAgent, setWorkingAgent] = useState<AIAgent | null>(null);
   const [isMounted, setIsMounted] = useState(true);
   const [allowTabNavigation, setAllowTabNavigation] = useState(false); // Permitir navegação livre
-  const { getPromptByAgentId, createPrompt, updatePrompt } = useAIAgentPrompts();
+  const { 
+    getAIAgentPrompt: getPromptByAgentId, 
+    createPromptFromAgent: createPrompt, 
+    updateAIAgentPrompt: updatePrompt 
+  } = useAIAgentPrompts();
   
   // Centralized form data state with NEW database structure
   const [promptData, setPromptData] = useState({
@@ -439,13 +443,13 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
         agent_id: finalTargetAgent.id,
         ...dataToSave,
         // Adicionar campos obrigatórios com valores padrão para evitar erro TypeScript
-        products_services_examples: dataToSave.products_services_examples || [],
-        rules_guidelines_examples: dataToSave.rules_guidelines_examples || [],
-        prohibitions_examples: dataToSave.prohibitions_examples || [],
-        client_objections_examples: dataToSave.client_objections_examples || [],
-        phrase_tips: dataToSave.phrase_tips || '',
-        phrase_tips_examples: dataToSave.phrase_tips_examples || [],
-        funnel_configuration: dataToSave.funnel_configuration || []
+        products_services_examples: [],
+        rules_guidelines_examples: [],
+        prohibitions_examples: [],
+        client_objections_examples: [],
+        phrase_tips: '',
+        phrase_tips_examples: [],
+        funnel_configuration: []
       };
       
       console.log('📝 DADOS DO PROMPT PARA SALVAR - DETALHADO:');
@@ -478,7 +482,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       if (existingPrompt) {
         // Atualizar prompt existente
         console.log('🔄 Atualizando prompt existente:', existingPrompt.id);
-        const success = await updatePrompt(existingPrompt.id, promptDataToSave);
+        const success = await updatePrompt({ agent_id: existingPrompt.agent_id, ...promptDataToSave });
         console.log('💾 Resultado da atualização:', success);
         
         if (success) {
@@ -492,7 +496,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       } else {
         // Criar novo prompt
         console.log('➕ Criando novo prompt');
-        const newPrompt = await createPrompt(promptDataToSave);
+        const newPrompt = await createPrompt({ id: agent.id, ...agent } as AIAgent);
         console.log('💾 Resultado da criação:', newPrompt);
         
         if (newPrompt) {

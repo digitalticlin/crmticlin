@@ -137,9 +137,8 @@ export const ProductionMassSelectionWrapper = ({
       <MassActionWrapper 
         massSelection={massSelection} 
         onSuccess={handleSuccess}
-      >
-        <div /> {/* Placeholder - os modais serão renderizados pelos componentes pai */}
-      </MassActionWrapper>
+        children={<div />}
+      />
     </>
   );
 };

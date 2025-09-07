@@ -141,9 +141,9 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
             
           };
           
-          const onCancel = () => {
+          const onCancel = (cancelEvent: PointerEvent) => {
             // Mesmo cleanup para cancel
-            onUp(e);
+            onUp(cancelEvent);
           };
           
           // Usar document em vez de element para captura global
