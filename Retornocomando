@@ -1,43 +1,12 @@
-✅ [delete_1757017526410_mplpcn] Instância deletada com sucesso do banco
-🎉 [delete_1757017526410_mplpcn] Deleção concluída: { success: true, vpsDeleteSuccess: true, instanceId: "75eb0679-a463-4a2e-83b6-5e53b8b883f7", instanceName: "digitalticlingmailcom2" }
-⚠️ [delete_1757017526906_oq2fqv] Requisição veio do trigger - pulando deleção no banco para evitar loop
-✅ [delete_1757017526906_oq2fqv] CONFIRMADO: Instância não existe mais na VPS (404)
-🗄️ [delete_1757017526906_oq2fqv] Deletando do banco...
-✅ [delete_1757017526906_oq2fqv] VPS deleção COMPLETA e VERIFICADA bem-sucedida!
-🔄 [delete_1757017526906_oq2fqv] AUTH cleanup: FAILED
-🔍 [delete_1757017526906_oq2fqv] Verificando se instância foi realmente removida da VPS...
-🔄 [delete_1757017526906_oq2fqv] DELETE padrão: SUCCESS
-🎯 [delete_1757017526906_oq2fqv] Tentativa 2: DELETE padrão + cleanup AUTH
-⚠️ [delete_1757017526906_oq2fqv] Delete-complete falhou, tentando método alternativo...
-🎯 [delete_1757017526906_oq2fqv] Tentativa 1: DELETE completo com cleanup
-✅ [delete_1757017526906_oq2fqv] Instância encontrada: { id: "75eb0679-a463-4a2e-83b6-5e53b8b883f7", name: "digitalticlingmailcom2", vps_instance_id: "digitalticlingmailcom2" }
-🌐 [delete_1757017526906_oq2fqv] Deletando COMPLETAMENTE da VPS (incluindo AUTH): digitalticlingmailcom2
-🗑️ [delete_1757017526906_oq2fqv] Deletando instância: 75eb0679-a463-4a2e-83b6-5e53b8b883f7 (fonte: database_delete_trigger) (userId: 712e7708-2299-4a00-9128-577c8f113ca4)
-🔍 [delete_1757017526906_oq2fqv] Buscando instância no banco...
-[delete_1757017526906_oq2fqv] 🔑 Tipo de chamada: SERVICE_ROLE (Database Trigger)
-[delete_1757017526906_oq2fqv] 🔧 Processando chamada do trigger com service role
-[delete_1757017526906_oq2fqv] 📦 Body recebido: { "userId": "712e7708-2299-4a00-9128-577c8f113ca4", "instanceId": "75eb0679-a463-4a2e-83b6-5e53b8b883f7", "instance_name": "digitalticlingmailcom2", "trigger_source": "database_delete_trigger", "vps_instance_id": "digitalticlingmailcom2" }
-🗑️ [delete_1757017526906_oq2fqv] WHATSAPP INSTANCE DELETE - VERSÃO CORRIGIDA
-[Instance Delete] 🚀 Iniciando processamento - VERSÃO CORRIGIDA V2
-Listening on http://localhost:9999/
-booted (time: 32ms)
-✅ [delete_1757017526410_mplpcn] VPS deleção COMPLETA e VERIFICADA bem-sucedida!
-🗄️ [delete_1757017526410_mplpcn] Deletando do banco...
-✅ [delete_1757017526410_mplpcn] CONFIRMADO: Instância não existe mais na VPS (404)
-🔍 [delete_1757017526410_mplpcn] Verificando se instância foi realmente removida da VPS...
-🔄 [delete_1757017526410_mplpcn] AUTH cleanup: FAILED
-🔄 [delete_1757017526410_mplpcn] DELETE padrão: SUCCESS
-⚠️ [delete_1757017526410_mplpcn] Delete-complete falhou, tentando método alternativo...
-🎯 [delete_1757017526410_mplpcn] Tentativa 2: DELETE padrão + cleanup AUTH
-🌐 [delete_1757017526410_mplpcn] Deletando COMPLETAMENTE da VPS (incluindo AUTH): digitalticlingmailcom2
-✅ [delete_1757017526410_mplpcn] Instância encontrada: { id: "75eb0679-a463-4a2e-83b6-5e53b8b883f7", name: "digitalticlingmailcom2", vps_instance_id: "digitalticlingmailcom2" }
-🎯 [delete_1757017526410_mplpcn] Tentativa 1: DELETE completo com cleanup
-🔍 [delete_1757017526410_mplpcn] Buscando instância no banco...
-🗑️ [delete_1757017526410_mplpcn] Deletando instância: 75eb0679-a463-4a2e-83b6-5e53b8b883f7 (userId: 712e7708-2299-4a00-9128-577c8f113ca4)
-[delete_1757017526410_mplpcn] ✅ FALLBACK: userId encontrado no banco: 712e7708-2299-4a00-9128-577c8f113ca4
-[Instance Delete] 🚀 Iniciando processamento - VERSÃO CORRIGIDA V2
-🗑️ [delete_1757017526410_mplpcn] WHATSAPP INSTANCE DELETE - VERSÃO CORRIGIDA
-[delete_1757017526410_mplpcn] 📦 Body recebido: { "instanceId": "75eb0679-a463-4a2e-83b6-5e53b8b883f7" }
-[delete_1757017526410_mplpcn] 🔑 Tipo de chamada: SERVICE_ROLE (Database Trigger)
-[delete_1757017526410_mplpcn] 🔄 FALLBACK: userId não enviado pelo trigger, buscando no banco...
-[delete_1757017526410_mplpcn] 🔧 Processando chamada do trigger com service role
+AuthContext.tsx:125 
+ POST https://rhjgagzstjzynvrakdyj.supabase.co/auth/v1/signup?redirect_to=http%3A%2F%2Flocalhost%3A8080%2Fdashboard 500 (Internal Server Error)
+
+AuthContext.tsx:135 [Auth] Erro no registro: AuthApiError: Database error saving new user
+    at async signUp (AuthContext.tsx:125:31)
+    at async onSubmit (RegisterForm.tsx:68:7)
+AuthContext.tsx:165 Erro no registro: AuthApiError: Database error saving new user
+    at async signUp (AuthContext.tsx:125:31)
+    at async onSubmit (RegisterForm.tsx:68:7)
+RegisterForm.tsx:76 [RegisterForm] Erro no registro: AuthApiError: Database error saving new user
+    at async signUp (AuthContext.tsx:125:31)
+    at async onSubmit (RegisterForm.tsx:68:7)

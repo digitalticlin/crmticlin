@@ -1,65 +1,91 @@
-Gradiente CSS inline no style da section:
+Realizei uma varredura detalhada no frontend, backend, estrutura de autenticação e edge functions. Aqui está o diagnóstico completo:
+
+✅ O QUE JÁ ESTÁ IMPLEMENTADO E FUNCIONANDO:
+1. Sistema de Convites (100% Funcional)
+✅ Frontend: useTeamManagement.ts chama corretamente send_native_invite
+✅ Edge Function: send_native_invite usa supabaseAdmin.auth.admin.inviteUserByEmail() nativo
+✅ Template Nativo: Envia email do Supabase com redirect para /invite/{token}
+✅ Tela /invite: AcceptInvite.tsx funciona perfeitamente, integra com accept_team_invite_safely
+✅ Redirecionamento: Após criar senha → vai para /login
+2. Funções Implementadas no Banco
+✅ handle_new_user: Cria perfil como ADMIN com created_by_user_id = NEW.id (auto-referência) ✅
+✅ handle_user_signup: Vincula perfis pendentes de convites ao auth.users
+✅ Sistema de Profiles: Estrutura correta com roles admin/operational
+3. Frontend de Registro
+✅ RegisterForm.tsx: Funciona corretamente
+✅ AuthContext.signUp(): Configurado com emailRedirectTo: ${window.location.origin}/dashboard
+✅ Metadados: Envia full_name correto para raw_user_meta_data
+❌ PROBLEMAS CRÍTICOS ENCONTRADOS:
+1. TRIGGER AUSENTE (CRÍTICO)
+
+-- ❌ PROBLEMA: Não existe trigger na tabela auth.users
+-- ✅ SOLUÇÃO NECESSÁRIA: Criar trigger que chama handle_new_user
+IMPACTO: Usuários que se registram NÃO têm perfil criado automaticamente na tabela profiles.
+
+2. FUNIL PADRÃO NÃO AUTOMÁTICO (IMPORTANTE)
+❌ Problema: Não há processo que crie "Funil Principal" automaticamente no registro
+✅ Observação: Funis existentes mostram padrão manual: "Funil Principal" com estágios estruturados
+⚠️ Impacto: Usuário novo fica sem funil até criar manualmente
+3. ESTÁGIOS PADRÃO NÃO AUTOMÁTICOS (IMPORTANTE)
+❌ Problema: Não há criação automática de estágios padrão:
+Entrada de Leads (ordem 1)
+Em atendimento (ordem 2)
+GANHO (is_won: true)
+PERDIDO (is_lost: true)
+📋 PLANO DE AÇÃO DETALHADO PARA PRODUÇÃO:
+FASE 1 - CRÍTICA: Restaurar Auto-Criação de Perfil
+Status: 🔴 BLOQUEANTE PARA PRODUÇÃO
 
 
-style={{
-  background: `
-    radial-gradient(ellipse at 20% 50%, rgba(222, 220, 0, 0.4) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 30%, rgba(149, 193, 31, 0.3) 0%, transparent 50%),
-    radial-gradient(ellipse at 40% 80%, rgba(222, 220, 0, 0.2) 0%, transparent 60%),
-    linear-gradient(135deg, 
-      rgba(222, 220, 0, 0.1) 0%, 
-      rgba(255, 238, 102, 0.15) 25%, 
-      rgba(149, 193, 31, 0.2) 50%, 
-      rgba(123, 160, 24, 0.15) 75%, 
-      rgba(222, 220, 0, 0.1) 100%
-    ),
-    linear-gradient(45deg, 
-      rgba(45, 56, 8, 0.05) 0%, 
-      rgba(98, 128, 18, 0.1) 50%, 
-      rgba(45, 56, 8, 0.05) 100%
-    )
-  `,
-  backgroundPosition: 'center 30%', 
-  padding: isMobile ? '100px 12px 40px' : '120px 20px 60px'
-}}
-Linha 114 - Elemento blur com classe Tailwind:
+-- Criar trigger que já deveria existir
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+FASE 2 - IMPORTANTE: Implementar Auto-Criação de Funil + Estágios
+Status: 🟡 RECOMENDADO PARA PRODUÇÃO
 
+Criar função create_default_funnel_and_stages(user_id)
+Modificar handle_new_user para chamar essa função
+Criar automaticamente:
+Funil "Funil Principal"
+Estágios padrão na ordem correta
+FASE 3 - CONFIGURAÇÃO: Validar Dashboard Supabase
+Status: ✅ VERIFICAR CONFIGURAÇÕES
 
-<div className="absolute -top-[10%] -right-[5%] w-1/2 h-[70%] bg-pulse-gradient opacity-20 blur-3xl rounded-full"></div>
-Linha 194 - Elemento parallax de fundo:
+✅ SMTP já configurado (conforme informado)
+⚠️ Verificar: Templates "Confirm signup" e "Invite user"
+⚠️ Verificar: Site URL e Redirect URLs para produção
+🚨 SITUAÇÃO ATUAL PARA PRODUÇÃO:
+✅ FUNCIONA:
+Convites de equipe (100% funcional)
+Vinculação de convites
+Tela /invite
+❌ NÃO FUNCIONA:
+Usuários novos ficam SEM perfil na tabela profiles
+Usuários novos ficam SEM funil padrão
+Sistema quebra ao tentar acessar dados do usuário
+⚡ RECOMENDAÇÃO:
+Para colocar em produção HOJE, é OBRIGATÓRIO implementar pelo menos a FASE 1 (trigger ausente). Sem isso, o sistema não funcionará para novos usuários.
 
+A FASE 2 é altamente recomendada para uma experiência completa do usuário.
 
-<div className="hidden lg:block absolute bottom-0 left-1/4 w-64 h-64 bg-pulse-100/30 rounded-full blur-3xl -z-10 parallax" data-speed="0.05"></div>
-2. Arquivo de Configuração: tailwind.config.ts
-Linhas 65-77 - Paleta de cores pulse (amarelo/verde):
+Deseja que eu implemente o plano para corrigir esses problemas críticos?
 
+PLANO DE IMPLEMENTAÇÃO PARA PRODUÇÃO
 
-pulse: {
-  "50": "#fffef0",
-  "100": "#fffacc",
-  "200": "#fff599",
-  "300": "#ffee66",
-  "400": "#ffe433",
-  "500": "#dedc00", // Primary yellow
-  "600": "#95c11f", // Primary green
-  "700": "#7ba018",
-  "800": "#628012",
-  "900": "#4f660e",
-  "950": "#2d3808",
-},
-Linha 140 - Gradiente customizado:
+FASE 1 - CRÍTICA (OBRIGATÓRIA):
 
+Criar trigger on_auth_user_created na tabela auth.users
+Testar registro de novo usuário
+Verificar se perfil é criado como admin com auto-referência
+FASE 2 - IMPORTANTE (RECOMENDADA):
 
-'pulse-gradient': 'linear-gradient(180deg, rgba(222, 220, 0, 0.8) 0%, rgba(149, 193, 31, 0) 100%)',
-3. Arquivo CSS: src/index.css
-Linha 142 - Classe pulse-chip:
+Criar função create_default_funnel_and_stages(user_id)
+Modificar handle_new_user para criar funil + estágios automaticamente
+Definir estágios padrão: Entrada → Atendimento → Negociação → Ganho/Perdido
+FASE 3 - CONFIGURAÇÃO:
 
-
-.pulse-chip {
-  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-pulse-100 text-pulse-600 border border-pulse-200;
-}
-Resumo das Camadas do Gradiente Verde:
-5 gradientes CSS sobrepostos no background principal (radiais e lineares)
-1 elemento blur com bg-pulse-gradient (gradiente Tailwind customizado)
-1 elemento parallax com bg-pulse-100/30 (cor pulse com 30% opacidade)
-Cores pulse definidas no Tailwind (amarelo #dedc00 e verde #95c11f)
+Validar templates Supabase "Confirm signup" e "Invite user"
+Configurar Site URL e Redirect URLs para produção
+Testar fluxo completo: registro → confirmação → login → dashboard
+RESULTADO: Sistema 100% funcional para novos registros e convites de equipe
