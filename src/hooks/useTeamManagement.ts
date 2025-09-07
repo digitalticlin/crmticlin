@@ -190,29 +190,15 @@ export const useTeamManagement = (companyId: string | null) => {
         if (functionError || !inviteResponse?.success) {
           console.error('[useTeamManagement] ❌ Erro na Edge Function nativa:', functionError);
           
-          // Fallback: Usar função Resend existente
-          console.log('[useTeamManagement] 🔄 Fallback: usando Edge Function Resend...');
-          
-          const { data: resendResponse, error: resendError } = await supabase.functions.invoke('send_team_invite', {
-            body: {
-              email: memberData.email,
-              full_name: memberData.fullName,
-              companyId: companyId,
-              inviteToken: inviteToken,
-              companyName: 'TicLin CRM'
-            }
-          });
-
-          if (resendError) {
-            // Mesmo se o email falhar, vamos considerar sucesso pois o perfil foi criado
-            console.error('[useTeamManagement] ❌ Erro no fallback Resend:', resendError);
-            console.log('[useTeamManagement] ⚠️ Perfil criado, mas email falhou. Continuando...');
-          } else {
-            console.log('[useTeamManagement] ✅ Convite enviado via Resend (fallback):', resendResponse);
+          // Verificar se é erro de email existente
+          if (inviteResponse?.error_code === 'email_exists') {
+            throw new Error(`Email já existe no sistema: ${inviteResponse.error}`);
           }
-        } else {
-          console.log('[useTeamManagement] ✅ Convite enviado via template NATIVO:', inviteResponse);
+          
+          throw new Error(`Erro ao enviar convite: ${functionError?.message || inviteResponse?.error || 'Erro desconhecido'}`);
         }
+
+        console.log('[useTeamManagement] ✅ Convite enviado via template NATIVO:', inviteResponse);
         
         // Atualizar status para "invite_sent"
         await supabase

@@ -38,14 +38,10 @@ serve(async (req) => {
       }
     )
 
-    console.log('[send_native_invite] 📧 Enviando convite APENAS via template Resend (sem template nativo)...')
+    console.log('[send_native_invite] 📧 Enviando convite via template NATIVO do Supabase...')
 
-    // ✅ DECISÃO: NÃO usar inviteUserByEmail do Supabase pelos motivos:
-    // 1. Falha com email_exists para usuários já registrados  
-    // 2. Redireciona direto para dashboard em vez de /invite/token
-    // 3. Template customizado Resend funciona perfeitamente
-    
-    const inviteUrl = redirect_url || `${new URL(Deno.env.get('SUPABASE_URL') || '').origin}/invite/${invite_token}`;
+    // Construir URL do convite que leva para /invite/token
+    const inviteUrl = redirect_url || `${new URL(req.url).origin}/invite/${invite_token}`;
     
     console.log('[send_native_invite] 🔗 Link do convite (deve ir para /invite):', inviteUrl);
     console.log('[send_native_invite] 📝 Dados do usuário:', {
@@ -55,67 +51,56 @@ serve(async (req) => {
       company_name: user_data.company_name
     });
 
-    // TEMPORÁRIO: Como send_team_invite não está deployada, vamos simular o envio
-    console.log('[send_native_invite] ⚠️ SIMULANDO envio de email (send_team_invite não encontrada)');
-    console.log('[send_native_invite] 📧 Template que seria enviado:');
-    console.log(`
-    ===== EMAIL DE CONVITE =====
-    Para: ${email}
-    Assunto: Convite para Equipe - TicLin CRM
-    
-    Olá ${user_data.full_name}!
-    
-    Você foi convidado para fazer parte da equipe como ${user_data.role === 'admin' ? 'Administrador' : 'Operacional'}.
-    
-    Clique no link para criar sua senha e acessar o sistema:
-    ${inviteUrl}
-    
-    Atenciosamente,
-    Equipe TicLin CRM
-    ============================
-    `);
-
-    // Tentar chamar send_team_invite, mas não falhar se não existir
-    try {
-      const emailResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send_team_invite`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: email,
+    // ✅ Usar template NATIVO do Supabase com inviteUserByEmail
+    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+      email,
+      {
+        redirectTo: inviteUrl,
+        data: {
           full_name: user_data.full_name,
-          companyName: user_data.company_name || 'TicLin CRM',
-          inviteToken: invite_token,
-          inviteUrl: inviteUrl,
-          customMessage: `Você foi convidado para fazer parte da equipe como ${user_data.role === 'admin' ? 'Administrador' : 'Operacional'}. Clique no link para criar sua senha e acessar o sistema.`
-        })
-      })
-
-      if (emailResponse.ok) {
-        console.log('[send_native_invite] ✅ Email enviado via send_team_invite');
-      } else {
-        console.log('[send_native_invite] ⚠️ send_team_invite falhou, mas continuando...');
+          role: user_data.role,
+          company_name: user_data.company_name || 'TicLin CRM',
+          invite_token: invite_token,
+          profile_id: profile_id
+        }
       }
-    } catch (fetchError) {
-      console.log('[send_native_invite] ⚠️ send_team_invite não disponível, simulando envio...');
+    )
+
+    if (inviteError) {
+      console.error('[send_native_invite] ❌ Erro ao enviar convite nativo:', inviteError);
+      
+      // Se falhar por email_exists, é porque usuário já tem conta
+      if (inviteError.message?.includes('email_exists') || inviteError.message?.includes('already exists')) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Este email já possui uma conta no sistema. O usuário deve ser removido primeiro antes de reenviar o convite.',
+            error_code: 'email_exists',
+            solution: 'Remova o usuário existente do sistema primeiro, depois reenvie o convite.'
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 409,
+          }
+        )
+      }
+      
+      throw inviteError;
     }
-    
-    console.log('[send_native_invite] ✅ Convite enviado via template customizado!');
-    
-    console.log('[send_native_invite] ✅ Convite personalizado enviado com sucesso!')
+
+    console.log('[send_native_invite] ✅ Convite nativo enviado com sucesso:', inviteData);
     
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Convite processado (send_team_invite pode não estar deployada)',
-        method: 'simulated_or_resend',
+        message: 'Convite enviado via template nativo do Supabase',
+        method: 'supabase_native',
         invite_token: invite_token,
         redirect_url: inviteUrl,
         email_sent_to: email,
         flow: 'Email → /invite/token → Criar senha → Login → Dashboard',
-        note: 'Sistema não usa templates nativos do Supabase por limitações técnicas'
+        supabase_user_id: inviteData?.user?.id,
+        note: 'Sistema usando template nativo do Supabase'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

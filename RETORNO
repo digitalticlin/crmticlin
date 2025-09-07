@@ -1,7 +1,65 @@
-[send_native_invite] ❌ Error: Error: Falha ao enviar convite: {"code":"NOT_FOUND","message":"Requested function was not found"} at Server.<anonymous> (file:///tmp/user_fn_rhjgagzstjzynvrakdyj_23362a67-9d0c-4ba1-a914-a46bb2bfece0_14/source/index.ts:58:13) at eventLoopTick (ext:core/01_core.js:175:7) at async Server.#respond (https://deno.land/std@0.190.0/http/server.ts:220:18)
-[send_native_invite] ❌ Erro no envio de email: {"code":"NOT_FOUND","message":"Requested function was not found"}
-[send_native_invite] 📝 Dados do usuário: { email: "inaciodomrua@gmail.com", full_name: "inacio", role: "operational", company_name: "TicLin CRM" }
-[send_native_invite] 🔗 Link do convite (deve ir para /invite): http://localhost:8081/invite/ff6e1747-2924-47a9-b0e6-118c8be7b686/ff6e1747-2924-47a9-b0e6-118c8be7b686
-[send_native_invite] 📧 Enviando convite APENAS via template Resend (sem template nativo)...
-[send_native_invite] 📧 Request body: { email: "inaciodomrua@gmail.com", profile_id: "b6827afa-de0b-441f-ae08-34e89ca50887", invite_token: "ff6e1747-2924-47a9-b0e6-118c8be7b686", user_data: { full_name: "inacio", role: "operational", company_name: "TicLin CRM" }, redirect_url: "http://localhost:8081/invite/ff6e1747-2924-47a9-b0e6-118c8be7b686" }
-[send_native_invite] 🚀 Function called with method: POST
+Gradiente CSS inline no style da section:
+
+
+style={{
+  background: `
+    radial-gradient(ellipse at 20% 50%, rgba(222, 220, 0, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 30%, rgba(149, 193, 31, 0.3) 0%, transparent 50%),
+    radial-gradient(ellipse at 40% 80%, rgba(222, 220, 0, 0.2) 0%, transparent 60%),
+    linear-gradient(135deg, 
+      rgba(222, 220, 0, 0.1) 0%, 
+      rgba(255, 238, 102, 0.15) 25%, 
+      rgba(149, 193, 31, 0.2) 50%, 
+      rgba(123, 160, 24, 0.15) 75%, 
+      rgba(222, 220, 0, 0.1) 100%
+    ),
+    linear-gradient(45deg, 
+      rgba(45, 56, 8, 0.05) 0%, 
+      rgba(98, 128, 18, 0.1) 50%, 
+      rgba(45, 56, 8, 0.05) 100%
+    )
+  `,
+  backgroundPosition: 'center 30%', 
+  padding: isMobile ? '100px 12px 40px' : '120px 20px 60px'
+}}
+Linha 114 - Elemento blur com classe Tailwind:
+
+
+<div className="absolute -top-[10%] -right-[5%] w-1/2 h-[70%] bg-pulse-gradient opacity-20 blur-3xl rounded-full"></div>
+Linha 194 - Elemento parallax de fundo:
+
+
+<div className="hidden lg:block absolute bottom-0 left-1/4 w-64 h-64 bg-pulse-100/30 rounded-full blur-3xl -z-10 parallax" data-speed="0.05"></div>
+2. Arquivo de Configuração: tailwind.config.ts
+Linhas 65-77 - Paleta de cores pulse (amarelo/verde):
+
+
+pulse: {
+  "50": "#fffef0",
+  "100": "#fffacc",
+  "200": "#fff599",
+  "300": "#ffee66",
+  "400": "#ffe433",
+  "500": "#dedc00", // Primary yellow
+  "600": "#95c11f", // Primary green
+  "700": "#7ba018",
+  "800": "#628012",
+  "900": "#4f660e",
+  "950": "#2d3808",
+},
+Linha 140 - Gradiente customizado:
+
+
+'pulse-gradient': 'linear-gradient(180deg, rgba(222, 220, 0, 0.8) 0%, rgba(149, 193, 31, 0) 100%)',
+3. Arquivo CSS: src/index.css
+Linha 142 - Classe pulse-chip:
+
+
+.pulse-chip {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-pulse-100 text-pulse-600 border border-pulse-200;
+}
+Resumo das Camadas do Gradiente Verde:
+5 gradientes CSS sobrepostos no background principal (radiais e lineares)
+1 elemento blur com bg-pulse-gradient (gradiente Tailwind customizado)
+1 elemento parallax com bg-pulse-100/30 (cor pulse com 30% opacidade)
+Cores pulse definidas no Tailwind (amarelo #dedc00 e verde #95c11f)

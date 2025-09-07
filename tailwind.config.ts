@@ -79,6 +79,20 @@ export default {
                     900: '#424400',
                     950: '#252600',
                 },
+                // Pulse colors for new gradient system
+                pulse: {
+                    "50": "#fffef0",
+                    "100": "#fffacc",
+                    "200": "#fff599",
+                    "300": "#ffee66",
+                    "400": "#ffe433",
+                    "500": "#dedc00", // Primary yellow
+                    "600": "#95c11f", // Primary green
+                    "700": "#7ba018",
+                    "800": "#628012",
+                    "900": "#4f660e",
+                    "950": "#2d3808",
+                },
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -139,6 +153,7 @@ export default {
 			backgroundImage: {
 				'glass-light': "linear-gradient(135deg, rgba(255,255,255,0.60) 80%, rgba(245,245,245,0.76) 100%)",
 				'glass-dark': "linear-gradient(135deg, rgba(30,30,30,0.76) 80%, rgba(18,18,18,0.9) 100%)",
+				'pulse-gradient': 'linear-gradient(180deg, rgba(222, 220, 0, 0.8) 0%, rgba(149, 193, 31, 0) 100%)',
 			},
 		}
 	},

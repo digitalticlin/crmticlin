@@ -149,10 +149,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (data.user && !data.session) {
         // Email confirmation required
         console.log('[Auth] Confirmação de email necessária');
-        toast.success('Conta criada! Verifique seu email para confirmar e depois faça login.');
-        // Redirect to login page after showing success message
+        toast.success('Conta criada! Redirecionando para instruções de confirmação...');
+        // Redirect to email confirmation instructions page
         setTimeout(() => {
-          navigate('/login', { replace: true });
+          navigate('/confirm-email', { replace: true });
         }, 2000);
       } else if (data.session) {
         // User is automatically logged in

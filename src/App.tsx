@@ -22,6 +22,8 @@ import AutomationPage from './pages/Automation';
 import AIAgentsPage from './pages/AIAgents';
 import PlansPage from './pages/Plans';
 import { AcceptInvite } from './components/invite/AcceptInvite';
+import ConfirmEmail from './pages/ConfirmEmail';
+import ConfirmEmailInstructions from './pages/ConfirmEmailInstructions';
 
 // 🚀 DECLARAÇÃO GLOBAL PARA TYPESCRIPT
 declare global {
@@ -237,6 +239,8 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/invite/:token" element={<AcceptInvite />} />
+                  <Route path="/confirm-email" element={<ConfirmEmailInstructions />} />
+                  <Route path="/confirm/:token" element={<ConfirmEmail />} />
                   
                   {/* Rotas protegidas - dentro do layout SPA */}
                   <Route 
