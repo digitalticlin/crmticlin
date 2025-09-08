@@ -32,7 +32,7 @@ export function SalesFunnelContent() {
   // ✅ Hook isolado para seleção em massa (sem Provider) - FUNCIONANDO
   const massSelection = useMassSelection();
   
-  // 🚀 HOOKS ISOLADOS - ESCALÁVEL PARA MILHARES DE USUÁRIOS
+  // 🚀 HOOKS ISOLADOS - ESCALÁVEL PARA MILHARES DE USUÁRIOS COM PAGINAÇÃO
   const {
     loading,
     error,

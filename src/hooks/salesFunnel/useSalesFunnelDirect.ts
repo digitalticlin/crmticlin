@@ -100,6 +100,7 @@ export function useSalesFunnelDirect() {
     gcTime: 3 * 60 * 1000
   });
 
+  // 🔄 REVERTER: Query de leads original que funcionava
   const { data: leads = [], isLoading: leadsLoading, refetch: refetchLeads, error: leadsError } = useQuery({
     queryKey: ['leads', selectedFunnel?.id, user?.id, canViewAllFunnels],
     queryFn: async () => {
@@ -164,6 +165,7 @@ export function useSalesFunnelDirect() {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000) // Exponential backoff
   });
 
+
   const { tags: availableTags } = useTagDatabase();
   
   // Stage management hook - INTEGRADO
@@ -190,16 +192,18 @@ export function useSalesFunnelDirect() {
     }
   }, [funnelLoading, funnels]); // Removida dependência de selectedFunnel para evitar loop
 
-  // Construir colunas Kanban usando useMemo para evitar loops - COM DEPENDÊNCIAS FIXAS
+  // 🚀 PERFORMANCE: Construir colunas Kanban com cache otimizado
   const kanbanColumns = useMemo(() => {
-    console.log('[useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns:', {
-      stagesLength: stages?.length,
-      leadsLength: leads?.length,
-      selectedFunnelId: selectedFunnel?.id
-    });
+    // Debounce desnecessário - só logar em dev
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns:', {
+        stagesLength: stages?.length,
+        leadsLength: leads?.length,
+        selectedFunnelId: selectedFunnel?.id
+      });
+    }
 
     if (!stages?.length || !selectedFunnel?.id) {
-      console.log('[useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio');
       return [];
     }
 
@@ -207,13 +211,20 @@ export function useSalesFunnelDirect() {
     const mainStages = stages.filter(stage => !stage.is_won && !stage.is_lost);
     
     if (!mainStages.length) {
-      console.log('[useSalesFunnelDirect] ⏸️ Não há stages principais - retornando array vazio');
       return [];
     }
 
+    // 🚀 OTIMIZAÇÃO: Criar Map para lookup mais rápido
+    const leadsByStage = new Map<string, any[]>();
+    leads.forEach(lead => {
+      if (!leadsByStage.has(lead.kanban_stage_id)) {
+        leadsByStage.set(lead.kanban_stage_id, []);
+      }
+      leadsByStage.get(lead.kanban_stage_id)?.push(lead);
+    });
+
     return mainStages.map(stage => {
-      const stageLeads = leads
-        .filter(lead => lead.kanban_stage_id === stage.id)
+      const stageLeads = (leadsByStage.get(stage.id) || [])
         .map((lead): KanbanLead => ({
           id: lead.id,
           name: lead.name,
@@ -222,11 +233,11 @@ export function useSalesFunnelDirect() {
           company: lead.company || undefined,
           lastMessage: lead.last_message || "Sem mensagens",
           lastMessageTime: lead.last_message_time ? new Date(lead.last_message_time).toISOString() : new Date().toISOString(),
-          tags: [], // Simplified - tags loaded separately
+          tags: [], // Lazy load - tags carregadas sob demanda
           notes: lead.notes || undefined,
           columnId: stage.id,
           purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
-          assignedUser: lead.owner_id || undefined, // Simplified - just use owner_id
+          assignedUser: lead.owner_id || undefined,
           unreadCount: lead.unread_count || 0,
           avatar: undefined,
           profile_pic_url: lead.profile_pic_url || undefined,
@@ -237,7 +248,7 @@ export function useSalesFunnelDirect() {
           funnel_id: lead.funnel_id,
           kanban_stage_id: lead.kanban_stage_id || undefined,
           owner_id: lead.owner_id || undefined,
-          ownerName: undefined // Simplified - load owner name separately if needed
+          ownerName: undefined // Lazy load - nome do owner carregado sob demanda
         }));
 
       return {
@@ -250,7 +261,12 @@ export function useSalesFunnelDirect() {
         ai_enabled: stage.ai_enabled !== false
       };
     });
-  }, [stages, leads, selectedFunnel?.id]); // DEPENDÊNCIAS FIXAS para evitar loop infinito
+  }, [
+    // 🚀 PERFORMANCE: Dependências otimizadas para evitar re-renders
+    stages?.map(s => `${s.id}-${s.title}`).join(','), // String simples para stages
+    leads?.length, // Apenas length ao invés do array completo
+    selectedFunnel?.id
+  ]);
 
   // Atualizar columns apenas quando kanbanColumns mudar - COM verificação simples para evitar loops  
   useEffect(() => {
@@ -262,22 +278,32 @@ export function useSalesFunnelDirect() {
     }
   }, [kanbanColumns]); // SEM dependência de columns para evitar loop
 
-  // 🚀 REAL-TIME SUBSCRIPTIONS - OTIMIZADO para evitar loops
+  // 🚀 REAL-TIME SUBSCRIPTIONS - ULTRA OTIMIZADO
   useEffect(() => {
     if (!user?.id || !selectedFunnel?.id || accessLoading) return;
 
-    console.log('[useSalesFunnelDirect] 🔄 Configurando Real-time subscriptions para funil:', selectedFunnel.id);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[useSalesFunnelDirect] 🔄 Configurando Real-time subscriptions para funil:', selectedFunnel.id);
+    }
 
-    // Usar throttle para evitar invalidações excessivas
+    // Throttle mais agressivo para reduzir invalidações excessivas
     let invalidationTimeout: NodeJS.Timeout | null = null;
+    let pendingInvalidations = new Set<string>();
     
     const throttledInvalidation = (queryKey: any[]) => {
+      const keyString = JSON.stringify(queryKey);
+      pendingInvalidations.add(keyString);
+      
       if (invalidationTimeout) return;
       
       invalidationTimeout = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey });
+        // Processar todas as invalidações pendentes de uma vez
+        pendingInvalidations.forEach(key => {
+          queryClient.invalidateQueries({ queryKey: JSON.parse(key) });
+        });
+        pendingInvalidations.clear();
         invalidationTimeout = null;
-      }, 2000); // 2 segundos de throttle
+      }, 5000); // 5 segundos de throttle para reduzir queries
     };
 
     const leadsSubscription = supabase
@@ -291,8 +317,8 @@ export function useSalesFunnelDirect() {
           filter: `funnel_id=eq.${selectedFunnel.id}`
         },
         (payload) => {
-          console.log('[useSalesFunnelDirect] 🔄 Lead atualizado:', payload.eventType);
-          throttledInvalidation(['leads', selectedFunnel.id, user.id, canViewAllFunnels]);
+          // Só invalidar na página atual para performance
+          throttledInvalidation(['leads-paginated', selectedFunnel.id, user.id, canViewAllFunnels, currentPage]);
         }
       )
       .on(
@@ -304,20 +330,22 @@ export function useSalesFunnelDirect() {
           filter: `funnel_id=eq.${selectedFunnel.id}`
         },
         (payload) => {
-          console.log('[useSalesFunnelDirect] 🔄 Stage atualizado:', payload.eventType);
           throttledInvalidation(['stages', selectedFunnel.id]);
         }
       )
       .subscribe();
 
     return () => {
-      console.log('[useSalesFunnelDirect] 🛑 Desconectando Real-time subscriptions');
       if (invalidationTimeout) {
         clearTimeout(invalidationTimeout);
       }
-      supabase.removeChannel(leadsSubscription);
+      try {
+        supabase.removeChannel(leadsSubscription);
+      } catch (error) {
+        console.warn('[useSalesFunnelDirect] Erro ao desconectar subscription:', error);
+      }
     };
-  }, [user?.id, selectedFunnel?.id, queryClient, canViewAllFunnels, accessLoading]);
+  }, [user?.id, selectedFunnel?.id, queryClient, canViewAllFunnels, accessLoading, currentPage]);
 
   // Create funnel function - FIXED to return Promise<void>
   const createFunnel = useCallback(async (name: string, description?: string): Promise<void> => {
@@ -490,6 +518,7 @@ export function useSalesFunnelDirect() {
   const wonStageId = stages?.find(s => s.is_won)?.id;
   const lostStageId = stages?.find(s => s.is_lost)?.id;
 
+
   return {
     // Estado de carregamento - incluir accessLoading para evitar render prematuro
     loading: funnelLoading || stagesLoading || leadsLoading || accessLoading,
@@ -512,6 +541,7 @@ export function useSalesFunnelDirect() {
     leads: leads || [],
     wonStageId,
     lostStageId,
+
 
     // Ações de gerenciamento de etapas - AGORA FUNCIONAIS
     addColumn,

@@ -4,7 +4,7 @@ import { MassSelectionReturn } from "@/hooks/useMassSelection";
 import { BoardContentOptimized } from "./kanban/BoardContentOptimized";
 import { DataErrorBoundary } from "./funnel/DataErrorBoundary";
 import { DndKanbanBoardWrapper } from "./DndKanbanBoardWrapper";
-import { useMemo } from "react";
+import { useMemo, useEffect, useCallback } from "react";
 
 interface KanbanBoardProps {
   columns: IKanbanColumn[];
@@ -53,8 +53,6 @@ export const KanbanBoard = ({
   }, [columns]);
 
   const isEmpty = !validatedColumns || validatedColumns.length === 0;
-
-
 
   return (
     <div className="relative w-full h-full flex flex-col">

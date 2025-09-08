@@ -1,196 +1,320 @@
-[
-  {
-    "column_name": "id",
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "column_name": "full_name",
-    "data_type": "text",
-    "is_nullable": "NO",
-    "column_default": null
-  },
-  {
-    "column_name": "username",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "document_id",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "whatsapp",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "role",
-    "data_type": "USER-DEFINED",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "created_by_user_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": "now()"
-  },
-  {
-    "column_name": "email",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "invite_status",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": "'pending'::text"
-  },
-  {
-    "column_name": "temp_password",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "invite_sent_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "linked_auth_user_id",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "invite_token",
-    "data_type": "uuid",
-    "is_nullable": "YES",
-    "column_default": "gen_random_uuid()"
-  },
-  {
-    "column_name": "avatar_url",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "phone",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "position",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "department",
-    "data_type": "text",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "last_login_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  },
-  {
-    "column_name": "is_active",
-    "data_type": "boolean",
-    "is_nullable": "YES",
-    "column_default": "true"
-  },
-  {
-    "column_name": "invite_expires_at",
-    "data_type": "timestamp with time zone",
-    "is_nullable": "YES",
-    "column_default": null
-  }
-]
-
-
-
-[
-  {
-    "id": "9936ae64-b78c-48fe-97e8-bf67623349c6",
-    "email": null,
-    "linked_auth_user_id": null,
-    "role": "admin",
-    "created_by_user_id": "9936ae64-b78c-48fe-97e8-bf67623349c6",
-    "metodo": "Todos os profiles"
-  },
-  {
-    "id": "712e7708-2299-4a00-9128-577c8f113ca4",
-    "email": null,
-    "linked_auth_user_id": null,
-    "role": "admin",
-    "created_by_user_id": "712e7708-2299-4a00-9128-577c8f113ca4",
-    "metodo": "Todos os profiles"
-  },
-  {
-    "id": "c9181d71-2616-4e2c-9dab-d9c2f30f4e33",
-    "email": null,
-    "linked_auth_user_id": null,
-    "role": "admin",
-    "created_by_user_id": "c9181d71-2616-4e2c-9dab-d9c2f30f4e33",
-    "metodo": "Todos os profiles"
-  },
-  {
-    "id": "fe93fa35-a38f-4c08-86c4-0dabc90df5a0",
-    "email": null,
-    "linked_auth_user_id": null,
-    "role": "admin",
-    "created_by_user_id": "fe93fa35-a38f-4c08-86c4-0dabc90df5a0",
-    "metodo": "Todos os profiles"
-  },
-  {
-    "id": "02bb7449-ed24-4e9a-8eb2-5a758e4cf871",
-    "email": null,
-    "linked_auth_user_id": null,
-    "role": "admin",
-    "created_by_user_id": "02bb7449-ed24-4e9a-8eb2-5a758e4cf871",
-    "metodo": "Todos os profiles"
-  }
-]
-
-
-[
-  {
-    "id": "7c197601-01cc-4f71-a4d8-7c1357cac113",
-    "email": "adm.geuniformes@gmail.com",
-    "email_confirmed_at": "2025-07-22 14:10:54.791822+00",
-    "metodo": "Usuario em auth.users"
-  }
-]
-
-
-
-
-ERRO NO COMANDO 4 -  ERROR:  0A000: FULL JOIN is only supported with merge-joinable or hash-joinable join conditions
-
-
+[ProtectedRoute] ⏳ Carregando autenticação e roles...
+AuthContext.tsx:65 [Auth] 📡 INITIAL_SESSION contatoluizantoniooliveira@gmail.com
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: Object
+ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
+App.tsx:199 [App] 🔐 Estado inicial de autenticação: Object
+useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: Object
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: Object
+ProtectedRoute.tsx:101 [ProtectedRoute] ✅ Usuário autenticado e autorizado
+DashboardCustomizer.tsx:25 🎛️ DashboardCustomizer render - forceUpdate: 0
+CustomizableKPIGrid.tsx:71 ✅ KPI VISIBLE INSTANT [1757349357508]: Object
+CustomizableChartsSection.tsx:31 ✅ CHARTS VISIBLE INSTANT [1757349357510]: Object
+useConfigInitialization.ts:25 🔄 Loading config for user: 9936ae64-b78c-48fe-97e8-bf67623349c6 company: 9936ae64-b78c-48fe-97e8-bf67623349c6
+configOperations.ts:8 === LOADING CONFIG ===
+useConfigInitialization.ts:25 🔄 Loading config for user: 9936ae64-b78c-48fe-97e8-bf67623349c6 company: 9936ae64-b78c-48fe-97e8-bf67623349c6
+configOperations.ts:8 === LOADING CONFIG ===
+useConfigInitialization.ts:25 🔄 Loading config for user: 9936ae64-b78c-48fe-97e8-bf67623349c6 company: 9936ae64-b78c-48fe-97e8-bf67623349c6
+configOperations.ts:8 === LOADING CONFIG ===
+CustomizableKPIGrid.tsx:82 🎯 KPI GRID UPDATED [1757349357522]: Object
+useConfigInitialization.ts:25 🔄 Loading config for user: 9936ae64-b78c-48fe-97e8-bf67623349c6 company: 9936ae64-b78c-48fe-97e8-bf67623349c6
+configOperations.ts:8 === LOADING CONFIG ===
+CustomizableChartsSection.tsx:42 📈 CHARTS UPDATED [1757349357523]: Object
+useConfigInitialization.ts:25 🔄 Loading config for user: 9936ae64-b78c-48fe-97e8-bf67623349c6 company: 9936ae64-b78c-48fe-97e8-bf67623349c6
+configOperations.ts:8 === LOADING CONFIG ===
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: Object
+configOperations.ts:13 ✅ Config loaded: Object
+useDashboardState.ts:30 📝 CONFIG UPDATE [1757349358333]
+useDashboardState.ts:37 📊 Config updated [1757349358333]: Object
+useDashboardState.ts:18 🔄 FORCE UPDATE TRIGGER [1757349358334]
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: Object
+useDashboardState.ts:22 📊 ForceUpdate: 0 -> 1 [1757349358334]
+useAccessControl.ts:28 [useAccessControl] 🔍 Buscando acessos a funis: Object
+configOperations.ts:13 ✅ Config loaded: Object
+useDashboardState.ts:30 📝 CONFIG UPDATE [1757349358372]
+useDashboardState.ts:37 📊 Config updated [1757349358372]: Object
+useDashboardState.ts:18 🔄 FORCE UPDATE TRIGGER [1757349358372]
+useDashboardState.ts:22 📊 ForceUpdate: 0 -> 1 [1757349358372]
+DashboardCustomizer.tsx:25 🎛️ DashboardCustomizer render - forceUpdate: 0
+useAccessControl.ts:45 [useAccessControl] 📊 Todos os funis encontrados (admin): 13
+useAccessControl.ts:86 [useAccessControl] 📊 Todas instâncias encontradas (admin): 12
+useDashboardKPIs.ts:24 [useDashboardKPIs] 🔍 Iniciando consulta KPIs: Object
+useDashboardKPIs.ts:49 [useDashboardKPIs] 🔧 Aplicando filtro multitenant manual
+configOperations.ts:13 ✅ Config loaded: Object
+useDashboardState.ts:30 📝 CONFIG UPDATE [1757349358510]
+useDashboardState.ts:18 🔄 FORCE UPDATE TRIGGER [1757349358510]
+useDashboardState.ts:37 📊 Config updated [1757349358510]: Object
+useDashboardState.ts:22 📊 ForceUpdate: 0 -> 1 [1757349358510]
+useDashboardKPIs.ts:62 [useDashboardKPIs] 🔒 Filtro multitenant aplicado para profile: 9936ae64-b78c-48fe-97e8-bf67623349c6
+useDashboardKPIs.ts:65 [useDashboardKPIs] 🚀 === INÍCIO DIAGNÓSTICO COMPLETO ===
+useDashboardKPIs.ts:66 [useDashboardKPIs] 👤 Dados do usuário: Object
+useDashboardKPIs.ts:72 [useDashboardKPIs] 🔐 Controle de acesso: Object
+configOperations.ts:13 ✅ Config loaded: Object
+useDashboardState.ts:30 📝 CONFIG UPDATE [1757349358602]
+useDashboardState.ts:37 📊 Config updated [1757349358602]: Object
+useDashboardState.ts:18 🔄 FORCE UPDATE TRIGGER [1757349358602]
+useDashboardState.ts:22 📊 ForceUpdate: 0 -> 1 [1757349358602]
+configOperations.ts:13 ✅ Config loaded: Object
+useDashboardState.ts:30 📝 CONFIG UPDATE [1757349358685]
+useDashboardState.ts:37 📊 Config updated [1757349358685]: Object
+useDashboardState.ts:18 🔄 FORCE UPDATE TRIGGER [1757349358685]
+useDashboardState.ts:22 📊 ForceUpdate: 0 -> 1 [1757349358685]
+DashboardCustomizer.tsx:25 🎛️ DashboardCustomizer render - forceUpdate: 1
+CustomizableKPIGrid.tsx:71 ✅ KPI VISIBLE INSTANT [1757349358698]: Object
+CustomizableChartsSection.tsx:31 ✅ CHARTS VISIBLE INSTANT [1757349358702]: Object
+CustomizableKPIGrid.tsx:82 🎯 KPI GRID UPDATED [1757349358709]: Object
+useConfigInitialization.ts:25 🔄 Loading config for user: 9936ae64-b78c-48fe-97e8-bf67623349c6 company: 9936ae64-b78c-48fe-97e8-bf67623349c6
+configOperations.ts:8 === LOADING CONFIG ===
+CustomizableChartsSection.tsx:42 📈 CHARTS UPDATED [1757349358753]: Object
+useDashboardKPIs.ts:93 [useDashboardKPIs] ✅ Todos os funis encontrados (admin): 13
+configOperations.ts:13 ✅ Config loaded: Object
+useDashboardState.ts:30 📝 CONFIG UPDATE [1757349359048]
+useDashboardState.ts:37 📊 Config updated [1757349359048]: Object
+useDashboardState.ts:18 🔄 FORCE UPDATE TRIGGER [1757349359049]
+useDashboardState.ts:22 📊 ForceUpdate: 0 -> 1 [1757349359049]
+useDashboardKPIs.ts:126 [useDashboardKPIs] 📊 Consultando leads com: Object
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: Object
+useAccessControl.ts:28 [useAccessControl] 🔍 Buscando acessos a funis: Object
+useAccessControl.ts:86 [useAccessControl] 📊 Todas instâncias encontradas (admin): 12
+useFunnelDashboard.ts:27 [useFunnelDashboard] 🔧 PLANO B: Filtro manual ativo
+useAccessControl.ts:45 [useAccessControl] 📊 Todos os funis encontrados (admin): 13
+useDashboardKPIs.ts:144 [useDashboardKPIs] ✅ Total leads encontrados: 2338
+useDashboardKPIs.ts:172 [useDashboardKPIs] ✅ Deals encontrados: 0
+useDashboardKPIs.ts:183 [useDashboardKPIs] 📈 === RESULTADOS CALCULADOS ===
+useDashboardKPIs.ts:184 [useDashboardKPIs] 📊 Dados brutos: Object
+useDashboardKPIs.ts:224 [useDashboardKPIs] 🎯 === RESULTADO FINAL ===
+useDashboardKPIs.ts:225 [useDashboardKPIs] ✅ KPIs calculados: Object
+useDashboardKPIs.ts:226 [useDashboardKPIs] 🏁 === FIM DIAGNÓSTICO ===
+configHandlers.ts:110 📝 UPDATE CONFIG [1757349364738]: Object
+useDashboardState.ts:30 📝 CONFIG UPDATE [1757349364739]
+useDashboardState.ts:18 🔄 FORCE UPDATE TRIGGER [1757349364740]
+useDashboardState.ts:22 📊 ForceUpdate: 1 -> 2 [1757349364740]
+useDashboardState.ts:37 📊 Config updated [1757349364739]: Object
+DashboardCustomizer.tsx:25 🎛️ DashboardCustomizer render - forceUpdate: 2
+CustomizableKPIGrid.tsx:71 ✅ KPI VISIBLE INSTANT [1757349364751]: Object
+CustomizableChartsSection.tsx:31 ✅ CHARTS VISIBLE INSTANT [1757349364754]: Object
+useDashboardKPIs.ts:24 [useDashboardKPIs] 🔍 Iniciando consulta KPIs: Object
+useDashboardKPIs.ts:49 [useDashboardKPIs] 🔧 Aplicando filtro multitenant manual
+CustomizableKPIGrid.tsx:82 🎯 KPI GRID UPDATED [1757349364765]: Object
+CustomizableChartsSection.tsx:42 📈 CHARTS UPDATED [1757349364766]: Object
+useDashboardKPIs.ts:62 [useDashboardKPIs] 🔒 Filtro multitenant aplicado para profile: 9936ae64-b78c-48fe-97e8-bf67623349c6
+useDashboardKPIs.ts:65 [useDashboardKPIs] 🚀 === INÍCIO DIAGNÓSTICO COMPLETO ===
+useDashboardKPIs.ts:66 [useDashboardKPIs] 👤 Dados do usuário: Object
+useDashboardKPIs.ts:72 [useDashboardKPIs] 🔐 Controle de acesso: Object
+useDashboardKPIs.ts:93 [useDashboardKPIs] ✅ Todos os funis encontrados (admin): 13
+useDashboardKPIs.ts:126 [useDashboardKPIs] 📊 Consultando leads com: Object
+useDashboardKPIs.ts:144 [useDashboardKPIs] ✅ Total leads encontrados: 2338
+configOperations.ts:42 💾 Saving config
+DashboardCustomizer.tsx:25 🎛️ DashboardCustomizer render - forceUpdate: 2
+useDashboardKPIs.ts:172 [useDashboardKPIs] ✅ Deals encontrados: 0
+useDashboardKPIs.ts:183 [useDashboardKPIs] 📈 === RESULTADOS CALCULADOS ===
+useDashboardKPIs.ts:184 [useDashboardKPIs] 📊 Dados brutos: Object
+configOperations.ts:44 ✅ Config saved
+DashboardCustomizer.tsx:25 🎛️ DashboardCustomizer render - forceUpdate: 2
+useDashboardKPIs.ts:224 [useDashboardKPIs] 🎯 === RESULTADO FINAL ===
+useDashboardKPIs.ts:225 [useDashboardKPIs] ✅ KPIs calculados: Object
+useDashboardKPIs.ts:226 [useDashboardKPIs] 🏁 === FIM DIAGNÓSTICO ===
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: Object
+ProtectedRoute.tsx:101 [ProtectedRoute] ✅ Usuário autenticado e autorizado
+SalesFunnel.tsx:5 [SalesFunnel] 🚀 Inicializando Sales Funnel ESCALÁVEL - Hooks Isolados
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useUserRole.ts:13 [useUserRole] 🔍 Verificando role real do usuário
+AuthContext.tsx:40 [Auth] 🔄 Configurando auth...
+useUserRole.ts:25 [useUserRole] 👤 Buscando perfil do usuário: 9936ae64-b78c-48fe-97e8-bf67623349c6
+AuthContext.tsx:49 [Auth] 🔍 Sessão inicial: contatoluizantoniooliveira@gmail.com
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: Object
+ProtectedRoute.tsx:101 [ProtectedRoute] ✅ Usuário autenticado e autorizado
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+AuthContext.tsx:65 [Auth] 📡 INITIAL_SESSION contatoluizantoniooliveira@gmail.com
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: Object
+ProtectedRoute.tsx:101 [ProtectedRoute] ✅ Usuário autenticado e autorizado
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: Object
+useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: Object
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: Object
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useAccessControl.ts:28 [useAccessControl] 🔍 Buscando acessos a funis: Object
+useSalesFunnelDirect.ts:38 [useSalesFunnelDirect] 🔍 Buscando funis acessíveis: Object
+useAccessControl.ts:45 [useAccessControl] 📊 Todos os funis encontrados (admin): 13
+useSalesFunnelDirect.ts:54 [useSalesFunnelDirect] ✅ Funis próprios encontrados: 1
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+useUserRole.ts:13 [useUserRole] 🔍 Verificando role real do usuário
+useSalesFunnelDirect.ts:188 [useSalesFunnelDirect] Auto-selecionando primeiro funil: Funil Principal
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+useAccessControl.ts:86 [useAccessControl] 📊 Todas instâncias encontradas (admin): 12
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:111 [useSalesFunnelDirect] 🔍 EXECUTANDO QUERY LEADS: Object
+useSalesFunnelDirect.ts:132 [useSalesFunnelDirect] 🔐 Confiando no RLS para filtros multitenant
+useSalesFunnelDirect.ts:133 [useSalesFunnelDirect] 🔑 Auth context: Object
+useSalesFunnelDirect.ts:269 [useSalesFunnelDirect] 🔄 Configurando Real-time subscriptions para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: Object
+useUserRole.ts:25 [useUserRole] 👤 Buscando perfil do usuário: 9936ae64-b78c-48fe-97e8-bf67623349c6
+useSalesFunnelDirect.ts:95 [useSalesFunnelDirect] Stages encontrados: 16
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:260 [useSalesFunnelDirect] 🔄 Atualizando columns: 14
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: Object
+useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: Object
+useSalesFunnelDirect.ts:147 [useSalesFunnelDirect] ✅ LEADS ENCONTRADOS: Object
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+MassMoveModal.tsx:36 [MassMoveModal] 📦 Props recebidas: Object
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+MassMoveModal.tsx:36 [MassMoveModal] 📦 Props recebidas: Object
+MassMoveModal.tsx:36 [MassMoveModal] 📦 Props recebidas: Object
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: Object
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:202 [useSalesFunnelDirect] ⏸️ Não há stages ou funnel - retornando array vazio
+useAccessControl.ts:28 [useAccessControl] 🔍 Buscando acessos a funis: Object
+useSalesFunnelDirect.ts:188 [useSalesFunnelDirect] Auto-selecionando primeiro funil: Funil Principal
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: Object
+useSalesFunnelDirect.ts:260 [useSalesFunnelDirect] 🔄 Atualizando columns: 14
+useSalesFunnelDirect.ts:269 [useSalesFunnelDirect] 🔄 Configurando Real-time subscriptions para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useAccessControl.ts:86 [useAccessControl] 📊 Todas instâncias encontradas (admin): 12
+useAccessControl.ts:45 [useAccessControl] 📊 Todos os funis encontrados (admin): 13
+useAccessControl.ts:28 [useAccessControl] 🔍 Buscando acessos a funis: Object
+AuthContext.tsx:65 [Auth] 📡 SIGNED_IN contatoluizantoniooliveira@gmail.com
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: Object
+ProtectedRoute.tsx:101 [ProtectedRoute] ✅ Usuário autenticado e autorizado
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: Object
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: Object
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: Object
+MassMoveModal.tsx:36 [MassMoveModal] 📦 Props recebidas: Object
+useAccessControl.ts:86 [useAccessControl] 📊 Todas instâncias encontradas (admin): 12
+useAccessControl.ts:45 [useAccessControl] 📊 Todos os funis encontrados (admin): 13
+2useSalesFunnelDirect.ts:294 [useSalesFunnelDirect] 🔄 Lead atualizado: UPDATE
+useSalesFunnelDirect.ts:307 [useSalesFunnelDirect] 🔄 Stage atualizado: UPDATE
+2useSalesFunnelDirect.ts:294 [useSalesFunnelDirect] 🔄 Lead atualizado: UPDATE
+useSalesFunnelDirect.ts:307 [useSalesFunnelDirect] 🔄 Stage atualizado: UPDATE
+useSalesFunnelDirect.ts:111 [useSalesFunnelDirect] 🔍 EXECUTANDO QUERY LEADS: {funnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf', userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', canViewAll: true}
+useSalesFunnelDirect.ts:132 [useSalesFunnelDirect] 🔐 Confiando no RLS para filtros multitenant
+useSalesFunnelDirect.ts:133 [useSalesFunnelDirect] 🔑 Auth context: {authUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6', userRole: 'admin', funnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf'}
+useSalesFunnelDirect.ts:111 [useSalesFunnelDirect] 🔍 EXECUTANDO QUERY LEADS: {funnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf', userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', canViewAll: true}
+useSalesFunnelDirect.ts:132 [useSalesFunnelDirect] 🔐 Confiando no RLS para filtros multitenant
+useSalesFunnelDirect.ts:133 [useSalesFunnelDirect] 🔑 Auth context: {authUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6', userRole: 'admin', funnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf'}
+2useSalesFunnelDirect.ts:294 [useSalesFunnelDirect] 🔄 Lead atualizado: UPDATE
+useSalesFunnelDirect.ts:307 [useSalesFunnelDirect] 🔄 Stage atualizado: UPDATE
+useSalesFunnelDirect.ts:147 [useSalesFunnelDirect] ✅ LEADS ENCONTRADOS: {count: 1000, funnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf', canViewAll: true, first3: Array(3)}
+2useSalesFunnelDirect.ts:294 [useSalesFunnelDirect] 🔄 Lead atualizado: UPDATE
+useSalesFunnelDirect.ts:307 [useSalesFunnelDirect] 🔄 Stage atualizado: UPDATE
+useSalesFunnelDirect.ts:147 [useSalesFunnelDirect] ✅ LEADS ENCONTRADOS: {count: 1000, funnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf', canViewAll: true, first3: Array(3)}
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', isAdmin: true, selectedFunnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf'}
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: {selectedFunnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf', funnelsCount: 1, stagesCount: 16, leadsCount: 1000, columnsCount: 14, …}
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: {stagesLength: 16, leadsLength: 1000, selectedFunnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf'}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+useSalesFunnelDirect.ts:26 [useSalesFunnelDirect] Hook iniciado: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', isAdmin: true, selectedFunnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf'}
+useSalesFunnelDirect.ts:176 [useSalesFunnelDirect] 📊 Estado atual: {selectedFunnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf', funnelsCount: 1, stagesCount: 16, leadsCount: 1000, columnsCount: 14, …}
+useSalesFunnelDirect.ts:195 [useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns: {stagesLength: 16, leadsLength: 1000, selectedFunnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf'}
+MassMoveModal.tsx:36 [MassMoveModal] 📦 Props recebidas: {isOpen: false, selectedLeads: 0, leadsData: Array(0)}
+useSalesFunnelDirect.ts:111 [useSalesFunnelDirect] 🔍 EXECUTANDO QUERY LEADS: {funnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf', userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', canViewAll: true}
+useSalesFunnelDirect.ts:132 [useSalesFunnelDirect] 🔐 Confiando no RLS para filtros multitenant
+useSalesFunnelDirect.ts:133 [useSalesFunnelDirect] 🔑 Auth context: {authUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6', userRole: 'admin', funnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf'}
+useSalesFunnelDirect.ts:111 [useSalesFunnelDirect] 🔍 EXECUTANDO QUERY LEADS: {funnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf', userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', canViewAll: true}
+useSalesFunnelDirect.ts:132 [useSalesFunnelDirect] 🔐 Confiando no RLS para filtros multitenant
+useSalesFunnelDirect.ts:133 [useSalesFunnelDirect] 🔑 Auth context: {authUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6', userRole: 'admin', funnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf'}
+useSalesFunnelDirect.ts:147 [useSalesFunnelDirect] ✅ LEADS ENCONTRADOS: {count: 1000, funnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf', canViewAll: true, first3: Array(3)}
+useSalesFunnelDirect.ts:147 [useSalesFunnelDirect] ✅ LEADS ENCONTRADOS: {count: 1000, funnelId: '1b522686-c1be-4b96-93c5-bf79ac197dbf', canViewAll: true, first3: Array(3)}

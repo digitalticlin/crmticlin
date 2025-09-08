@@ -144,6 +144,8 @@ export function DashboardConfigProvider({ children }: { children: ReactNode }) {
 
 export const useDashboardConfig = () => {
   const ctx = useContext(DashboardConfigContext);
-  // Fallback para manter compatibilidade caso Provider não esteja no topo
-  return ctx ?? useDashboardConfigImpl();
+  const fallback = useDashboardConfigImpl();
+  
+  // Sempre retornar o fallback para manter hooks consistentes
+  return ctx || fallback;
 };
