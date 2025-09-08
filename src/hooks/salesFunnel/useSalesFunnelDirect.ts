@@ -318,7 +318,7 @@ export function useSalesFunnelDirect() {
         },
         (payload) => {
           // Só invalidar na página atual para performance
-          throttledInvalidation(['leads-paginated', selectedFunnel.id, user.id, canViewAllFunnels, currentPage]);
+          throttledInvalidation(['leads', selectedFunnel.id, user.id, canViewAllFunnels]);
         }
       )
       .on(
@@ -345,7 +345,7 @@ export function useSalesFunnelDirect() {
         console.warn('[useSalesFunnelDirect] Erro ao desconectar subscription:', error);
       }
     };
-  }, [user?.id, selectedFunnel?.id, queryClient, canViewAllFunnels, accessLoading, currentPage]);
+  }, [user?.id, selectedFunnel?.id, queryClient, canViewAllFunnels, accessLoading]);
 
   // Create funnel function - FIXED to return Promise<void>
   const createFunnel = useCallback(async (name: string, description?: string): Promise<void> => {

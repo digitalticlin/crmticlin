@@ -1,8 +1,8 @@
 
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import DashboardCustomizer from "@/components/dashboard/customizer/DashboardCustomizer";
-import { CustomizableKPIGrid } from "@/components/dashboard/CustomizableKPIGrid";
-import CustomizableChartsSection from "@/components/dashboard/CustomizableChartsSection";
+import LazyCustomizer from "@/components/dashboard/lazy/LazyCustomizer";
+import LazyKPIGrid from "@/components/dashboard/lazy/LazyKPIGrid";
+import LazyChartsSection from "@/components/dashboard/lazy/LazyChartsSection";
 import PeriodFilter from "@/components/dashboard/PeriodFilter";
 import { DashboardConfigProvider } from "@/hooks/dashboard/useDashboardConfig";
 
@@ -23,17 +23,17 @@ export default function Dashboard() {
           </div>
           
           <div className="flex justify-center lg:justify-end">
-            <DashboardCustomizer />
+            <LazyCustomizer />
           </div>
         </div>
       </div>
       
       <div>
-        <CustomizableKPIGrid />
+        <LazyKPIGrid />
       </div>
       
       <div>
-        <CustomizableChartsSection />
+        <LazyChartsSection />
       </div>
     </DashboardConfigProvider>
   );

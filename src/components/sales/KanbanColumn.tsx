@@ -146,55 +146,74 @@ const ColumnHeader = ({
     }
   };
   
+  // Calcular o valor total dos purchase_values dos leads
+  const totalPurchaseValue = useMemo(() => {
+    const total = column.leads.reduce((sum, lead) => {
+      const value = Number(lead.purchase_value) || 0;
+      return sum + value;
+    }, 0);
+    
+    // Formatar como moeda brasileira
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2
+    }).format(total);
+  }, [column.leads]);
+  
+  // Só mostrar se houver valor
+  const hasValue = column.leads.some(lead => Number(lead.purchase_value) > 0);
+  
   return (
-    <div className="flex items-center justify-between mb-4 px-1">
-      <div className="flex items-center gap-2 flex-1">
-        {/* Checkbox de seleção da etapa - só aparece no modo seleção */}
-        {massSelection?.isSelectionMode && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleStageSelection}
-            className="p-0 h-auto hover:bg-transparent"
-            title="Selecionar/Deselecionar todos os leads desta etapa"
-          >
-            {stageSelectionState === 'all' ? (
-              <CheckSquare className="h-4 w-4 text-blue-500" />
-            ) : stageSelectionState === 'some' ? (
-              <Minus className="h-4 w-4 text-blue-400" />
-            ) : (
-              <Square className="h-4 w-4 text-gray-400 hover:text-blue-400" />
-            )}
-          </Button>
-        )}
-        
-        {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
-        {titleEditor.isEditing ? (
-          <Input
-            value={titleEditor.editTitle}
-            onChange={(e) => titleEditor.setEditTitle(e.target.value)}
-            onBlur={titleEditor.handleSave}
-            onKeyDown={titleEditor.handleKeyPress}
-            className="text-sm font-medium bg-white"
-            autoFocus
-          />
-        ) : (
-          <h3 
-            className={cn(
-              "text-sm font-medium text-gray-900 truncate",
-              isFixedStage && "text-gray-600"
-            )}
-            style={{ color: column.color }}
-          >
-            {column.title}
-          </h3>
-        )}
-        <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
-          {column.leads.length}
-        </span>
-      </div>
+    <div className="mb-4 px-1">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 flex-1">
+          {/* Checkbox de seleção da etapa - só aparece no modo seleção */}
+          {massSelection?.isSelectionMode && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleStageSelection}
+              className="p-0 h-auto hover:bg-transparent"
+              title="Selecionar/Deselecionar todos os leads desta etapa"
+            >
+              {stageSelectionState === 'all' ? (
+                <CheckSquare className="h-4 w-4 text-blue-500" />
+              ) : stageSelectionState === 'some' ? (
+                <Minus className="h-4 w-4 text-blue-400" />
+              ) : (
+                <Square className="h-4 w-4 text-gray-400 hover:text-blue-400" />
+              )}
+            </Button>
+          )}
+          
+          {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
+          {titleEditor.isEditing ? (
+            <Input
+              value={titleEditor.editTitle}
+              onChange={(e) => titleEditor.setEditTitle(e.target.value)}
+              onBlur={titleEditor.handleSave}
+              onKeyDown={titleEditor.handleKeyPress}
+              className="text-sm font-medium bg-white"
+              autoFocus
+            />
+          ) : (
+            <h3 
+              className={cn(
+                "text-sm font-medium text-gray-900 truncate",
+                isFixedStage && "text-gray-600"
+              )}
+              style={{ color: column.color }}
+            >
+              {column.title}
+            </h3>
+          )}
+          <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+            {column.leads.length}
+          </span>
+        </div>
 
-      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
         {/* Controle de IA - Aparece em todas as etapas EXCETO GANHO e PERDIDO */}
         {!isWonLostStage && !isWonLostView && (
           <AIToggleSwitchEnhanced
@@ -230,6 +249,19 @@ const ColumnHeader = ({
           </DropdownMenu>
         )}
       </div>
+      </div>
+      
+      {/* Mostrar valor total se houver */}
+      {hasValue && (
+        <div className="mt-2 px-1">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg px-2 py-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-600 font-medium">Total negociações:</span>
+              <span className="text-sm font-bold text-green-700">{totalPurchaseValue}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

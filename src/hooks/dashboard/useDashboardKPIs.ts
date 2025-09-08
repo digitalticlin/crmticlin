@@ -59,49 +59,29 @@ export function useDashboardKPIs(periodFilter: string) {
           throw new Error('Perfil do usuário não encontrado');
         }
 
-        console.log('[useDashboardKPIs] 🔒 Filtro multitenant aplicado para profile:', userProfile.id);
-
-        // DIAGNÓSTICO COMPLETO
-        console.log('[useDashboardKPIs] 🚀 === INÍCIO DIAGNÓSTICO COMPLETO ===');
-        console.log('[useDashboardKPIs] 👤 Dados do usuário:', {
-          userId: user?.id,
-          periodFilter,
-          days: parseInt(periodFilter),
-          startDate: startDate.toISOString()
-        });
-        console.log('[useDashboardKPIs] 🔐 Controle de acesso:', {
-          canViewAllFunnels,
-          userFunnelsLength: userFunnels.length,
-          userFunnels,
-          accessLoading
-        });
 
         // Determinar funis que o usuário pode acessar
         let accessibleFunnels: string[] = [];
         
         if (canViewAllFunnels) {
-          // Admin: buscar TODOS os funis da organização (sem filtro de created_by_user_id)
+          // Admin: buscar apenas funis criados por ele (MULTITENANT)
           const { data: allFunnels, error: funnelsError } = await supabase
             .from('funnels')
-            .select('id');
+            .select('id, name, created_by_user_id')
+            .eq('created_by_user_id', userProfile.id);  // 🔒 SEMPRE aplicar filtro multitenant
           
           if (funnelsError) {
             console.error('[useDashboardKPIs] ❌ Erro ao buscar todos os funis:', funnelsError);
             throw funnelsError;
           }
           accessibleFunnels = (allFunnels || []).map(f => f.id);
-          console.log('[useDashboardKPIs] ✅ Todos os funis encontrados (admin):', accessibleFunnels.length);
         } else {
-          // Operacional: usar apenas funis atribuídos
+          // Operacional: usar apenas funis atribuídos específicos
           accessibleFunnels = userFunnels;
-          console.log('[useDashboardKPIs] ✅ Usuário operacional - funis atribuídos:', accessibleFunnels.length);
         }
 
         // Se não tem acesso a nenhum funil, retornar zeros
         if (accessibleFunnels.length === 0) {
-          console.log('[useDashboardKPIs] ⚠️ === NENHUM FUNIL ACESSÍVEL ===');
-          console.log('[useDashboardKPIs] ❌ Verificar se funis existem no banco!');
-          console.log('[useDashboardKPIs] ❌ Verificar se RLS está permitindo acesso!');
           return {
             novos_leads: 0,
             total_leads: 0,
@@ -113,63 +93,59 @@ export function useDashboardKPIs(periodFilter: string) {
           };
         }
 
-        // Estágios ativos (não ganho, não perdido)
+        // Estágios ativos (não ganho, não perdido) dos funis acessíveis
         const { data: activeStages, error: stagesError } = await supabase
           .from('kanban_stages')
-          .select('id, is_won, is_lost')
+          .select('id, is_won, is_lost, funnel_id, title')
+          .in('funnel_id', accessibleFunnels)
           .eq('is_won', false)
           .eq('is_lost', false);
 
         if (stagesError) throw stagesError;
         const activeStageIds = (activeStages || []).map(s => s.id);
 
-        console.log('[useDashboardKPIs] 📊 Consultando leads com:', {
-          accessibleFunnels,
-          activeStageIds: activeStageIds.length,
-          startDate: startDate.toISOString()
-        });
 
-        // Contagem total de leads (COM FILTRO MULTITENANT)
-        const { count: totalLeadsCount, error: totalCountError } = await supabase
-          .from('leads')
-          .select('id', { count: 'exact', head: true })
-          .eq('created_by_user_id', userProfile.id)  // 🔒 FILTRO MULTITENANT
-          .in('funnel_id', accessibleFunnels)
-          .in('kanban_stage_id', activeStageIds);
+        // Contagem total de leads (SEMPRE FILTRAR POR MULTITENANT)
+        let totalLeadsCount = 0;
+        if (activeStageIds.length > 0) {
+          const { count, error: totalCountError } = await supabase
+            .from('leads')
+            .select('id', { count: 'exact', head: true })
+            .eq('created_by_user_id', userProfile.id)  // 🔒 SEMPRE aplicar filtro multitenant
+            .in('funnel_id', accessibleFunnels)
+            .in('kanban_stage_id', activeStageIds);
 
-        if (totalCountError) {
-          console.error('[useDashboardKPIs] ❌ Erro na contagem total:', totalCountError);
-          throw totalCountError;
+          if (totalCountError) {
+            console.error('[useDashboardKPIs] ❌ Erro na contagem total:', totalCountError);
+            throw totalCountError;
+          }
+          totalLeadsCount = count || 0;
         }
-        console.log('[useDashboardKPIs] ✅ Total leads encontrados:', totalLeadsCount);
 
-        // Novos leads no período (COM FILTRO MULTITENANT)
+        // Novos leads no período (SEMPRE FILTRAR POR MULTITENANT)
         const { data: newLeads, error: newLeadsError } = await supabase
           .from('leads')
           .select('id')
-          .eq('created_by_user_id', userProfile.id)  // 🔒 FILTRO MULTITENANT
+          .eq('created_by_user_id', userProfile.id)
           .in('funnel_id', accessibleFunnels)
           .gte('created_at', startDate.toISOString());
 
         if (newLeadsError) throw newLeadsError;
 
-        // Deals no período (JOIN com leads para acessar funnel_id)
+        // Deals no período (SEMPRE FILTRAR POR MULTITENANT)
         const { data: deals, error: dealsError } = await supabase
           .from('deals')
           .select(`
             status, 
             value, 
             date,
-            leads!inner(funnel_id)
+            leads!inner(funnel_id, created_by_user_id)
           `)
+          .eq('leads.created_by_user_id', userProfile.id)  // 🔒 SEMPRE aplicar filtro multitenant
           .in('leads.funnel_id', accessibleFunnels)
           .gte('date', startDate.toISOString());
 
-        if (dealsError) {
-          console.error('[useDashboardKPIs] ❌ Erro ao buscar deals:', dealsError);
-          throw dealsError;
-        }
-        console.log('[useDashboardKPIs] ✅ Deals encontrados:', deals?.length || 0);
+        if (dealsError) throw dealsError;
 
         const totalLeads = totalLeadsCount || 0;
         const novosLeads = newLeads?.length || 0;
@@ -180,25 +156,14 @@ export function useDashboardKPIs(periodFilter: string) {
         const taxaConversao = totalDeals > 0 ? Math.round((wonDeals / totalDeals) * 100) : 0;
         const taxaPerda = totalDeals > 0 ? Math.round((lostDeals / totalDeals) * 100) : 0;
 
-        console.log('[useDashboardKPIs] 📈 === RESULTADOS CALCULADOS ===');
-        console.log('[useDashboardKPIs] 📊 Dados brutos:', {
-          totalLeads,
-          novosLeads,
-          wonDeals,
-          lostDeals,
-          totalDeals,
-          newLeadsData: newLeads?.length,
-          dealsData: deals?.length
-        });
-
-        // Somatório de purchase_value de forma paginada para evitar limite de 1000 (filtrada por funis acessíveis)
+        // Somatório de purchase_value de forma paginada (SEMPRE FILTRAR POR MULTITENANT)
         let valorPipeline = 0;
         const PAGE_SIZE = 1000;
         for (let offset = 0; ; offset += PAGE_SIZE) {
           const { data: pageData, error: pageError } = await supabase
             .from('leads')
             .select('purchase_value')
-            .eq('created_by_user_id', userProfile.id)  // 🔒 FILTRO MULTITENANT
+            .eq('created_by_user_id', userProfile.id)  // 🔒 SEMPRE aplicar filtro multitenant
             .in('funnel_id', accessibleFunnels)
             .in('kanban_stage_id', activeStageIds)
             .range(offset, offset + PAGE_SIZE - 1);
@@ -211,21 +176,15 @@ export function useDashboardKPIs(periodFilter: string) {
         const ticketMedio = wonDeals > 0 ? 
           (deals?.filter(d => d.status === 'won').reduce((sum, d) => sum + (Number(d.value) || 0), 0) || 0) / wonDeals : 0;
 
-        const finalResult = {
+        return {
           novos_leads: novosLeads,
           total_leads: totalLeads,
           taxa_conversao: taxaConversao,
           taxa_perda: taxaPerda,
           valor_pipeline: valorPipeline,
           ticket_medio: ticketMedio,
-          tempo_resposta: 45, // Valor fixo por enquanto
+          tempo_resposta: 45,
         };
-
-        console.log('[useDashboardKPIs] 🎯 === RESULTADO FINAL ===');
-        console.log('[useDashboardKPIs] ✅ KPIs calculados:', finalResult);
-        console.log('[useDashboardKPIs] 🏁 === FIM DIAGNÓSTICO ===');
-
-        return finalResult;
       } catch (error) {
         console.error('Erro ao buscar KPIs:', error);
         return {

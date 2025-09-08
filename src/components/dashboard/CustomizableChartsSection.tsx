@@ -1,18 +1,44 @@
 
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
-import ChartsSection from "./ChartsSection";
-import FunnelChart from "./charts/FunnelChart";
-import PerformanceChart from "./charts/PerformanceChart";
-import TagsChart from "./charts/TagsChart";
-import DistributionChart from "./charts/DistributionChart";
+import MaintenanceChart from "./charts/MaintenanceChart";
 import { useMemo, useEffect } from "react";
 
 const chartComponents = {
-  funil_conversao: FunnelChart,
-  performance_vendedores: PerformanceChart,
-  evolucao_temporal: ChartsSection,
-  leads_etiquetas: TagsChart,
-  distribuicao_fonte: DistributionChart
+  funil_conversao: (props: any) => (
+    <MaintenanceChart 
+      title="Funil de Conversão" 
+      description="Análise do funil de vendas por etapa"
+      {...props}
+    />
+  ),
+  performance_vendedores: (props: any) => (
+    <MaintenanceChart 
+      title="Performance por Vendedor" 
+      description="Análise de performance individual dos vendedores"
+      {...props}
+    />
+  ),
+  evolucao_temporal: (props: any) => (
+    <MaintenanceChart 
+      title="Evolução Temporal" 
+      description="Evolução de métricas ao longo do tempo"
+      {...props}
+    />
+  ),
+  leads_etiquetas: (props: any) => (
+    <MaintenanceChart 
+      title="Leads por Etiquetas" 
+      description="Distribuição de leads por categorias e tags"
+      {...props}
+    />
+  ),
+  distribuicao_fonte: (props: any) => (
+    <MaintenanceChart 
+      title="Distribuição por Fonte" 
+      description="Análise das origens dos leads captados"
+      {...props}
+    />
+  )
 };
 
 export default function CustomizableChartsSection() {

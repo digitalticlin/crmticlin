@@ -53,9 +53,16 @@ export default function LoginForm() {
     <div className="auth-card-scale w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
       {/* Header Section */}
       <div className="space-y-4 text-center animate-scale-in">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-          Bem-vindo de volta
-        </h1>
+        <div className="mb-4 flex justify-center">
+          <div className="relative">
+            <img
+              src="/lovable-uploads/68c955d6-5aab-40d3-9018-c372a8f3faf6.png"
+              alt="Ticlin CRM"
+              className="h-14 transition-transform duration-300 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-ticlin-400 to-ticlin-600 opacity-10 rounded-lg blur-lg"></div>
+          </div>
+        </div>
         <p className="text-sm text-gray-700 font-medium">
           Faça login para acessar sua conta
         </p>

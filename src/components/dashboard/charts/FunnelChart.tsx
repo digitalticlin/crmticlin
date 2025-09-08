@@ -16,6 +16,7 @@ const FunnelChart = memo(function FunnelChart({ className }: FunnelChartProps) {
   const { selectedFunnel, stages, loading: funnelLoading } = useDashboardFunnelData();
   const { report, loading: reportLoading } = useFunnelDashboard(selectedFunnel?.id || "");
 
+  // 🔧 FIX: Todos os hooks devem estar no mesmo nível, antes de qualquer return condicional
   const loading = funnelLoading || reportLoading;
 
   // 🔧 FIX: Usar useMemo para evitar recálculos desnecessários e loop infinito
@@ -40,6 +41,10 @@ const FunnelChart = memo(function FunnelChart({ className }: FunnelChartProps) {
       });
   }, [report, stages]); // 🎯 Dependências claras e estáveis
 
+  // 🔧 OTIMIZAÇÃO: Memoizar cálculo do total de leads - SEMPRE no mesmo nível
+  const totalLeads = useMemo(() => funnelData[0]?.value || 1, [funnelData]);
+
+  // 🔧 FIX: Returns condicionais após todos os hooks
   if (loading) {
     return (
       <ChartCard 
@@ -65,9 +70,6 @@ const FunnelChart = memo(function FunnelChart({ className }: FunnelChartProps) {
       </ChartCard>
     );
   }
-
-  // 🔧 OTIMIZAÇÃO: Memoizar cálculo do total de leads
-  const totalLeads = useMemo(() => funnelData[0]?.value || 1, [funnelData]);
 
   return (
     <ChartCard 
