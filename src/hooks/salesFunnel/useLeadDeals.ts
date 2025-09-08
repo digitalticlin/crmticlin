@@ -1,6 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { salesFunnelQueryKeys } from "./queryKeys";
 
 export interface Deal {
   id: string;
@@ -12,7 +13,7 @@ export interface Deal {
 
 export const useLeadDeals = (leadId?: string) => {
   return useQuery({
-    queryKey: ["lead-deals", leadId],
+    queryKey: salesFunnelQueryKeys.deals(leadId || ''),
     queryFn: async (): Promise<Deal[]> => {
       if (!leadId) return [];
 

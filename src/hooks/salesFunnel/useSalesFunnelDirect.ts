@@ -9,6 +9,7 @@ import { KanbanColumn, KanbanLead, KanbanTag } from "@/types/kanban";
 import { Funnel, KanbanStage } from "@/types/funnel";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { salesFunnelQueryKeys } from "./queryKeys";
 
 export function useSalesFunnelDirect() {
   const { user } = useAuth();
@@ -31,7 +32,7 @@ export function useSalesFunnelDirect() {
 
   // Database hooks - usando queries diretas COM filtro de acesso corrigido
   const { data: funnels = [], isLoading: funnelLoading, refetch: refetchFunnels } = useQuery({
-    queryKey: ['funnels', user?.id, canViewAllFunnels, userFunnels],
+    queryKey: salesFunnelQueryKeys.funnels(user?.id || '', canViewAllFunnels, userFunnels),
     queryFn: async () => {
       if (!user?.id || accessLoading) return [];
       
@@ -81,7 +82,7 @@ export function useSalesFunnelDirect() {
   });
 
   const { data: stages = [], isLoading: stagesLoading, refetch: refetchStages } = useQuery({
-    queryKey: ['stages', selectedFunnel?.id],
+    queryKey: salesFunnelQueryKeys.stages(selectedFunnel?.id || ''),
     queryFn: async () => {
       if (!selectedFunnel?.id) return [];
       
@@ -102,7 +103,7 @@ export function useSalesFunnelDirect() {
 
   // 🔄 REVERTER: Query de leads original que funcionava
   const { data: leads = [], isLoading: leadsLoading, refetch: refetchLeads, error: leadsError } = useQuery({
-    queryKey: ['leads', selectedFunnel?.id, user?.id, canViewAllFunnels],
+    queryKey: salesFunnelQueryKeys.leads(selectedFunnel?.id || '', user?.id || '', canViewAllFunnels),
     queryFn: async () => {
       if (!selectedFunnel?.id || !user?.id || accessLoading) {
         console.log('[useSalesFunnelDirect] ⏸️ Query BLOQUEADA - falta funnel ou user ou access carregando');
@@ -318,7 +319,7 @@ export function useSalesFunnelDirect() {
         },
         (payload) => {
           // Só invalidar na página atual para performance
-          throttledInvalidation(['leads', selectedFunnel.id, user.id, canViewAllFunnels]);
+          throttledInvalidation(salesFunnelQueryKeys.leads(selectedFunnel.id, user.id, canViewAllFunnels));
         }
       )
       .on(
@@ -330,7 +331,7 @@ export function useSalesFunnelDirect() {
           filter: `funnel_id=eq.${selectedFunnel.id}`
         },
         (payload) => {
-          throttledInvalidation(['stages', selectedFunnel.id]);
+          throttledInvalidation(salesFunnelQueryKeys.stages(selectedFunnel.id));
         }
       )
       .subscribe();
@@ -431,30 +432,7 @@ export function useSalesFunnelDirect() {
     setIsLeadDetailOpen(true);
   }, []);
 
-  const toggleTagOnLead = useCallback((leadId: string, tagId: string) => {
-    console.log('[useSalesFunnelDirect] 🏷️ Toggle tag no lead:', leadId, tagId);
-    // TODO: Implementar lógica de tags
-  }, []);
-
-  const updateLeadNotes = useCallback((notes: string) => {
-    console.log('[useSalesFunnelDirect] 📝 Atualizando notas do lead:', notes);
-    // TODO: Implementar atualização de notas
-  }, []);
-
-  const updateLeadPurchaseValue = useCallback((value: number | undefined) => {
-    console.log('[useSalesFunnelDirect] 💰 Atualizando valor de compra:', value);
-    // TODO: Implementar atualização de valor
-  }, []);
-
-  const updateLeadAssignedUser = useCallback((user: string) => {
-    console.log('[useSalesFunnelDirect] 👤 Atualizando usuário responsável:', user);
-    // TODO: Implementar atualização de usuário
-  }, []);
-
-  const updateLeadName = useCallback((name: string) => {
-    console.log('[useSalesFunnelDirect] ✏️ Atualizando nome do lead:', name);
-    // TODO: Implementar atualização de nome
-  }, []);
+  // ✅ REMOVIDAS funções TODO - usar useLeadActions para operações de lead
 
   // 🚀 DRAG & DROP COM SYNC AUTOMÁTICO - TEMPO REAL
   const moveLeadToStage = useCallback(async (leadId: string, newStageId: string) => {
@@ -550,11 +528,6 @@ export function useSalesFunnelDirect() {
 
     // Ações de lead
     openLeadDetail,
-    toggleTagOnLead,
-    updateLeadNotes,
-    updateLeadPurchaseValue,
-    updateLeadAssignedUser,
-    updateLeadName,
     moveLeadToStage,
 
     // Funções de refresh

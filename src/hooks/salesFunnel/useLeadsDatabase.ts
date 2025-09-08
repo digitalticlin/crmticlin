@@ -3,15 +3,16 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { salesFunnelQueryKeys } from "./queryKeys";
 
-export function useLeadsDatabase(funnelId?: string) {
+export function useLeadsDatabase(funnelId?: string, canViewAllFunnels: boolean = false) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  console.log('[useLeadsDatabase] 🔍 Iniciando query com:', { funnelId, userId: user?.id });
+  console.log('[useLeadsDatabase] 🔍 Iniciando query com:', { funnelId, userId: user?.id, canViewAllFunnels });
 
   const { data: leads = [], refetch: refetchLeads } = useQuery({
-    queryKey: ["kanban-leads", funnelId],
+    queryKey: salesFunnelQueryKeys.leads(funnelId || '', user?.id || '', canViewAllFunnels),
     queryFn: async () => {
       if (!funnelId || !user?.id) {
         console.log('[useLeadsDatabase] ⚠️ Faltam parâmetros:', { funnelId, userId: user?.id });

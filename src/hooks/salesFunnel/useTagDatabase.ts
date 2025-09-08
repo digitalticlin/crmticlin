@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { salesFunnelQueryKeys } from "./queryKeys";
 
 export interface Tag {
   id: string;
@@ -18,7 +19,7 @@ export function useTagDatabase() {
   const { user } = useAuth();
 
   const { data: tags = [], isLoading } = useQuery({
-    queryKey: ["tags", user?.id],
+    queryKey: salesFunnelQueryKeys.tags(user?.id || ''),
     queryFn: async (): Promise<Tag[]> => {
       if (!user?.id) return [];
 
