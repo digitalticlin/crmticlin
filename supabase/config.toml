@@ -36,3 +36,9 @@ verify_jwt = false
 
 [functions.ai-message-consult]
 verify_jwt = false
+
+[functions.send_resend_invite]
+verify_jwt = false
+
+[functions.accept_invite]
+verify_jwt = false

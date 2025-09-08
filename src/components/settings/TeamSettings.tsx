@@ -4,6 +4,8 @@ import { Loader2, Users, UserPlus, Crown, Settings, Shield } from "lucide-react"
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
+import { useTeamMemberEditor } from "@/hooks/useTeamMemberEditor";
+import { useTeamMemberAssignments } from "@/hooks/useTeamMemberAssignments";
 import { useTeamAuxiliaryData } from "@/hooks/settings/useTeamAuxiliaryData";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { ModernTeamMembersList } from "./team/ModernTeamMembersList";
@@ -18,13 +20,17 @@ export default function TeamSettings() {
   
   const { permissions, loading: permissionsLoading } = useUserPermissions();
   console.log('[TeamSettings] Permissions data:', permissions, 'Loading:', permissionsLoading);
+  // Hook principal - apenas criação e listagem
   const {
     teamMembers,
     isLoading,
     createTeamMember,
-    editMember,
-    removeMember,
+    resendInvite
   } = useTeamManagement(user?.id);
+
+  // Hooks isolados para edição
+  const { updateMemberProfile, removeMember } = useTeamMemberEditor(user?.id);
+  const { updateMemberAssignments } = useTeamMemberAssignments(user?.id);
 
   const { allWhatsApps, allFunnels, auxDataLoading } = useTeamAuxiliaryData(user?.id);
   
@@ -155,20 +161,38 @@ export default function TeamSettings() {
           onRemoveMember={removeMember.mutateAsync}
           onEditMember={async (memberId: string, data: any) => {
             try {
-              console.log('[TeamSettings] ===== EDITANDO MEMBRO =====');
+              console.log('[TeamSettings] ===== EDITANDO MEMBRO COM HOOKS ISOLADOS =====');
               console.log('[TeamSettings] Member ID:', memberId);
               console.log('[TeamSettings] Dados recebidos:', data);
               
-              const result = await editMember.mutateAsync({ memberId, memberData: data });
+              // 1. Atualizar dados do perfil (nome, email, role, whatsapp_personal)
+              const profileData = {
+                full_name: data.full_name,
+                email: data.email,
+                role: data.role,
+                whatsapp_personal: data.whatsapp_personal
+              };
               
-              console.log('[TeamSettings] Resultado da mutation:', result);
-              console.log('[TeamSettings] Edição bem-sucedida!');
+              console.log('[TeamSettings] 👤 Atualizando perfil:', profileData);
+              await updateMemberProfile.mutateAsync({ memberId, profileData });
+              
+              // 2. Atualizar atribuições (funis + WhatsApp) + transferir leads automaticamente
+              const assignmentData = {
+                funnelIds: data.assignedFunnelIds || [],
+                whatsappIds: data.assignedWhatsAppIds || []
+              };
+              
+              console.log('[TeamSettings] 🎯 Atualizando assignments:', assignmentData);
+              await updateMemberAssignments.mutateAsync({ memberId, assignments: assignmentData });
+              
+              console.log('[TeamSettings] ✅ Edição completa bem-sucedida!');
               return true;
             } catch (error) {
-              console.error('[TeamSettings] Erro ao editar membro:', error);
+              console.error('[TeamSettings] ❌ Erro ao editar membro:', error);
               return false;
             }
           }}
+          onResendInvite={resendInvite.mutateAsync}
           allWhatsApps={allWhatsApps}
           allFunnels={allFunnels}
           loading={isLoading}

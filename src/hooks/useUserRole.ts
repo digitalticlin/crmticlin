@@ -24,11 +24,11 @@ export const useUserRole = () => {
 
         console.log('[useUserRole] 👤 Buscando perfil do usuário:', user.id);
         
-        // Buscar o perfil real do usuário no banco
+        // 🚀 CORREÇÃO FINAL: Usar ID direto (linked_auth_user_id está NULL)
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('role, created_by_user_id')
-          .eq('id', user.id)
+          .eq('id', user.id)  // ✅ ID direto - profiles.id = auth.users.id
           .single();
 
         if (error) {

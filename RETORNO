@@ -1,91 +1,196 @@
-Realizei uma varredura detalhada no frontend, backend, estrutura de autenticação e edge functions. Aqui está o diagnóstico completo:
+[
+  {
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "full_name",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "username",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "document_id",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "whatsapp",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "role",
+    "data_type": "USER-DEFINED",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "created_by_user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "column_name": "email",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "invite_status",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": "'pending'::text"
+  },
+  {
+    "column_name": "temp_password",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "invite_sent_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "linked_auth_user_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "invite_token",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "column_name": "avatar_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "phone",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "position",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "department",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "last_login_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "is_active",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": "true"
+  },
+  {
+    "column_name": "invite_expires_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  }
+]
 
-✅ O QUE JÁ ESTÁ IMPLEMENTADO E FUNCIONANDO:
-1. Sistema de Convites (100% Funcional)
-✅ Frontend: useTeamManagement.ts chama corretamente send_native_invite
-✅ Edge Function: send_native_invite usa supabaseAdmin.auth.admin.inviteUserByEmail() nativo
-✅ Template Nativo: Envia email do Supabase com redirect para /invite/{token}
-✅ Tela /invite: AcceptInvite.tsx funciona perfeitamente, integra com accept_team_invite_safely
-✅ Redirecionamento: Após criar senha → vai para /login
-2. Funções Implementadas no Banco
-✅ handle_new_user: Cria perfil como ADMIN com created_by_user_id = NEW.id (auto-referência) ✅
-✅ handle_user_signup: Vincula perfis pendentes de convites ao auth.users
-✅ Sistema de Profiles: Estrutura correta com roles admin/operational
-3. Frontend de Registro
-✅ RegisterForm.tsx: Funciona corretamente
-✅ AuthContext.signUp(): Configurado com emailRedirectTo: ${window.location.origin}/dashboard
-✅ Metadados: Envia full_name correto para raw_user_meta_data
-❌ PROBLEMAS CRÍTICOS ENCONTRADOS:
-1. TRIGGER AUSENTE (CRÍTICO)
-
--- ❌ PROBLEMA: Não existe trigger na tabela auth.users
--- ✅ SOLUÇÃO NECESSÁRIA: Criar trigger que chama handle_new_user
-IMPACTO: Usuários que se registram NÃO têm perfil criado automaticamente na tabela profiles.
-
-2. FUNIL PADRÃO NÃO AUTOMÁTICO (IMPORTANTE)
-❌ Problema: Não há processo que crie "Funil Principal" automaticamente no registro
-✅ Observação: Funis existentes mostram padrão manual: "Funil Principal" com estágios estruturados
-⚠️ Impacto: Usuário novo fica sem funil até criar manualmente
-3. ESTÁGIOS PADRÃO NÃO AUTOMÁTICOS (IMPORTANTE)
-❌ Problema: Não há criação automática de estágios padrão:
-Entrada de Leads (ordem 1)
-Em atendimento (ordem 2)
-GANHO (is_won: true)
-PERDIDO (is_lost: true)
-📋 PLANO DE AÇÃO DETALHADO PARA PRODUÇÃO:
-FASE 1 - CRÍTICA: Restaurar Auto-Criação de Perfil
-Status: 🔴 BLOQUEANTE PARA PRODUÇÃO
 
 
--- Criar trigger que já deveria existir
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
-FASE 2 - IMPORTANTE: Implementar Auto-Criação de Funil + Estágios
-Status: 🟡 RECOMENDADO PARA PRODUÇÃO
+[
+  {
+    "id": "9936ae64-b78c-48fe-97e8-bf67623349c6",
+    "email": null,
+    "linked_auth_user_id": null,
+    "role": "admin",
+    "created_by_user_id": "9936ae64-b78c-48fe-97e8-bf67623349c6",
+    "metodo": "Todos os profiles"
+  },
+  {
+    "id": "712e7708-2299-4a00-9128-577c8f113ca4",
+    "email": null,
+    "linked_auth_user_id": null,
+    "role": "admin",
+    "created_by_user_id": "712e7708-2299-4a00-9128-577c8f113ca4",
+    "metodo": "Todos os profiles"
+  },
+  {
+    "id": "c9181d71-2616-4e2c-9dab-d9c2f30f4e33",
+    "email": null,
+    "linked_auth_user_id": null,
+    "role": "admin",
+    "created_by_user_id": "c9181d71-2616-4e2c-9dab-d9c2f30f4e33",
+    "metodo": "Todos os profiles"
+  },
+  {
+    "id": "fe93fa35-a38f-4c08-86c4-0dabc90df5a0",
+    "email": null,
+    "linked_auth_user_id": null,
+    "role": "admin",
+    "created_by_user_id": "fe93fa35-a38f-4c08-86c4-0dabc90df5a0",
+    "metodo": "Todos os profiles"
+  },
+  {
+    "id": "02bb7449-ed24-4e9a-8eb2-5a758e4cf871",
+    "email": null,
+    "linked_auth_user_id": null,
+    "role": "admin",
+    "created_by_user_id": "02bb7449-ed24-4e9a-8eb2-5a758e4cf871",
+    "metodo": "Todos os profiles"
+  }
+]
 
-Criar função create_default_funnel_and_stages(user_id)
-Modificar handle_new_user para chamar essa função
-Criar automaticamente:
-Funil "Funil Principal"
-Estágios padrão na ordem correta
-FASE 3 - CONFIGURAÇÃO: Validar Dashboard Supabase
-Status: ✅ VERIFICAR CONFIGURAÇÕES
 
-✅ SMTP já configurado (conforme informado)
-⚠️ Verificar: Templates "Confirm signup" e "Invite user"
-⚠️ Verificar: Site URL e Redirect URLs para produção
-🚨 SITUAÇÃO ATUAL PARA PRODUÇÃO:
-✅ FUNCIONA:
-Convites de equipe (100% funcional)
-Vinculação de convites
-Tela /invite
-❌ NÃO FUNCIONA:
-Usuários novos ficam SEM perfil na tabela profiles
-Usuários novos ficam SEM funil padrão
-Sistema quebra ao tentar acessar dados do usuário
-⚡ RECOMENDAÇÃO:
-Para colocar em produção HOJE, é OBRIGATÓRIO implementar pelo menos a FASE 1 (trigger ausente). Sem isso, o sistema não funcionará para novos usuários.
+[
+  {
+    "id": "7c197601-01cc-4f71-a4d8-7c1357cac113",
+    "email": "adm.geuniformes@gmail.com",
+    "email_confirmed_at": "2025-07-22 14:10:54.791822+00",
+    "metodo": "Usuario em auth.users"
+  }
+]
 
-A FASE 2 é altamente recomendada para uma experiência completa do usuário.
 
-Deseja que eu implemente o plano para corrigir esses problemas críticos?
 
-PLANO DE IMPLEMENTAÇÃO PARA PRODUÇÃO
 
-FASE 1 - CRÍTICA (OBRIGATÓRIA):
+ERRO NO COMANDO 4 -  ERROR:  0A000: FULL JOIN is only supported with merge-joinable or hash-joinable join conditions
 
-Criar trigger on_auth_user_created na tabela auth.users
-Testar registro de novo usuário
-Verificar se perfil é criado como admin com auto-referência
-FASE 2 - IMPORTANTE (RECOMENDADA):
 
-Criar função create_default_funnel_and_stages(user_id)
-Modificar handle_new_user para criar funil + estágios automaticamente
-Definir estágios padrão: Entrada → Atendimento → Negociação → Ganho/Perdido
-FASE 3 - CONFIGURAÇÃO:
-
-Validar templates Supabase "Confirm signup" e "Invite user"
-Configurar Site URL e Redirect URLs para produção
-Testar fluxo completo: registro → confirmação → login → dashboard
-RESULTADO: Sistema 100% funcional para novos registros e convites de equipe

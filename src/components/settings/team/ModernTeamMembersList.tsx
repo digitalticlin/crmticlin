@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Shield, User, Crown, Users, Phone, TrendingUp, Edit } from "lucide-react";
+import { Trash2, Shield, User, Crown, Users, Phone, TrendingUp, Edit, Mail, Loader2, CheckCircle, XCircle } from "lucide-react";
+import { toast } from "sonner";
 import { TeamMember } from "@/hooks/useTeamManagement";
 import {
   AlertDialog,
@@ -22,6 +23,7 @@ interface ModernTeamMembersListProps {
   members: TeamMember[];
   onRemoveMember: (memberId: string) => void;
   onEditMember?: (memberId: string, data: any) => Promise<boolean>;
+  onResendInvite?: (memberId: string) => void;
   allWhatsApps?: any[];
   allFunnels?: any[];
   loading?: boolean;
@@ -31,6 +33,7 @@ export const ModernTeamMembersList = ({
   members,
   onRemoveMember,
   onEditMember,
+  onResendInvite,
   allWhatsApps = [],
   allFunnels = [],
   loading = false
@@ -38,6 +41,29 @@ export const ModernTeamMembersList = ({
   const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
   const [memberToEdit, setMemberToEdit] = useState<TeamMember | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [resendingInvite, setResendingInvite] = useState<string | null>(null);
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null);
+
+  const handleResendInvite = async (memberId: string) => {
+    if (!onResendInvite) return;
+    
+    setResendingInvite(memberId);
+    setInviteSuccess(null);
+    
+    try {
+      await onResendInvite(memberId);
+      setInviteSuccess(memberId);
+      
+      // Limpar status de sucesso após 3 segundos
+      setTimeout(() => {
+        setInviteSuccess(null);
+      }, 3000);
+    } catch (error) {
+      // O erro já é tratado no hook com toast
+    } finally {
+      setResendingInvite(null);
+    }
+  };
 
   const getRoleInfo = (role: string) => {
     switch (role) {
@@ -85,6 +111,27 @@ export const ModernTeamMembersList = ({
       .slice(0, 2);
   };
 
+  const getInviteStatusInfo = (invite_status?: string) => {
+    switch (invite_status) {
+      case 'invite_sent':
+        return {
+          label: "CONVITE ENVIADO",
+          color: "bg-blue-100/80 text-blue-800 border-blue-300/60",
+          icon: Mail,
+          canResend: true
+        };
+      case 'accepted':
+        return {
+          label: "CONVITE ACEITO",
+          color: "bg-green-100/80 text-green-800 border-green-300/60",
+          icon: Shield,
+          canResend: false
+        };
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -115,6 +162,7 @@ export const ModernTeamMembersList = ({
     <div className="space-y-4">
       {members.map((member) => {
         const roleInfo = getRoleInfo(member.role);
+        const inviteStatusInfo = getInviteStatusInfo(member.invite_status);
         const initials = getInitials(member.full_name);
 
         return (
@@ -136,7 +184,7 @@ export const ModernTeamMembersList = ({
 
                 {/* Detalhes */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <h4 className="text-lg font-bold text-gray-900 truncate">
                       {member.full_name}
                     </h4>
@@ -144,6 +192,12 @@ export const ModernTeamMembersList = ({
                       <roleInfo.icon className="h-3 w-3 mr-1" />
                       {roleInfo.label}
                     </Badge>
+                    {inviteStatusInfo && (
+                      <Badge className={`${inviteStatusInfo.color} backdrop-blur-sm font-medium`}>
+                        <inviteStatusInfo.icon className="h-3 w-3 mr-1" />
+                        {inviteStatusInfo.label}
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -159,10 +213,6 @@ export const ModernTeamMembersList = ({
                         {member.whatsapp}
                       </p>
                     )}
-
-                    <p className="text-xs text-gray-600">
-                      {roleInfo.description}
-                    </p>
 
                     {/* Acessos - Apenas para Operacionais */}
                     {member.role === "operational" && (
@@ -186,20 +236,6 @@ export const ModernTeamMembersList = ({
                         )}
                       </div>
                     )}
-
-                    {/* Nota para Gestores */}
-                    {(member.role === 'admin' || member.role === 'operational') && (
-                      <div className="mt-3">
-                        <div className={`${roleInfo.bgColor} backdrop-blur-sm border border-white/30 rounded-lg p-2`}>
-                          <p className="text-xs font-medium text-gray-700">
-                            {member.role === "admin" 
-                              ? "Acesso total incluindo gestão de equipe" 
-                              : "Acesso total exceto gestão de equipe"
-                            }
-                          </p>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -217,6 +253,29 @@ export const ModernTeamMembersList = ({
                     }}
                   >
                     <Edit className="h-4 w-4" />
+                  </Button>
+                )}
+
+                {/* Botão Reenviar Convite */}
+                {inviteStatusInfo?.canResend && onResendInvite && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`backdrop-blur-sm border rounded-xl transition-all duration-200 ${
+                      inviteSuccess === member.id 
+                        ? 'bg-green-50/60 border-green-200/60 text-green-600' 
+                        : 'bg-blue-50/60 border-blue-200/60 hover:bg-blue-100/60 text-blue-600'
+                    }`}
+                    onClick={() => handleResendInvite(member.id)}
+                    disabled={resendingInvite === member.id}
+                  >
+                    {resendingInvite === member.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : inviteSuccess === member.id ? (
+                      <CheckCircle className="h-4 w-4" />
+                    ) : (
+                      <Mail className="h-4 w-4" />
+                    )}
                   </Button>
                 )}
 

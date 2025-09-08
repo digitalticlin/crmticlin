@@ -1,12 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { BackgroundGradient } from '@/components/ui/BackgroundGradient';
 import { toast } from 'sonner';
-import { Eye, EyeOff, CheckCircle, AlertCircle, UserPlus } from 'lucide-react';
 
 interface InviteData {
   id: string;
@@ -27,8 +23,7 @@ export function AcceptInvite() {
   const [accepting, setAccepting] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
 
   useEffect(() => {
     if (token) {
@@ -38,31 +33,25 @@ export function AcceptInvite() {
 
   const loadInviteData = async () => {
     try {
-      console.log('[AcceptInvite] Carregando dados do convite:', token);
-      
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, role, created_by_user_id, invite_status')
+        .select('id, full_name, email, role, created_by_user_id, invite_status')
         .eq('invite_token', token)
         .single();
 
       if (error || !data) {
-        console.error('[AcceptInvite] Erro ao carregar convite:', error);
         toast.error('Convite inválido ou expirado');
         return;
       }
 
       if (data?.invite_status === 'accepted') {
-        console.log('[AcceptInvite] Convite já foi aceito');
         toast.info('Este convite já foi aceito');
         navigate('/login');
         return;
       }
 
       setInviteData(data as any);
-      console.log('[AcceptInvite] Dados do convite carregados:', data?.full_name);
     } catch (error) {
-      console.error('[AcceptInvite] Erro inesperado:', error);
       toast.error('Erro ao carregar convite');
     } finally {
       setLoading(false);
@@ -88,79 +77,51 @@ export function AcceptInvite() {
     setAccepting(true);
 
     try {
-      console.log('[AcceptInvite] Criando usuário no Auth...');
-      
-      // 1. Criar usuário no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: inviteData.email,
-        password: newPassword,
-        options: {
-          data: {
-            full_name: inviteData.full_name,
-            role: inviteData.role,
-            invite_accepted: true
-          }
+      // Chamar edge function para aceitar convite
+      const { data: acceptResult, error: acceptError } = await supabase.functions.invoke('accept_invite', {
+        body: {
+          invite_token: token,
+          password: newPassword
         }
       });
 
-      if (authError || !authData.user) {
-        console.error('[AcceptInvite] Erro ao criar usuário:', authError);
-        toast.error('Erro ao criar conta: ' + (authError?.message || 'Falha desconhecida'));
+      if (acceptError || !acceptResult?.success) {
+        toast.error('Erro ao aceitar convite: ' + (acceptResult?.error || acceptError?.message));
         return;
       }
 
-      console.log('[AcceptInvite] Usuário criado com sucesso:', authData.user.id);
-
-      // 2. Usar função segura para aceitar convite
-      console.log('[AcceptInvite] Aceitando convite de forma segura...');
-      
-      // Usar função RPC agora implementada
-      const { data: acceptResult, error: acceptError } = await supabase.rpc(
-        'accept_team_invite_safely',
-        {
-          p_invite_token: token,
-          p_auth_user_id: authData.user.id
-        }
-      );
-
-      if (acceptError) {
-        console.error('[AcceptInvite] ❌ Erro ao aceitar convite:', acceptError);
-        toast.error('Erro ao aceitar convite');
-        return;
-      }
-
-      if (!(acceptResult as any)?.success) {
-        console.error('[AcceptInvite] ❌ Erro na vinculação:', (acceptResult as any)?.error);
-        toast.error((acceptResult as any)?.error || 'Erro ao aceitar convite');
-        return;
-      }
-
-      console.log('[AcceptInvite] ✅ Convite aceito com sucesso');
-      toast.success('Conta criada com sucesso!');
-      
-      // Redirecionar para login
-      toast.success('Conta criada! Faça login com suas credenciais.', {
-        duration: 3000
-      });
-      
-      // Redirecionar para login  
-      setTimeout(() => {
-        navigate('/login', { 
-          state: { 
-            message: 'Conta criada com sucesso! Use suas credenciais para fazer login.',
-            email: inviteData?.email 
-          } 
+      // Login automático com os tokens retornados
+      if (acceptResult.auth?.access_token && acceptResult.auth?.refresh_token) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+          access_token: acceptResult.auth.access_token,
+          refresh_token: acceptResult.auth.refresh_token
         });
-      }, 2000);
+
+        if (sessionError) {
+          toast.success('Conta criada com sucesso! Faça login manualmente.');
+          setTimeout(() => navigate('/login'), 2000);
+          return;
+        }
+
+        toast.success(`Bem-vindo(a) ${acceptResult.user.full_name}! Redirecionando...`);
+        
+        // Redirecionar para dashboard
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
+      } else {
+        // Fallback: redirecionar para login
+        toast.success('Conta criada com sucesso! Faça login manualmente.');
+        setTimeout(() => navigate('/login'), 2000);
+      }
 
     } catch (error) {
-      console.error('[AcceptInvite] Erro inesperado:', error);
       toast.error('Erro inesperado ao aceitar convite');
     } finally {
       setAccepting(false);
     }
   };
-
+  
   if (loading) {
     return (
       <BackgroundGradient className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-200">
@@ -185,7 +146,7 @@ export function AcceptInvite() {
         <div className="w-full max-w-md relative z-10 animate-fade-in">
           <div className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-2xl p-8 transition-all duration-300 hover:bg-white/50">
             <div className="text-center">
-              <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+              <div className="h-12 w-12 text-red-600 mx-auto mb-4">❌</div>
               <h2 className="text-xl font-bold text-gray-800 mb-2">Convite Inválido</h2>
               <p className="text-gray-700 font-medium">Este convite não foi encontrado ou já expirou.</p>
             </div>
@@ -202,7 +163,7 @@ export function AcceptInvite() {
           {/* Header */}
           <div className="text-center mb-6">
             <div className="p-3 bg-white/30 backdrop-blur-sm rounded-xl border border-white/40 shadow-glass mx-auto w-fit mb-4">
-              <UserPlus className="h-8 w-8 text-yellow-500" />
+              <div className="h-8 w-8 text-yellow-500">🎉</div>
             </div>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Aceitar Convite</h1>
             <p className="text-gray-700 font-medium">
@@ -212,75 +173,58 @@ export function AcceptInvite() {
           
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-800 font-medium">Email</Label>
-              <Input
+              <label htmlFor="email" className="text-gray-800 font-medium">Email</label>
+              <input
                 id="email"
                 type="email"
                 value={inviteData.email}
                 disabled
-                className="bg-white/60 backdrop-blur-sm border-white/40 text-gray-800 font-medium"
+                className="w-full bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl px-4 py-3 text-gray-800 font-medium"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="role" className="text-gray-800 font-medium">Função</Label>
-              <Input
+              <label htmlFor="role" className="text-gray-800 font-medium">Função</label>
+              <input
                 id="role"
                 value={inviteData.role === 'admin' ? 'Administrador' : 
                        inviteData.role === 'manager' ? 'Gerente' : 'Operacional'}
                 disabled
-                className="bg-white/60 backdrop-blur-sm border-white/40 text-gray-800 font-medium"
+                className="w-full bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl px-4 py-3 text-gray-800 font-medium"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="newPassword" className="text-gray-800 font-medium">Nova Senha *</Label>
-              <div className="relative">
-                <Input
-                  id="newPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Digite sua nova senha"
-                  required
-                  className="bg-white/60 backdrop-blur-sm border-white/40 text-gray-800 font-medium pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+              <label htmlFor="newPassword" className="text-gray-800 font-medium">Nova Senha *</label>
+              <input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Digite sua nova senha"
+                required
+                className="w-full bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl px-4 py-3 text-gray-800 font-medium"
+              />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-gray-800 font-medium">Confirmar Senha *</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirme sua nova senha"
-                  required
-                  className="bg-white/60 backdrop-blur-sm border-white/40 text-gray-800 font-medium pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+              <label htmlFor="confirmPassword" className="text-gray-800 font-medium">Confirmar Senha *</label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirme sua nova senha"
+                required
+                className="w-full bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl px-4 py-3 text-gray-800 font-medium"
+              />
             </div>
 
-            <Button
+            <button
               onClick={acceptInvite}
-              disabled={accepting}
+              disabled={accepting || !newPassword || !confirmPassword}
               className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-semibold py-3 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50"
+              type="button"
             >
               {accepting ? (
                 <div className="flex items-center justify-center space-x-2">
@@ -290,7 +234,7 @@ export function AcceptInvite() {
               ) : (
                 'Aceitar Convite e Criar Conta'
               )}
-            </Button>
+            </button>
 
             <p className="text-xs text-gray-600 text-center font-medium leading-relaxed">
               Ao aceitar o convite, você concorda em fazer parte da equipe com a função de{' '}

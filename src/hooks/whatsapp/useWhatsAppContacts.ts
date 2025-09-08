@@ -100,7 +100,21 @@ export const useWhatsAppContacts = ({
         userId: user.id
       });
 
-      // Query isolada para contatos - incluindo foto de perfil e filtro de conversas ativas
+      // 🚀 CORREÇÃO MULTITENANT: Buscar profile primeiro e filtrar manualmente
+      console.log('[WhatsApp Contacts] 🔧 Aplicando filtro multitenant manual');
+      
+      const { data: userProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, role")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !userProfile) {
+        console.error('[WhatsApp Contacts] ❌ Profile não encontrado:', profileError);
+        throw new Error('Perfil do usuário não encontrado');
+      }
+
+      // Query isolada para contatos - COM FILTRO MULTITENANT OBRIGATÓRIO
       let query = supabase
         .from('leads')
         .select(`
@@ -125,10 +139,12 @@ export const useWhatsAppContacts = ({
           profile_pic_url,
           conversation_status
         `, { count: 'exact' })
-        .eq('created_by_user_id', user.id)
-        .in('conversation_status', ['active', 'closed'])  // ✅ Filtrar apenas conversas ativas e fechadas (não arquivadas)
+        .eq('created_by_user_id', userProfile.id)  // 🔒 FILTRO MULTITENANT FORÇADO
+        .in('conversation_status', ['active', 'closed'])  // ✅ Filtrar apenas conversas ativas e fechadas
         .order('last_message_time', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false });
+
+      console.log('[WhatsApp Contacts] 🔒 Filtro multitenant aplicado para profile:', userProfile.id);
 
       // Filtrar por instância se fornecida
       if (activeInstanceId) {

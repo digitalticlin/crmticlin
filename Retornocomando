@@ -1,12 +1,27 @@
-AuthContext.tsx:125 
- POST https://rhjgagzstjzynvrakdyj.supabase.co/auth/v1/signup?redirect_to=http%3A%2F%2Flocalhost%3A8080%2Fdashboard 500 (Internal Server Error)
 
-AuthContext.tsx:135 [Auth] Erro no registro: AuthApiError: Database error saving new user
-    at async signUp (AuthContext.tsx:125:31)
-    at async onSubmit (RegisterForm.tsx:68:7)
-AuthContext.tsx:165 Erro no registro: AuthApiError: Database error saving new user
-    at async signUp (AuthContext.tsx:125:31)
-    at async onSubmit (RegisterForm.tsx:68:7)
-RegisterForm.tsx:76 [RegisterForm] Erro no registro: AuthApiError: Database error saving new user
-    at async signUp (AuthContext.tsx:125:31)
-    at async onSubmit (RegisterForm.tsx:68:7)
+TeamSettings.tsx:22 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false
+useTeamMemberEditor.ts:74 [useTeamMemberEditor] 📋 Dados do perfil: {profileId: 'cc1f5d12-229e-47aa-ad71-bb8c92c220b8', authUserId: null, email: 'vendas01@geuniformes.com.br'}
+useTeamMemberEditor.ts:101 [useTeamMemberEditor] ℹ️ Membro sem linked_auth_user_id, pulando verificação de leads
+useTeamMemberEditor.ts:110 [useTeamMemberEditor] ✅ Acessos removidos (WhatsApp + Funis)
+useTeamMemberEditor.ts:123 [useTeamMemberEditor] ✅ Perfil deletado
+useTeamMemberEditor.ts:148 [useTeamMemberEditor] ⚠️ Membro sem linked_auth_user_id, pulando remoção auth
+useTeamMemberEditor.ts:151 [useTeamMemberEditor] ✅ Remoção completa realizada
+useTeamMemberEditor.ts:160 [useTeamMemberEditor] ✅ Membro removido completamente: {success: true, removedProfileId: 'cc1f5d12-229e-47aa-ad71-bb8c92c220b8', removedAuthUserId: null}
+useTeamManagement.ts:49 [useTeamManagement] 📋 Buscando membros da equipe para empresa: 7c197601-01cc-4f71-a4d8-7c1357cac113
+useTeamManagement.ts:49 [useTeamManagement] 📋 Buscando membros da equipe para empresa: 7c197601-01cc-4f71-a4d8-7c1357cac113
+TeamSettings.tsx:16 [TeamSettings] Component rendering
+TeamSettings.tsx:19 [TeamSettings] User data: {id: '7c197601-01cc-4f71-a4d8-7c1357cac113', aud: 'authenticated', role: 'authenticated', email: 'adm.geuniformes@gmail.com', email_confirmed_at: '2025-07-22T14:10:54.791822Z', …}
+TeamSettings.tsx:22 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false
+2useTeamManagement.ts:71 [useTeamManagement] ✅ Membros encontrados: 1
+TeamSettings.tsx:16 [TeamSettings] Component rendering
+TeamSettings.tsx:19 [TeamSettings] User data: {id: '7c197601-01cc-4f71-a4d8-7c1357cac113', aud: 'authenticated', role: 'authenticated', email: 'adm.geuniformes@gmail.com', email_confirmed_at: '2025-07-22T14:10:54.791822Z', …}
+TeamSettings.tsx:22 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false
+
+
+
+
+
+LOGS DA EDGE
+
+
+

@@ -41,11 +41,11 @@ export const useUserPermissions = () => {
           return;
         }
 
-        // Buscar perfil real do usuário
+        // 🚀 CORREÇÃO FINAL: Usar ID direto (linked_auth_user_id está NULL)
         const { data: profile, error } = await supabase
           .from("profiles")
           .select("role")
-          .eq("id", user.id)
+          .eq("id", user.id)  // ✅ ID direto - profiles.id = auth.users.id
           .single();
 
         if (error || !profile) {

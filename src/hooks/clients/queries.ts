@@ -132,7 +132,8 @@ export const useClientsQuery = (userId: string | null, searchQuery: string = "")
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: !!userId,
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    staleTime: 1000 * 60 * 15, // 🔧 OTIMIZAÇÃO: 15 minutos cache para clientes
+    gcTime: 1000 * 60 * 30, // 30 minutos garbage collection
   });
 };
 
@@ -215,7 +216,8 @@ export const useFilterOptions = (userId: string | null) => {
       };
     },
     enabled: !!userId,
-    staleTime: 1000 * 60 * 10, // 10 minutos
+    staleTime: 1000 * 60 * 20, // 🔧 OTIMIZAÇÃO: 20 minutos para filtros (mudam pouco)
+    gcTime: 1000 * 60 * 45, // 45 minutos garbage collection
   });
 };
 
@@ -312,6 +314,7 @@ export const useFilteredClientsQuery = (
       return transformedData;
     },
     enabled: !!userId,
-    staleTime: 1000 * 60 * 2, // 2 minutos
+    staleTime: 1000 * 60 * 5, // 🔧 OTIMIZAÇÃO: 5 minutos para filtros avançados
+    gcTime: 1000 * 60 * 15, // 15 minutos garbage collection
   });
 };

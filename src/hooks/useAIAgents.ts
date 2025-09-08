@@ -11,9 +11,33 @@ export const useAIAgents = () => {
   const fetchAgents = async () => {
     try {
       console.log('🔄 Buscando agentes atualizados do banco...');
+      
+      // 🚀 CORREÇÃO MULTITENANT: Buscar profile primeiro
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('❌ Usuário não autenticado');
+        setAgents([]);
+        return;
+      }
+
+      const { data: userProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !userProfile) {
+        console.error('❌ Profile não encontrado:', profileError);
+        setAgents([]);
+        return;
+      }
+
+      console.log('🔒 Filtro multitenant aplicado para profile:', userProfile.id);
+
       const { data, error } = await supabase
         .from('ai_agents')
         .select('*')
+        .eq('created_by_user_id', userProfile.id)  // 🔒 FILTRO MULTITENANT
         .order('created_at', { ascending: false });
 
       if (error) throw error;

@@ -20,7 +20,25 @@ export function useLeadsDatabase(funnelId?: string) {
 
       console.log('[useLeadsDatabase] 📊 Executando query para leads...');
 
-      const { data, error } = await supabase
+      // 🚀 CORREÇÃO EMERGENCIAL: Filtro manual obrigatório (RLS desativado)
+      console.log('[useLeadsDatabase] 🔧 PLANO B: Filtro manual ativo');
+      
+      // 1. Buscar profile do usuário logado
+      const { data: userProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, role")
+        .eq("id", user.id)  // ✅ ID direto - profiles.id = auth.users.id
+        .single();
+
+      if (profileError || !userProfile) {
+        console.error('[useLeadsDatabase] ❌ Profile não encontrado:', profileError);
+        return [];
+      }
+
+      console.log('[useLeadsDatabase] ✅ Profile encontrado:', userProfile);
+
+      // 2. Query com filtro MANUAL obrigatório
+      let query = supabase
         .from("leads")
         .select(`
           *,
@@ -29,8 +47,11 @@ export function useLeadsDatabase(funnelId?: string) {
           )
         `)
         .eq("funnel_id", funnelId)
-        .eq("created_by_user_id", user.id)
-        .order("order_position");
+        .eq("created_by_user_id", userProfile.id);  // 🔒 FILTRO MULTITENANT FORÇADO
+
+      console.log('[useLeadsDatabase] 🔒 Filtro multitenant manual aplicado para profile:', userProfile.id);
+
+      const { data, error } = await query.order("order_position");
 
       if (error) {
         console.error('[useLeadsDatabase] ❌ Erro na query:', error);

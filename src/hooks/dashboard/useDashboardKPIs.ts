@@ -45,6 +45,22 @@ export function useDashboardKPIs(periodFilter: string) {
       startDate.setDate(startDate.getDate() - days);
 
       try {
+        // 🚀 CORREÇÃO MULTITENANT: Buscar profile primeiro
+        console.log('[useDashboardKPIs] 🔧 Aplicando filtro multitenant manual');
+        
+        const { data: userProfile, error: profileError } = await supabase
+          .from("profiles")
+          .select("id, role")
+          .eq("id", user.id)
+          .single();
+
+        if (profileError || !userProfile) {
+          console.error('[useDashboardKPIs] ❌ Profile não encontrado:', profileError);
+          throw new Error('Perfil do usuário não encontrado');
+        }
+
+        console.log('[useDashboardKPIs] 🔒 Filtro multitenant aplicado para profile:', userProfile.id);
+
         // DIAGNÓSTICO COMPLETO
         console.log('[useDashboardKPIs] 🚀 === INÍCIO DIAGNÓSTICO COMPLETO ===');
         console.log('[useDashboardKPIs] 👤 Dados do usuário:', {
@@ -113,10 +129,11 @@ export function useDashboardKPIs(periodFilter: string) {
           startDate: startDate.toISOString()
         });
 
-        // Contagem total de leads (filtrada por funis acessíveis)
+        // Contagem total de leads (COM FILTRO MULTITENANT)
         const { count: totalLeadsCount, error: totalCountError } = await supabase
           .from('leads')
           .select('id', { count: 'exact', head: true })
+          .eq('created_by_user_id', userProfile.id)  // 🔒 FILTRO MULTITENANT
           .in('funnel_id', accessibleFunnels)
           .in('kanban_stage_id', activeStageIds);
 
@@ -126,10 +143,11 @@ export function useDashboardKPIs(periodFilter: string) {
         }
         console.log('[useDashboardKPIs] ✅ Total leads encontrados:', totalLeadsCount);
 
-        // Novos leads no período (filtrada por funis acessíveis)
+        // Novos leads no período (COM FILTRO MULTITENANT)
         const { data: newLeads, error: newLeadsError } = await supabase
           .from('leads')
           .select('id')
+          .eq('created_by_user_id', userProfile.id)  // 🔒 FILTRO MULTITENANT
           .in('funnel_id', accessibleFunnels)
           .gte('created_at', startDate.toISOString());
 
@@ -180,6 +198,7 @@ export function useDashboardKPIs(periodFilter: string) {
           const { data: pageData, error: pageError } = await supabase
             .from('leads')
             .select('purchase_value')
+            .eq('created_by_user_id', userProfile.id)  // 🔒 FILTRO MULTITENANT
             .in('funnel_id', accessibleFunnels)
             .in('kanban_stage_id', activeStageIds)
             .range(offset, offset + PAGE_SIZE - 1);

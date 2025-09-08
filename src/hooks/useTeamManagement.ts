@@ -26,19 +26,21 @@ interface CreateMemberData {
   whatsappPersonal?: string;
 }
 
-interface EditMemberData {
-  full_name: string;
-  email?: string;
-  role: "operational" | "admin";
-  assignedWhatsAppIds: string[];
-  assignedFunnelIds: string[];
-  whatsapp_personal?: string;
-}
-
+/**
+ * Hook principal para gestão de equipes
+ * RESPONSABILIDADES ISOLADAS:
+ * - Buscar membros da equipe
+ * - Criar novos membros (invite flow)
+ * - Reenviar convites
+ * 
+ * FUNÇÕES REMOVIDAS (agora em hooks isolados):
+ * - editMember -> useTeamMemberEditor + useTeamMemberAssignments  
+ * - removeMember -> useTeamMemberEditor
+ */
 export const useTeamManagement = (companyId: string | null) => {
   const queryClient = useQueryClient();
 
-  // Fetch team members
+  // Fetch team members - PRESERVADO
   const { data: teamMembers = [], isLoading } = useQuery({
     queryKey: ['teamMembers', companyId],
     queryFn: async () => {
@@ -94,35 +96,46 @@ export const useTeamManagement = (companyId: string | null) => {
     enabled: !!companyId,
   });
 
-  // Create team member mutation - IMPLEMENTAÇÃO COM SUPABASE NATIVO ATIVADO
+  // Create team member mutation - PRESERVADO INTACTO - FLUXO SEGURO: EMAIL PRIMEIRO, DEPOIS PERFIL
   const createTeamMember = useMutation({
     mutationFn: async (memberData: CreateMemberData) => {
-      console.log('[useTeamManagement] 🚀 Criando novo membro:', memberData.fullName);
+      console.log('[useTeamManagement] 🚀 Iniciando criação de membro:', memberData.fullName);
+      console.log('[useTeamManagement] 📧 Email que será usado:', memberData.email);
 
       if (!companyId) {
-        throw new Error('ID da empresa não encontrado');
+        throw new Error('Company ID é obrigatório para criar membro da equipe');
       }
 
-      // ✅ ETAPA 1: Gerar token temporário único para o convite
-      const inviteToken = crypto.randomUUID();
-      const tempProfileId = crypto.randomUUID();
+      // ETAPA 1: Validar se email já existe
+      console.log('[useTeamManagement] 🔍 Verificando se email já existe...');
+      const { data: existingProfiles } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', memberData.email);
       
-      console.log('[useTeamManagement] 🔑 Token de convite gerado:', inviteToken);
+      if (existingProfiles && existingProfiles.length > 0) {
+        console.error('[useTeamManagement] ❌ Email já existe:', memberData.email);
+        throw new Error('Email já está em uso por outro usuário');
+      }
+
+      console.log('[useTeamManagement] ✅ Email disponível');
+
+      // ETAPA 2: Criar perfil no Supabase primeiro
+      console.log('[useTeamManagement] 👤 Criando perfil no Supabase...');
+      // 🔧 FIX: Gerar UUID para o profile
+      const profileId = crypto.randomUUID();
       
-      const { data: profile, error: profileError } = await supabase
+      const { data: newProfile, error: profileError } = await supabase
         .from('profiles')
         .insert({
-          id: tempProfileId,
+          id: profileId, // 🎯 ID obrigatório para evitar constraint error
+          email: memberData.email,
           full_name: memberData.fullName,
           username: memberData.username,
           role: memberData.role,
           whatsapp: memberData.whatsappPersonal || '',
           created_by_user_id: companyId,
-          invite_status: 'pending',
-          email: memberData.email,
-          invite_token: inviteToken,
-          temp_password: null,
-          invite_sent_at: new Date().toISOString()
+          invite_status: 'pending'
         })
         .select()
         .single();
@@ -132,320 +145,187 @@ export const useTeamManagement = (companyId: string | null) => {
         throw new Error(`Erro ao criar perfil: ${profileError.message}`);
       }
 
-      console.log('[useTeamManagement] ✅ Perfil criado:', profile.id);
+      console.log('[useTeamManagement] ✅ Perfil criado:', newProfile.id);
 
-      // ✅ ETAPA 2: Configurar acessos WhatsApp
-      if (memberData.whatsappAccess.length > 0) {
+      // ETAPA 3: Configurar acessos (WhatsApp e Funis)
+      if (memberData.whatsappAccess?.length > 0) {
+        console.log('[useTeamManagement] 📱 Configurando acesso WhatsApp...');
         const whatsappInserts = memberData.whatsappAccess.map(whatsappId => ({
-          profile_id: profile.id,
-          whatsapp_number_id: whatsappId,
-          created_by_user_id: companyId
+          profile_id: newProfile.id,
+          whatsapp_number_id: whatsappId
         }));
-
+        
         const { error: whatsappError } = await supabase
           .from('user_whatsapp_numbers')
           .insert(whatsappInserts);
-
+          
         if (whatsappError) {
-          console.error('[useTeamManagement] ❌ Erro ao vincular WhatsApp:', whatsappError);
+          console.error('[useTeamManagement] ❌ Erro ao configurar WhatsApp:', whatsappError);
         }
       }
 
-      // ✅ ETAPA 3: Configurar acessos Funnel
-      if (memberData.funnelAccess.length > 0) {
+      if (memberData.funnelAccess?.length > 0) {
+        console.log('[useTeamManagement] 🎯 Configurando acesso aos funis...');
         const funnelInserts = memberData.funnelAccess.map(funnelId => ({
-          profile_id: profile.id,
-          funnel_id: funnelId,
-          created_by_user_id: companyId
+          profile_id: newProfile.id,
+          funnel_id: funnelId
         }));
-
+        
         const { error: funnelError } = await supabase
           .from('user_funnels')
           .insert(funnelInserts);
-
+          
         if (funnelError) {
-          console.error('[useTeamManagement] ❌ Erro ao vincular funis:', funnelError);
+          console.error('[useTeamManagement] ❌ Erro ao configurar funis:', funnelError);
         }
       }
 
-      // ✅ ETAPA 4: Enviar CONVITE usando template NATIVO do Supabase
-      try {
-        console.log('[useTeamManagement] 📧 Enviando convite via template NATIVO do Supabase...');
-        
-        // Chamar Edge Function que usa supabase.auth.admin.inviteUserByEmail()
-        const { data: inviteResponse, error: functionError } = await supabase.functions.invoke('send_native_invite', {
-          body: {
-            email: memberData.email,
-            profile_id: profile.id,
-            invite_token: inviteToken,
-            user_data: {
-              full_name: memberData.fullName,
-              role: memberData.role,
-              company_name: 'TicLin CRM'
-            },
-            redirect_url: `${window.location.origin}/invite/${inviteToken}`
-          }
-        });
+      // ETAPA 4: Gerar token de convite e URL
+      const inviteToken = crypto.randomUUID();
+      const redirectUrl = `${window.location.origin}/accept-invite?token=${inviteToken}&profile_id=${newProfile.id}`;
 
-        if (functionError || !inviteResponse?.success) {
-          console.error('[useTeamManagement] ❌ Erro na Edge Function nativa:', functionError);
-          
-          // Verificar se é erro de email existente
-          if (inviteResponse?.error_code === 'email_exists') {
-            throw new Error(`Email já existe no sistema: ${inviteResponse.error}`);
-          }
-          
-          throw new Error(`Erro ao enviar convite: ${functionError?.message || inviteResponse?.error || 'Erro desconhecido'}`);
-        }
-
-        console.log('[useTeamManagement] ✅ Convite enviado via template NATIVO:', inviteResponse);
-        
-        // Atualizar status para "invite_sent"
-        await supabase
-          .from('profiles')
-          .update({ 
-            invite_status: 'invite_sent',
-            invite_sent_at: new Date().toISOString()
-          })
-          .eq('id', profile.id);
-          
-        toast.success(`✅ Convite enviado com sucesso para ${memberData.email}!`);
-        console.log('[useTeamManagement] 🔗 Link do convite (para teste):', `${window.location.origin}/invite/${inviteToken}`);
-        
-      } catch (inviteErr: any) {
-        console.error('[useTeamManagement] ❌ Erro geral no sistema de convites:', inviteErr);
-        
-        await supabase
-          .from('profiles')
-          .update({ invite_status: 'invite_failed' })
-          .eq('id', profile.id);
-          
-        throw new Error(`Erro ao enviar convite: ${inviteErr.message || 'Erro desconhecido'}`);
-      }
-
-      return profile;
-    },
-    onSuccess: () => {
-      console.log('[useTeamManagement] ✅ Membro criado com sucesso');
-      queryClient.invalidateQueries({ queryKey: ['teamMembers', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
-    },
-    onError: (error: any) => {
-      console.error('[useTeamManagement] ❌ Erro ao criar membro:', error);
-    }
-  });
-
-  // Edit member mutation
-  const editMember = useMutation({
-    mutationFn: async ({ memberId, memberData }: { memberId: string; memberData: EditMemberData }) => {
-      console.log('[useTeamManagement] ===== EDIT MEMBER MUTATION =====');
-      console.log('[useTeamManagement] ✏️ Editando membro ID:', memberId);
-      console.log('[useTeamManagement] Dados recebidos:', memberData);
-      console.log('[useTeamManagement] assignedWhatsAppIds:', memberData.assignedWhatsAppIds);
-      console.log('[useTeamManagement] assignedFunnelIds:', memberData.assignedFunnelIds);
-
-      // Update profile
-      const { error: profileError } = await supabase
+      // Buscar nome da empresa para o template
+      const { data: adminProfile } = await supabase
         .from('profiles')
-        .update({
-          full_name: memberData.full_name,
-          role: memberData.role,
-          whatsapp: memberData.whatsapp_personal || '',
-          email: memberData.email
-        })
-        .eq('id', memberId);
+        .select('full_name')
+        .eq('id', companyId)
+        .single();
 
-      if (profileError) {
-        console.error('[useTeamManagement] ❌ Erro ao atualizar perfil:', profileError);
-        throw new Error(`Erro ao atualizar perfil: ${profileError.message}`);
-      }
-
-      // Update WhatsApp access
-      console.log('[useTeamManagement] ===== ATUALIZANDO WHATSAPP ACCESS =====');
-      console.log('[useTeamManagement] 🗑️ Deletando WhatsApps existentes para membro:', memberId);
-      
-      const { error: deleteWhatsAppError } = await supabase.from('user_whatsapp_numbers').delete().eq('profile_id', memberId);
-      if (deleteWhatsAppError) {
-        console.error('[useTeamManagement] Erro ao deletar WhatsApps existentes:', deleteWhatsAppError);
-      } else {
-        console.log('[useTeamManagement] ✅ WhatsApps existentes deletados');
-      }
-      
-      if (memberData.assignedWhatsAppIds.length > 0) {
-        console.log('[useTeamManagement] 📝 Inserindo novos WhatsApps:', memberData.assignedWhatsAppIds);
-        
-        const whatsappInserts = memberData.assignedWhatsAppIds.map(whatsappId => ({
-          profile_id: memberId,
-          whatsapp_number_id: whatsappId,
-          created_by_user_id: companyId
-        }));
-        
-        console.log('[useTeamManagement] Dados para insert WhatsApp:', whatsappInserts);
-
-        const { error: whatsappError } = await supabase
-          .from('user_whatsapp_numbers')
-          .insert(whatsappInserts);
-
-        if (whatsappError) {
-          console.error('[useTeamManagement] ❌ Erro ao inserir WhatsApp:', whatsappError);
-        } else {
-          console.log('[useTeamManagement] ✅ WhatsApps inseridos com sucesso');
+      // ETAPA 5: Chamar edge function para enviar email
+      console.log('[useTeamManagement] ⚡ Chamando send_resend_invite...');
+      const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('send_resend_invite', {
+        body: {
+          email: memberData.email,
+          profile_id: newProfile.id,
+          invite_token: inviteToken,
+          user_data: {
+            full_name: memberData.fullName,
+            role: memberData.role,
+            company_name: adminProfile?.full_name || 'Equipe'
+          },
+          redirect_url: redirectUrl,
+          is_resend: false
         }
-      } else {
-        console.log('[useTeamManagement] 📝 Nenhum WhatsApp para inserir');
+      });
+
+      if (inviteError) {
+        console.error('[useTeamManagement] ❌ Erro na edge function:', inviteError);
+        throw new Error(`Erro ao enviar convite: ${inviteError.message}`);
       }
 
-      // Update Funnel access
-      console.log('[useTeamManagement] ===== ATUALIZANDO FUNNEL ACCESS =====');
-      console.log('[useTeamManagement] 🗑️ Deletando funis existentes para membro:', memberId);
-      
-      const { error: deleteFunnelError } = await supabase.from('user_funnels').delete().eq('profile_id', memberId);
-      if (deleteFunnelError) {
-        console.error('[useTeamManagement] Erro ao deletar funis existentes:', deleteFunnelError);
-      } else {
-        console.log('[useTeamManagement] ✅ Funis existentes deletados');
-      }
-      
-      if (memberData.assignedFunnelIds.length > 0) {
-        console.log('[useTeamManagement] 📝 Inserindo novos funis:', memberData.assignedFunnelIds);
-        
-        const funnelInserts = memberData.assignedFunnelIds.map(funnelId => ({
-          profile_id: memberId,
-          funnel_id: funnelId,
-          created_by_user_id: companyId
-        }));
-        
-        console.log('[useTeamManagement] Dados para insert Funnel:', funnelInserts);
-
-        const { error: funnelError } = await supabase
-          .from('user_funnels')
-          .insert(funnelInserts);
-
-        if (funnelError) {
-          console.error('[useTeamManagement] ❌ Erro ao inserir funis:', funnelError);
-        } else {
-          console.log('[useTeamManagement] ✅ Funis inseridos com sucesso');
-        }
-      } else {
-        console.log('[useTeamManagement] 📝 Nenhum funil para inserir');
+      if (!inviteResult?.success) {
+        console.error('[useTeamManagement] ❌ Edge function retornou falha:', inviteResult);
+        throw new Error(`Falha ao enviar convite: ${inviteResult?.error || 'Erro desconhecido'}`);
       }
 
-      // Verificar se os dados foram salvos corretamente
-      console.log('[useTeamManagement] ===== VERIFICANDO DADOS SALVOS =====');
-      
-      const { data: savedWhatsApps } = await supabase
-        .from('user_whatsapp_numbers')
-        .select('whatsapp_number_id')
-        .eq('profile_id', memberId);
-        
-      const { data: savedFunnels } = await supabase
-        .from('user_funnels')
-        .select('funnel_id')
-        .eq('profile_id', memberId);
-        
-      console.log('[useTeamManagement] 🔍 WhatsApps salvos no banco:', savedWhatsApps?.map(w => w.whatsapp_number_id));
-      console.log('[useTeamManagement] 🔍 Funis salvos no banco:', savedFunnels?.map(f => f.funnel_id));
+      console.log('[useTeamManagement] ✅ Convite enviado com sucesso');
+      console.log('[useTeamManagement] 📄 Resultado:', inviteResult);
 
-      return { success: true };
+      return {
+        success: true,
+        profile_id: newProfile.id,
+        message: 'Convite enviado com sucesso'
+      };
     },
-    onSuccess: () => {
-      console.log('[useTeamManagement] ✅ Membro editado com sucesso');
+    onSuccess: (result) => {
+      console.log('[useTeamManagement] ✅ Membro criado com sucesso:', result);
       console.log('[useTeamManagement] 🔄 Invalidando queries para atualizar lista...');
       queryClient.invalidateQueries({ queryKey: ['teamMembers', companyId] });
       queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
-      toast.success('Membro atualizado com sucesso');
+      toast.success(`✅ Convite enviado com sucesso!`);
     },
     onError: (error: any) => {
-      console.error('[useTeamManagement] ❌ Erro ao editar membro:', error);
-      toast.error(`Erro ao editar membro: ${error.message}`);
+      console.error('[useTeamManagement] ❌ Erro ao criar membro:', error);
+      toast.error(`Erro ao criar membro: ${error.message}`);
     }
   });
 
-  // Remove member mutation
-  const removeMember = useMutation({
+  // Resend invite mutation - PRESERVADO
+  const resendInvite = useMutation({
     mutationFn: async (memberId: string) => {
-      console.log('[useTeamManagement] 🗑️ Removendo membro completo (Profile + Auth):', memberId);
-
-      // 1. Buscar dados do perfil antes de deletar
-      const { data: profile, error: profileFetchError } = await supabase
+      console.log('[useTeamManagement] 📧 Reenviando convite para membro:', memberId);
+      
+      // Buscar dados do membro
+      const { data: member, error: fetchError } = await supabase
         .from('profiles')
-        .select('linked_auth_user_id, email')
+        .select(`
+          id,
+          full_name,
+          username, 
+          email,
+          role,
+          whatsapp,
+          whatsapp_access,
+          funnel_access,
+          invite_status
+        `)
         .eq('id', memberId)
         .single();
 
-      if (profileFetchError || !profile) {
-        console.error('[useTeamManagement] ❌ Erro ao buscar perfil:', profileFetchError);
-        throw new Error(`Perfil não encontrado: ${profileFetchError?.message}`);
+      if (fetchError || !member) {
+        console.error('[useTeamManagement] ❌ Erro ao buscar dados do membro:', fetchError);
+        throw new Error('Membro não encontrado');
       }
 
-      console.log('[useTeamManagement] 📋 Dados do perfil:', {
-        profileId: memberId,
-        authUserId: profile.linked_auth_user_id,
-        email: profile.email
+      console.log('[useTeamManagement] 👤 Dados do membro encontrado:', member);
+
+      if (member.invite_status === 'accepted') {
+        console.warn('[useTeamManagement] ⚠️ Tentativa de reenviar convite para membro já aceito');
+        throw new Error('Este membro já aceitou o convite');
+      }
+
+      // Get member access data
+      const { data: whatsappAccess } = await supabase
+        .from('user_whatsapp_numbers')
+        .select('whatsapp_number_id')
+        .eq('profile_id', memberId);
+
+      const { data: funnelAccess } = await supabase
+        .from('user_funnels')  
+        .select('funnel_id')
+        .eq('profile_id', memberId);
+
+      console.log('[useTeamManagement] 🔍 Acessos do membro:');
+      console.log('[useTeamManagement]   WhatsApp:', whatsappAccess?.map(wa => wa.whatsapp_number_id));
+      console.log('[useTeamManagement]   Funis:', funnelAccess?.map(fa => fa.funnel_id));
+
+      // Chamar edge function para reenvio
+      console.log('[useTeamManagement] ⚡ Chamando edge function send_resend_invite...');
+      const { data: resendResult, error: resendError } = await supabase.functions.invoke('send_resend_invite', {
+        body: {
+          profile_id: memberId,
+          email: member.email,
+          full_name: member.full_name,
+          username: member.username,
+          role: member.role,
+          whatsapp_personal: member.whatsapp,
+          whatsapp_access: whatsappAccess?.map(wa => wa.whatsapp_number_id) || [],
+          funnel_access: funnelAccess?.map(fa => fa.funnel_id) || [],
+          created_by_user_id: companyId
+        }
       });
 
-      // 2. Remove WhatsApp access
-      await supabase.from('user_whatsapp_numbers').delete().eq('profile_id', memberId);
-      
-      // 3. Remove Funnel access
-      await supabase.from('user_funnels').delete().eq('profile_id', memberId);
-      
-      // 4. Remove profile from database
-      const { error: profileError } = await supabase.from('profiles').delete().eq('id', memberId);
-      
-      if (profileError) {
-        console.error('[useTeamManagement] ❌ Erro ao remover perfil:', profileError);
-        throw new Error(`Erro ao remover perfil: ${profileError.message}`);
+      if (resendError) {
+        console.error('[useTeamManagement] ❌ Erro ao reenviar convite:', resendError);
+        throw new Error(`Erro ao reenviar convite: ${resendError.message}`);
       }
 
-      // 5. ✅ CRUCIAL: Remove from Auth if user exists
-      if (profile.linked_auth_user_id) {
-        console.log('[useTeamManagement] 🔥 Removendo usuário do Auth também:', {
-          user_id: profile.linked_auth_user_id,
-          email: profile.email,
-          profile_id: memberId
-        });
-        
-        try {
-          const { data: deleteResponse, error: deleteError } = await supabase.functions.invoke('delete_auth_user', {
-            body: {
-              user_id: profile.linked_auth_user_id,
-              email: profile.email
-            }
-          });
-
-          console.log('[useTeamManagement] 🔍 Resultado da deleção do Auth:');
-          console.log('[useTeamManagement] deleteError:', deleteError);
-          console.log('[useTeamManagement] deleteResponse:', deleteResponse);
-
-          if (deleteError) {
-            console.error('[useTeamManagement] ❌ ERRO CRÍTICO: Usuário NÃO foi removido do Auth!', deleteError);
-            toast.error('Usuário removido do perfil, mas PERMANECE no Auth. Contate o administrador.');
-            // Não falhar a operação se não conseguir remover do Auth
-          } else {
-            console.log('[useTeamManagement] ✅ Usuário removido do Auth com sucesso:', deleteResponse);
-            toast.success('Usuário removido completamente (perfil + autenticação)');
-          }
-        } catch (authDeleteError) {
-          console.error('[useTeamManagement] ❌ EXCEÇÃO na remoção do Auth:', authDeleteError);
-          toast.error('Erro na remoção do Auth. Usuário pode permanecer no sistema.');
-          // Continuar sem falhar
-        }
-      } else {
-        console.log('[useTeamManagement] ℹ️ Usuário não tinha linked_auth_user_id - removendo apenas perfil');
-        toast.success('Perfil removido (usuário não estava vinculado ao Auth)');
+      if (!resendResult?.success) {
+        console.error('[useTeamManagement] ❌ Falha no reenvio:', resendResult);
+        throw new Error(resendResult?.error || 'Erro desconhecido ao reenviar convite');
       }
 
+      console.log('[useTeamManagement] ✅ Convite reenviado com sucesso:', resendResult);
+
+      toast.success(`✅ Convite reenviado para ${member.full_name}!`);
       return { success: true };
     },
     onSuccess: () => {
-      console.log('[useTeamManagement] ✅ Membro removido com sucesso');
-      queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
-      toast.success('Membro removido com sucesso');
+      queryClient.invalidateQueries({ queryKey: ['teamMembers', companyId] });
     },
     onError: (error: any) => {
-      console.error('[useTeamManagement] ❌ Erro ao remover membro:', error);
-      toast.error(`Erro ao remover membro: ${error.message}`);
+      console.error('[useTeamManagement] ❌ Erro ao reenviar convite:', error);
+      toast.error(`Erro ao reenviar convite: ${error.message}`);
     }
   });
 
@@ -453,7 +333,7 @@ export const useTeamManagement = (companyId: string | null) => {
     teamMembers,
     isLoading,
     createTeamMember,
-    editMember,
-    removeMember
+    resendInvite
+    // REMOVIDO: editMember, removeMember -> usar hooks isolados
   };
 };

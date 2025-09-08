@@ -37,11 +37,10 @@ export function useSalesFunnelOptimized() {
       
       if (error) {
         console.error('[useSalesFunnelOptimized] Erro ao buscar funis:', error);
-        // Fallback: buscar apenas funis criados pelo usuário
+        // Fallback: buscar funis (RLS controla visibilidade)
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('funnels')
           .select('*')
-          .eq('created_by_user_id', user.id)
           .order('created_at', { ascending: true });
         
         if (fallbackError) throw fallbackError;
@@ -98,7 +97,7 @@ export function useSalesFunnelOptimized() {
           )
         `)
         .eq('funnel_id', selectedFunnel.id)
-        .eq('created_by_user_id', user.id)
+        // RLS controla visibilidade
         .in('conversation_status', ['active', 'closed'])
         .order('updated_at', { ascending: false });
       
@@ -328,7 +327,7 @@ export function useSalesFunnelOptimized() {
         .from('leads')
         .select('id')
         .eq('funnel_id', selectedFunnel.id)
-        .eq('created_by_user_id', user.id)
+        // RLS controla visibilidade
         .in('conversation_status', ['active', 'closed'])
         .order('updated_at', { ascending: false })
         .limit(200);

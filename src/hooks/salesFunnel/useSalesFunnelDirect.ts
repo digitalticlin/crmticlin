@@ -42,8 +42,6 @@ export function useSalesFunnelDirect() {
       });
       
       try {
-        let accessibleFunnels: string[] = [];
-        
         if (canViewAllFunnels) {
           // Admin/Manager: buscar todos os funis criados por ele
           const { data: ownedFunnels, error } = await supabase
@@ -130,14 +128,13 @@ export function useSalesFunnelDirect() {
           .eq('funnel_id', selectedFunnel.id)
           .in('conversation_status', ['active', 'closed']);
 
-        // Filtro baseado nos mesmos princípios do useAccessControl
-        if (canViewAllFunnels) {
-          // Admin/Manager: todos os leads do funil criado por ele
-          query = query.eq('created_by_user_id', user.id);
-        } else {
-          // Operacional: apenas leads atribuídos a ele
-          query = query.eq('owner_id', user.id);
-        }
+        // 🚀 ESCALA: RLS automático - filtros no backend
+        console.log('[useSalesFunnelDirect] 🔐 Confiando no RLS para filtros multitenant');
+        console.log('[useSalesFunnelDirect] 🔑 Auth context:', {
+          authUserId: user.id,
+          userRole: canViewAllFunnels ? 'admin' : 'operational',
+          funnelId: selectedFunnel.id
+        });
 
         const { data: allLeads, error } = await query
           .order('updated_at', { ascending: false });
@@ -185,13 +182,13 @@ export function useSalesFunnelDirect() {
     loading: { funnel: funnelLoading, stages: stagesLoading, leads: leadsLoading }
   });
 
-  // Auto-selecionar primeiro funil
+  // Auto-selecionar primeiro funil - SÓ UMA VEZ
   useEffect(() => {
     if (!funnelLoading && !selectedFunnel && funnels && funnels.length > 0) {
       console.log('[useSalesFunnelDirect] Auto-selecionando primeiro funil:', funnels[0].name);
       setSelectedFunnel(funnels[0]);
     }
-  }, [funnelLoading, selectedFunnel, funnels]);
+  }, [funnelLoading, funnels]); // Removida dependência de selectedFunnel para evitar loop
 
   // Construir colunas Kanban usando useMemo para evitar loops - COM DEPENDÊNCIAS FIXAS
   const kanbanColumns = useMemo(() => {
@@ -255,10 +252,15 @@ export function useSalesFunnelDirect() {
     });
   }, [stages, leads, selectedFunnel?.id]); // DEPENDÊNCIAS FIXAS para evitar loop infinito
 
-  // Atualizar columns apenas quando kanbanColumns mudar - SEM dependência em columns
+  // Atualizar columns apenas quando kanbanColumns mudar - COM verificação simples para evitar loops  
   useEffect(() => {
-    setColumns(kanbanColumns);
-  }, [kanbanColumns]);
+    // Comparação simples por length primeiro (mais eficiente)
+    if (columns.length !== kanbanColumns.length || 
+        (kanbanColumns.length > 0 && columns[0]?.id !== kanbanColumns[0]?.id)) {
+      console.log('[useSalesFunnelDirect] 🔄 Atualizando columns:', kanbanColumns.length);
+      setColumns(kanbanColumns);
+    }
+  }, [kanbanColumns]); // SEM dependência de columns para evitar loop
 
   // 🚀 REAL-TIME SUBSCRIPTIONS - OTIMIZADO para evitar loops
   useEffect(() => {

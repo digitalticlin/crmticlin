@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, memo } from "react";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useDashboardFunnelData } from "@/hooks/dashboard/useDashboardFunnelData";
@@ -11,26 +11,25 @@ interface FunnelChartProps {
   className?: string;
 }
 
-export default function FunnelChart({ className }: FunnelChartProps) {
+const FunnelChart = memo(function FunnelChart({ className }: FunnelChartProps) {
   const { companyId } = useCompanyData();
   const { selectedFunnel, stages, loading: funnelLoading } = useDashboardFunnelData();
   const { report, loading: reportLoading } = useFunnelDashboard(selectedFunnel?.id || "");
-  const [funnelData, setFunnelData] = useState<any[]>([]);
 
   const loading = funnelLoading || reportLoading;
 
-  useEffect(() => {
+  // 🔧 FIX: Usar useMemo para evitar recálculos desnecessários e loop infinito
+  const funnelData = useMemo(() => {
     if (!report || !stages.length) {
-      setFunnelData([]);
-      return;
+      return [];
     }
 
     // Criar dados do funil baseado nos estágios e relatório
-    const data = stages
+    return stages
       .filter(stage => !stage.is_won && !stage.is_lost) // Excluir ganho/perdido
       .sort((a, b) => a.order_position - b.order_position)
       .map(stage => {
-        const stageReport = report.find(r => r.kanban_stage_id === stage.id);
+        const stageReport = report.find((r: any) => r.kanban_stage_id === stage.id);
         const count = stageReport?.count || 0;
         
         return {
@@ -39,9 +38,7 @@ export default function FunnelChart({ className }: FunnelChartProps) {
           color: "#d3d800"
         };
       });
-
-    setFunnelData(data);
-  }, [report, stages]);
+  }, [report, stages]); // 🎯 Dependências claras e estáveis
 
   if (loading) {
     return (
@@ -69,7 +66,8 @@ export default function FunnelChart({ className }: FunnelChartProps) {
     );
   }
 
-  const totalLeads = funnelData[0]?.value || 1;
+  // 🔧 OTIMIZAÇÃO: Memoizar cálculo do total de leads
+  const totalLeads = useMemo(() => funnelData[0]?.value || 1, [funnelData]);
 
   return (
     <ChartCard 
@@ -105,4 +103,6 @@ export default function FunnelChart({ className }: FunnelChartProps) {
       </div>
     </ChartCard>
   );
-}
+});
+
+export default FunnelChart;

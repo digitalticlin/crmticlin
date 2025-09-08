@@ -4,7 +4,7 @@ import { LeadCardContent } from "./lead/LeadCardContent";
 import { LeadCardTags } from "./lead/LeadCardTags";
 import { LeadCardActions } from "./lead/LeadCardActions";
 import { Check } from "lucide-react";
-import React from "react";
+import React, { memo } from "react";
 import { MassSelectionReturn } from "@/hooks/useMassSelection";
 
 interface LeadCardProps {
@@ -22,7 +22,7 @@ interface LeadCardProps {
   massSelection?: MassSelectionReturn;
 }
 
-export const LeadCard = ({
+export const LeadCard = memo(({
   lead,
   onClick,
   onOpenChat,
@@ -141,4 +141,4 @@ export const LeadCard = ({
       </div>
     </div>
   );
-};
+});
