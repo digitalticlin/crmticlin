@@ -1,32 +1,71 @@
-[
-  {
-    "routine_name": "save_whatsapp_message_ai_agent",
-    "routine_type": "FUNCTION",
-    "usa_owner_id": false
-  },
-  {
-    "routine_name": "save_whatsapp_message_complete",
-    "routine_type": "FUNCTION",
-    "usa_owner_id": true
-  },
-  {
-    "routine_name": "save_whatsapp_message_complete",
-    "routine_type": "FUNCTION",
-    "usa_owner_id": false
-  },
-  {
-    "routine_name": "save_whatsapp_message_complete_v2",
-    "routine_type": "FUNCTION",
-    "usa_owner_id": true
-  },
-  {
-    "routine_name": "save_whatsapp_message_service_role",
-    "routine_type": "FUNCTION",
-    "usa_owner_id": false
-  },
-  {
-    "routine_name": "save_whatsapp_message_simple",
-    "routine_type": "FUNCTION",
-    "usa_owner_id": false
-  }
-]
+hatsApp] allWhatsApps recebido: (5) [{…}, {…}, {…}, {…}, {…}]
+index-Bnrs18id.js:920 [MultiSelectWhatsApp] safeWhatsApps (length): 5
+index-Bnrs18id.js:920 [MultiSelectWhatsApp] safeSelectedIds: []
+index-Bnrs18id.js:912 [useTeamMemberEditor] ✅ Perfil atualizado com sucesso
+index-Bnrs18id.js:912 [useTeamMemberEditor] ✅ Perfil do membro editado com sucesso
+index-Bnrs18id.js:903 [useTeamManagement] 📋 Buscando membros da equipe para empresa: 7c197601-01cc-4f71-a4d8-7c1357cac113
+index-Bnrs18id.js:912 [useTeamMemberEditor] ❌ Erro ao editar perfil do membro: ReferenceError: memberId is not defined
+    at Object.onSuccess (index-Bnrs18id.js:912:5847)
+    at G3.execute (index-Bnrs18id.js:67:20020)
+    at async onEditMember (index-Bnrs18id.js:920:33049)
+    at async d (index-Bnrs18id.js:920:9443)
+onError @ index-Bnrs18id.js:912
+execute @ index-Bnrs18id.js:67
+await in execute
+mutate @ index-Bnrs18id.js:67
+onEditMember @ index-Bnrs18id.js:920
+d @ index-Bnrs18id.js:920
+Z9 @ index-Bnrs18id.js:37
+ez @ index-Bnrs18id.js:37
+tz @ index-Bnrs18id.js:37
+yC @ index-Bnrs18id.js:37
+eR @ index-Bnrs18id.js:37
+(anonymous) @ index-Bnrs18id.js:37
+IN @ index-Bnrs18id.js:40
+jD @ index-Bnrs18id.js:37
+Uy @ index-Bnrs18id.js:37
+lN @ index-Bnrs18id.js:37
+xz @ index-Bnrs18id.js:37Understand this error
+index-Bnrs18id.js:920 [TeamSettings] ❌ Erro ao editar membro: ReferenceError: memberId is not defined
+    at Object.onSuccess (index-Bnrs18id.js:912:5847)
+    at G3.execute (index-Bnrs18id.js:67:20020)
+    at async onEditMember (index-Bnrs18id.js:920:33049)
+    at async d (index-Bnrs18id.js:920:9443)
+onEditMember @ index-Bnrs18id.js:920
+await in onEditMember
+d @ index-Bnrs18id.js:920
+Z9 @ index-Bnrs18id.js:37
+ez @ index-Bnrs18id.js:37
+tz @ index-Bnrs18id.js:37
+yC @ index-Bnrs18id.js:37
+eR @ index-Bnrs18id.js:37
+(anonymous) @ index-Bnrs18id.js:37
+IN @ index-Bnrs18id.js:40
+jD @ index-Bnrs18id.js:37
+Uy @ index-Bnrs18id.js:37
+lN @ index-Bnrs18id.js:37
+xz @ index-Bnrs18id.js:37Understand this error
+index-Bnrs18id.js:920 [TeamSettings] Component rendering
+index-Bnrs18id.js:920 [TeamSettings] User data: {id: '7c197601-01cc-4f71-a4d8-7c1357cac113', aud: 'authenticated', role: 'authenticated', email: 'adm.geuniformes@gmail.com', email_confirmed_at: '2025-07-22T14:10:54.791822Z', …}
+index-Bnrs18id.js:920 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false
+index-Bnrs18id.js:920 [MultiSelectFunnels] ===== RENDER =====
+index-Bnrs18id.js:920 [MultiSelectFunnels] selectedIds recebido: ['28dfc9bb-3c5c-482c-aca6-805a5c2bf280']
+index-Bnrs18id.js:920 [MultiSelectFunnels] allFunnels recebido: [{…}]
+index-Bnrs18id.js:920 [MultiSelectFunnels] safeFunnels (length): 1
+index-Bnrs18id.js:920 [MultiSelectFunnels] safeSelectedIds: ['28dfc9bb-3c5c-482c-aca6-805a5c2bf280']
+index-Bnrs18id.js:920 [MultiSelectWhatsApp] ===== RENDER =====
+index-Bnrs18id.js:920 [MultiSelectWhatsApp] selectedIds recebido: []
+index-Bnrs18id.js:920 [MultiSelectWhatsApp] allWhatsApps recebido: (5) [{…}, {…}, {…}, {…}, {…}]
+index-Bnrs18id.js:920 [MultiSelectWhatsApp] safeWhatsApps (length): 5
+index-Bnrs18id.js:920 [MultiSelectWhatsApp] safeSelectedIds: []
+index-Bnrs18id.js:912 [useTeamManagement] ✅ Membros encontrados: 6
+index-Bnrs18id.js:920 [MultiSelectFunnels] ===== RENDER =====
+index-Bnrs18id.js:920 [MultiSelectFunnels] selectedIds recebido: ['28dfc9bb-3c5c-482c-aca6-805a5c2bf280']
+index-Bnrs18id.js:920 [MultiSelectFunnels] allFunnels recebido: [{…}]
+index-Bnrs18id.js:920 [MultiSelectFunnels] safeFunnels (length): 1
+index-Bnrs18id.js:920 [MultiSelectFunnels] safeSelectedIds: ['28dfc9bb-3c5c-482c-aca6-805a5c2bf280']
+index-Bnrs18id.js:920 [MultiSelectWhatsApp] ===== RENDER =====
+index-Bnrs18id.js:920 [MultiSelectWhatsApp] selectedIds recebido: []
+index-Bnrs18id.js:920 [MultiSelectWhatsApp] allWhatsApps recebido: (5) [{…}, {…}, {…}, {…}, {…}]
+index-Bnrs18id.js:920 [MultiSelectWhatsApp] safeWhatsApps (length): 5
+index-Bnrs18id.js:920

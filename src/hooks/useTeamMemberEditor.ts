@@ -48,10 +48,10 @@ export const useTeamMemberEditor = (companyId: string | null) => {
       console.log('[useTeamMemberEditor] ✅ Perfil atualizado com sucesso');
       return { success: true };
     },
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
       console.log('[useTeamMemberEditor] ✅ Perfil do membro editado com sucesso');
       queryClient.invalidateQueries({ queryKey: TEAM_EDITOR_KEYS.list(companyId) });
-      queryClient.invalidateQueries({ queryKey: TEAM_EDITOR_KEYS.member(memberId) });
+      queryClient.invalidateQueries({ queryKey: TEAM_EDITOR_KEYS.member(variables.memberId) });
       toast.success('Dados do membro atualizados com sucesso');
     },
     onError: (error: any) => {
@@ -162,10 +162,10 @@ export const useTeamMemberEditor = (companyId: string | null) => {
         removedAuthUserId: profile.linked_auth_user_id 
       };
     },
-    onSuccess: (result) => {
+    onSuccess: (result, variables) => {
       console.log('[useTeamMemberEditor] ✅ Membro removido completamente:', result);
       queryClient.invalidateQueries({ queryKey: TEAM_EDITOR_KEYS.list(companyId) });
-      queryClient.invalidateQueries({ queryKey: TEAM_EDITOR_KEYS.member(memberId) });
+      queryClient.invalidateQueries({ queryKey: TEAM_EDITOR_KEYS.member(variables) });
       toast.success('Membro removido da equipe');
     },
     onError: (error: any) => {
