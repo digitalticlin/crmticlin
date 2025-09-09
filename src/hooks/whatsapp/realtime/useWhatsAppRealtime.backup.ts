@@ -1,21 +1,19 @@
 /**
- * 🎯 HOOK WHATSAPP REALTIME - ATUALIZADO PARA REACT QUERY
+ * 🎯 HOOK ISOLADO PARA REALTIME WHATSAPP
  * 
  * RESPONSABILIDADES:
- * ✅ Sistema de real-time isolado
- * ✅ Invalidação automática via React Query
- * ✅ Query keys isoladas (chat-*)
- * ✅ Debounce inteligente
+ * ✅ Sistema de realtime isolado
+ * ✅ Debounce isolado por feature
+ * ✅ Cache de eventos isolado
+ * ✅ Reconexão automática isolada
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Contact, Message } from '@/types/chat';
-import { chatContactsQueryKeys, chatMessagesQueryKeys } from '@/hooks/chat/queryKeys';
 
-// Tipo de instância simplificado
+// Tipo de instância simplificado para o hook isolado
 interface WhatsAppInstance {
   id: string;
   instance_name: string;
@@ -26,6 +24,7 @@ interface UseWhatsAppRealtimeParams {
   // Para contatos
   activeInstanceId?: string | null;
   onContactUpdate?: () => void;
+  onNewContact?: (contact: Contact) => void;
   onMoveContactToTop?: (contactId: string, newMessage?: any) => void;
   onUpdateUnreadCount?: (contactId: string, increment?: boolean) => void;
   
@@ -47,59 +46,30 @@ interface UseWhatsAppRealtimeReturn {
   lastMessageUpdate: number | null;
 }
 
-// Helper para normalizar mediaType
-const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "audio" | "document" => {
-  if (!mediaType) return 'text';
-  
-  const normalizedType = mediaType.toLowerCase();
-  if (normalizedType.includes('image')) return 'image';
-  if (normalizedType.includes('video')) return 'video';
-  if (normalizedType.includes('audio')) return 'audio';
-  if (normalizedType.includes('document')) return 'document';
-  
-  return 'text';
-};
-
-// Converter mensagem para formato padronizado
-const convertMessage = (messageData: any): Message => {
-  return {
-    id: messageData.id,
-    text: messageData.text || '',
-    fromMe: messageData.from_me || false,
-    timestamp: messageData.created_at || new Date().toISOString(),
-    status: messageData.status || 'sent',
-    mediaType: normalizeMediaType(messageData.media_type),
-    mediaUrl: messageData.media_url || undefined,
-    sender: messageData.from_me ? 'user' : 'contact',
-    time: new Date(messageData.created_at || Date.now()).toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    }),
-    isIncoming: !messageData.from_me,
-    media_cache: messageData.media_cache || null
-  };
-};
-
 export const useWhatsAppRealtime = ({
+  // Contatos
   activeInstanceId,
   onContactUpdate,
+  onNewContact,
   onMoveContactToTop,
   onUpdateUnreadCount,
+  
+  // Mensagens
   selectedContact,
   activeInstance,
   onNewMessage,
   onMessageUpdate
 }: UseWhatsAppRealtimeParams): UseWhatsAppRealtimeReturn => {
-  console.log('[WhatsApp Realtime] 🚀 HOOK EXECUTADO com React Query:', {
+  console.log('[WhatsApp Realtime] 🚀 HOOK EXECUTADO - INÍCIO:', {
     hasSelectedContact: !!selectedContact,
     hasActiveInstance: !!activeInstance,
+    hasOnNewMessage: !!onNewMessage,
     selectedContactId: selectedContact?.id
   });
 
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   
-  // Estados para estatísticas
+  // Estados isolados para cada feature
   const [isContactsConnected, setIsContactsConnected] = useState(false);
   const [isMessagesConnected, setIsMessagesConnected] = useState(false);
   const [totalContactEvents, setTotalContactEvents] = useState(0);
@@ -107,57 +77,89 @@ export const useWhatsAppRealtime = ({
   const [lastContactUpdate, setLastContactUpdate] = useState<number | null>(null);
   const [lastMessageUpdate, setLastMessageUpdate] = useState<number | null>(null);
 
-  // Refs para controle de canais
+  // Refs isolados para controle
   const contactsChannelRef = useRef<any>(null);
   const messagesChannelRef = useRef<any>(null);
   const contactsReconnectAttempts = useRef(0);
   const messagesReconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
 
-  // Cache para evitar processamento duplicado
-  const processedMessageIds = useRef<Set<string>>(new Set());
-  const lastProcessedTimestamp = useRef<string | null>(null);
-
-  // Debounce para contatos
+  // Debounce isolado para contatos
   const contactsDebounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const contactsDebouncedInvalidation = useCallback((delay = 500) => {
-    const key = 'contacts_invalidation';
+  const contactsDebouncedCallback = useCallback((key: string, callback: () => void, delay = 300) => {
     const existingTimer = contactsDebounceTimers.current.get(key);
     if (existingTimer) {
       clearTimeout(existingTimer);
     }
 
     const timer = setTimeout(() => {
-      console.log('[WhatsApp Realtime] 🔄 Invalidando contatos via React Query');
-      queryClient.invalidateQueries({
-        queryKey: chatContactsQueryKeys.base
-      });
+      callback();
       contactsDebounceTimers.current.delete(key);
     }, delay);
 
     contactsDebounceTimers.current.set(key, timer);
-  }, [queryClient]);
+  }, []);
 
-  // Debounce para mensagens
+  // Debounce isolado para mensagens
   const messagesDebounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const messagesDebouncedInvalidation = useCallback((contactId: string, delay = 200) => {
-    const key = `messages_invalidation_${contactId}`;
+  const messagesDebouncedCallback = useCallback((key: string, callback: () => void, delay = 300) => {
     const existingTimer = messagesDebounceTimers.current.get(key);
     if (existingTimer) {
       clearTimeout(existingTimer);
     }
 
     const timer = setTimeout(() => {
-      console.log('[WhatsApp Realtime] 🔄 Invalidando mensagens via React Query para contato:', contactId);
-      queryClient.invalidateQueries({
-        queryKey: chatMessagesQueryKeys.byContact(contactId)
-      });
+      callback();
       messagesDebounceTimers.current.delete(key);
     }, delay);
 
     messagesDebounceTimers.current.set(key, timer);
-  }, [queryClient]);
+  }, []);
 
-  // Filtro para mensagens - MULTI-TENANT CORRIGIDO
+  // Cache isolado para mensagens processadas
+  const processedMessageIds = useRef<Set<string>>(new Set());
+  const lastProcessedTimestamp = useRef<string | null>(null);
+
+  // Helper para normalizar mediaType
+  const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "audio" | "document" => {
+    if (!mediaType) return 'text';
+    
+    const normalizedType = mediaType.toLowerCase();
+    if (normalizedType.includes('image')) return 'image';
+    if (normalizedType.includes('video')) return 'video';
+    if (normalizedType.includes('audio')) return 'audio';
+    if (normalizedType.includes('document')) return 'document';
+    
+    return 'text';
+  };
+
+  // Converter mensagem isolado
+  const convertMessage = useCallback((messageData: any): Message => {
+    const message: Message = {
+      id: messageData.id,
+      text: messageData.text || '',
+      fromMe: messageData.from_me || false,
+      timestamp: messageData.created_at || new Date().toISOString(),
+      status: messageData.status || 'sent',
+      mediaType: normalizeMediaType(messageData.media_type),
+      mediaUrl: messageData.media_url || undefined,
+      sender: messageData.from_me ? 'user' : 'contact',
+      time: new Date(messageData.created_at || Date.now()).toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      isIncoming: !messageData.from_me,
+      media_cache: messageData.media_cache || null
+    };
+
+    if (!lastProcessedTimestamp.current || message.timestamp > lastProcessedTimestamp.current) {
+      lastProcessedTimestamp.current = message.timestamp;
+    }
+
+    return message;
+  }, []);
+
+  // Filtro para mensagens isolado - MULTI-TENANT CORRIGIDO
   const shouldProcessMessage = useCallback((messageData: any, isUpdate = false): boolean => {
     console.log('[WhatsApp Realtime] 🔍 Avaliando mensagem:', {
       messageId: messageData.id,
@@ -174,8 +176,16 @@ export const useWhatsAppRealtime = ({
       return false;
     }
 
+    // ✅ CORREÇÃO MULTI-TENANT: Remover filtro restritivo de instância específica
+    // Admin pode ver mensagens de QUALQUER instância que ele criou
+    // Operacional pode ver mensagens apenas da instância vinculada ao lead atual
+    // O filtro RLS no banco já garante que só verá mensagens permitidas
+    
     if (messageData.lead_id !== selectedContact?.id) {
-      console.log('[WhatsApp Realtime] ❌ Lead ID não corresponde');
+      console.log('[WhatsApp Realtime] ❌ Lead ID não corresponde:', {
+        messageLead: messageData.lead_id,
+        selectedContact: selectedContact?.id
+      });
       return false;
     }
 
@@ -184,24 +194,33 @@ export const useWhatsAppRealtime = ({
       return true;
     }
 
-    // Verificar duplicação ANTES de permitir processamento
+    // 🔧 FIX: Verificar duplicação ANTES de permitir processamento
     if (processedMessageIds.current.has(messageData.id)) {
       console.log('[WhatsApp Realtime] ❌ Mensagem já processada:', messageData.id);
       return false;
     }
 
-    console.log('[WhatsApp Realtime] ✅ Mensagem aceita:', messageData.id);
-    return true;
+    // ✅ Permitir TODAS as mensagens (enviadas e recebidas) se passaram nos filtros anteriores
+    if (messageData.from_me === false) {
+      console.log('[WhatsApp Realtime] ✅ Mensagem recebida aceita:', messageData.id);
+      return true;
+    } else {
+      console.log('[WhatsApp Realtime] ✅ Mensagem enviada aceita:', messageData.id);
+      return true;
+    }
   }, [selectedContact, user?.id]);
 
-  // Setup real-time para contatos
+  // Setup realtime para contatos (isolado)
   const setupContactsRealtime = useCallback(() => {
     if (!user?.id) {
       setIsContactsConnected(false);
       return;
     }
 
-    console.log('[WhatsApp Realtime] 🚀 Configurando real-time para contatos com React Query');
+    console.log('[WhatsApp Realtime] 🚀 Configurando realtime para contatos:', {
+      userId: user.id,
+      activeInstanceId
+    });
 
     // Limpar canal anterior
     if (contactsChannelRef.current) {
@@ -209,7 +228,7 @@ export const useWhatsAppRealtime = ({
       contactsChannelRef.current = null;
     }
 
-    const channelId = `contacts_realtime_rq_${user.id}_${Date.now()}`;
+    const channelId = `contacts_realtime_${user.id}_${Date.now()}`;
 
     const channel = supabase
       .channel(channelId)
@@ -224,16 +243,14 @@ export const useWhatsAppRealtime = ({
         setTotalContactEvents(prev => prev + 1);
         setLastContactUpdate(Date.now());
 
-        // Invalidar queries via React Query com debounce
-        contactsDebouncedInvalidation();
-        
-        // Callbacks legacy para compatibilidade
-        if (onContactUpdate) {
-          onContactUpdate();
-        }
+        contactsDebouncedCallback('contact_update', () => {
+          if (onContactUpdate) {
+            onContactUpdate();
+          }
+        }, 500);
       })
       .subscribe((status) => {
-        console.log('[WhatsApp Realtime] 📡 Status contatos (React Query):', status);
+        console.log('[WhatsApp Realtime] 📡 Status contatos:', status);
         
         if (status === 'SUBSCRIBED') {
           setIsContactsConnected(true);
@@ -247,14 +264,16 @@ export const useWhatsAppRealtime = ({
       });
 
     contactsChannelRef.current = channel;
-  }, [user?.id, contactsDebouncedInvalidation, onContactUpdate]);
+  }, [user?.id, activeInstanceId, onContactUpdate, contactsDebouncedCallback]);
 
-  // Setup real-time para mensagens
+  // Setup realtime para mensagens (isolado)
   const setupMessagesRealtime = useCallback(() => {
-    console.log('[WhatsApp Realtime] 🔍 Setup mensagens com React Query:', {
+    console.log('[WhatsApp Realtime] 🔍 Setup mensagens - validação:', {
       hasSelectedContact: !!selectedContact,
+      hasActiveInstance: !!activeInstance,
       hasUserId: !!user?.id,
-      selectedContactId: selectedContact?.id
+      selectedContactId: selectedContact?.id,
+      activeInstanceId: activeInstance?.id
     });
 
     if (!selectedContact || !user?.id) {
@@ -263,9 +282,13 @@ export const useWhatsAppRealtime = ({
       return;
     }
 
-    console.log('[WhatsApp Realtime] 🚀 Configurando real-time para mensagens com React Query:', {
+    // ✅ CORREÇÃO: Não exigir activeInstance - real-time funciona independente de instâncias
+    // O filtro RLS no banco garante que só verá mensagens permitidas
+
+    console.log('[WhatsApp Realtime] 🚀 Configurando realtime para mensagens:', {
       contactId: selectedContact.id,
       contactName: selectedContact.name,
+      instanceId: activeInstance?.id || 'sem-instancia',
       userId: user.id
     });
 
@@ -275,7 +298,7 @@ export const useWhatsAppRealtime = ({
       messagesChannelRef.current = null;
     }
 
-    const channelId = `messages_realtime_rq_${selectedContact.id}_${Date.now()}`;
+    const channelId = `messages_realtime_${selectedContact.id}_${activeInstance?.id || 'no-instance'}_${Date.now()}`;
 
     const channel = supabase
       .channel(channelId)
@@ -287,7 +310,7 @@ export const useWhatsAppRealtime = ({
       }, (payload) => {
         const messageData = payload.new;
         
-        console.log('[WhatsApp Realtime] 📨 INSERT mensagem (React Query):', {
+        console.log('[WhatsApp Realtime] 📨 INSERT mensagem:', {
           messageId: messageData.id,
           fromMe: messageData.from_me,
           leadId: messageData.lead_id,
@@ -305,18 +328,20 @@ export const useWhatsAppRealtime = ({
         
         // Marcar como processada
         processedMessageIds.current.add(message.id);
-        lastProcessedTimestamp.current = message.timestamp;
         
-        // 🚀 NOVA ABORDAGEM: Invalidar queries com debounce OU usar callback
-        if (onNewMessage) {
-          // Usar callback se disponível (compatibilidade)
-          console.log('[WhatsApp Realtime] 🎯 Usando callback onNewMessage');
-          onNewMessage(message);
-        } else {
-          // Invalidar via React Query
-          console.log('[WhatsApp Realtime] 🔄 Invalidando via React Query');
-          messagesDebouncedInvalidation(selectedContact.id);
-        }
+        messagesDebouncedCallback(message.id, () => {
+          if (onNewMessage) {
+            console.log('[WhatsApp Realtime] 🚀 Chamando onNewMessage:', {
+              messageId: message.id,
+              text: message.text.substring(0, 30),
+              fromMe: message.fromMe,
+              timestamp: message.timestamp
+            });
+            onNewMessage(message);
+          } else {
+            console.warn('[WhatsApp Realtime] ⚠️ onNewMessage não definido!');
+          }
+        }, 100);
       })
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -332,7 +357,7 @@ export const useWhatsAppRealtime = ({
 
         const message = convertMessage(messageData);
         
-        console.log('[WhatsApp Realtime] 🔄 UPDATE mensagem (React Query):', {
+        console.log('[WhatsApp Realtime] 🔄 UPDATE mensagem:', {
           messageId: message.id,
           status: message.status
         });
@@ -340,15 +365,14 @@ export const useWhatsAppRealtime = ({
         setTotalMessageEvents(prev => prev + 1);
         setLastMessageUpdate(Date.now());
         
-        // Usar callback ou invalidar
-        if (onMessageUpdate) {
-          onMessageUpdate(message);
-        } else {
-          messagesDebouncedInvalidation(selectedContact.id);
-        }
+        messagesDebouncedCallback(`update_${message.id}`, () => {
+          if (onMessageUpdate) {
+            onMessageUpdate(message);
+          }
+        }, 50);
       })
       .subscribe((status) => {
-        console.log('[WhatsApp Realtime] 📡 Status mensagens (React Query):', status);
+        console.log('[WhatsApp Realtime] 📡 Status mensagens:', status);
         
         if (status === 'SUBSCRIBED') {
           setIsMessagesConnected(true);
@@ -362,11 +386,11 @@ export const useWhatsAppRealtime = ({
       });
 
     messagesChannelRef.current = channel;
-  }, [selectedContact, user?.id, shouldProcessMessage, onNewMessage, onMessageUpdate, messagesDebouncedInvalidation]);
+  }, [selectedContact, activeInstance, user?.id, shouldProcessMessage, convertMessage, onNewMessage, onMessageUpdate, messagesDebouncedCallback]);
 
-  // Cleanup
+  // Cleanup isolado
   const cleanup = useCallback(() => {
-    console.log('[WhatsApp Realtime] 🧹 Cleanup com React Query');
+    console.log('[WhatsApp Realtime] 🧹 Cleanup isolado');
     
     if (contactsChannelRef.current) {
       supabase.removeChannel(contactsChannelRef.current);
@@ -393,9 +417,9 @@ export const useWhatsAppRealtime = ({
     lastProcessedTimestamp.current = null;
   }, []);
 
-  // Effects
+  // Effect para contatos
   useEffect(() => {
-    if (user?.id && (onContactUpdate || onMoveContactToTop || onUpdateUnreadCount)) {
+    if (user?.id && (onContactUpdate || onNewContact || onMoveContactToTop || onUpdateUnreadCount)) {
       setupContactsRealtime();
     }
 
@@ -405,10 +429,22 @@ export const useWhatsAppRealtime = ({
         contactsChannelRef.current = null;
       }
     };
-  }, [user?.id, setupContactsRealtime]);
+  }, [user?.id, activeInstanceId, setupContactsRealtime, onContactUpdate, onNewContact, onMoveContactToTop, onUpdateUnreadCount]);
 
+  // Effect para mensagens
   useEffect(() => {
+    console.log('[WhatsApp Realtime] 🔍 Effect mensagens executado:', {
+      hasUserId: !!user?.id,
+      hasSelectedContact: !!selectedContact,
+      hasActiveInstance: !!activeInstance,
+      hasOnNewMessage: !!onNewMessage,
+      hasOnMessageUpdate: !!onMessageUpdate,
+      selectedContactId: selectedContact?.id
+    });
+
+    // ✅ CORREÇÃO: Remover exigência de activeInstance
     if (user?.id && selectedContact && (onNewMessage || onMessageUpdate)) {
+      console.log('[WhatsApp Realtime] 🚀 Chamando setupMessagesRealtime...');
       setupMessagesRealtime();
     } else {
       console.log('[WhatsApp Realtime] ❌ Não chamou setupMessagesRealtime - condições não atendidas');
@@ -420,8 +456,9 @@ export const useWhatsAppRealtime = ({
         messagesChannelRef.current = null;
       }
     };
-  }, [user?.id, selectedContact?.id, setupMessagesRealtime]);
+  }, [user?.id, selectedContact?.id, setupMessagesRealtime, onNewMessage, onMessageUpdate]);
 
+  // Cleanup geral
   useEffect(() => {
     return cleanup;
   }, [cleanup]);

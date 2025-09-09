@@ -1,27 +1,198 @@
-
-TeamSettings.tsx:22 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false
-useTeamMemberEditor.ts:74 [useTeamMemberEditor] 📋 Dados do perfil: {profileId: 'cc1f5d12-229e-47aa-ad71-bb8c92c220b8', authUserId: null, email: 'vendas01@geuniformes.com.br'}
-useTeamMemberEditor.ts:101 [useTeamMemberEditor] ℹ️ Membro sem linked_auth_user_id, pulando verificação de leads
-useTeamMemberEditor.ts:110 [useTeamMemberEditor] ✅ Acessos removidos (WhatsApp + Funis)
-useTeamMemberEditor.ts:123 [useTeamMemberEditor] ✅ Perfil deletado
-useTeamMemberEditor.ts:148 [useTeamMemberEditor] ⚠️ Membro sem linked_auth_user_id, pulando remoção auth
-useTeamMemberEditor.ts:151 [useTeamMemberEditor] ✅ Remoção completa realizada
-useTeamMemberEditor.ts:160 [useTeamMemberEditor] ✅ Membro removido completamente: {success: true, removedProfileId: 'cc1f5d12-229e-47aa-ad71-bb8c92c220b8', removedAuthUserId: null}
-useTeamManagement.ts:49 [useTeamManagement] 📋 Buscando membros da equipe para empresa: 7c197601-01cc-4f71-a4d8-7c1357cac113
-useTeamManagement.ts:49 [useTeamManagement] 📋 Buscando membros da equipe para empresa: 7c197601-01cc-4f71-a4d8-7c1357cac113
-TeamSettings.tsx:16 [TeamSettings] Component rendering
-TeamSettings.tsx:19 [TeamSettings] User data: {id: '7c197601-01cc-4f71-a4d8-7c1357cac113', aud: 'authenticated', role: 'authenticated', email: 'adm.geuniformes@gmail.com', email_confirmed_at: '2025-07-22T14:10:54.791822Z', …}
-TeamSettings.tsx:22 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false
-2useTeamManagement.ts:71 [useTeamManagement] ✅ Membros encontrados: 1
-TeamSettings.tsx:16 [TeamSettings] Component rendering
-TeamSettings.tsx:19 [TeamSettings] User data: {id: '7c197601-01cc-4f71-a4d8-7c1357cac113', aud: 'authenticated', role: 'authenticated', email: 'adm.geuniformes@gmail.com', email_confirmed_at: '2025-07-22T14:10:54.791822Z', …}
-TeamSettings.tsx:22 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false
-
-
-
-
-
-LOGS DA EDGE
-
-
-
+[ContactContextMenu] Props received: {contactId: '9bbfc9e2-d8ea-45fd-8850-598195f74f27', contactName: '+55 (21) 97564-9179', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '7857ee53-53df-4099-a1e1-846bd1de6c85', contactName: '+55 (65) 9674-9666', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ae9e8b05-1a48-4e0c-a6a8-92fc259b3450', contactName: 'Braytner Coelho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:974 [WhatsApp Chat] 🔄 Refresh de contatos isolado
+index-BCtLrhhU.js:937 [WhatsApp Contacts] 🔍 Buscando contatos isoladamente: {offset: 0, activeInstanceId: 'b0b4177e-ee83-4d7c-9223-44f4b5739be0', userId: '7c197601-01cc-4f71-a4d8-7c1357cac113'}
+index-BCtLrhhU.js:937 [WhatsApp Contacts] 🔧 Aplicando filtro multitenant manual
+index-BCtLrhhU.js:978 [WhatsAppChatContainer] 🏗️ Componente renderizado - iniciando hooks isolados
+index-BCtLrhhU.js:974 [WhatsApp Chat] 🚀 HOOK EXECUTADO - INÍCIO
+index-BCtLrhhU.js:974 [WhatsApp Chat] ✅ useAuth funcionou: true
+index-BCtLrhhU.js:974 [WhatsApp Chat] ✅ useSearchParams funcionou: {leadId: null, phoneParam: null}
+index-BCtLrhhU.js:974 [WhatsApp Chat] 🎯 Hook principal inicializado: {userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', leadId: null, phoneParam: null, timestamp: '2025-09-09T17:47:43.610Z'}
+index-BCtLrhhU.js:974 [WhatsApp Chat] 🔍 Estado atual: {hasSelectedContact: false, hasInitialized: false, selectedContactId: undefined, selectedContactName: undefined}
+index-BCtLrhhU.js:974 [WhatsApp Chat] 🏗️ Inicializando hooks isolados...
+index-BCtLrhhU.js:974 [WhatsApp Chat] ✅ useWhatsAppInstances funcionou
+index-BCtLrhhU.js:974 [WhatsApp Chat] 📊 Status dos hooks isolados: {instancesLoading: false, totalInstances: 5, activeInstanceId: 'b0b4177e-ee83-4d7c-9223-44f4b5739be0', contactsLoading: true, totalContacts: 38, …}
+index-BCtLrhhU.js:974 [WhatsApp Chat] 📨 Status das mensagens: {messagesLoading: false, totalMessages: 0, hasSelectedContact: false, selectedContactId: undefined}
+index-BCtLrhhU.js:974 [WhatsApp Realtime] 🚀 HOOK EXECUTADO - INÍCIO: {hasSelectedContact: false, hasActiveInstance: true, hasOnNewMessage: true, selectedContactId: undefined}
+index-BCtLrhhU.js:978 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 38, messagesCount: 0, selectedContactId: undefined, selectedContactName: undefined, isLoadingContacts: true, …}
+index-BCtLrhhU.js:920 [ContactsList] Props received: {contactsLength: 38, searchQuery: '', activeFilter: 'all', selectedContactId: undefined}
+index-BCtLrhhU.js:920 [ContactsList] Rendering contacts: {contactsLength: 38, searchQuery: '', activeFilter: 'all'}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f482882d-8687-4cef-87c2-7e69bc7b4042', contactName: 'Junior Duarte', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '6a46849f-f3b1-462c-a392-11272f387db3', contactName: 'Fixa Estúdio - Rainier Filho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '744da3ed-b123-4abd-ae6b-29140cd504f8', contactName: 'Nelly🧡', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '05b79641-2426-4d8b-93a1-fca2deb115ef', contactName: 'Ludmila', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f8dd0069-8f30-4641-aa80-efa3f1d7e4e9', contactName: 'Letícia Ardaia.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '2837cfd8-a994-411a-86c6-95bb6c4fd0a5', contactName: '+55 (64) 9984-9640', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '07ccf969-3719-4636-9d34-cc3e306df57e', contactName: '+55 (87) 8128-2406', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'c2bbc74e-074f-4b32-9986-182c73ca67b7', contactName: '+55 (35) 8854-5050', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'cd3f14df-27c0-4d5b-8045-c88b08d7cf19', contactName: '+55 (61) 8501-0213', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f616476e-2e72-41c7-b818-794469eae3ba', contactName: '+55 (43) 8446-9772', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'c737fa10-edcc-4540-8417-f6371dc8bc6a', contactName: 'Marina', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'd777a772-1a0e-4eb6-a31f-3990ee6fdcaf', contactName: '.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '90e03620-f929-4052-a0e0-9a3fd9fd691c', contactName: 'Guilherme Arruda', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '5ab3daee-91fe-45cf-92c6-112054d047a9', contactName: '+55 (16) 99142-0806', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'bdbf3f66-d541-4bef-a0e5-96624151433d', contactName: 'João Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'cc4dcab0-caeb-4420-866a-471a2c19eda4', contactName: 'Mauricio Granzotto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '7073190f-bbcf-43d4-888d-6a48c0b682a2', contactName: 'Bruno Quevedo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '4d2f804a-b695-4cc4-af48-aa3195bfc825', contactName: 'Yuri', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '1a617aac-fa0a-483b-be39-2693241a67d7', contactName: 'Fouad', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'fcd735c9-7bb3-46f5-8a97-f5639e8ad404', contactName: 'Enzo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '1293ea7b-99d1-4153-a090-fd756c6d4154', contactName: 'Carlos Eduardo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ab8aedf6-eaf0-49da-a155-beb52a2d4dee', contactName: 'Juliana', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '8004d925-0835-496d-8d54-124726dbe35e', contactName: 'Jujuba', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'eda7f7b5-919e-422e-a34b-dd2773c4156b', contactName: 'Mavi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'd115375a-e5be-4b16-a980-8aa8b047337e', contactName: 'Fernando Rios', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '54913f91-7f22-4237-a198-de1cef6bf6b9', contactName: 'Fernanda Firmino', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'd19f91ab-bb2f-43d1-a392-a63b73bcdd64', contactName: 'Ana Proto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '6a760063-82f1-41d2-be40-2f1af1e193fc', contactName: 'João Victor M.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '5f1df1f6-e4b0-44a7-84bb-482a0a89c82f', contactName: 'Ruan Pizzatto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'b3e33200-5ff7-48d1-8d3c-b1b5ccf81c7b', contactName: 'gabi buzetti', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f4e52c7e-9074-432d-b003-5fd4eac509e6', contactName: 'Letícia Franciosi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ea2632d3-5eb7-4335-b21b-803f11aa85dc', contactName: 'Lara Maria', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '16a16649-a2d7-4df7-905a-0b0a16bd9960', contactName: 'Antonio Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '695d83e9-9a26-43ca-9ee7-68fdf7ab25fa', contactName: '+55 (68) 9976-1807', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '6de272d6-4708-4a58-bd0e-13532fcb0b03', contactName: 'Jessica Gonçalves', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '9bbfc9e2-d8ea-45fd-8850-598195f74f27', contactName: '+55 (21) 97564-9179', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '7857ee53-53df-4099-a1e1-846bd1de6c85', contactName: '+55 (65) 9674-9666', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ae9e8b05-1a48-4e0c-a6a8-92fc259b3450', contactName: 'Braytner Coelho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactsList] Props received: {contactsLength: 38, searchQuery: '', activeFilter: 'all', selectedContactId: undefined}
+index-BCtLrhhU.js:920 [ContactsList] Rendering contacts: {contactsLength: 38, searchQuery: '', activeFilter: 'all'}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f482882d-8687-4cef-87c2-7e69bc7b4042', contactName: 'Junior Duarte', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '6a46849f-f3b1-462c-a392-11272f387db3', contactName: 'Fixa Estúdio - Rainier Filho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '744da3ed-b123-4abd-ae6b-29140cd504f8', contactName: 'Nelly🧡', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '05b79641-2426-4d8b-93a1-fca2deb115ef', contactName: 'Ludmila', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f8dd0069-8f30-4641-aa80-efa3f1d7e4e9', contactName: 'Letícia Ardaia.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '2837cfd8-a994-411a-86c6-95bb6c4fd0a5', contactName: '+55 (64) 9984-9640', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '07ccf969-3719-4636-9d34-cc3e306df57e', contactName: '+55 (87) 8128-2406', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'c2bbc74e-074f-4b32-9986-182c73ca67b7', contactName: '+55 (35) 8854-5050', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'cd3f14df-27c0-4d5b-8045-c88b08d7cf19', contactName: '+55 (61) 8501-0213', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f616476e-2e72-41c7-b818-794469eae3ba', contactName: '+55 (43) 8446-9772', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'c737fa10-edcc-4540-8417-f6371dc8bc6a', contactName: 'Marina', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'd777a772-1a0e-4eb6-a31f-3990ee6fdcaf', contactName: '.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '90e03620-f929-4052-a0e0-9a3fd9fd691c', contactName: 'Guilherme Arruda', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '5ab3daee-91fe-45cf-92c6-112054d047a9', contactName: '+55 (16) 99142-0806', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'bdbf3f66-d541-4bef-a0e5-96624151433d', contactName: 'João Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'cc4dcab0-caeb-4420-866a-471a2c19eda4', contactName: 'Mauricio Granzotto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '7073190f-bbcf-43d4-888d-6a48c0b682a2', contactName: 'Bruno Quevedo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '4d2f804a-b695-4cc4-af48-aa3195bfc825', contactName: 'Yuri', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '1a617aac-fa0a-483b-be39-2693241a67d7', contactName: 'Fouad', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'fcd735c9-7bb3-46f5-8a97-f5639e8ad404', contactName: 'Enzo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '1293ea7b-99d1-4153-a090-fd756c6d4154', contactName: 'Carlos Eduardo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ab8aedf6-eaf0-49da-a155-beb52a2d4dee', contactName: 'Juliana', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '8004d925-0835-496d-8d54-124726dbe35e', contactName: 'Jujuba', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'eda7f7b5-919e-422e-a34b-dd2773c4156b', contactName: 'Mavi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'd115375a-e5be-4b16-a980-8aa8b047337e', contactName: 'Fernando Rios', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '54913f91-7f22-4237-a198-de1cef6bf6b9', contactName: 'Fernanda Firmino', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'd19f91ab-bb2f-43d1-a392-a63b73bcdd64', contactName: 'Ana Proto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '6a760063-82f1-41d2-be40-2f1af1e193fc', contactName: 'João Victor M.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '5f1df1f6-e4b0-44a7-84bb-482a0a89c82f', contactName: 'Ruan Pizzatto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'b3e33200-5ff7-48d1-8d3c-b1b5ccf81c7b', contactName: 'gabi buzetti', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f4e52c7e-9074-432d-b003-5fd4eac509e6', contactName: 'Letícia Franciosi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ea2632d3-5eb7-4335-b21b-803f11aa85dc', contactName: 'Lara Maria', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '16a16649-a2d7-4df7-905a-0b0a16bd9960', contactName: 'Antonio Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '695d83e9-9a26-43ca-9ee7-68fdf7ab25fa', contactName: '+55 (68) 9976-1807', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '6de272d6-4708-4a58-bd0e-13532fcb0b03', contactName: 'Jessica Gonçalves', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '9bbfc9e2-d8ea-45fd-8850-598195f74f27', contactName: '+55 (21) 97564-9179', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '7857ee53-53df-4099-a1e1-846bd1de6c85', contactName: '+55 (65) 9674-9666', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ae9e8b05-1a48-4e0c-a6a8-92fc259b3450', contactName: 'Braytner Coelho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:958 [WhatsApp Contacts] 🔒 Filtro multitenant aplicado para profile: 7c197601-01cc-4f71-a4d8-7c1357cac113
+index-BCtLrhhU.js:958 [WhatsApp Contacts] 📄 Carregamento paginado normal
+index-BCtLrhhU.js:966 [WhatsApp Contacts] 🔄 Substituindo todos os contatos (primeira página)
+index-BCtLrhhU.js:966 [WhatsApp Contacts] ✅ Contatos carregados isoladamente: {count: 38, total: 38, activeInstanceId: 'b0b4177e-ee83-4d7c-9223-44f4b5739be0', userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', firstContact: {…}}
+index-BCtLrhhU.js:978 [WhatsAppChatContainer] 🏗️ Componente renderizado - iniciando hooks isolados
+index-BCtLrhhU.js:974 [WhatsApp Chat] 🚀 HOOK EXECUTADO - INÍCIO
+index-BCtLrhhU.js:974 [WhatsApp Chat] ✅ useAuth funcionou: true
+index-BCtLrhhU.js:974 [WhatsApp Chat] ✅ useSearchParams funcionou: {leadId: null, phoneParam: null}
+index-BCtLrhhU.js:974 [WhatsApp Chat] 🎯 Hook principal inicializado: {userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', leadId: null, phoneParam: null, timestamp: '2025-09-09T17:47:44.054Z'}
+index-BCtLrhhU.js:974 [WhatsApp Chat] 🔍 Estado atual: {hasSelectedContact: false, hasInitialized: false, selectedContactId: undefined, selectedContactName: undefined}
+index-BCtLrhhU.js:974 [WhatsApp Chat] 🏗️ Inicializando hooks isolados...
+index-BCtLrhhU.js:974 [WhatsApp Chat] ✅ useWhatsAppInstances funcionou
+index-BCtLrhhU.js:974 [WhatsApp Chat] 📊 Status dos hooks isolados: {instancesLoading: false, totalInstances: 5, activeInstanceId: 'b0b4177e-ee83-4d7c-9223-44f4b5739be0', contactsLoading: false, totalContacts: 38, …}
+index-BCtLrhhU.js:974 [WhatsApp Chat] 📨 Status das mensagens: {messagesLoading: false, totalMessages: 0, hasSelectedContact: false, selectedContactId: undefined}
+index-BCtLrhhU.js:974 [WhatsApp Realtime] 🚀 HOOK EXECUTADO - INÍCIO: {hasSelectedContact: false, hasActiveInstance: true, hasOnNewMessage: true, selectedContactId: undefined}
+index-BCtLrhhU.js:978 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 38, messagesCount: 0, selectedContactId: undefined, selectedContactName: undefined, isLoadingContacts: false, …}
+index-BCtLrhhU.js:920 [WhatsAppContactsList] 📊 Contatos recebidos: {total: 38, hasSearch: false, searchQuery: '', contactsLength: 38}
+index-BCtLrhhU.js:920 [WhatsAppContactsList] Filtering contacts: {totalContacts: 38, activeFilter: 'all', searchQuery: ''}
+index-BCtLrhhU.js:920 [ContactsList] Props received: {contactsLength: 38, searchQuery: '', activeFilter: 'all', selectedContactId: undefined}
+index-BCtLrhhU.js:920 [ContactsList] Rendering contacts: {contactsLength: 38, searchQuery: '', activeFilter: 'all'}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f482882d-8687-4cef-87c2-7e69bc7b4042', contactName: 'Junior Duarte', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '6a46849f-f3b1-462c-a392-11272f387db3', contactName: 'Fixa Estúdio - Rainier Filho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '744da3ed-b123-4abd-ae6b-29140cd504f8', contactName: 'Nelly🧡', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '05b79641-2426-4d8b-93a1-fca2deb115ef', contactName: 'Ludmila', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f8dd0069-8f30-4641-aa80-efa3f1d7e4e9', contactName: 'Letícia Ardaia.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '2837cfd8-a994-411a-86c6-95bb6c4fd0a5', contactName: '+55 (64) 9984-9640', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '07ccf969-3719-4636-9d34-cc3e306df57e', contactName: '+55 (87) 8128-2406', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'c2bbc74e-074f-4b32-9986-182c73ca67b7', contactName: '+55 (35) 8854-5050', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'cd3f14df-27c0-4d5b-8045-c88b08d7cf19', contactName: '+55 (61) 8501-0213', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f616476e-2e72-41c7-b818-794469eae3ba', contactName: '+55 (43) 8446-9772', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'c737fa10-edcc-4540-8417-f6371dc8bc6a', contactName: 'Marina', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'd777a772-1a0e-4eb6-a31f-3990ee6fdcaf', contactName: '.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '90e03620-f929-4052-a0e0-9a3fd9fd691c', contactName: 'Guilherme Arruda', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '5ab3daee-91fe-45cf-92c6-112054d047a9', contactName: '+55 (16) 99142-0806', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'bdbf3f66-d541-4bef-a0e5-96624151433d', contactName: 'João Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'cc4dcab0-caeb-4420-866a-471a2c19eda4', contactName: 'Mauricio Granzotto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '7073190f-bbcf-43d4-888d-6a48c0b682a2', contactName: 'Bruno Quevedo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '4d2f804a-b695-4cc4-af48-aa3195bfc825', contactName: 'Yuri', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '1a617aac-fa0a-483b-be39-2693241a67d7', contactName: 'Fouad', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'fcd735c9-7bb3-46f5-8a97-f5639e8ad404', contactName: 'Enzo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '1293ea7b-99d1-4153-a090-fd756c6d4154', contactName: 'Carlos Eduardo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ab8aedf6-eaf0-49da-a155-beb52a2d4dee', contactName: 'Juliana', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '8004d925-0835-496d-8d54-124726dbe35e', contactName: 'Jujuba', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'eda7f7b5-919e-422e-a34b-dd2773c4156b', contactName: 'Mavi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'd115375a-e5be-4b16-a980-8aa8b047337e', contactName: 'Fernando Rios', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '54913f91-7f22-4237-a198-de1cef6bf6b9', contactName: 'Fernanda Firmino', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'd19f91ab-bb2f-43d1-a392-a63b73bcdd64', contactName: 'Ana Proto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '6a760063-82f1-41d2-be40-2f1af1e193fc', contactName: 'João Victor M.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '5f1df1f6-e4b0-44a7-84bb-482a0a89c82f', contactName: 'Ruan Pizzatto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'b3e33200-5ff7-48d1-8d3c-b1b5ccf81c7b', contactName: 'gabi buzetti', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f4e52c7e-9074-432d-b003-5fd4eac509e6', contactName: 'Letícia Franciosi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ea2632d3-5eb7-4335-b21b-803f11aa85dc', contactName: 'Lara Maria', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '16a16649-a2d7-4df7-905a-0b0a16bd9960', contactName: 'Antonio Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '695d83e9-9a26-43ca-9ee7-68fdf7ab25fa', contactName: '+55 (68) 9976-1807', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '6de272d6-4708-4a58-bd0e-13532fcb0b03', contactName: 'Jessica Gonçalves', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '9bbfc9e2-d8ea-45fd-8850-598195f74f27', contactName: '+55 (21) 97564-9179', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '7857ee53-53df-4099-a1e1-846bd1de6c85', contactName: '+55 (65) 9674-9666', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ae9e8b05-1a48-4e0c-a6a8-92fc259b3450', contactName: 'Braytner Coelho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [WhatsAppContactsList] 📊 Contatos recebidos: {total: 38, hasSearch: false, searchQuery: '', contactsLength: 38}
+index-BCtLrhhU.js:920 [WhatsAppContactsList] Filtering contacts: {totalContacts: 38, activeFilter: 'all', searchQuery: ''}
+index-BCtLrhhU.js:920 [ContactsList] Props received: {contactsLength: 38, searchQuery: '', activeFilter: 'all', selectedContactId: undefined}
+index-BCtLrhhU.js:920 [ContactsList] Rendering contacts: {contactsLength: 38, searchQuery: '', activeFilter: 'all'}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f482882d-8687-4cef-87c2-7e69bc7b4042', contactName: 'Junior Duarte', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '6a46849f-f3b1-462c-a392-11272f387db3', contactName: 'Fixa Estúdio - Rainier Filho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '744da3ed-b123-4abd-ae6b-29140cd504f8', contactName: 'Nelly🧡', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '05b79641-2426-4d8b-93a1-fca2deb115ef', contactName: 'Ludmila', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f8dd0069-8f30-4641-aa80-efa3f1d7e4e9', contactName: 'Letícia Ardaia.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '2837cfd8-a994-411a-86c6-95bb6c4fd0a5', contactName: '+55 (64) 9984-9640', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '07ccf969-3719-4636-9d34-cc3e306df57e', contactName: '+55 (87) 8128-2406', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'c2bbc74e-074f-4b32-9986-182c73ca67b7', contactName: '+55 (35) 8854-5050', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'cd3f14df-27c0-4d5b-8045-c88b08d7cf19', contactName: '+55 (61) 8501-0213', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f616476e-2e72-41c7-b818-794469eae3ba', contactName: '+55 (43) 8446-9772', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'c737fa10-edcc-4540-8417-f6371dc8bc6a', contactName: 'Marina', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'd777a772-1a0e-4eb6-a31f-3990ee6fdcaf', contactName: '.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '90e03620-f929-4052-a0e0-9a3fd9fd691c', contactName: 'Guilherme Arruda', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '5ab3daee-91fe-45cf-92c6-112054d047a9', contactName: '+55 (16) 99142-0806', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'bdbf3f66-d541-4bef-a0e5-96624151433d', contactName: 'João Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'cc4dcab0-caeb-4420-866a-471a2c19eda4', contactName: 'Mauricio Granzotto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '7073190f-bbcf-43d4-888d-6a48c0b682a2', contactName: 'Bruno Quevedo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '4d2f804a-b695-4cc4-af48-aa3195bfc825', contactName: 'Yuri', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '1a617aac-fa0a-483b-be39-2693241a67d7', contactName: 'Fouad', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'fcd735c9-7bb3-46f5-8a97-f5639e8ad404', contactName: 'Enzo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '1293ea7b-99d1-4153-a090-fd756c6d4154', contactName: 'Carlos Eduardo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ab8aedf6-eaf0-49da-a155-beb52a2d4dee', contactName: 'Juliana', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '8004d925-0835-496d-8d54-124726dbe35e', contactName: 'Jujuba', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'eda7f7b5-919e-422e-a34b-dd2773c4156b', contactName: 'Mavi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'd115375a-e5be-4b16-a980-8aa8b047337e', contactName: 'Fernando Rios', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '54913f91-7f22-4237-a198-de1cef6bf6b9', contactName: 'Fernanda Firmino', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'd19f91ab-bb2f-43d1-a392-a63b73bcdd64', contactName: 'Ana Proto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '6a760063-82f1-41d2-be40-2f1af1e193fc', contactName: 'João Victor M.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '5f1df1f6-e4b0-44a7-84bb-482a0a89c82f', contactName: 'Ruan Pizzatto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'b3e33200-5ff7-48d1-8d3c-b1b5ccf81c7b', contactName: 'gabi buzetti', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'f4e52c7e-9074-432d-b003-5fd4eac509e6', contactName: 'Letícia Franciosi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ea2632d3-5eb7-4335-b21b-803f11aa85dc', contactName: 'Lara Maria', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '16a16649-a2d7-4df7-905a-0b0a16bd9960', contactName: 'Antonio Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '695d83e9-9a26-43ca-9ee7-68fdf7ab25fa', contactName: '+55 (68) 9976-1807', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '6de272d6-4708-4a58-bd0e-13532fcb0b03', contactName: 'Jessica Gonçalves', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '9bbfc9e2-d8ea-45fd-8850-598195f74f27', contactName: '+55 (21) 97564-9179', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: '7857ee53-53df-4099-a1e1-846bd1de6c85', contactName: '+55 (65) 9674-9666', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+index-BCtLrhhU.js:920 [ContactContextMenu] Props received: {contactId: 'ae9e8b05-1a48-4e0c-a6a8-92fc259b3450', contactName: 'Braytner Coelho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}

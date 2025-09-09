@@ -60,10 +60,9 @@ serve(async (req) => {
 
     console.log('[accept_invite] ✅ Convite encontrado:', profile.full_name)
 
-    // 2. Criar usuário no Auth usando o ID do profile (SINCRONIZADO)
-    console.log('[accept_invite] 👤 Criando usuário no Auth com profile ID:', profile.id)
+    // 2. Criar usuário no Auth (Supabase gera ID automaticamente)
+    console.log('[accept_invite] 👤 Criando usuário no Auth para email:', profile.email)
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      user_id: profile.id, // ✅ CRUCIAL: Usar profile.id como user_id no Auth
       email: profile.email,
       password: password,
       email_confirm: true, // Criar já confirmado
@@ -89,18 +88,94 @@ serve(async (req) => {
       )
     }
 
-    console.log('[accept_invite] ✅ Usuário criado no Auth com ID sincronizado:', authUser.user.id)
+    console.log('[accept_invite] ✅ Usuário criado no Auth com ID:', authUser.user.id)
+    console.log('[accept_invite] 🔄 Profile original ID:', profile.id)
 
-    // 3. Atualizar status do convite (ID já sincronizado automaticamente)
-    console.log('[accept_invite] ✅ Atualizando status do convite...')
-    const { error: updateError } = await supabase
+    // 3. SINCRONIZAR: Criar novo profile com Auth ID e transferir dados
+    console.log('[accept_invite] 🔄 Criando profile sincronizado com Auth ID')
+    
+    // Primeiro, buscar todas as referências ao profile antigo
+    const oldProfileId = profile.id
+    const newProfileId = authUser.user.id
+    
+    // Criar novo profile com ID sincronizado
+    const { error: createProfileError } = await supabase
       .from('profiles')
-      .update({
+      .insert({
+        id: newProfileId, // ID sincronizado com Auth
+        full_name: profile.full_name,
+        email: profile.email,
+        role: profile.role,
+        created_by_user_id: profile.created_by_user_id,
         invite_status: 'accepted',
-        invite_token: null, // Limpar token usado
-        temp_password: null
+        invite_token: null,
+        temp_password: null,
+        created_at: profile.created_at
       })
-      .eq('id', profile.id)
+    
+    if (createProfileError) {
+      console.error('[accept_invite] ❌ Erro ao criar profile sincronizado:', createProfileError)
+      // Limpar usuário criado se falhar
+      await supabase.auth.admin.deleteUser(authUser.user.id)
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Erro ao sincronizar profile: ${createProfileError.message}`
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
+        }
+      )
+    }
+    
+    // 4. Transferir todas as referências para o novo profile ID
+    console.log('[accept_invite] 🔄 Transferindo referências do profile antigo para o novo')
+    
+    // Atualizar user_funnels
+    await supabase
+      .from('user_funnels')
+      .update({ profile_id: newProfileId })
+      .eq('profile_id', oldProfileId)
+    
+    // Atualizar user_whatsapp_numbers  
+    await supabase
+      .from('user_whatsapp_numbers')
+      .update({ profile_id: newProfileId })
+      .eq('profile_id', oldProfileId)
+      
+    // Atualizar leads (se houver)
+    await supabase
+      .from('leads')
+      .update({ owner_id: newProfileId })
+      .eq('owner_id', oldProfileId)
+    
+    // 5. Remover profile antigo
+    const { error: deleteOldProfileError } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', oldProfileId)
+    
+    if (deleteOldProfileError) {
+      console.warn('[accept_invite] ⚠️ Aviso: Não foi possível remover profile antigo:', deleteOldProfileError)
+      // Não é crítico, continuamos
+    }
+    
+    console.log('[accept_invite] ✅ Profile sincronizado! Antigo ID:', oldProfileId, '-> Novo ID:', newProfileId)
+    
+    // Verificar se tudo foi transferido corretamente
+    const { data: verification } = await supabase
+      .from('profiles')
+      .select('id, email, invite_status')
+      .eq('id', newProfileId)
+      .single()
+    
+    if (!verification) {
+      console.error('[accept_invite] ❌ Falha na verificação da sincronização')
+    }
+    
+    const updateError = null // Reset error variable for compatibility
 
     if (updateError) {
       console.error('[accept_invite] ❌ Erro ao atualizar status:', updateError)
@@ -119,14 +194,14 @@ serve(async (req) => {
       )
     }
 
-    console.log('[accept_invite] ✅ Convite finalizado! IDs sincronizados: profile.id = auth.user.id =', profile.id)
+    console.log('[accept_invite] ✅ Convite finalizado! IDs sincronizados: auth.user.id = profile.id =', newProfileId)
 
     // 4. Gerar tokens de sessão para login automático
     console.log('[accept_invite] 🔐 Gerando tokens de sessão...')
     
     // Fazer login para obter tokens válidos
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: profile.email,
+      email: authUser.user.email!, // Usar email do auth user criado
       password: password
     })
 

@@ -1,27 +1,28 @@
 /**
- * 🎯 HOOK ISOLADO PARA EXIBIÇÃO E REAL-TIME DE MENSAGENS
+ * 🎯 HOOK WHATSAPP MENSAGENS - MIGRADO PARA REACT QUERY
  * 
  * RESPONSABILIDADES:
- * ✅ Exibir mensagens da conversa ativa
- * ✅ Cache isolado por conversa
- * ✅ Real-time de mensagens recebidas
- * ✅ Scroll automático
- * ✅ Ordem cronológica correta (mais recentes embaixo)
- * 
- * ❌ NÃO É RESPONSÁVEL POR ENVIO DE MENSAGENS
+ * ✅ Exibir mensagens com React Query
+ * ✅ Query keys isoladas (chat-messages)
+ * ✅ Cache automático e otimizado
+ * ✅ Paginação infinita para mensagens antigas
+ * ✅ Invalidação inteligente
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useCallback, useRef, useMemo } from 'react';
+import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Message, Contact } from '@/types/chat';
-// Tipo simplificado para o hook isolado (compatibilidade)
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { chatMessagesQueryKeys } from '@/hooks/chat/queryKeys';
+
+// Tipo simplificado para o hook isolado
 interface WhatsAppInstance {
   id: string;
   instance_name: string;
   connection_status: string;
 }
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
 
 interface UseWhatsAppMessagesParams {
   selectedContact: Contact | null;
@@ -55,403 +56,265 @@ const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "a
   return 'text';
 };
 
+// Função para converter dados do banco para Message
+const convertMessage = (messageData: any): Message => {
+  const message: Message = {
+    id: messageData.id,
+    text: messageData.text || '',
+    fromMe: messageData.from_me || false,
+    timestamp: messageData.created_at || new Date().toISOString(),
+    status: messageData.status || 'sent',
+    mediaType: normalizeMediaType(messageData.media_type),
+    mediaUrl: messageData.media_url || undefined,
+    sender: messageData.from_me ? 'user' : 'contact',
+    time: new Date(messageData.created_at || Date.now()).toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
+    isIncoming: !messageData.from_me,
+    media_cache: messageData.media_cache || null
+  };
+
+  return message;
+};
+
+// Função para buscar mensagens
+const fetchMessages = async (
+  userId: string,
+  contactId: string,
+  activeInstanceId?: string | null,
+  pageParam = 0
+) => {
+  console.log('[WhatsApp Messages] 🚀 Buscando mensagens via React Query:', {
+    userId,
+    contactId,
+    activeInstanceId,
+    offset: pageParam
+  });
+
+  // Query com filtro obrigatório
+  let query = supabase
+    .from('messages')
+    .select(`
+      *,
+      media_cache!left (
+        id,
+        cached_url,
+        file_size,
+        media_type
+      )
+    `, { count: 'exact' })
+    .eq('lead_id', contactId)
+    .eq('created_by_user_id', userId);
+  
+  // Adicionar filtro de instância apenas se disponível
+  if (activeInstanceId) {
+    query = query.eq('whatsapp_number_id', activeInstanceId);
+  }
+  
+  const { data, error, count } = await query
+    .order('created_at', { ascending: false }) // Ordem: mais recentes primeiro para paginação
+    .range(pageParam * MESSAGES_PER_PAGE, (pageParam + 1) * MESSAGES_PER_PAGE - 1);
+
+  if (error) throw error;
+
+  const fetchedMessages = (data || []).map(convertMessage);
+  
+  // Reverter ordem para exibição cronológica (antigas → recentes)
+  const orderedMessages = fetchedMessages.reverse();
+  
+  return {
+    messages: orderedMessages,
+    nextCursor: fetchedMessages.length === MESSAGES_PER_PAGE ? pageParam + 1 : undefined,
+    hasMore: fetchedMessages.length === MESSAGES_PER_PAGE,
+    total: count || 0
+  };
+};
+
 export const useWhatsAppMessages = ({
   selectedContact,
   activeInstance
 }: UseWhatsAppMessagesParams): UseWhatsAppMessagesReturn => {
   const { user } = useAuth();
-  
-  // Estados isolados da feature (APENAS EXIBIÇÃO)
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
-  const [currentPage, setCurrentPage] = useState(0);
-  
-  // Cache isolado por conversa
-  const cache = useRef<Map<string, {
-    messages: Message[];
-    timestamp: number;
-    hasMore: boolean;
-    page: number;
-  }>>(new Map());
-  
-  // Controle de mensagens isolado (APENAS REAL-TIME)
-  const sentMessageIds = useRef<Set<string>>(new Set());
-  const lastMessageTimestamp = useRef<string | null>(null);
-  const lastFetchedContact = useRef<string | null>(null);
+  const queryClient = useQueryClient();
   
   // Ref para scroll automático
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Controle de mensagens processadas (real-time)
+  const sentMessageIds = useRef<Set<string>>(new Set());
+  const lastMessageTimestamp = useRef<string | null>(null);
 
-  // Chave de cache isolada - CORRIGIDA para funcionar sem instância
-  const cacheKey = useMemo(() => {
-    return selectedContact 
-      ? `${selectedContact.id}-${activeInstance?.id || 'no-instance'}` 
-      : null;
-  }, [selectedContact?.id, activeInstance?.id]);
+  // Query para mensagens com paginação infinita
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    refetch
+  } = useInfiniteQuery({
+    queryKey: chatMessagesQueryKeys.byContact(selectedContact?.id || ''),
+    queryFn: ({ pageParam = 0 }) => {
+      if (!user?.id || !selectedContact?.id) {
+        throw new Error('User ID and Contact ID required');
+      }
+      return fetchMessages(user.id, selectedContact.id, activeInstance?.id, pageParam);
+    },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    enabled: !!user?.id && !!selectedContact?.id,
+    staleTime: 30 * 1000, // 30 segundos
+    gcTime: 5 * 60 * 1000, // 5 minutos
+  });
 
-  // Conversão de mensagem isolada
-  const convertMessage = useCallback((messageData: any): Message => {
-    const message: Message = {
-      id: messageData.id,
-      text: messageData.text || '',
-      fromMe: messageData.from_me || false,
-      timestamp: messageData.created_at || new Date().toISOString(),
-      status: messageData.status || 'sent',
-      mediaType: normalizeMediaType(messageData.media_type),
-      mediaUrl: messageData.media_url || undefined,
-      sender: messageData.from_me ? 'user' : 'contact',
-      time: new Date(messageData.created_at || Date.now()).toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      isIncoming: !messageData.from_me,
-      media_cache: messageData.media_cache || null
-    };
-
-    // Atualizar último timestamp
-    if (!lastMessageTimestamp.current || message.timestamp > lastMessageTimestamp.current) {
-      lastMessageTimestamp.current = message.timestamp;
-    }
-
-    return message;
-  }, []);
-
-  // Buscar mensagens (isolado) - CORRIGIDO PARA FUNCIONAR SEM INSTÂNCIA
-  const fetchMessages = useCallback(async (page = 0, append = false) => {
-    console.log('[WhatsApp Messages] 🚀 HOOK EXECUTADO - fetchMessages:', {
-      hasSelectedContact: !!selectedContact,
-      hasActiveInstance: !!activeInstance,
-      hasUserId: !!user?.id,
-      selectedContactId: selectedContact?.id,
-      selectedContactName: selectedContact?.name,
-      activeInstanceId: activeInstance?.id,
-      userId: user?.id,
-      page,
-      append
+  // Combinar todas as páginas de mensagens (mantendo ordem cronológica)
+  const messages = useMemo(() => {
+    if (!data?.pages) return [];
+    
+    // Para paginação infinita, páginas mais antigas vão ANTES das existentes
+    const allMessages = data.pages.flatMap(page => page.messages);
+    
+    // Como buscamos em ordem reversa (mais recentes primeiro) e revertemos cada página,
+    // precisamos reverter a ordem das páginas para manter cronologia correta
+    const pagesInOrder = [...data.pages].reverse();
+    const messagesInChronologicalOrder = pagesInOrder.flatMap(page => page.messages);
+    
+    console.log('[WhatsApp Messages] 📋 Mensagens organizadas:', {
+      totalPages: data.pages.length,
+      totalMessages: messagesInChronologicalOrder.length,
+      firstMessage: messagesInChronologicalOrder[0]?.text?.substring(0, 30),
+      lastMessage: messagesInChronologicalOrder[messagesInChronologicalOrder.length - 1]?.text?.substring(0, 30)
     });
+    
+    return messagesInChronologicalOrder;
+  }, [data?.pages]);
 
-    if (!selectedContact || !user?.id) {
-      console.log('[WhatsApp Messages] ❌ Parâmetros obrigatórios ausentes:', {
-        hasSelectedContact: !!selectedContact,
-        hasUserId: !!user?.id
-      });
-      setMessages([]);
-      setHasMoreMessages(false);
-      return;
-    }
-
-    // CORREÇÃO: Permitir busca sem activeInstance se não houver instâncias configuradas
-    if (!activeInstance) {
-      console.log('[WhatsApp Messages] ⚠️ Sem instância ativa - buscando mensagens direto por lead_id');
-    }
-
-    // Verificar cache apenas para primeira página
-    if (page === 0 && !append && cache.current.has(cacheKey)) {
-      const cached = cache.current.get(cacheKey)!;
-      console.log('[WhatsApp Messages] 💾 Usando cache isolado:', {
-        contact: selectedContact.name,
-        cachedMessages: cached.messages.length,
-        cacheAge: Date.now() - cached.timestamp,
-        hasMore: cached.hasMore
-      });
-      
-      // ⚠️ DEBUG: Verificar se cache está corrompido
-      if (cached.messages.length > MESSAGES_PER_PAGE) {
-        console.warn('[WhatsApp Messages] 🚨 CACHE CORROMPIDO - mais que 20 mensagens:', cached.messages.length);
-        cache.current.delete(cacheKey); // Limpar cache corrompido
-      } else {
-        setMessages(cached.messages);
-        setHasMoreMessages(cached.hasMore);
-        setCurrentPage(cached.page);
-        return;
-      }
-    }
-
-    try {
-      if (page === 0) {
-        setIsLoading(true);
-        if (!append) {
-          setMessages([]);
-          sentMessageIds.current.clear();
-          lastMessageTimestamp.current = null;
-        }
-      } else {
-        setIsLoadingMore(true);
-      }
-
-      console.log('[WhatsApp Messages] 🔍 Buscando mensagens página:', page, 'para:', selectedContact.name, {
-        leadId: selectedContact.id,
-        instanceId: activeInstance?.id || 'sem-instancia',
-        userId: user.id,
-        contactName: selectedContact.name,
-        instanceName: activeInstance?.instance_name || 'N/A'
-      });
-
-      // 🚀 CORREÇÃO: Query modificada para funcionar com/sem instância
-      let query = supabase
-        .from('messages')
-        .select(`
-          *,
-          media_cache!left (
-            id,
-            cached_url,
-            file_size,
-            media_type
-          )
-        `, { count: 'exact' })
-        .eq('lead_id', selectedContact.id)
-        .eq('created_by_user_id', user.id);
-      
-      // Adicionar filtro de instância apenas se disponível
-      if (activeInstance?.id) {
-        query = query.eq('whatsapp_number_id', activeInstance.id);
-        console.log('[WhatsApp Messages] 🔍 Aplicando filtro de instância:', activeInstance.id);
-      } else {
-        console.log('[WhatsApp Messages] ⚠️ Buscando mensagens SEM filtro de instância');
-      }
-      
-      const { data, error, count } = await query
-        .order('created_at', { ascending: false }) // Ordem: mais recentes primeiro para paginação
-        .range(page * MESSAGES_PER_PAGE, (page + 1) * MESSAGES_PER_PAGE - 1);
-
-      if (error) throw error;
-
-      const fetchedMessages = (data || []).map(convertMessage);
-      
-      // 🚀 CORREÇÃO: Reverter ordem para exibição cronológica (antigas → recentes)
-      const orderedMessages = fetchedMessages.reverse();
-      
-      console.log('[WhatsApp Messages] ✅ Mensagens carregadas:', {
-        count: orderedMessages.length,
-        totalCount: count,
-        page,
-        contact: selectedContact.name,
-        leadId: selectedContact.id,
-        instanceId: activeInstance?.id || 'sem-instancia',
-        userId: user.id,
-        // 🔍 DEBUG: Contar mensagens por fromMe
-        fromMeCount: orderedMessages.filter(m => m.fromMe === true).length,
-        fromContactCount: orderedMessages.filter(m => m.fromMe === false).length,
-        firstMessage: orderedMessages[0] ? {
-          id: orderedMessages[0].id,
-          text: orderedMessages[0].text.substring(0, 50),
-          fromMe: orderedMessages[0].fromMe,
-          timestamp: fetchedMessages[0].timestamp
-        } : null,
-        // 🔍 DEBUG: Amostra de mensagens fromMe
-        fromMeSample: orderedMessages
-          .filter(m => m.fromMe === true)
-          .slice(0, 3)
-          .map(m => ({
-            id: m.id,
-            text: m.text.substring(0, 30),
-            fromMe: m.fromMe,
-            rawFromMe: (data?.find(d => d.id === m.id) as any)?.from_me
-          }))
-      });
-
-      if (append) {
-        // 🚀 CORREÇÃO: Para lazy loading, mensagens mais antigas vão ANTES das existentes
-        setMessages(prev => [...orderedMessages, ...prev]);
-      } else {
-        // 🚀 CORREÇÃO: Para primeira carga, usar mensagens ordenadas (antigas→recentes)
-        setMessages(orderedMessages);
-        
-        // Salvar no cache isolado
-        if (page === 0 && cacheKey) {
-          cache.current.set(cacheKey, {
-            messages: orderedMessages,
-            timestamp: Date.now(),
-            hasMore: orderedMessages.length === MESSAGES_PER_PAGE,
-            page: page
-          });
-        }
-      }
-
-      setHasMoreMessages(orderedMessages.length === MESSAGES_PER_PAGE);
-      setCurrentPage(page);
-
-      // 🚀 PRE-POSITIONED: Sem posicionamento aqui - será feito pelo useLayoutEffect do componente
-      // O posicionamento agora acontece ANTES do paint, eliminando scroll visível
-
-    } catch (error: any) {
-      console.error('[WhatsApp Messages] ❌ Erro ao buscar mensagens:', error);
-      toast.error('Erro ao carregar mensagens');
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
-  }, [selectedContact, activeInstance, user?.id, cacheKey, convertMessage]);
-
-  // Carregar mais mensagens antigas
+  // Função para carregar mais mensagens antigas
   const loadMoreMessages = useCallback(async () => {
-    if (!hasMoreMessages || isLoadingMore) return;
-    await fetchMessages(currentPage + 1, true);
-  }, [hasMoreMessages, isLoadingMore, currentPage, fetchMessages]);
-
-  // Refresh mensagens
-  const refreshMessages = useCallback(() => {
-    if (cacheKey) {
-      console.log('[WhatsApp Messages] 🔄 Refresh mensagens isolado');
-      cache.current.delete(cacheKey);
+    if (hasNextPage && !isFetchingNextPage) {
+      console.log('[WhatsApp Messages] 📖 Carregando mais mensagens...');
+      await fetchNextPage();
     }
-    setCurrentPage(0);
-    fetchMessages(0, false);
-  }, [fetchMessages, cacheKey]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // 🚀 PRE-POSITIONED: scrollToBottom removido - posicionamento agora é no useLayoutEffect do componente
+  // Função para refresh
+  const refreshMessages = useCallback(() => {
+    console.log('[WhatsApp Messages] 🔄 Refresh via React Query invalidation');
+    if (selectedContact?.id) {
+      queryClient.invalidateQueries({
+        queryKey: chatMessagesQueryKeys.byContact(selectedContact.id)
+      });
+    }
+  }, [queryClient, selectedContact?.id]);
 
-  // Adicionar mensagem (isolado)
+  // Função para adicionar mensagem (real-time)
   const addMessage = useCallback((message: Message) => {
-    console.log('[WhatsApp Messages] 🎯 addMessage CHAMADO:', {
+    console.log('[WhatsApp Messages] 🎯 addMessage via React Query:', {
       messageId: message.id,
       fromMe: message.fromMe,
       text: message.text.substring(0, 30),
       timestamp: message.timestamp,
-      leadId: (message as any).leadId || 'N/A',
       selectedContactId: selectedContact?.id
     });
 
+    if (!selectedContact?.id) {
+      console.warn('[WhatsApp Messages] ❌ Sem contato selecionado');
+      return;
+    }
+
+    // Verificar duplicação
     if (sentMessageIds.current.has(message.id)) {
       console.log('[WhatsApp Messages] 🚫 Mensagem já existe:', message.id);
       return;
     }
 
+    // Verificar timestamp
     if (lastMessageTimestamp.current && message.timestamp <= lastMessageTimestamp.current) {
       console.log('[WhatsApp Messages] 🚫 Mensagem antiga ignorada:', {
         messageId: message.id,
         messageTimestamp: message.timestamp,
-        lastTimestamp: lastMessageTimestamp.current,
-        text: message.text.substring(0, 30)
+        lastTimestamp: lastMessageTimestamp.current
       });
       return;
     }
 
-    setMessages(prev => {
-      const exists = prev.some(msg => msg.id === message.id);
-      if (exists) {
-        console.log('[WhatsApp Messages] ⚠️ Mensagem já existe, ignorando duplicata:', message.id);
-        return prev;
-      }
-      
-      // ✅ REAL-TIME SIMPLES: sem lógica de otimismo
-      
-      console.log('[WhatsApp Messages] ➕ Adicionando nova mensagem:', message.id);
-      
-      sentMessageIds.current.add(message.id);
-      lastMessageTimestamp.current = message.timestamp;
-      
-      // 🚀 CORREÇÃO: Nova mensagem vai no FINAL (mais recente embaixo)
-      const newMessages = [...prev, message];
-      
-      // Atualizar cache isolado
-      if (cacheKey) {
-        cache.current.set(cacheKey, {
-          messages: newMessages,
-          timestamp: Date.now(),
-          hasMore: cache.current.get(cacheKey)?.hasMore || false,
-          page: cache.current.get(cacheKey)?.page || 0
-        });
-      }
-      
-      return newMessages;
-    });
+    // Adicionar aos processados
+    sentMessageIds.current.add(message.id);
+    lastMessageTimestamp.current = message.timestamp;
 
-    // 🚀 PRE-POSITIONED: Mensagens novas também serão posicionadas pelo useLayoutEffect
-  }, [cacheKey]);
+    // Atualizar cache do React Query
+    queryClient.setQueryData(
+      chatMessagesQueryKeys.byContact(selectedContact.id),
+      (oldData: any) => {
+        if (!oldData?.pages?.[oldData.pages.length - 1]) return oldData;
 
-  // Atualizar mensagem (isolado)
-  const updateMessage = useCallback((updatedMessage: Message) => {
-    setMessages(prev => {
-      const messageIndex = prev.findIndex(msg => msg.id === updatedMessage.id);
-      
-      if (messageIndex >= 0) {
-        const updated = [...prev];
-        updated[messageIndex] = updatedMessage;
+        const newPages = [...oldData.pages];
+        const lastPageIndex = newPages.length - 1;
         
-        // Atualizar cache isolado
-        if (cacheKey) {
-          cache.current.set(cacheKey, {
-            messages: updated,
-            timestamp: Date.now(),
-            hasMore: cache.current.get(cacheKey)?.hasMore || false,
-            page: cache.current.get(cacheKey)?.page || 0
-          });
-        }
-        
-        return updated;
-      } else {
-        console.log('[WhatsApp Messages] ➕ Mensagem não encontrada, adicionando:', updatedMessage.id);
-        sentMessageIds.current.add(updatedMessage.id);
-        
-        // 🚀 CORREÇÃO: Mensagem atualizada vai em ordem cronológica correta  
-        // Mensagem nova vai no FINAL (mais recente embaixo)
-        const newMessages = [...prev, updatedMessage];
-        
-        if (cacheKey) {
-          cache.current.set(cacheKey, {
-            messages: newMessages,
-            timestamp: Date.now(),
-            hasMore: cache.current.get(cacheKey)?.hasMore || false,
-            page: cache.current.get(cacheKey)?.page || 0
-          });
-        }
-        
-        return newMessages;
-      }
-    });
-  }, [cacheKey]);
-
-  // ✅ FUNÇÕES DE OTIMISMO REMOVIDAS - HOOK APENAS PARA EXIBIÇÃO
-
-  // ✅ FUNÇÃO SENDMESSAGE REMOVIDA - MOVIDA PARA useSendMessage ISOLADO
-
-  // 🚀 CORREÇÃO: Carregar mensagens quando contato MUDA (com/sem instância)
-  useEffect(() => {
-    console.log('[WhatsApp Messages] 📋 Effect executado:', {
-      hasSelectedContact: !!selectedContact?.id,
-      hasActiveInstance: !!activeInstance?.id,
-      hasUserId: !!user?.id,
-      selectedContactId: selectedContact?.id
-    });
-
-    if (selectedContact?.id && user?.id) {
-      // Verificar se realmente mudou o contato
-      if (lastFetchedContact.current !== selectedContact.id) {
-        console.log('[WhatsApp Messages] 🎯 Mudança de contato:', 
-          lastFetchedContact.current, '→', selectedContact.id
+        // Verificar se mensagem já existe
+        const messageExists = newPages.some((page: any) => 
+          page.messages.some((msg: Message) => msg.id === message.id)
         );
         
-        // 🚀 LIMPEZA TOTAL ao trocar contato
-        lastFetchedContact.current = selectedContact.id;
-        setCurrentPage(0);
-        setMessages([]); // Limpar imediatamente
-        cache.current.clear(); // Limpar todo cache
-        sentMessageIds.current.clear();
-        
-        console.log('[WhatsApp Messages] 🧹 Cache limpo ao trocar contato');
-        fetchMessages(0, false);
-      } else {
-        console.log('[WhatsApp Messages] ⏭️ Mesmo contato, sem recarregamento:', selectedContact.name);
-      }
-    } else {
-      console.log('[WhatsApp Messages] 🧹 Limpando mensagens - sem contato ou usuário');
-      setMessages([]);
-      setHasMoreMessages(false);
-      lastFetchedContact.current = null;
-    }
-  }, [selectedContact?.id, user?.id, fetchMessages]);
+        if (messageExists) {
+          console.log('[WhatsApp Messages] ⚠️ Mensagem já existe no cache, ignorando duplicata');
+          return oldData;
+        }
 
-  // 🚀 PRE-POSITIONED: Posicionamento transferido para WhatsAppMessagesList com useLayoutEffect
-  // Sem useEffect aqui - eliminando qualquer timing de scroll
+        // Adicionar mensagem ao final da última página (mais recente)
+        newPages[lastPageIndex] = {
+          ...newPages[lastPageIndex],
+          messages: [...newPages[lastPageIndex].messages, message]
+        };
+
+        console.log('[WhatsApp Messages] ✅ Mensagem adicionada ao cache React Query');
+        return { ...oldData, pages: newPages };
+      }
+    );
+  }, [queryClient, selectedContact?.id]);
+
+  // Função para atualizar mensagem (real-time)
+  const updateMessage = useCallback((updatedMessage: Message) => {
+    if (!selectedContact?.id) return;
+
+    queryClient.setQueryData(
+      chatMessagesQueryKeys.byContact(selectedContact.id),
+      (oldData: any) => {
+        if (!oldData?.pages) return oldData;
+
+        const newPages = oldData.pages.map((page: any) => ({
+          ...page,
+          messages: page.messages.map((msg: Message) => 
+            msg.id === updatedMessage.id ? updatedMessage : msg
+          )
+        }));
+
+        // Se mensagem não foi encontrada, adicionar como nova
+        const messageFound = newPages.some((page: any) =>
+          page.messages.some((msg: Message) => msg.id === updatedMessage.id)
+        );
+
+        if (!messageFound) {
+          console.log('[WhatsApp Messages] ➕ Mensagem não encontrada, adicionando como nova');
+          const lastPageIndex = newPages.length - 1;
+          if (newPages[lastPageIndex]) {
+            newPages[lastPageIndex] = {
+              ...newPages[lastPageIndex],
+              messages: [...newPages[lastPageIndex].messages, updatedMessage]
+            };
+          }
+        }
+
+        return { ...oldData, pages: newPages };
+      }
+    );
+  }, [queryClient, selectedContact?.id]);
 
   return {
     messages,
     isLoading,
-    isLoadingMore,
-    hasMoreMessages,
+    isLoadingMore: isFetchingNextPage,
+    hasMoreMessages: hasNextPage || false,
     loadMoreMessages,
     refreshMessages,
     addMessage,

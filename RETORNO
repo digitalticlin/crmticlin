@@ -1,335 +1,67 @@
-react-router-dom.js?v=42a214cf:4393 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
-warnOnce @ react-router-dom.js?v=42a214cf:4393
-logDeprecation @ react-router-dom.js?v=42a214cf:4396
-logV6DeprecationWarnings @ react-router-dom.js?v=42a214cf:4399
-(anonymous) @ react-router-dom.js?v=42a214cf:5271
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-(anonymous) @ chunk-276SZO74.js?v=42a214cf:19328
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this warning
-react-router-dom.js?v=42a214cf:4393 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
-warnOnce @ react-router-dom.js?v=42a214cf:4393
-logDeprecation @ react-router-dom.js?v=42a214cf:4396
-logV6DeprecationWarnings @ react-router-dom.js?v=42a214cf:4402
-(anonymous) @ react-router-dom.js?v=42a214cf:5271
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-(anonymous) @ chunk-276SZO74.js?v=42a214cf:19328
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this warning
-App.tsx:160 [App] 📍 Rota atual: /test-operational
-App.tsx:178 [App] ✅ Supabase exposto globalmente para debug
-App.tsx:223 [App] ✅ BigQuery Optimizer carregado - ativará apenas se necessário
-AuthContext.tsx:65 [Auth] 📡 SIGNED_IN vendas02@geuniformes.com.br
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
-ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/test-operational', hasUser: true, authLoading: false, roleLoading: true, userRole: 'operational', …}
-ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
-useUserRole.ts:25 [useUserRole] 👤 Buscando perfil do usuário: d0bdb8e2-556f-48da-af90-63f14c119340
-AuthContext.tsx:49 [Auth] 🔍 Sessão inicial: vendas02@geuniformes.com.br
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
-ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/test-operational', hasUser: true, authLoading: false, roleLoading: true, userRole: 'operational', …}
-ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
-AuthContext.tsx:65 [Auth] 📡 INITIAL_SESSION vendas02@geuniformes.com.br
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
-ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/test-operational', hasUser: true, authLoading: false, roleLoading: true, userRole: 'operational', …}
-ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
-App.tsx:208 [App] 🔐 Estado inicial de autenticação: {hasSession: true, userId: 'd0bdb8e2-556f-48da-af90-63f14c119340', userEmail: 'vendas02@geuniformes.com.br', currentPath: '/test-operational', error: undefined}
-@supabase_supabase-js.js?v=42a214cf:3916  GET https://rhjgagzstjzynvrakdyj.supabase.co/rest/v1/profiles?select=role%2Ccreated_by_user_id&id=eq.d0bdb8e2-556f-48da-af90-63f14c119340 406 (Not Acceptable)
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3916
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3937
-fulfilled @ @supabase_supabase-js.js?v=42a214cf:3889
-Promise.then
-step @ @supabase_supabase-js.js?v=42a214cf:3902
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3904
-__awaiter6 @ @supabase_supabase-js.js?v=42a214cf:3886
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3927
-then @ @supabase_supabase-js.js?v=42a214cf:89Understand this error
-useUserRole.ts:35 [useUserRole] ❌ Erro ao buscar perfil: {code: 'PGRST116', details: 'The result contains 0 rows', hint: null, message: 'JSON object requested, multiple (or no) rows returned'}
-checkUserRole @ useUserRole.ts:35
-await in checkUserRole
-(anonymous) @ useUserRole.ts:72
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-(anonymous) @ chunk-276SZO74.js?v=42a214cf:19328
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this error
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: false}
-ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/test-operational', hasUser: true, authLoading: false, roleLoading: false, userRole: 'operational', …}
-ProtectedRoute.tsx:101 [ProtectedRoute] ✅ Usuário autenticado e autorizado
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
-useSalesFunnelWithFilters.ts:27 🎯 [useSalesFunnelWithFilters] Hook iniciado: {userId: 'd0bdb8e2-556f-48da-af90-63f14c119340', role: null, selectedFunnelId: undefined, filtersLoading: true, funnelsFilter: null, …}
-2useUserRole.ts:13 [useUserRole] 🔍 Verificando role real do usuário
-2useUserRole.ts:25 [useUserRole] 👤 Buscando perfil do usuário: d0bdb8e2-556f-48da-af90-63f14c119340
-@supabase_supabase-js.js?v=42a214cf:3916  GET https://rhjgagzstjzynvrakdyj.supabase.co/rest/v1/profiles?select=role%2Ccreated_by_user_id&id=eq.d0bdb8e2-556f-48da-af90-63f14c119340 406 (Not Acceptable)
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3916
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3937
-fulfilled @ @supabase_supabase-js.js?v=42a214cf:3889
-Promise.then
-step @ @supabase_supabase-js.js?v=42a214cf:3902
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3904
-__awaiter6 @ @supabase_supabase-js.js?v=42a214cf:3886
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3927
-then @ @supabase_supabase-js.js?v=42a214cf:89Understand this error
-@supabase_supabase-js.js?v=42a214cf:3916  GET https://rhjgagzstjzynvrakdyj.supabase.co/rest/v1/profiles?select=role&id=eq.d0bdb8e2-556f-48da-af90-63f14c119340 406 (Not Acceptable)
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3916
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3937
-fulfilled @ @supabase_supabase-js.js?v=42a214cf:3889
-Promise.then
-step @ @supabase_supabase-js.js?v=42a214cf:3902
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3904
-__awaiter6 @ @supabase_supabase-js.js?v=42a214cf:3886
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3927
-then @ @supabase_supabase-js.js?v=42a214cf:89Understand this error
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
-useSalesFunnelWithFilters.ts:27 🎯 [useSalesFunnelWithFilters] Hook iniciado: {userId: 'd0bdb8e2-556f-48da-af90-63f14c119340', role: null, selectedFunnelId: undefined, filtersLoading: true, funnelsFilter: null, …}
-useUserRole.ts:35 [useUserRole] ❌ Erro ao buscar perfil: {code: 'PGRST116', details: 'The result contains 0 rows', hint: null, message: 'JSON object requested, multiple (or no) rows returned'}
-checkUserRole @ useUserRole.ts:35
-await in checkUserRole
-(anonymous) @ useUserRole.ts:72
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-(anonymous) @ chunk-276SZO74.js?v=42a214cf:19328
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this error
-useUserPermissions.ts:52 [useUserPermissions] ❌ Erro ao buscar perfil: {code: 'PGRST116', details: 'The result contains 0 rows', hint: null, message: 'JSON object requested, multiple (or no) rows returned'}
-checkPermissions @ useUserPermissions.ts:52
-await in checkPermissions
-(anonymous) @ useUserPermissions.ts:114
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-(anonymous) @ chunk-276SZO74.js?v=42a214cf:19328
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this error
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: false}
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
-useSalesFunnelWithFilters.ts:27 🎯 [useSalesFunnelWithFilters] Hook iniciado: {userId: 'd0bdb8e2-556f-48da-af90-63f14c119340', role: null, selectedFunnelId: undefined, filtersLoading: true, funnelsFilter: null, …}
-@supabase_supabase-js.js?v=42a214cf:3916  GET https://rhjgagzstjzynvrakdyj.supabase.co/rest/v1/profiles?select=role%2Ccreated_by_user_id&id=eq.d0bdb8e2-556f-48da-af90-63f14c119340 406 (Not Acceptable)
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3916
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3937
-fulfilled @ @supabase_supabase-js.js?v=42a214cf:3889
-Promise.then
-step @ @supabase_supabase-js.js?v=42a214cf:3902
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3904
-__awaiter6 @ @supabase_supabase-js.js?v=42a214cf:3886
-(anonymous) @ @supabase_supabase-js.js?v=42a214cf:3927
-then @ @supabase_supabase-js.js?v=42a214cf:89Understand this error
-useUserRole.ts:35 [useUserRole] ❌ Erro ao buscar perfil: {code: 'PGRST116', details: 'The result contains 0 rows', hint: null, message: 'JSON object requested, multiple (or no) rows returned'}
-checkUserRole @ useUserRole.ts:35
-await in checkUserRole
-(anonymous) @ useUserRole.ts:72
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-(anonymous) @ chunk-276SZO74.js?v=42a214cf:19328
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this error
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: false}
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: false}
-useSalesFunnelWithFilters.ts:27 🎯 [useSalesFunnelWithFilters] Hook iniciado: {userId: 'd0bdb8e2-556f-48da-af90-63f14c119340', role: null, selectedFunnelId: undefined, filtersLoading: true, funnelsFilter: null, …}
-useDataFilters.ts:44 [useDataFilters] 🔍 Configurando filtros para role: operational user: d0bdb8e2-556f-48da-af90-63f14c119340
-useDataFilters.ts:62 [useDataFilters] 🎯 Buscando atribuições operacionais para USER ID: d0bdb8e2-556f-48da-af90-63f14c119340
-useDataFilters.ts:63 [useDataFilters] 🎯 User email: vendas02@geuniformes.com.br
-useDataFilters.ts:66 [useDataFilters] 📋 Executando query user_funnels...
-useDataFilters.ts:44 [useDataFilters] 🔍 Configurando filtros para role: operational user: d0bdb8e2-556f-48da-af90-63f14c119340
-useDataFilters.ts:62 [useDataFilters] 🎯 Buscando atribuições operacionais para USER ID: d0bdb8e2-556f-48da-af90-63f14c119340
-useDataFilters.ts:63 [useDataFilters] 🎯 User email: vendas02@geuniformes.com.br
-useDataFilters.ts:66 [useDataFilters] 📋 Executando query user_funnels...
-useDataFilters.ts:79 [useDataFilters] 📊 user_funnels encontrados: []
-useDataFilters.ts:82 [useDataFilters] 📋 Executando query user_whatsapp_numbers...
-useDataFilters.ts:95 [useDataFilters] 📱 user_whatsapp_numbers encontrados: []
-useDataFilters.ts:101 [useDataFilters] 🔍 IDs extraídos: {funnelIds: Array(0), whatsappIds: Array(0), totalFunnels: 0, totalWhatsapp: 0}
-useDataFilters.ts:110 [useDataFilters] ⚠️ NENHUM FUNIL ENCONTRADO para user.id: d0bdb8e2-556f-48da-af90-63f14c119340
-setupFilters @ useDataFilters.ts:110
-await in setupFilters
-(anonymous) @ useDataFilters.ts:139
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-(anonymous) @ chunk-276SZO74.js?v=42a214cf:19328
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this warning
-useDataFilters.ts:111 [useDataFilters] ⚠️ userFunnels raw: []
-setupFilters @ useDataFilters.ts:111
-await in setupFilters
-(anonymous) @ useDataFilters.ts:139
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-(anonymous) @ chunk-276SZO74.js?v=42a214cf:19328
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this warning
-useDataFilters.ts:115 [useDataFilters] ⚠️ NENHUM WHATSAPP ENCONTRADO para user.id: d0bdb8e2-556f-48da-af90-63f14c119340
-setupFilters @ useDataFilters.ts:115
-await in setupFilters
-(anonymous) @ useDataFilters.ts:139
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-(anonymous) @ chunk-276SZO74.js?v=42a214cf:19328
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this warning
-useDataFilters.ts:116 [useDataFilters] ⚠️ userWhatsapp raw: []
-setupFilters @ useDataFilters.ts:116
-await in setupFilters
-(anonymous) @ useDataFilters.ts:139
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-(anonymous) @ chunk-276SZO74.js?v=42a214cf:19328
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this warning
-useDataFilters.ts:128 [useDataFilters] 🎯 Filtros OPERACIONAL configurados: {leadsFilter: {…}, funnelsFilter: {…}, whatsappFilter: {…}, messagesFilter: {…}, role: 'operational', …}
-useDataFilters.ts:79 [useDataFilters] 📊 user_funnels encontrados: []
-useDataFilters.ts:82 [useDataFilters] 📋 Executando query user_whatsapp_numbers...
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: false}
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: false}
-useSalesFunnelWithFilters.ts:27 🎯 [useSalesFunnelWithFilters] Hook iniciado: {userId: 'd0bdb8e2-556f-48da-af90-63f14c119340', role: 'operational', selectedFunnelId: undefined, filtersLoading: false, funnelsFilter: {…}, …}
-useSalesFunnelWithFilters.ts:45 [useSalesFunnelWithFilters] 📊 Buscando funis com filtros: {role: 'operational', funnelsFilter: {…}}
-useSalesFunnelWithFilters.ts:59 [useSalesFunnelWithFilters] 🚫 Usuário operacional sem funis atribuídos
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: false}
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: false}
-useSalesFunnelWithFilters.ts:27 🎯 [useSalesFunnelWithFilters] Hook iniciado: {userId: 'd0bdb8e2-556f-48da-af90-63f14c119340', role: 'operational', selectedFunnelId: undefined, filtersLoading: false, funnelsFilter: {…}, …}
-useDataFilters.ts:95 [useDataFilters] 📱 user_whatsapp_numbers encontrados: []
-useDataFilters.ts:101 [useDataFilters] 🔍 IDs extraídos: {funnelIds: Array(0), whatsappIds: Array(0), totalFunnels: 0, totalWhatsapp: 0}
-useDataFilters.ts:110 [useDataFilters] ⚠️ NENHUM FUNIL ENCONTRADO para user.id: d0bdb8e2-556f-48da-af90-63f14c119340
-setupFilters @ useDataFilters.ts:110
-await in setupFilters
-(anonymous) @ useDataFilters.ts:139
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=42a214cf:18868
-flushSyncCallbacks @ chunk-276SZO74.js?v=42a214cf:9119
-commitRootImpl @ chunk-276SZO74.js?v=42a214cf:19432
-commitRoot @ chunk-276SZO74.js?v=42a214cf:19277
-finishConcurrentRender @ chunk-276SZO74.js?v=42a214cf:18805
-performConcurrentWorkOnRoot @ chunk-276SZO74.js?v=42a214cf:18718
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this warning
-useDataFilters.ts:111 [useDataFilters] ⚠️ userFunnels raw: []
-setupFilters @ useDataFilters.ts:111
-await in setupFilters
-(anonymous) @ useDataFilters.ts:139
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=42a214cf:18868
-flushSyncCallbacks @ chunk-276SZO74.js?v=42a214cf:9119
-commitRootImpl @ chunk-276SZO74.js?v=42a214cf:19432
-commitRoot @ chunk-276SZO74.js?v=42a214cf:19277
-finishConcurrentRender @ chunk-276SZO74.js?v=42a214cf:18805
-performConcurrentWorkOnRoot @ chunk-276SZO74.js?v=42a214cf:18718
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this warning
-useDataFilters.ts:115 [useDataFilters] ⚠️ NENHUM WHATSAPP ENCONTRADO para user.id: d0bdb8e2-556f-48da-af90-63f14c119340
-setupFilters @ useDataFilters.ts:115
-await in setupFilters
-(anonymous) @ useDataFilters.ts:139
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=42a214cf:18868
-flushSyncCallbacks @ chunk-276SZO74.js?v=42a214cf:9119
-commitRootImpl @ chunk-276SZO74.js?v=42a214cf:19432
-commitRoot @ chunk-276SZO74.js?v=42a214cf:19277
-finishConcurrentRender @ chunk-276SZO74.js?v=42a214cf:18805
-performConcurrentWorkOnRoot @ chunk-276SZO74.js?v=42a214cf:18718
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this warning
-useDataFilters.ts:116 [useDataFilters] ⚠️ userWhatsapp raw: []
-setupFilters @ useDataFilters.ts:116
-await in setupFilters
-(anonymous) @ useDataFilters.ts:139
-commitHookEffectListMount @ chunk-276SZO74.js?v=42a214cf:16915
-commitPassiveMountOnFiber @ chunk-276SZO74.js?v=42a214cf:18156
-commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=42a214cf:18129
-commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=42a214cf:18119
-commitPassiveMountEffects @ chunk-276SZO74.js?v=42a214cf:18109
-flushPassiveEffectsImpl @ chunk-276SZO74.js?v=42a214cf:19490
-flushPassiveEffects @ chunk-276SZO74.js?v=42a214cf:19447
-performSyncWorkOnRoot @ chunk-276SZO74.js?v=42a214cf:18868
-flushSyncCallbacks @ chunk-276SZO74.js?v=42a214cf:9119
-commitRootImpl @ chunk-276SZO74.js?v=42a214cf:19432
-commitRoot @ chunk-276SZO74.js?v=42a214cf:19277
-finishConcurrentRender @ chunk-276SZO74.js?v=42a214cf:18805
-performConcurrentWorkOnRoot @ chunk-276SZO74.js?v=42a214cf:18718
-workLoop @ chunk-276SZO74.js?v=42a214cf:197
-flushWork @ chunk-276SZO74.js?v=42a214cf:176
-performWorkUntilDeadline @ chunk-276SZO74.js?v=42a214cf:384Understand this warning
-useDataFilters.ts:128 [useDataFilters] 🎯 Filtros OPERACIONAL configurados: {leadsFilter: {…}, funnelsFilter: {…}, whatsappFilter: {…}, messagesFilter: {…}, role: 'operational', …}
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: false}
-useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: false}
-useSalesFunnelWithFilters.ts:27 🎯 [useSalesFunnelWithFilters] Hook iniciado: {userId: 'd0bdb8e2-556f-48da-af90-63f14c119340', role: 'operational', selectedFunnelId: undefined, filtersLoading: false, funnelsFilter: {…}, …}
+[
+  {
+    "info": "PROFILE CRIADO",
+    "profile_id": "4d8c4fdd-5664-475f-a1de-54b6d5b61c5c",
+    "full_name": "Max Taylor",
+    "email": "vendas01@geuniformes.com.br",
+    "role": "operational",
+    "invite_status": "accepted",
+    "created_by_user_id": "7c197601-01cc-4f71-a4d8-7c1357cac113",
+    "created_at": "2025-09-09 17:31:58.291396+00"
+  }
+]
+
+
+[
+  {
+    "info": "AUTH USER",
+    "auth_user_id": "04e4d0e8-fa37-4733-af40-8d3ea28ca763",
+    "email": "vendas01@geuniformes.com.br",
+    "email_confirmed_at": "2025-09-09 17:37:10.510302+00",
+    "created_at": "2025-09-09 17:37:10.477461+00"
+  }
+]
+
+-- 3. Verificar vínculos para o profile_id específico
+SELECT 
+    'USER_FUNNELS PARA PROFILE' as info,
+    uf.*,
+    f.name as funnel_name
+FROM user_funnels uf
+LEFT JOIN funnels f ON uf.funnel_id = f.id
+WHERE uf.profile_id = '4d8c4fdd-5664-475f-a1de-54b6d5b61c5c';
+
+SELECT 
+    'USER_WHATSAPP PARA PROFILE' as info,
+    uwn.*,
+    wi.instance_name
+FROM user_whatsapp_numbers uwn
+LEFT JOIN whatsapp_instances wi ON uwn.whatsapp_number_id = wi.id
+WHERE uwn.profile_id = '4d8c4fdd-5664-475f-a1de-54b6d5b61c5c';
+
+
+
+[
+  {
+    "info": "USER_WHATSAPP PARA PROFILE",
+    "id": "65b814fb-e632-4bec-b5e4-7082f65bdcd7",
+    "profile_id": "4d8c4fdd-5664-475f-a1de-54b6d5b61c5c",
+    "whatsapp_number_id": "c1fb1905-7e52-4752-a471-a7818c121801",
+    "created_by_user_id": "7c197601-01cc-4f71-a4d8-7c1357cac113",
+    "created_at": "2025-09-09 17:31:58.411802+00",
+    "instance_name": "admgeuniformesgmailcom"
+  }
+]
+
+
+
+[
+  {
+    "info": "STATUS DO CONVITE",
+    "id": "4d8c4fdd-5664-475f-a1de-54b6d5b61c5c",
+    "email": "vendas01@geuniformes.com.br",
+    "invite_status": "accepted",
+    "tem_token_pendente": false,
+    "created_at": "2025-09-09 17:31:58.291396+00"
+  }
+]
