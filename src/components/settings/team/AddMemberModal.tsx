@@ -43,13 +43,32 @@ export const AddMemberModal = ({
   });
 
 
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     console.log('[AddMemberModal] Form data before submit:', formData);
     
-    if (!formData.full_name.trim() || !formData.email.trim()) {
-      console.log('[AddMemberModal] Validação falhou - campos obrigatórios ausentes');
+    // Reset validation errors
+    setValidationErrors({});
+    
+    // Validação de campos obrigatórios
+    const errors: {[key: string]: string} = {};
+    
+    if (!formData.full_name.trim()) {
+      errors.full_name = 'Nome é obrigatório';
+    }
+    
+    if (!formData.email.trim()) {
+      errors.email = 'Email é obrigatório';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Email deve ter formato válido';
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      console.log('[AddMemberModal] Validação falhou:', errors);
       return;
     }
 
@@ -74,9 +93,10 @@ export const AddMemberModal = ({
         assignedWhatsAppIds: [],
         assignedFunnelIds: []
       });
+      setValidationErrors({});
       onOpenChange(false);
     } else {
-      console.log('[AddMemberModal] Falha ao criar membro');
+      console.log('[AddMemberModal] Falha ao criar membro - erro já mostrado via toast');
     }
   };
 
@@ -144,9 +164,16 @@ export const AddMemberModal = ({
                     value={formData.full_name}
                     onChange={(e) => handleChange("full_name", e.target.value)}
                     placeholder="Ex: João Silva"
-                    className="bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-xl"
+                    className={`bg-white/40 backdrop-blur-sm border rounded-xl ${
+                      validationErrors.full_name 
+                        ? 'border-red-400 focus:border-red-500' 
+                        : 'border-white/30 focus:border-yellow-500'
+                    }`}
                     required
                   />
+                  {validationErrors.full_name && (
+                    <p className="text-red-600 text-sm font-medium">{validationErrors.full_name}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -155,11 +182,24 @@ export const AddMemberModal = ({
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => handleChange("email", e.target.value)}
+                    onChange={(e) => {
+                      handleChange("email", e.target.value);
+                      // Limpar erro de email quando usuário digita
+                      if (validationErrors.email) {
+                        setValidationErrors(prev => ({ ...prev, email: '' }));
+                      }
+                    }}
                     placeholder="joao@empresa.com"
-                    className="bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-xl"
+                    className={`bg-white/40 backdrop-blur-sm border rounded-xl ${
+                      validationErrors.email 
+                        ? 'border-red-400 focus:border-red-500' 
+                        : 'border-white/30 focus:border-yellow-500'
+                    }`}
                     required
                   />
+                  {validationErrors.email && (
+                    <p className="text-red-600 text-sm font-medium">{validationErrors.email}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

@@ -2,6 +2,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Query Keys isolados para useTeamMemberEditor
+const TEAM_EDITOR_KEYS = {
+  list: (companyId: string | null) => ['teamMembers', companyId] as const,
+  member: (memberId: string) => ['teamMember', memberId] as const,
+} as const;
+
 interface EditMemberProfileData {
   full_name: string;
   email?: string;
@@ -44,8 +50,8 @@ export const useTeamMemberEditor = (companyId: string | null) => {
     },
     onSuccess: () => {
       console.log('[useTeamMemberEditor] ✅ Perfil do membro editado com sucesso');
-      queryClient.invalidateQueries({ queryKey: ['teamMembers', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
+      queryClient.invalidateQueries({ queryKey: TEAM_EDITOR_KEYS.list(companyId) });
+      queryClient.invalidateQueries({ queryKey: TEAM_EDITOR_KEYS.member(memberId) });
       toast.success('Dados do membro atualizados com sucesso');
     },
     onError: (error: any) => {
@@ -158,8 +164,8 @@ export const useTeamMemberEditor = (companyId: string | null) => {
     },
     onSuccess: (result) => {
       console.log('[useTeamMemberEditor] ✅ Membro removido completamente:', result);
-      queryClient.invalidateQueries({ queryKey: ['teamMembers', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
+      queryClient.invalidateQueries({ queryKey: TEAM_EDITOR_KEYS.list(companyId) });
+      queryClient.invalidateQueries({ queryKey: TEAM_EDITOR_KEYS.member(memberId) });
       toast.success('Membro removido da equipe');
     },
     onError: (error: any) => {

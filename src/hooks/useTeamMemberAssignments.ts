@@ -2,6 +2,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Query Keys isolados para useTeamMemberAssignments
+const TEAM_ASSIGNMENTS_KEYS = {
+  list: (companyId: string | null) => ['teamMembers', companyId] as const,
+  assignments: (memberId: string) => ['memberAssignments', memberId] as const,
+  whatsappAssignments: (memberId: string) => ['memberWhatsappAssignments', memberId] as const,
+  funnelAssignments: (memberId: string) => ['memberFunnelAssignments', memberId] as const,
+} as const;
+
 interface AssignmentData {
   funnelIds: string[];
   whatsappIds: string[];
@@ -141,10 +149,10 @@ export const useTeamMemberAssignments = (companyId: string | null) => {
 
       return { success: true };
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       console.log('[useTeamMemberAssignments] ✅ Assignments atualizados com sucesso');
-      queryClient.invalidateQueries({ queryKey: ['teamMembers', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['teamMembers'] });
+      queryClient.invalidateQueries({ queryKey: TEAM_ASSIGNMENTS_KEYS.list(companyId) });
+      queryClient.invalidateQueries({ queryKey: TEAM_ASSIGNMENTS_KEYS.assignments(variables.memberId) });
       toast.success('Atribuições atualizadas com sucesso');
     },
     onError: (error: any) => {

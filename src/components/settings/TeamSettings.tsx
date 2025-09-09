@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { useTeamMemberEditor } from "@/hooks/useTeamMemberEditor";
 import { useTeamMemberAssignments } from "@/hooks/useTeamMemberAssignments";
+import { useTeamInvites } from "@/hooks/useTeamInvites";
 import { useTeamAuxiliaryData } from "@/hooks/settings/useTeamAuxiliaryData";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { ModernTeamMembersList } from "./team/ModernTeamMembersList";
@@ -24,13 +25,13 @@ export default function TeamSettings() {
   const {
     teamMembers,
     isLoading,
-    createTeamMember,
-    resendInvite
+    createTeamMember
   } = useTeamManagement(user?.id);
 
-  // Hooks isolados para edição
+  // Hooks isolados para cada responsabilidade
   const { updateMemberProfile, removeMember } = useTeamMemberEditor(user?.id);
   const { updateMemberAssignments } = useTeamMemberAssignments(user?.id);
+  const { resendInvite, cancelInvite } = useTeamInvites(user?.id);
 
   const { allWhatsApps, allFunnels, auxDataLoading } = useTeamAuxiliaryData(user?.id);
   
@@ -124,9 +125,9 @@ export default function TeamSettings() {
       
       console.log('[TeamSettings] Membro criado com sucesso:', result);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("[TeamSettings] Erro ao criar membro:", error);
-      toast.error(`Erro ao criar membro: ${error.message || 'Erro desconhecido'}`);
+      // O toast de erro já é tratado no hook com mensagens específicas
       return false;
     }
   };

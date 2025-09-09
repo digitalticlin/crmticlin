@@ -113,6 +113,13 @@ export const ModernTeamMembersList = ({
 
   const getInviteStatusInfo = (invite_status?: string) => {
     switch (invite_status) {
+      case 'pending':
+        return {
+          label: "AGUARDANDO ENVIO",
+          color: "bg-yellow-100/80 text-yellow-800 border-yellow-300/60",
+          icon: Loader2,
+          canResend: true
+        };
       case 'invite_sent':
         return {
           label: "CONVITE ENVIADO",
@@ -124,8 +131,15 @@ export const ModernTeamMembersList = ({
         return {
           label: "CONVITE ACEITO",
           color: "bg-green-100/80 text-green-800 border-green-300/60",
-          icon: Shield,
+          icon: CheckCircle,
           canResend: false
+        };
+      case 'cancelled':
+        return {
+          label: "CONVITE CANCELADO",
+          color: "bg-red-100/80 text-red-800 border-red-300/60",
+          icon: XCircle,
+          canResend: true
         };
       default:
         return null;
@@ -268,6 +282,13 @@ export const ModernTeamMembersList = ({
                     }`}
                     onClick={() => handleResendInvite(member.id)}
                     disabled={resendingInvite === member.id}
+                    title={
+                      inviteSuccess === member.id 
+                        ? 'Convite reenviado com sucesso!' 
+                        : resendingInvite === member.id 
+                        ? 'Reenviando convite...' 
+                        : 'Reenviar convite por email'
+                    }
                   >
                     {resendingInvite === member.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

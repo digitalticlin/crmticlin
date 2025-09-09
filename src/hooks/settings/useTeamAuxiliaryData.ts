@@ -2,6 +2,13 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+// Query Keys isolados para useTeamAuxiliaryData (preparado para futura migração para React Query)
+export const TEAM_AUXILIARY_KEYS = {
+  whatsapp: (companyId: string | null) => ['teamWhatsappInstances', companyId] as const,
+  funnels: (companyId: string | null) => ['teamFunnels', companyId] as const,
+  all: (companyId: string | null) => ['teamAuxiliaryData', companyId] as const,
+} as const;
+
 interface AuxiliaryData {
   allWhatsApps: { id: string; instance_name: string }[];
   allFunnels: { id: string; name: string }[];
