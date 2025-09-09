@@ -1,71 +1,409 @@
-hatsApp] allWhatsApps recebido: (5) [{…}, {…}, {…}, {…}, {…}]
-index-Bnrs18id.js:920 [MultiSelectWhatsApp] safeWhatsApps (length): 5
-index-Bnrs18id.js:920 [MultiSelectWhatsApp] safeSelectedIds: []
-index-Bnrs18id.js:912 [useTeamMemberEditor] ✅ Perfil atualizado com sucesso
-index-Bnrs18id.js:912 [useTeamMemberEditor] ✅ Perfil do membro editado com sucesso
-index-Bnrs18id.js:903 [useTeamManagement] 📋 Buscando membros da equipe para empresa: 7c197601-01cc-4f71-a4d8-7c1357cac113
-index-Bnrs18id.js:912 [useTeamMemberEditor] ❌ Erro ao editar perfil do membro: ReferenceError: memberId is not defined
-    at Object.onSuccess (index-Bnrs18id.js:912:5847)
-    at G3.execute (index-Bnrs18id.js:67:20020)
-    at async onEditMember (index-Bnrs18id.js:920:33049)
-    at async d (index-Bnrs18id.js:920:9443)
-onError @ index-Bnrs18id.js:912
-execute @ index-Bnrs18id.js:67
-await in execute
-mutate @ index-Bnrs18id.js:67
-onEditMember @ index-Bnrs18id.js:920
-d @ index-Bnrs18id.js:920
-Z9 @ index-Bnrs18id.js:37
-ez @ index-Bnrs18id.js:37
-tz @ index-Bnrs18id.js:37
-yC @ index-Bnrs18id.js:37
-eR @ index-Bnrs18id.js:37
-(anonymous) @ index-Bnrs18id.js:37
-IN @ index-Bnrs18id.js:40
-jD @ index-Bnrs18id.js:37
-Uy @ index-Bnrs18id.js:37
-lN @ index-Bnrs18id.js:37
-xz @ index-Bnrs18id.js:37Understand this error
-index-Bnrs18id.js:920 [TeamSettings] ❌ Erro ao editar membro: ReferenceError: memberId is not defined
-    at Object.onSuccess (index-Bnrs18id.js:912:5847)
-    at G3.execute (index-Bnrs18id.js:67:20020)
-    at async onEditMember (index-Bnrs18id.js:920:33049)
-    at async d (index-Bnrs18id.js:920:9443)
-onEditMember @ index-Bnrs18id.js:920
-await in onEditMember
-d @ index-Bnrs18id.js:920
-Z9 @ index-Bnrs18id.js:37
-ez @ index-Bnrs18id.js:37
-tz @ index-Bnrs18id.js:37
-yC @ index-Bnrs18id.js:37
-eR @ index-Bnrs18id.js:37
-(anonymous) @ index-Bnrs18id.js:37
-IN @ index-Bnrs18id.js:40
-jD @ index-Bnrs18id.js:37
-Uy @ index-Bnrs18id.js:37
-lN @ index-Bnrs18id.js:37
-xz @ index-Bnrs18id.js:37Understand this error
-index-Bnrs18id.js:920 [TeamSettings] Component rendering
-index-Bnrs18id.js:920 [TeamSettings] User data: {id: '7c197601-01cc-4f71-a4d8-7c1357cac113', aud: 'authenticated', role: 'authenticated', email: 'adm.geuniformes@gmail.com', email_confirmed_at: '2025-07-22T14:10:54.791822Z', …}
-index-Bnrs18id.js:920 [TeamSettings] Permissions data: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …} Loading: false
-index-Bnrs18id.js:920 [MultiSelectFunnels] ===== RENDER =====
-index-Bnrs18id.js:920 [MultiSelectFunnels] selectedIds recebido: ['28dfc9bb-3c5c-482c-aca6-805a5c2bf280']
-index-Bnrs18id.js:920 [MultiSelectFunnels] allFunnels recebido: [{…}]
-index-Bnrs18id.js:920 [MultiSelectFunnels] safeFunnels (length): 1
-index-Bnrs18id.js:920 [MultiSelectFunnels] safeSelectedIds: ['28dfc9bb-3c5c-482c-aca6-805a5c2bf280']
-index-Bnrs18id.js:920 [MultiSelectWhatsApp] ===== RENDER =====
-index-Bnrs18id.js:920 [MultiSelectWhatsApp] selectedIds recebido: []
-index-Bnrs18id.js:920 [MultiSelectWhatsApp] allWhatsApps recebido: (5) [{…}, {…}, {…}, {…}, {…}]
-index-Bnrs18id.js:920 [MultiSelectWhatsApp] safeWhatsApps (length): 5
-index-Bnrs18id.js:920 [MultiSelectWhatsApp] safeSelectedIds: []
-index-Bnrs18id.js:912 [useTeamManagement] ✅ Membros encontrados: 6
-index-Bnrs18id.js:920 [MultiSelectFunnels] ===== RENDER =====
-index-Bnrs18id.js:920 [MultiSelectFunnels] selectedIds recebido: ['28dfc9bb-3c5c-482c-aca6-805a5c2bf280']
-index-Bnrs18id.js:920 [MultiSelectFunnels] allFunnels recebido: [{…}]
-index-Bnrs18id.js:920 [MultiSelectFunnels] safeFunnels (length): 1
-index-Bnrs18id.js:920 [MultiSelectFunnels] safeSelectedIds: ['28dfc9bb-3c5c-482c-aca6-805a5c2bf280']
-index-Bnrs18id.js:920 [MultiSelectWhatsApp] ===== RENDER =====
-index-Bnrs18id.js:920 [MultiSelectWhatsApp] selectedIds recebido: []
-index-Bnrs18id.js:920 [MultiSelectWhatsApp] allWhatsApps recebido: (5) [{…}, {…}, {…}, {…}, {…}]
-index-Bnrs18id.js:920 [MultiSelectWhatsApp] safeWhatsApps (length): 5
-index-Bnrs18id.js:920
+[
+  {
+    "routine_name": "save_whatsapp_message_ai_agent",
+    "routine_type": "FUNCTION",
+    "return_type": "jsonb",
+    "has_definition": true
+  },
+  {
+    "routine_name": "save_whatsapp_message_complete",
+    "routine_type": "FUNCTION",
+    "return_type": "jsonb",
+    "has_definition": true
+  },
+  {
+    "routine_name": "save_whatsapp_message_complete",
+    "routine_type": "FUNCTION",
+    "return_type": "void",
+    "has_definition": true
+  },
+  {
+    "routine_name": "save_whatsapp_message_complete_v2",
+    "routine_type": "FUNCTION",
+    "return_type": "jsonb",
+    "has_definition": true
+  },
+  {
+    "routine_name": "save_whatsapp_message_service_role",
+    "routine_type": "FUNCTION",
+    "return_type": "jsonb",
+    "has_definition": true
+  },
+  {
+    "routine_name": "save_whatsapp_message_simple",
+    "routine_type": "FUNCTION",
+    "return_type": "jsonb",
+    "has_definition": true
+  }
+]
+
+
+
+[
+    {
+      "routine_definition": "\r\nDECLARE\r\n  v_instance_id UUID;\r\n  v_user_id UUID;\r\n  v_lead_id UUID;\r\n  v_message_id UUID;\r\n  v_funnel_id UUID;\r\n  v_stage_id UUID;\r\n  v_formatted_phone TEXT;\r\n  v_contact_name TEXT;\r\n  v_is_new_lead BOOLEAN := FALSE;\r\n  v_current_profile_pic TEXT;\r\n  v_profile_pic_updated BOOLEAN := FALSE;\r\nBEGIN\r\n  -- Log de início\r\n  RAISE NOTICE '[save_whatsapp_message_service_role] 🚀 Processando: % | Profile pic: %', \r\n    p_vps_instance_id, CASE WHEN p_profile_pic_url IS NOT NULL THEN '✅' ELSE '❌' END;\r\n\r\n  -- ETAPA 1: Buscar instância\r\n  SELECT id, created_by_user_id \r\n  INTO v_instance_id, v_user_id\r\n  FROM public.whatsapp_instances \r\n  WHERE vps_instance_id = p_vps_instance_id;\r\n  \r\n  IF v_instance_id IS NULL THEN\r\n    RAISE NOTICE '[save_whatsapp_message_service_role] ❌ Instância não encontrada: %', p_vps_instance_id;\r\n    RETURN jsonb_build_object(\r\n      'success', false,\r\n      'error', 'Instance not found',\r\n      'vps_instance_id', p_vps_instance_id\r\n    );\r\n  END IF;\r\n\r\n  -- ETAPA 2: Formatar telefone brasileiro\r\n  -- p_phone vem como 556299999999@s.whatsapp.net, remover apenas a parte @s.whatsapp.net\r\n  v_formatted_phone := split_part(p_phone, '@', 1);\r\n  \r\n  -- Criar nome formatado para exibição: +55 (62) 9999-9999 ou +55 (62) 99999-9999\r\n  -- Detectar se é 8 ou 9 dígitos após DDD\r\n  v_contact_name := COALESCE(\r\n    NULLIF(p_contact_name, ''), \r\n    CASE \r\n      WHEN length(v_formatted_phone) = 13 THEN -- 556299999999 = 9 dígitos\r\n        '+55 (' || substring(v_formatted_phone, 3, 2) || ') ' ||\r\n        substring(v_formatted_phone, 5, 5) || '-' ||\r\n        substring(v_formatted_phone, 10, 4)\r\n      ELSE -- 55629999999 = 8 dígitos\r\n        '+55 (' || substring(v_formatted_phone, 3, 2) || ') ' ||\r\n        substring(v_formatted_phone, 5, 4) || '-' ||\r\n        substring(v_formatted_phone, 9, 4)\r\n    END\r\n  );\r\n\r\n  -- ETAPA 4: Buscar funil padrão do usuário\r\n  SELECT id INTO v_funnel_id\r\n  FROM public.funnels \r\n  WHERE created_by_user_id = v_user_id \r\n  ORDER BY created_at ASC \r\n  LIMIT 1;\r\n\r\n  -- ETAPA 5: Buscar primeiro estágio do funil\r\n  IF v_funnel_id IS NOT NULL THEN\r\n    SELECT id INTO v_stage_id\r\n    FROM public.kanban_stages \r\n    WHERE funnel_id = v_funnel_id \r\n    ORDER BY order_position ASC \r\n    LIMIT 1;\r\n  END IF;\r\n\r\n  -- ETAPA 6: Buscar lead existente e profile pic atual\r\n  SELECT id, profile_pic_url INTO v_lead_id, v_current_profile_pic\r\n  FROM public.leads \r\n  WHERE phone = v_formatted_phone \r\n    AND created_by_user_id = v_user_id;\r\n\r\n  -- 📸 VERIFICAR SE PROFILE PIC MUDOU\r\n  IF p_profile_pic_url IS NOT NULL THEN\r\n    v_profile_pic_updated := (v_current_profile_pic IS NULL OR v_current_profile_pic != p_profile_pic_url);\r\n    IF v_profile_pic_updated THEN\r\n      RAISE NOTICE '📸 Profile pic mudou: % -> %', \r\n        COALESCE(substring(v_current_profile_pic, 1, 50) || '...', 'NULL'), \r\n        substring(p_profile_pic_url, 1, 50) || '...';\r\n      \r\n      -- 🚀 ENFILEIRAR DOWNLOAD PARA STORAGE (processamento assíncrono)\r\n      PERFORM pgmq.send('profile_pic_download_queue', jsonb_build_object(\r\n        'lead_id', COALESCE(v_lead_id::text, null),\r\n        'phone', v_formatted_phone,\r\n        'profile_pic_url', p_profile_pic_url,\r\n        'timestamp', now()::text,\r\n        'retry_count', 0,\r\n        'priority', 'high'\r\n      ));\r\n      \r\n      RAISE NOTICE '📦 Profile pic enfileirado para download no Storage';\r\n    END IF;\r\n  END IF;\r\n\r\n  IF v_lead_id IS NULL THEN\r\n    -- CRIAR NOVO LEAD\r\n    v_is_new_lead := TRUE;\r\n    INSERT INTO public.leads (\r\n      phone, \r\n      name, \r\n      whatsapp_number_id, \r\n      created_by_user_id,\r\n      funnel_id,\r\n      kanban_stage_id,\r\n      last_message_time,\r\n      last_message,\r\n      import_source,\r\n      unread_count,\r\n      profile_pic_url -- 📸 INCLUIR PROFILE PIC\r\n    )\r\n    VALUES (\r\n      v_formatted_phone,\r\n      v_contact_name,\r\n      v_instance_id,\r\n      v_user_id,\r\n      v_funnel_id,\r\n      v_stage_id,\r\n      now(),\r\n      p_message_text,\r\n      'realtime',\r\n      CASE WHEN p_from_me THEN 0 ELSE 1 END,\r\n      p_profile_pic_url -- 📸 FOTO DO NOVO LEAD\r\n    )\r\n    RETURNING id INTO v_lead_id;\r\n\r\n    RAISE NOTICE '[save_whatsapp_message_service_role] 🆕 Novo lead criado com foto: %', v_lead_id;\r\n  ELSE\r\n    -- ATUALIZAR LEAD EXISTENTE (SEM ALTERAR ESTÁGIO DO KANBAN)\r\n    UPDATE public.leads \r\n    SET \r\n      name = COALESCE(NULLIF(p_contact_name, ''), name),\r\n      whatsapp_number_id = v_instance_id,\r\n      -- ❌ REMOVIDO: funnel_id e kanban_stage_id - não alterar estágio de leads existentes\r\n      last_message_time = now(),\r\n      last_message = p_message_text,\r\n      unread_count = CASE \r\n        WHEN p_from_me THEN unread_count \r\n        ELSE COALESCE(unread_count, 0) + 1 \r\n      END,\r\n      profile_pic_url = CASE \r\n        WHEN v_profile_pic_updated THEN p_profile_pic_url \r\n        ELSE profile_pic_url \r\n      END, -- 📸 ATUALIZAR APENAS SE MUDOU\r\n      updated_at = now()\r\n    WHERE id = v_lead_id;\r\n\r\n    RAISE NOTICE '[save_whatsapp_message_service_role] ✅ Lead atualizado | Foto: %', \r\n      CASE WHEN v_profile_pic_updated THEN 'ATUALIZADA' ELSE 'INALTERADA' END;\r\n  END IF;\r\n\r\n  -- ETAPA 7: Inserir mensagem SEM o campo base64_data/ai_description\r\n  INSERT INTO public.messages (\r\n    lead_id,\r\n    whatsapp_number_id,\r\n    text,\r\n    from_me,\r\n    timestamp,\r\n    status,\r\n    created_by_user_id,\r\n    media_type,\r\n    media_url,\r\n    import_source,\r\n    external_message_id\r\n    -- ❌ REMOVIDO: base64_data (ai_description)\r\n  )\r\n  VALUES (\r\n    v_lead_id,\r\n    v_instance_id,\r\n    p_message_text,\r\n    p_from_me,\r\n    now(),\r\n    CASE WHEN p_from_me THEN 'sent'::message_status ELSE 'received'::message_status END,\r\n    v_user_id,\r\n    COALESCE(p_media_type::media_type, 'text'::media_type),\r\n    p_media_url,\r\n    'realtime',\r\n    p_external_message_id\r\n    -- ❌ REMOVIDO: p_base64_data\r\n  )\r\n  RETURNING id INTO v_message_id;\r\n\r\n  RAISE NOTICE '[save_whatsapp_message_service_role] ✅ Mensagem inserida sem base64_data: %', v_message_id;\r\n\r\n  -- ETAPA 8: Retornar resultado completo\r\n  RETURN jsonb_build_object(\r\n    'success', true,\r\n    'data', jsonb_build_object(\r\n      'message_id', v_message_id,\r\n      'lead_id', v_lead_id,\r\n      'instance_id', v_instance_id,\r\n      'user_id', v_user_id,\r\n      'funnel_id', v_funnel_id,\r\n      'stage_id', v_stage_id,\r\n      'formatted_phone', v_formatted_phone,\r\n      'contact_name', v_contact_name,\r\n      'media_type', COALESCE(p_media_type, 'text'),\r\n      'from_me', p_from_me,\r\n      'is_new_lead', v_is_new_lead, -- 🆕 INDICADOR\r\n      'profile_pic_updated', v_profile_pic_updated, -- 📸 INDICADOR\r\n      'method', 'service_role_without_base64'\r\n    )\r\n  );\r\n\r\nEXCEPTION WHEN OTHERS THEN\r\n  RAISE NOTICE '[save_whatsapp_message_service_role] ❌ ERRO: % - SQLSTATE: %', SQLERRM, SQLSTATE;\r\n  \r\n  RETURN jsonb_build_object(\r\n    'success', false,\r\n    'error', SQLERRM,\r\n    'sqlstate', SQLSTATE,\r\n    'phone', p_phone,\r\n    'vps_instance_id', p_vps_instance_id,\r\n    'method', 'service_role_without_base64'\r\n  );\r\nEND;\r\n"
+    }
+  ]
+
+
+  [
+    {
+      "parameter_name": "p_vps_instance_id",
+      "data_type": "text",
+      "parameter_default": null,
+      "parameter_mode": "IN"
+    },
+    {
+      "parameter_name": "p_phone",
+      "data_type": "text",
+      "parameter_default": null,
+      "parameter_mode": "IN"
+    },
+    {
+      "parameter_name": "p_message_text",
+      "data_type": "text",
+      "parameter_default": null,
+      "parameter_mode": "IN"
+    },
+    {
+      "parameter_name": "p_from_me",
+      "data_type": "boolean",
+      "parameter_default": null,
+      "parameter_mode": "IN"
+    },
+    {
+      "parameter_name": "p_media_type",
+      "data_type": "text",
+      "parameter_default": "'text'::text",
+      "parameter_mode": "IN"
+    },
+    {
+      "parameter_name": "p_media_url",
+      "data_type": "text",
+      "parameter_default": "NULL::text",
+      "parameter_mode": "IN"
+    },
+    {
+      "parameter_name": "p_external_message_id",
+      "data_type": "text",
+      "parameter_default": "NULL::text",
+      "parameter_mode": "IN"
+    },
+    {
+      "parameter_name": "p_contact_name",
+      "data_type": "text",
+      "parameter_default": "NULL::text",
+      "parameter_mode": "IN"
+    },
+    {
+      "parameter_name": "p_profile_pic_url",
+      "data_type": "text",
+      "parameter_default": "NULL::text",
+      "parameter_mode": "IN"
+    }
+  ]
+
+
+
+  [
+    {
+      "id": "84acadc4-8125-406a-9df7-53a66e6dbb9c",
+      "text": "você pode assinar pelo gov",
+      "from_me": true,
+      "media_type": "text",
+      "media_url": null,
+      "created_at": "2025-09-09 14:00:29.358963+00",
+      "lead_name": "Pedro Penna",
+      "lead_phone": "556282751009"
+    },
+    {
+      "id": "34bab671-5806-4118-a563-a006ed673cd4",
+      "text": "",
+      "from_me": false,
+      "media_type": "audio",
+      "media_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1757426415229_pxd2nn.ogg",
+      "created_at": "2025-09-09 14:00:15.191338+00",
+      "lead_name": "Mas Q Vencedor",
+      "lead_phone": "556282143760"
+    },
+    {
+      "id": "a41891ee-a54d-4065-a8eb-0b7172925101",
+      "text": "os outros produtos vocês já tem ?",
+      "from_me": true,
+      "media_type": "text",
+      "media_url": null,
+      "created_at": "2025-09-09 14:00:02.928853+00",
+      "lead_name": "+55 (84) 96892-426",
+      "lead_phone": "558496892426"
+    },
+    {
+      "id": "ae49161d-f898-4f81-8acb-3dc9259e16dc",
+      "text": "Vou te mandar agora, amiga",
+      "from_me": true,
+      "media_type": "text",
+      "media_url": null,
+      "created_at": "2025-09-09 13:59:57.83846+00",
+      "lead_name": "Isabela Amaral",
+      "lead_phone": "556484272981"
+    },
+    {
+      "id": "a5c58e66-c29c-4bd7-b5a3-dbd0d61d76a9",
+      "text": "Ok",
+      "from_me": false,
+      "media_type": "text",
+      "media_url": null,
+      "created_at": "2025-09-09 13:59:56.798498+00",
+      "lead_name": "Marina",
+      "lead_phone": "556399318008"
+    },
+    {
+      "id": "0646058b-c51b-4552-af22-2257acaea590",
+      "text": "[Mensagem não suportada]",
+      "from_me": true,
+      "media_type": "text",
+      "media_url": null,
+      "created_at": "2025-09-09 13:59:55.817937+00",
+      "lead_name": "Ge Uniformes",
+      "lead_phone": "556283238559"
+    },
+    {
+      "id": "2bd46dbb-b747-45d2-bf36-2f10ec9e646d",
+      "text": "E vocês fazem a arte da camiseta, ou a gente tem que montar aqui?",
+      "from_me": false,
+      "media_type": "text",
+      "media_url": null,
+      "created_at": "2025-09-09 13:59:53.550425+00",
+      "lead_name": "Marinho",
+      "lead_phone": "556499111326"
+    },
+    {
+      "id": "11dd9263-5ac4-4b6e-9220-bae86ce3e994",
+      "text": "",
+      "from_me": false,
+      "media_type": "image",
+      "media_url": "https://rhjgagzstjzynvrakdyj.supabase.co/storage/v1/object/public/whatsapp-media/media_1757426387647_tdtabc.jpg",
+      "created_at": "2025-09-09 13:59:47.615013+00",
+      "lead_name": "Wendell Incorpora Solar ⚡️",
+      "lead_phone": "556299439696"
+    },
+    {
+      "id": "2c9c43b2-0c04-4f0a-9529-c45a5dad25f8",
+      "text": "qualquer coisa me manda mensagem",
+      "from_me": true,
+      "media_type": "text",
+      "media_url": null,
+      "created_at": "2025-09-09 13:59:38.104028+00",
+      "lead_name": "+55 (84) 96892-426",
+      "lead_phone": "558496892426"
+    },
+    {
+      "id": "7d339439-9db1-44e8-8a8c-01764232d355",
+      "text": "Certo, fica ótimo assim",
+      "from_me": false,
+      "media_type": "text",
+      "media_url": null,
+      "created_at": "2025-09-09 13:59:37.855934+00",
+      "lead_name": "Marinho",
+      "lead_phone": "556499111326"
+    }
+  ]
+
+
+
+  [
+    {
+      "id": "702923ba-3904-4c1b-9e27-8907178e5429",
+      "name": "",
+      "phone": "558491384037",
+      "created_at": "2025-09-09 13:53:41.842136+00"
+    },
+    {
+      "id": "7bd8b650-32ed-4808-b9e0-bcff0f59fe45",
+      "name": "",
+      "phone": "557588469317",
+      "created_at": "2025-09-09 13:32:32.89636+00"
+    },
+    {
+      "id": "0ff1196f-770a-44c9-8ba4-798065d16058",
+      "name": "",
+      "phone": "556399857202",
+      "created_at": "2025-09-09 12:40:02.145919+00"
+    },
+    {
+      "id": "a94a9ddb-0571-4e65-a08f-b64eb887e5b7",
+      "name": "🏡Minha Família 🏠",
+      "phone": "555491130948",
+      "created_at": "2025-09-09 11:59:42.7426+00"
+    },
+    {
+      "id": "830d84ed-153f-44b6-ac0e-af3657cd19b5",
+      "name": ". '. Adv Roberto Lacerda",
+      "phone": "556384046475",
+      "created_at": "2025-09-09 11:50:27.159421+00"
+    },
+    {
+      "id": "700fed13-dad6-4ebb-ae1e-35b4c9cfa09a",
+      "name": "",
+      "phone": "557583215712",
+      "created_at": "2025-09-09 11:37:25.458107+00"
+    },
+    {
+      "id": "124e43b3-1287-4fd4-b271-949262cd8f87",
+      "name": "",
+      "phone": "5511954440977",
+      "created_at": "2025-09-09 11:20:35.919558+00"
+    },
+    {
+      "id": "65e77716-15d8-49a0-9810-8ef8318fe995",
+      "name": "",
+      "phone": "554791711994",
+      "created_at": "2025-09-09 11:13:07.918587+00"
+    },
+    {
+      "id": "5b0bb31b-f0bd-4dbb-a1ac-ada6b50591d7",
+      "name": "",
+      "phone": "558196846638",
+      "created_at": "2025-09-09 10:52:38.03297+00"
+    },
+    {
+      "id": "0c3b3918-cdb9-480d-a84f-7b0ab9b582c2",
+      "name": "",
+      "phone": "558699911472",
+      "created_at": "2025-09-09 08:22:22.409103+00"
+    },
+    {
+      "id": "a8c484c5-f2b0-4eee-9598-eecc367eaa04",
+      "name": "",
+      "phone": "554497443994",
+      "created_at": "2025-09-09 03:47:44.281478+00"
+    },
+    {
+      "id": "29436da4-be94-4e3d-b20b-a7b27de3b84b",
+      "name": "",
+      "phone": "556281192506",
+      "created_at": "2025-09-09 03:22:28.453236+00"
+    },
+    {
+      "id": "d5f5d277-200f-4de4-95d3-9d7f54fd9d01",
+      "name": "",
+      "phone": "556392477213",
+      "created_at": "2025-09-09 03:21:24.735578+00"
+    },
+    {
+      "id": "c81a086b-4b49-4ee3-91b0-c42fcd5e5e1b",
+      "name": "",
+      "phone": "558694499744",
+      "created_at": "2025-09-09 03:15:18.983516+00"
+    },
+    {
+      "id": "2b0f2448-8198-4355-a22c-7d27e35eeac9",
+      "name": "",
+      "phone": "557192753351",
+      "created_at": "2025-09-09 00:39:57.870348+00"
+    },
+    {
+      "id": "b5c73460-757c-4390-85c3-422b527c8f7e",
+      "name": "",
+      "phone": "556692811686",
+      "created_at": "2025-09-09 00:30:33.909215+00"
+    },
+    {
+      "id": "484e367e-f4ac-4ab9-b513-7440555134c9",
+      "name": "",
+      "phone": "556292631229",
+      "created_at": "2025-09-09 00:20:22.658476+00"
+    },
+    {
+      "id": "9947ac00-64c8-427d-a2e3-c482659d2394",
+      "name": "",
+      "phone": "557188562828",
+      "created_at": "2025-09-09 00:12:48.761643+00"
+    },
+    {
+      "id": "a1a7a471-d793-4414-a5bf-3c803f1013e3",
+      "name": "",
+      "phone": "556798495829",
+      "created_at": "2025-09-08 23:59:31.080195+00"
+    },
+    {
+      "id": "93f45a31-74c3-4c54-85af-e844d215414e",
+      "name": "",
+      "phone": "556294977601",
+      "created_at": "2025-09-08 22:09:16.846442+00"
+    }
+  ]
+
+
+
+  [
+    {
+      "id": "b732a11d-2d8a-4640-8d5b-6f2328f3ea29",
+      "text": "[Sticker]",
+      "media_type": "image",
+      "media_url": null,
+      "created_at": "2025-09-09 13:56:22.667115+00"
+    },
+    {
+      "id": "0e12cecb-2dbc-4a51-8022-910810134190",
+      "text": "[Sticker]",
+      "media_type": "image",
+      "media_url": null,
+      "created_at": "2025-09-09 13:53:55.930582+00"
+    },
+    {
+      "id": "e3c2e69a-001a-44d8-9dc0-d3da41f6082d",
+      "text": "[Sticker]",
+      "media_type": "image",
+      "media_url": null,
+      "created_at": "2025-09-09 13:53:28.004754+00"
+    },
+    {
+      "id": "ab34aa4b-8161-4abb-ab8f-e371d5a7c562",
+      "text": "[Sticker]",
+      "media_type": "image",
+      "media_url": null,
+      "created_at": "2025-09-09 13:22:47.607071+00"
+    },
+    {
+      "id": "9c2f818c-f0d1-475b-a3ff-ae58308ecb25",
+      "text": "[Sticker]",
+      "media_type": "image",
+      "media_url": null,
+      "created_at": "2025-09-09 13:21:29.162454+00"
+    },
+    {
+      "id": "02cc6302-a77a-459b-adf0-3aa81d1e203c",
+      "text": "[Mensagem não suportada]",
+      "media_type": "video",
+      "media_url": null,
+      "created_at": "2025-09-09 13:20:23.315995+00"
+    },
+    {
+      "id": "afff4e1b-a02c-461d-ab03-183af8a56174",
+      "text": "[Mensagem não suportada]",
+      "media_type": "video",
+      "media_url": null,
+      "created_at": "2025-09-09 13:20:21.5871+00"
+    },
+    {
+      "id": "5a74e26f-73c8-4fad-a6d3-478df0591642",
+      "text": "[Mensagem não suportada]",
+      "media_type": "video",
+      "media_url": null,
+      "created_at": "2025-09-09 13:20:21.471541+00"
+    },
+    {
+      "id": "d4dc1159-cc84-474b-91ca-945a7600a89b",
+      "text": "[Sticker]",
+      "media_type": "image",
+      "media_url": null,
+      "created_at": "2025-09-09 13:17:57.800789+00"
+    },
+    {
+      "id": "9e62a0f8-137a-47a3-956a-62b2748af4c7",
+      "text": "[Sticker]",
+      "media_type": "image",
+      "media_url": null,
+      "created_at": "2025-09-09 13:12:30.544143+00"
+    }
+  ]

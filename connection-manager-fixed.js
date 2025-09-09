@@ -1,5 +1,5 @@
-// CONNECTION MANAGER - GERENCIAMENTO ISOLADO DE CONEXÕES
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, downloadMediaMessage } = require('baileys');
+// CONNECTION MANAGER - VERSÃO CORRIGIDA DA VPS (LOOPS DE RECONEXÃO RESOLVIDOS)
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, downloadContentFromMessage } = require('baileys');
 const QRCode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
@@ -11,8 +11,28 @@ class ConnectionManager {
     this.webhookManager = webhookManager;
     this.connectionAttempts = new Map();
     this.sentMessagesCache = new Map(); // Cache para rastrear mensagens enviadas via API
+    this.profilePicCache = new Map(); // Cache simples por telefone (TTL)
+    this.reconnectionTimeouts = new Map(); // NOVO: Rastrear timeouts de reconexão
 
     console.log('🔌 ConnectionManager inicializado');
+  }
+
+  // 🚫 MARCAR INSTÂNCIA PARA NÃO RECONECTAR (chamado antes de exclusão)
+  markForIntentionalDisconnect(instanceId) {
+    const logPrefix = `[ConnectionManager ${instanceId}]`;
+    console.log(`${logPrefix} 🚫 Marcando para desconexão intencional`);
+    
+    if (this.instances[instanceId]) {
+      this.instances[instanceId].intentionalDisconnect = true;
+    }
+    
+    // Cancelar qualquer timeout de reconexão pendente
+    if (this.reconnectionTimeouts && this.reconnectionTimeouts.has(instanceId)) {
+      const timeoutId = this.reconnectionTimeouts.get(instanceId);
+      clearTimeout(timeoutId);
+      this.reconnectionTimeouts.delete(instanceId);
+      console.log(`${logPrefix} ⏰ Timeout de reconexão cancelado`);
+    }
   }
 
   // Criar instância com gerenciamento robusto
@@ -67,7 +87,8 @@ class ConnectionManager {
         attempts: this.connectionAttempts.get(instanceId) || 0,
         createdByUserId,
         authDir: instanceAuthDir,
-        isRecovery
+        isRecovery,
+        intentionalDisconnect: false // NOVO: Flag para evitar loops
       };
 
       // Configurar event listeners
@@ -140,7 +161,27 @@ class ConnectionManager {
 
       // Conexão fechada
       if (connection === 'close') {
-        const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+        // 🔧 LÓGICA DE RECONEXÃO CORRIGIDA - APENAS EM CASOS LEGÍTIMOS
+        const disconnectCode = lastDisconnect?.error?.output?.statusCode;
+        const errorMessage = lastDisconnect?.error?.message || '';
+        
+        // ❌ NUNCA RECONECTAR EM:
+        const isLoggedOut = disconnectCode === DisconnectReason.loggedOut;
+        const isConflict = errorMessage.includes('conflict') || errorMessage.includes('replaced');
+        const isIntentionalDisconnect = instance.intentionalDisconnect === true;
+        
+        // ✅ APENAS RECONECTAR EM CASOS LEGÍTIMOS:
+        const shouldReconnect = !isLoggedOut && !isConflict && !isIntentionalDisconnect;
+        
+        console.log(`${logPrefix} 🔍 Análise de reconexão:`, {
+          disconnectCode,
+          errorMessage: errorMessage.substring(0, 50),
+          isLoggedOut,
+          isConflict,
+          isIntentionalDisconnect,
+          shouldReconnect
+        });
+
         const currentAttempts = this.connectionAttempts.get(instanceId) || 0;
 
         console.log(`${logPrefix} ❌ Conexão fechada. Reconectar: ${shouldReconnect}, Tentativas: ${currentAttempts}/3`);
@@ -149,24 +190,50 @@ class ConnectionManager {
         instance.connected = false;
         instance.qrCode = null;
 
+        // Notificar desconexão via webhook
+        await this.webhookManager.notifyConnection(instanceId, instance.phone, instance.profileName, 'disconnected');
+
         if (shouldReconnect && currentAttempts < 3) {
           this.connectionAttempts.set(instanceId, currentAttempts + 1);
           instance.attempts = currentAttempts + 1;
           instance.status = 'reconnecting';
 
-          console.log(`${logPrefix} 🔄 Reagendando reconexão em 15 segundos... (${currentAttempts + 1}/3)`);
+          // 🔄 DELAY EXPONENCIAL: 15s, 30s, 60s ao invés de sempre 15s
+          const baseDelay = 15000; // 15 segundos
+          const exponentialDelay = baseDelay * Math.pow(2, currentAttempts); // 15s, 30s, 60s
+          const maxDelay = 60000; // Máximo 1 minuto
+          const finalDelay = Math.min(exponentialDelay, maxDelay);
+          
+          console.log(`${logPrefix} 🔄 Reagendando reconexão em ${finalDelay/1000}s... (${currentAttempts + 1}/3)`);
 
-          setTimeout(async () => {
+          const timeoutId = setTimeout(async () => {
             try {
+              // Verificar se ainda deve reconectar (pode ter sido marcada para exclusão)
+              if (this.instances[instanceId]?.intentionalDisconnect) {
+                console.log(`${logPrefix} 🚫 Reconexão cancelada - desconexão intencional`);
+                return;
+              }
+              
               await this.createInstance(instanceId, instance.createdByUserId, true);
             } catch (error) {
               console.error(`${logPrefix} ❌ Erro na reconexão:`, error);
               instance.status = 'error';
               instance.error = error.message;
+            } finally {
+              // Limpar timeout do mapa
+              if (this.reconnectionTimeouts) {
+                this.reconnectionTimeouts.delete(instanceId);
+              }
             }
-          }, 15000);
+          }, finalDelay);
+          
+          // Salvar timeout para poder cancelar depois
+          if (!this.reconnectionTimeouts) {
+            this.reconnectionTimeouts = new Map();
+          }
+          this.reconnectionTimeouts.set(instanceId, timeoutId);
         } else {
-          console.log(`${logPrefix} ⚠️ Máximo de tentativas atingido ou logout`);
+          console.log(`${logPrefix} ⚠️ Máximo de tentativas atingido ou logout/conflito`);
           instance.status = lastDisconnect?.error?.output?.statusCode === DisconnectReason.loggedOut ? 'logged_out' : 'error';
           this.connectionAttempts.delete(instanceId);
         }
@@ -186,13 +253,35 @@ class ConnectionManager {
         instance.profileName = profileName;
         instance.qrCode = null;
         instance.error = null;
+        instance.intentionalDisconnect = false; // Reset flag
 
         // Resetar contador de tentativas
         this.connectionAttempts.delete(instanceId);
         instance.attempts = 0;
 
-        // Notificar conexão via webhook
-        await this.webhookManager.notifyConnection(instanceId, phone, profileName);
+        // Notificar conexão via webhook (nome sempre; foto da instância apenas neste evento)
+        console.log(`${logPrefix} 📡 Enviando webhook de conexão para auto_whatsapp_sync`);
+        let instanceProfilePicBase64 = null;
+        try {
+          if (typeof socket.profilePictureUrl === 'function' && userInfo?.id) {
+            const picUrl = await socket.profilePictureUrl(userInfo.id, 'image');
+            if (picUrl) {
+              const resp = await fetch(picUrl);
+              const buf = await resp.arrayBuffer();
+              const mime = resp.headers.get('content-type') || 'image/jpeg';
+              const b64 = Buffer.from(buf).toString('base64');
+              instanceProfilePicBase64 = `data:${mime};base64,${b64}`;
+            }
+          }
+        } catch (_) {}
+
+        await this.webhookManager.notifyConnection(
+          instanceId,
+          phone,
+          profileName,
+          'connected',
+          instanceProfilePicBase64 ? { instanceProfilePicBase64 } : {}
+        );
       }
     });
 
@@ -445,6 +534,9 @@ class ConnectionManager {
     console.log(`${logPrefix} 🗑️ Deletando instância...`);
 
     try {
+      // NOVO: Marcar para desconexão intencional ANTES de fechar
+      this.markForIntentionalDisconnect(instanceId);
+
       // Fechar socket se existir
       if (instance.socket) {
         try {

@@ -194,20 +194,20 @@ export const useWhatsAppRealtime = ({
       return true;
     }
 
-    // Permitir mensagens externas
-    if (messageData.from_me === false) {
-      console.log('[WhatsApp Realtime] ✅ Mensagem externa aceita:', messageData.id);
-      return true;
-    }
-
-    // Verificar duplicação para mensagens próprias
+    // 🔧 FIX: Verificar duplicação ANTES de permitir processamento
     if (processedMessageIds.current.has(messageData.id)) {
       console.log('[WhatsApp Realtime] ❌ Mensagem já processada:', messageData.id);
       return false;
     }
 
-    console.log('[WhatsApp Realtime] ✅ Mensagem própria aceita:', messageData.id);
-    return true;
+    // ✅ Permitir TODAS as mensagens (enviadas e recebidas) se passaram nos filtros anteriores
+    if (messageData.from_me === false) {
+      console.log('[WhatsApp Realtime] ✅ Mensagem recebida aceita:', messageData.id);
+      return true;
+    } else {
+      console.log('[WhatsApp Realtime] ✅ Mensagem enviada aceita:', messageData.id);
+      return true;
+    }
   }, [selectedContact, user?.id]);
 
   // Setup realtime para contatos (isolado)

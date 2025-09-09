@@ -231,12 +231,25 @@ export const useWhatsAppMessages = ({
         leadId: selectedContact.id,
         instanceId: activeInstance?.id || 'sem-instancia',
         userId: user.id,
+        // 🔍 DEBUG: Contar mensagens por fromMe
+        fromMeCount: orderedMessages.filter(m => m.fromMe === true).length,
+        fromContactCount: orderedMessages.filter(m => m.fromMe === false).length,
         firstMessage: orderedMessages[0] ? {
           id: orderedMessages[0].id,
           text: orderedMessages[0].text.substring(0, 50),
           fromMe: orderedMessages[0].fromMe,
           timestamp: fetchedMessages[0].timestamp
-        } : null
+        } : null,
+        // 🔍 DEBUG: Amostra de mensagens fromMe
+        fromMeSample: orderedMessages
+          .filter(m => m.fromMe === true)
+          .slice(0, 3)
+          .map(m => ({
+            id: m.id,
+            text: m.text.substring(0, 30),
+            fromMe: m.fromMe,
+            rawFromMe: (data?.find(d => d.id === m.id) as any)?.from_me
+          }))
       });
 
       if (append) {

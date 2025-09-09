@@ -11,17 +11,15 @@ const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const webhookSecret = Deno.env.get("WEBHOOK_SECRET");
 console.log('[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.1 - OTIMIZADO PARA MEMÓRIA');
 console.log('[Webhook] 🔑 Webhook secret configurado:', !!webhookSecret);
-
 // =====================================================================
 // 🧠 CONFIGURAÇÕES DE LIMITE DE MEMÓRIA
 // =====================================================================
 const MEMORY_LIMITS = {
-  MAX_PAYLOAD_SIZE: 20 * 1024 * 1024, // 20MB máximo
-  MAX_BASE64_SIZE: 3 * 1024 * 1024, // 3MB para processamento direto
-  MAX_LOG_SIZE: 1000, // Máximo de caracteres em logs
+  MAX_PAYLOAD_SIZE: 20 * 1024 * 1024,
+  MAX_BASE64_SIZE: 3 * 1024 * 1024,
+  MAX_LOG_SIZE: 1000,
   CLEANUP_THRESHOLD: 8 * 1024 * 1024 // 8MB - forçar limpeza
 };
-
 // 🧹 Função para limpeza de memória
 function forceMemoryCleanup() {
   // @ts-ignore - Forçar garbage collection se disponível
@@ -50,35 +48,27 @@ function verifyWebhookSignature(payload, signature, secret) {
 function getMediaDisplayName(mediaType) {
   const mediaNames = {
     'image': '📷 Imagem',
-    'video': '🎥 Vídeo', 
+    'video': '🎥 Vídeo',
     'audio': '🎵 Áudio',
     'document': '📄 Documento',
     'sticker': '😊 Sticker',
     'voice': '🎤 Áudio',
     'ptt': '🎤 Áudio'
   };
-  
   return mediaNames[mediaType?.toLowerCase()] || '📎 Mídia';
 }
-
 // ✅ Input sanitization otimizada para memória
 function sanitizeInput(input) {
   if (!input) return input;
-  
   if (typeof input === 'string') {
     // Limitar tamanho de strings para evitar vazamentos
-    return input.length > MEMORY_LIMITS.MAX_LOG_SIZE ? 
-      input.substring(0, MEMORY_LIMITS.MAX_LOG_SIZE) + '...' : 
-      input.replace(/[<>\"']/g, '');
+    return input.length > MEMORY_LIMITS.MAX_LOG_SIZE ? input.substring(0, MEMORY_LIMITS.MAX_LOG_SIZE) + '...' : input.replace(/[<>\"']/g, '');
   }
-  
   if (typeof input === 'object' && input !== null) {
     const sanitized = {};
     let keyCount = 0;
-    
     for (const [key, value] of Object.entries(input)){
       if (keyCount++ > 20) break; // Limitar propriedades
-      
       if (typeof value === 'string') {
         sanitized[key] = value.length > 500 ? value.substring(0, 500) + '...' : sanitizeInput(value);
       } else if (typeof value === 'object' && keyCount < 10) {
@@ -130,15 +120,12 @@ class MediaProcessor {
         // ✅ Verificar tamanho antes de processar
         const dataSize = mediaData.base64Data.length;
         const sizeMB = (dataSize / 1024 / 1024).toFixed(2);
-        
         console.log(`[Media] 📏 Mídia detectada: ${sizeMB}MB`);
-        
         // ✅ Se muito grande, enfileirar imediatamente
         if (dataSize > MEMORY_LIMITS.MAX_BASE64_SIZE) {
           console.log(`[Media] 🚀 Mídia grande (${sizeMB}MB) - enfileirando diretamente`);
           return await enqueueMediaProcessing(supabase, messageId, mediaData);
         }
-        
         // Usar limite específico por tipo de mídia
         const sizeLimit = this.getSizeLimit(mediaData.mediaType);
         // Validar mídia primeiro
@@ -206,29 +193,24 @@ class MediaProcessor {
       });
       // 4. Upload para Storage com retry (até 3 tentativas)
       let uploadData, uploadError;
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      for(let attempt = 1; attempt <= 3; attempt++){
         console.log(`[Media] 📤 Tentativa ${attempt}/3 de upload para Storage...`);
-        
         const result = await supabase.storage.from('whatsapp-media').upload(fileName, bytes, {
           contentType: mimeType,
           cacheControl: '3600',
           upsert: attempt > 1 // Permitir sobrescrever nas tentativas subsequentes
         });
-        
         uploadData = result.data;
         uploadError = result.error;
-        
         if (!uploadError) {
           console.log(`[Media] ✅ Upload bem-sucedido na tentativa ${attempt}`);
           break;
         }
-        
         console.warn(`[Media] ⚠️ Tentativa ${attempt} falhou:`, uploadError);
         if (attempt < 3) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Backoff progressivo
+          await new Promise((resolve)=>setTimeout(resolve, 1000 * attempt)); // Backoff progressivo
         }
       }
-      
       if (uploadError) {
         console.error('[Media] ❌ Todas as tentativas de upload falharam - mídia não será processada:', uploadError);
         return false;
@@ -237,21 +219,21 @@ class MediaProcessor {
       const { data: urlData } = supabase.storage.from('whatsapp-media').getPublicUrl(fileName);
       const storageUrl = urlData.publicUrl;
       // 6. Salvar (idempotente) no cache de mídia
-      const { error: cacheError } = await supabase
-        .from('media_cache')
-        .upsert({
-          message_id: messageId,
-          original_url: storageUrl,
-          cached_url: storageUrl,
-          base64_data: mediaData.base64Data ? `data:${mimeType};base64,${base64Data}` : null,
-          file_name: mediaData.fileName || fileName,
-          file_size: bytes.length,
-          media_type: mediaData.mediaType === 'sticker' ? 'image' : (mediaData.mediaType === 'unknown' ? 'text' : mediaData.mediaType),
-          external_message_id: mediaData.externalMessageId || null,
-          processing_status: 'completed',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'message_id' });
+      const { error: cacheError } = await supabase.from('media_cache').upsert({
+        message_id: messageId,
+        original_url: storageUrl,
+        cached_url: storageUrl,
+        base64_data: mediaData.base64Data ? `data:${mimeType};base64,${base64Data}` : null,
+        file_name: mediaData.fileName || fileName,
+        file_size: bytes.length,
+        media_type: mediaData.mediaType === 'sticker' ? 'image' : mediaData.mediaType === 'unknown' ? 'text' : mediaData.mediaType,
+        external_message_id: mediaData.externalMessageId || null,
+        processing_status: 'completed',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'message_id'
+      });
       if (cacheError) {
         console.error('[Media] ❌ Erro ao salvar cache:', cacheError);
         return false;
@@ -295,28 +277,27 @@ class MediaProcessor {
         isAppleFormat: mimeType.includes('heic') || mimeType.includes('heif') || mimeType.includes('hevc'),
         dataUrlLength: cachedUrl.length
       });
-      const { error: cacheError } = await supabase
-        .from('media_cache')
-        .upsert({
-          message_id: messageId,
-          base64_data: cachedUrl,
-          cached_url: cachedUrl,
-          original_url: `base64://${mediaData.externalMessageId || Date.now()}`,
-          file_name: mediaData.fileName || `media_${Date.now()}`,
-          file_size: mediaData.base64Data.length,
-          media_type: mediaData.mediaType === 'sticker' ? 'image' : (mediaData.mediaType === 'unknown' ? 'text' : mediaData.mediaType),
-          external_message_id: mediaData.externalMessageId || null,
-          processing_status: 'completed',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'message_id' });
+      const { error: cacheError } = await supabase.from('media_cache').upsert({
+        message_id: messageId,
+        base64_data: cachedUrl,
+        cached_url: cachedUrl,
+        original_url: `base64://${mediaData.externalMessageId || Date.now()}`,
+        file_name: mediaData.fileName || `media_${Date.now()}`,
+        file_size: mediaData.base64Data.length,
+        media_type: mediaData.mediaType === 'sticker' ? 'image' : mediaData.mediaType === 'unknown' ? 'text' : mediaData.mediaType,
+        external_message_id: mediaData.externalMessageId || null,
+        processing_status: 'completed',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'message_id'
+      });
       if (cacheError) {
         console.error('[Media] ❌ Erro ao salvar cache fallback:', cacheError);
         return false;
       }
       // ❌ NÃO USAR FALLBACK BASE64 - tentar Storage mesmo em falha
       console.warn('[Media] ⚠️ Fallback desabilitado - mensagem ficará sem mídia temporariamente');
-      
       // Atualizar apenas o texto, sem salvar base64 na media_url
       const { error: updateError } = await supabase.from('messages').update({
         text: mediaData.caption || ''
@@ -350,7 +331,7 @@ class MediaProcessor {
     // Fallback baseado no tipo com suporte completo
     const fallbackMimes = {
       'image': 'image/jpeg',
-      'video': 'video/mp4', 
+      'video': 'video/mp4',
       'audio': 'audio/mpeg',
       'document': 'application/pdf',
       'sticker': 'image/webp',
@@ -474,15 +455,17 @@ serve(async (req)=>{
     const contentLength = req.headers.get('content-length');
     if (contentLength && parseInt(contentLength) > MEMORY_LIMITS.MAX_PAYLOAD_SIZE) {
       console.error('[Webhook] ❌ Payload muito grande:', contentLength);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Payload too large' }),
-        { 
-          status: 413,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Payload too large'
+      }), {
+        status: 413,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
         }
-      );
+      });
     }
-    
     const body = await req.text();
     console.log('[Webhook] 📨 Recebendo webhook:', {
       method: req.method,
@@ -507,7 +490,7 @@ serve(async (req)=>{
       instanceId: sanitizedData.instanceId,
       hasMessage: !!(sanitizedData.message || sanitizedData.data?.messages),
       hasMediaData: !!(sanitizedData.mediaBase64 || // ✅ inclusão: raiz
-      sanitizedData.mediabase64 || sanitizedData.mediaData || sanitizedData.base64Data || sanitizedData.media || sanitizedData.buffer || sanitizedData.content || sanitizedData.data?.buffer || sanitizedData.data?.base64 || sanitizedData.message?.media || sanitizedData.data?.mediaData), // ✅ ADICIONADO
+      sanitizedData.mediabase64 || sanitizedData.mediaData || sanitizedData.base64Data || sanitizedData.media || sanitizedData.buffer || sanitizedData.content || sanitizedData.data?.buffer || sanitizedData.data?.base64 || sanitizedData.message?.media || sanitizedData.data?.mediaData),
       timestamp: new Date().toISOString()
     });
     // 🚨 DEBUG: Log completo dos dados recebidos
@@ -524,17 +507,17 @@ serve(async (req)=>{
       data_buffer_exists: !!sanitizedData.data?.buffer,
       data_base64_exists: !!sanitizedData.data?.base64,
       message_media_exists: !!sanitizedData.message?.media,
-      data_mediaData_exists: !!sanitizedData.data?.mediaData, // ✅ ADICIONADO
+      data_mediaData_exists: !!sanitizedData.data?.mediaData,
       payload_size: JSON.stringify(sanitizedData).length
     });
     // 🚨 INVESTIGAÇÃO DETALHADA: Onde está a mídia?
     if (sanitizedData.messageType !== 'text') {
       console.log('[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA:', {
         messageType: sanitizedData.messageType,
-        topLevelKeys: Object.keys(sanitizedData).slice(0, 10), // ✅ Limitar keys
+        topLevelKeys: Object.keys(sanitizedData).slice(0, 10),
         // Verificar campos diretos
         directMedia: {
-          mediaBase64: sanitizedData.mediaBase64 ? 'EXISTS' : null, // ✅ Não logar conteúdo
+          mediaBase64: sanitizedData.mediaBase64 ? 'EXISTS' : null,
           mediabase64: sanitizedData.mediabase64 ? 'EXISTS' : null,
           mediaData: sanitizedData.mediaData ? 'EXISTS' : undefined,
           base64Data: sanitizedData.base64Data ? 'EXISTS' : null,
@@ -544,8 +527,8 @@ serve(async (req)=>{
         },
         // Verificar campos aninhados
         nestedMedia: {
-          data_keys: sanitizedData.data ? Object.keys(sanitizedData.data).slice(0, 10) : null, // ✅ Limitar
-          data_buffer: sanitizedData.data?.buffer ? 'EXISTS' : null, // ✅ Não logar conteúdo
+          data_keys: sanitizedData.data ? Object.keys(sanitizedData.data).slice(0, 10) : null,
+          data_buffer: sanitizedData.data?.buffer ? 'EXISTS' : null,
           data_base64: sanitizedData.data?.base64 ? 'EXISTS' : null,
           message_keys: sanitizedData.message ? Object.keys(sanitizedData.message).slice(0, 10) : null,
           message_media: sanitizedData.message?.media ? 'EXISTS' : undefined
@@ -589,10 +572,8 @@ serve(async (req)=>{
       }
     });
     console.log('[Webhook] ✅ Processamento concluído:', result);
-    
     // ✅ Limpeza final de memória antes de retornar
     forceMemoryCleanup();
-    
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: corsHeaders
@@ -618,10 +599,8 @@ serve(async (req)=>{
     } catch (logError) {
       console.error('[Webhook] ❌ Erro ao fazer log:', logError);
     }
-    
     // ✅ Limpeza de memória mesmo em caso de erro
     forceMemoryCleanup();
-    
     return new Response(JSON.stringify({
       success: false,
       error: 'Webhook processing failed',
@@ -709,7 +688,7 @@ async function processMessage(supabase, data) {
       messageType: data.messageType === 'sticker' ? 'image' : (data.messageType === 'unknown' ? 'text' : data.messageType) || 'text',
       mediaUrl: data.mediaUrl,
       // ❌ REMOVIDO: contactName - usar apenas telefone formatado
-      profile_pic_url: data.profilePicUrl || data.profile_pic_url || data.data?.profile_pic_url || data.senderProfilePicUrl || null, // 📸 PROFILE PIC
+      profile_pic_url: data.profilePicUrl || data.profile_pic_url || data.data?.profile_pic_url || data.senderProfilePicUrl || null,
       // 🚀 DADOS DE MÍDIA EXTRAÍDOS - CORREÇÃO APLICADA
       mediaData: {
         base64Data: data.mediaBase64 || // raiz
@@ -736,10 +715,10 @@ async function processMessage(supabase, data) {
     p_phone: messageData.from,
     p_message_text: messageData.message.text || '',
     p_from_me: Boolean(messageData.fromMe),
-    p_media_type: messageData.messageType === 'sticker' ? 'image' : (messageData.messageType === 'unknown' ? 'text' : (messageData.messageType || 'text')),
-    p_media_url: null, // ❌ SEMPRE NULL - será definida após processamento da mídia no Storage
+    p_media_type: messageData.messageType === 'sticker' ? 'image' : messageData.messageType === 'unknown' ? 'text' : messageData.messageType || 'text',
+    p_media_url: null,
     p_external_message_id: messageData.externalMessageId || null,
-    p_contact_name: null, // ❌ SEMPRE NULL - usar apenas telefone formatado
+    p_contact_name: null,
     p_profile_pic_url: messageData.profile_pic_url || null // 📸 PROFILE PIC URL
   });
   if (error || !result?.success) {
@@ -764,7 +743,6 @@ async function processMessage(supabase, data) {
   });
   // 🚀 STEP 2: PROCESSAR MÍDIA USANDO INFRAESTRUTURA EXISTENTE
   const hadMediaData = !!(messageData.mediaData?.base64Data && messageData.messageType !== 'text'); // ✅ Capturar antes de limpar
-  
   if (hadMediaData) {
     console.log('[Webhook] 🎬 Processando mídia usando Storage + PGMQ existentes...');
     const mediaProcessed = await MediaProcessor.processMediaOptimized(supabase, messageId, messageData.mediaData);
@@ -773,21 +751,18 @@ async function processMessage(supabase, data) {
     } else {
       console.log('[Webhook] ✅ Mídia processada com infraestrutura existente');
     }
-    
     // ✅ Limpeza imediata da mídia da memória
     messageData.mediaData.base64Data = null;
     messageData.mediaData = null;
   }
-  
   // ✅ Forçar limpeza de memória após processamento
   forceMemoryCleanup();
-  
   return {
     success: true,
     message: 'Message processed completely with existing infrastructure',
     data: {
       ...result.data,
-      mediaProcessed: hadMediaData, // ✅ Usar valor capturado antes da limpeza
+      mediaProcessed: hadMediaData,
       usedExistingInfrastructure: true
     }
   };
