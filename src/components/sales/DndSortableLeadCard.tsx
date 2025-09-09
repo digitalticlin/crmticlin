@@ -38,6 +38,10 @@ export const DndSortableLeadCard: React.FC<DndSortableLeadCardProps> = ({
   enableDnd = false,
   className
 }) => {
+  // Desabilitar DnD se estivermos em modo de seleção em massa
+  const isInSelectionMode = massSelection?.isSelectionMode || false;
+  const isDndDisabled = !enableDnd || isInSelectionMode;
+
   const {
     attributes,
     listeners,
@@ -48,7 +52,7 @@ export const DndSortableLeadCard: React.FC<DndSortableLeadCardProps> = ({
     isSorting
   } = useSortable({
     id: lead.id,
-    disabled: !enableDnd,
+    disabled: isDndDisabled,
     data: {
       type: 'lead',
       leadId: lead.id,
@@ -62,8 +66,8 @@ export const DndSortableLeadCard: React.FC<DndSortableLeadCardProps> = ({
     transition,
   };
 
-  // Se não estiver habilitado para DnD, renderizar wrapper normal
-  if (!enableDnd) {
+  // Se DnD estiver desabilitado (incluindo modo seleção), renderizar wrapper normal
+  if (isDndDisabled) {
     return (
       <DndLeadCardWrapper
         lead={lead}

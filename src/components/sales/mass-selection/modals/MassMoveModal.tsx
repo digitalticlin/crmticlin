@@ -180,16 +180,16 @@ export const MassMoveModal = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-blue-600">
+          <DialogTitle className="flex items-center gap-2 text-gray-700">
             <Move size={20} />
             Mover Leads Selecionados
           </DialogTitle>
         </DialogHeader>
 
         <div className="py-4 space-y-4">
-          <p className="text-gray-700">
+          <p className="text-gray-600">
             Movendo{' '}
-            <strong className="text-blue-600">{selectedCount}</strong>{' '}
+            <strong className="text-gray-800">{selectedCount}</strong>{' '}
             lead{selectedCount > 1 ? 's' : ''} selecionado{selectedCount > 1 ? 's' : ''}
           </p>
 
@@ -275,9 +275,9 @@ export const MassMoveModal = ({
           </div>
 
           {selectedStage && (
-            <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg text-sm">
-              <ArrowRight size={16} className="text-blue-500" />
-              <span className="text-blue-700">
+            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg text-sm">
+              <ArrowRight size={16} className="text-gray-600" />
+              <span className="text-gray-700">
                 Leads serão movidos para "{stages.find(s => s.id === selectedStage)?.title}"
               </span>
             </div>
@@ -285,15 +285,15 @@ export const MassMoveModal = ({
 
           {/* Barra de Progresso para Grandes Volumes */}
           {showProgress && batchProgress && (
-            <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between text-sm text-blue-700">
+            <div className="space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between text-sm text-gray-700">
                 <span className="font-medium">Processando em lotes...</span>
                 <span>{batchProgress.percentage}%</span>
               </div>
               
               <Progress value={batchProgress.percentage} className="w-full h-2" />
               
-              <div className="flex justify-between text-xs text-blue-600">
+              <div className="flex justify-between text-xs text-gray-600">
                 <span>Lote {batchProgress.current} de {batchProgress.total}</span>
                 <span>{batchProgress.processedItems} / {batchProgress.totalItems} leads</span>
               </div>

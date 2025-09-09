@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { DndDropZone } from '@/components/dnd';
 import { DndLeadCardWrapper } from './DndLeadCardWrapper';
 import { KanbanColumn as KanbanColumnType, KanbanLead } from '@/types/kanban';
@@ -7,6 +7,8 @@ import { AIToggleSwitchEnhanced } from './ai/AIToggleSwitchEnhanced';
 import { useAIStageControl } from '@/hooks/salesFunnel/useAIStageControl';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { DndSortableLeadCard } from './DndSortableLeadCard';
+import { useInfiniteScroll } from '@/hooks/salesFunnel/useInfiniteScroll';
+import { Loader2 } from 'lucide-react';
 
 interface DndKanbanColumnWrapperProps {
   column: KanbanColumnType;
@@ -21,13 +23,14 @@ interface DndKanbanColumnWrapperProps {
   // Novo sistema DnD
   enableDnd?: boolean;
   className?: string;
-  maxVisibleLeads?: number;
 }
 
 /**
  * Wrapper para KanbanColumn que suporta o novo sistema @dnd-kit
  * Mantém compatibilidade total com funcionalidades existentes
  */
+const LEADS_PER_PAGE = 30; // Paginação otimizada para escalabilidade
+
 export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
   column,
   onOpenLeadDetail,
@@ -39,10 +42,12 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
   lostStageId,
   massSelection,
   enableDnd = false,
-  className,
-  maxVisibleLeads = 25
+  className
 }) => {
   const { toggleAI, isLoading: isTogglingAI } = useAIStageControl();
+  
+  // Estado para scroll infinito - inicia com 30 leads
+  const [visibleCount, setVisibleCount] = useState(LEADS_PER_PAGE);
 
   // Verificar se é etapa GANHO ou PERDIDO (não devem ter controle de IA)
   const isWonLostStage = column.title === "GANHO" || column.title === "PERDIDO";
@@ -60,11 +65,46 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
       toggleAI(column.id, column.ai_enabled === true);
     }
   };
-  // Debug removido para evitar loops
+  // Lógica de scroll infinito
+  const visibleLeads = column.leads.slice(0, visibleCount);
+  const hasMoreLeads = column.leads.length > visibleCount;
+  
+  // Função para carregar mais leads
+  const loadMoreLeads = useCallback(async () => {
+    console.log('[DndKanbanColumnWrapper] 📜 Carregando mais leads:', {
+      currentVisible: visibleCount,
+      totalLeads: column.leads.length,
+      columnTitle: column.title
+    });
+    
+    // Simular pequeno delay para UX
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    setVisibleCount(prevCount => 
+      Math.min(prevCount + LEADS_PER_PAGE, column.leads.length)
+    );
+  }, [visibleCount, column.leads.length, column.title]);
 
-  // Limitar leads para performance
-  const visibleLeads = column.leads.slice(0, maxVisibleLeads);
-  const hasMoreLeads = column.leads.length > maxVisibleLeads;
+  // Hook de scroll infinito
+  const infiniteScroll = useInfiniteScroll({
+    hasMore: hasMoreLeads,
+    onLoadMore: loadMoreLeads,
+    threshold: 100,
+    rootMargin: '0px 0px 100px 0px'
+  });
+
+  // Reset scroll infinito quando os leads da coluna mudam drasticamente
+  useEffect(() => {
+    // Se o total de leads mudou significativamente ou se temos menos leads do que estamos mostrando
+    if (column.leads.length < visibleCount) {
+      console.log('[DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados:', {
+        totalLeads: column.leads.length,
+        visibleCount,
+        columnTitle: column.title
+      });
+      setVisibleCount(Math.min(LEADS_PER_PAGE, column.leads.length));
+    }
+  }, [column.leads.length, visibleCount, column.title]);
 
   // IDs dos leads para o SortableContext
   const leadIds = visibleLeads.map(lead => lead.id);
@@ -141,11 +181,27 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
           visibleLeads.map((lead, index) => renderLeadCard(lead, index))
         )}
         
+        {/* Sentinel para scroll infinito */}
         {hasMoreLeads && (
-          <div className="p-2 text-center text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded mx-1 mb-2">
-            +{column.leads.length - maxVisibleLeads} leads adicionais
-            <br />
-            <span className="text-blue-600">Use filtros para ver mais</span>
+          <div 
+            ref={infiniteScroll.sentinelRef}
+            className="p-4 text-center text-xs text-gray-500 flex flex-col items-center justify-center gap-2"
+          >
+            {infiniteScroll.isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                <span className="text-blue-600">Carregando mais leads...</span>
+              </>
+            ) : (
+              <>
+                <div className="text-gray-400">
+                  {visibleCount} de {column.leads.length} leads
+                </div>
+                <div className="text-xs text-gray-300">
+                  Role para carregar mais
+                </div>
+              </>
+            )}
           </div>
         )}
         

@@ -224,31 +224,10 @@ export class BatchingService {
       };
     }
 
-    // Se poucos leads, usar método direto
+    // Se poucos leads, usar método direto com exclusão completa
     if (leadIds.length <= BATCH_CONFIG.MAX_BATCH_SIZE) {
-      try {
-        const { error } = await supabase
-          .from('leads')
-          .delete()
-          .in('id', leadIds);
-
-        if (error) throw error;
-
-        return {
-          success: true,
-          message: `${leadIds.length} lead${leadIds.length > 1 ? 's' : ''} excluído${leadIds.length > 1 ? 's' : ''} com sucesso!`,
-          totalProcessed: leadIds.length,
-          totalErrors: 0
-        };
-      } catch (error) {
-        console.error('[BatchingService] ❌ Erro na exclusão direta:', error);
-        return {
-          success: false,
-          message: 'Erro ao excluir leads. Tente novamente.',
-          totalProcessed: 0,
-          totalErrors: 1
-        };
-      }
+      const { MassActionsService } = await import('./massActionsService');
+      return await MassActionsService.deleteLeads(leadIds);
     }
 
     // PROCESSAMENTO EM LOTES
@@ -261,14 +240,13 @@ export class BatchingService {
       console.log(`[BatchingService] 🗑️ Excluindo lote ${i + 1}/${batches.length} (${batch.length} leads)...`);
       
       try {
-        const { error } = await supabase
-          .from('leads')
-          .delete()
-          .in('id', batch);
+        // Usar MassActionsService para exclusão completa (leads + mensagens)
+        const { MassActionsService } = await import('./massActionsService');
+        const result = await MassActionsService.deleteLeads(batch);
 
-        if (error) {
-          console.error(`[BatchingService] ❌ Erro na exclusão do lote ${i + 1}:`, error);
-          errors.push({ batch: i + 1, error: error.message, leadCount: batch.length });
+        if (!result.success) {
+          console.error(`[BatchingService] ❌ Erro na exclusão do lote ${i + 1}:`, result.message);
+          errors.push({ batch: i + 1, error: result.message, leadCount: batch.length });
         } else {
           totalProcessed += batch.length;
           console.log(`[BatchingService] ✅ Lote ${i + 1} excluído: ${batch.length} leads`);

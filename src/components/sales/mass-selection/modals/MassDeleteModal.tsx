@@ -86,7 +86,7 @@ export const MassDeleteModal = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-red-600">
+          <DialogTitle className="flex items-center gap-2 text-gray-700">
             <Trash2 size={20} />
             Excluir Leads Selecionados
           </DialogTitle>
@@ -100,9 +100,9 @@ export const MassDeleteModal = ({
             </AlertDescription>
           </Alert>
 
-          <p className="text-gray-700">
+          <p className="text-gray-600">
             Você está prestes a excluir{' '}
-            <strong className="text-red-600">{selectedCount}</strong>{' '}
+            <strong className="text-gray-800">{selectedCount}</strong>{' '}
             lead{selectedCount > 1 ? 's' : ''}:
           </p>
 

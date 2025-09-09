@@ -32,6 +32,10 @@ export const DndLeadCardWrapper: React.FC<DndLeadCardWrapperProps> = ({
   className,
   ...leadCardProps
 }) => {
+  // Verificar se está em modo de seleção em massa
+  const isInSelectionMode = leadCardProps.massSelection?.isSelectionMode || false;
+  const shouldDisableDnd = !enableDnd || isInSelectionMode;
+
   // Dados para o sistema DnD
   const dndData = {
     leadId: lead.id,
@@ -40,8 +44,8 @@ export const DndLeadCardWrapper: React.FC<DndLeadCardWrapperProps> = ({
     type: 'lead'
   };
 
-  // Se DnD desabilitado, renderizar LeadCard normal
-  if (!enableDnd) {
+  // Se DnD desabilitado (incluindo modo seleção), renderizar LeadCard normal
+  if (shouldDisableDnd) {
     return (
       <div className={className}>
         <LeadCard lead={lead} {...leadCardProps} />

@@ -99,16 +99,16 @@ export const MassAssignUserModal = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-purple-600">
+          <DialogTitle className="flex items-center gap-2 text-gray-700">
             <User size={20} />
             Atribuir Responsável
           </DialogTitle>
         </DialogHeader>
 
         <div className="py-4 space-y-4">
-          <p className="text-gray-700">
+          <p className="text-gray-600">
             Atribuindo responsável para{' '}
-            <strong className="text-purple-600">{selectedCount}</strong>{' '}
+            <strong className="text-gray-800">{selectedCount}</strong>{' '}
             lead{selectedCount > 1 ? 's' : ''} selecionado{selectedCount > 1 ? 's' : ''}
           </p>
 
@@ -156,13 +156,13 @@ export const MassAssignUserModal = ({
           </div>
 
           {selectedUser && (
-            <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-              <UserCheck size={16} className="text-purple-500" />
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+              <UserCheck size={16} className="text-gray-600" />
               <div>
-                <div className="font-medium text-purple-700">
+                <div className="font-medium text-gray-700">
                   {selectedUser.full_name || 'Sem nome'}
                 </div>
-                <div className="text-xs text-purple-600">
+                <div className="text-xs text-gray-600">
                   {selectedUser.email}
                 </div>
               </div>
@@ -181,7 +181,7 @@ export const MassAssignUserModal = ({
           <Button 
             onClick={handleAssign}
             disabled={isAssigning || !selectedUserId}
-            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+            className="flex items-center gap-2 bg-gray-700 hover:bg-gray-800"
           >
             {isAssigning ? (
               <>

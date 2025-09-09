@@ -95,15 +95,19 @@ export const LeadCard = memo(({
         "bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg mb-2 rounded-xl p-2 cursor-pointer group",
         "w-[98.5%] max-w-[380px] mx-auto",
         
-        // Estados normais - hover e transições
-        "transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:border-white/50",
+        // Estados normais - hover e transições (não aplicar hover se em modo seleção)
+        !isSelectionMode && "transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:border-white/50",
+        isSelectionMode && "transition-all duration-200",
         
         // Estados especiais para Won/Lost
         isWon && "border-l-[4px] border-l-green-500 bg-green-50/20",
         isLost && "border-l-[4px] border-l-red-500 bg-red-50/20",
         
-        // Estado selecionado - borda azul destacada
-        isSelected && "ring-2 ring-blue-500 border-blue-300 bg-blue-50/20"
+        // Estado selecionado - borda azul destacada e background mais visível
+        isSelected && "ring-2 ring-blue-500 border-blue-400 bg-blue-100/30 shadow-blue-200",
+        
+        // Modo seleção ativo - cursor de seleção
+        isSelectionMode && !isSelected && "cursor-pointer hover:ring-1 hover:ring-blue-300 hover:bg-blue-50/10"
       )}
       onClick={handleCardClick}
       onMouseEnter={onMouseEnter}

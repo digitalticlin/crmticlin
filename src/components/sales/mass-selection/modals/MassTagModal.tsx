@@ -146,16 +146,16 @@ export const MassTagModal = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-green-600">
+          <DialogTitle className="flex items-center gap-2 text-gray-700">
             <Tag size={20} />
             Gerenciar Tags dos Leads
           </DialogTitle>
         </DialogHeader>
 
         <div className="py-4">
-          <p className="text-gray-700 mb-4">
+          <p className="text-gray-600 mb-4">
             Aplicando tags em{' '}
-            <strong className="text-green-600">{selectedCount}</strong>{' '}
+            <strong className="text-gray-800">{selectedCount}</strong>{' '}
             lead{selectedCount > 1 ? 's' : ''} selecionado{selectedCount > 1 ? 's' : ''}
           </p>
 
@@ -219,8 +219,8 @@ export const MassTagModal = ({
             )}
 
             {hasChanges && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <div className="text-sm text-blue-700">
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <div className="text-sm text-gray-700">
                   <strong>Ações selecionadas:</strong>
                   <ul className="mt-1 space-y-1">
                     {availableTags
