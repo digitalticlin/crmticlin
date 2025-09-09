@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 
@@ -33,42 +33,27 @@ export const DndDraggableCard: React.FC<DndDraggableCardProps> = ({
   });
 
   const isCurrentDrag = active?.id === id;
-  const isBeingDragged = isDragging && isCurrentDrag;
-  const isDragStarted = useRef(false);
-  const mouseDownPos = useRef({ x: 0, y: 0 });
-
-  // Transform para seguir o cursor (não aplicar quando é drag overlay)
-  const style = transform && !isCurrentDrag ? {
+  
+  // Transform para seguir o cursor
+  const style = transform ? {
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined;
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    isDragStarted.current = false;
-    mouseDownPos.current = { x: e.clientX, y: e.clientY };
-  }, []);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragStarted.current) {
-      const dx = e.clientX - mouseDownPos.current.x;
-      const dy = e.clientY - mouseDownPos.current.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      // Se moveu mais de 5px, considerar como drag
-      if (distance > 5) {
-        isDragStarted.current = true;
-      }
+  // Handler para clique duplo
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    // Se estiver sendo arrastado, não processar clique duplo
+    if (isDragging || disabled) {
+      return;
     }
-  }, []);
-
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    // Processar click imediatamente se não houve movimento
-    if (onClick && !disabled && !isDragStarted.current) {
-      console.log('[DndDraggableCard] 🖱️ Click detectado:', { id, isDragStarted: isDragStarted.current });
+    
+    console.log('[DndDraggableCard] 🖱️💬 DUPLO CLIQUE - ABRINDO CHAT:', { id });
+    
+    if (onClick) {
       e.preventDefault();
       e.stopPropagation();
       onClick();
     }
-  }, [onClick, disabled, id]);
+  }, [isDragging, disabled, onClick, id]);
 
   return (
     <div
@@ -78,16 +63,9 @@ export const DndDraggableCard: React.FC<DndDraggableCardProps> = ({
         // Base styles
         "dnd-draggable-card transition-all duration-200 ease-out",
         
-        // Estados de drag
-        isDragging && !isCurrentDrag && "drag-card--ghost",
-        isCurrentDrag && "drag-card--dragging",
-        
-        // Ocultar card original quando sendo arrastado (drag overlay ativo)
-        isBeingDragged && "opacity-0",
-        
-        // Visual feedback durante drag
-        isCurrentDrag && !isBeingDragged && "cursor-grabbing",
-        !disabled && !isDragging && "cursor-grab",
+        // Estados de drag - card original fica invisível durante drag
+        isDragging && isCurrentDrag && "opacity-0",
+        !disabled && !isDragging && "cursor-pointer hover:scale-[1.02]",
         
         // Estado disabled
         disabled && "opacity-50 cursor-not-allowed",
@@ -96,32 +74,16 @@ export const DndDraggableCard: React.FC<DndDraggableCardProps> = ({
       )}
       data-draggable-id={id}
       data-is-dragging={isDragging}
-      data-is-current-drag={isCurrentDrag}
-      // Event handlers para drag + click
-      {...listeners}
+      
+      // Double click handler para abrir chat
+      onDoubleClick={handleDoubleClick}
+      
+      // DnD attributes e listeners padrão
       {...attributes}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onClick={handleClick}
+      {...listeners}
     >
-      <div className={cn(
-        "relative w-full h-full group",
-        
-        // Efeitos visuais durante drag
-        isCurrentDrag && [
-          "shadow-2xl shadow-blue-500/25",
-          "ring-2 ring-blue-400/50"
-        ],
-        
-        // Card fantasma (original position)
-        isDragging && !isCurrentDrag && [
-          "opacity-40 scale-95"
-        ]
-      )}>
-        {/* Card completo é arrastável */}
-        <div className="w-full h-full">
-          {children}
-        </div>
+      <div className="relative w-full h-full">
+        {children}
       </div>
     </div>
   );

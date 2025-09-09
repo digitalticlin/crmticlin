@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { DndDraggableCard } from '@/components/dnd';
 import { LeadCard } from './LeadCard';
 import { KanbanLead } from '@/types/kanban';
@@ -49,23 +49,29 @@ export const DndLeadCardWrapper: React.FC<DndLeadCardWrapperProps> = ({
     );
   }
 
-  // Com DnD habilitado - usar onOpenChat se disponível, senão usar onClick original
-  const handleCardClick = () => {
+  // Handler para duplo clique que prioriza onOpenChat
+  const handleDoubleClick = useCallback(() => {
+    console.log('[DndLeadCardWrapper] 💬 DUPLO CLIQUE - ABRINDO CHAT:', { 
+      leadId: lead.id, 
+      leadName: lead.name 
+    });
+    
+    // Priorizar onOpenChat para abrir chat
     if (leadCardProps.onOpenChat) {
       leadCardProps.onOpenChat();
     } else {
       leadCardProps.onClick();
     }
-  };
+  }, [lead.id, lead.name, leadCardProps.onOpenChat, leadCardProps.onClick]);
 
   return (
     <DndDraggableCard
       id={lead.id}
       data={dndData}
       className={className}
-      onClick={handleCardClick}
+      onClick={handleDoubleClick}
     >
-      <LeadCard lead={lead} {...{...leadCardProps, onClick: handleCardClick}} />
+      <LeadCard lead={lead} {...leadCardProps} />
     </DndDraggableCard>
   );
 };

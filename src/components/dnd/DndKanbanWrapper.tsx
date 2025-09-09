@@ -1,11 +1,12 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import './dnd-kanban.css';
 
 interface DndKanbanWrapperProps {
   children: React.ReactNode;
   onDragStart?: (event: DragStartEvent) => void;
+  onDragOver?: (event: DragOverEvent) => void;
   onDragEnd: (event: DragEndEvent) => void;
   dragOverlay?: React.ReactNode;
   className?: string;
@@ -21,6 +22,7 @@ const SCROLL_CONFIG = {
 export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
   children,
   onDragStart,
+  onDragOver,
   onDragEnd,
   dragOverlay,
   className
@@ -114,6 +116,7 @@ export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
     <DndContext
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
+      onDragOver={onDragOver}
       onDragEnd={handleDragEnd}
     >
       <div

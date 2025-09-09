@@ -4,10 +4,18 @@ import { KanbanColumn } from "@/types/kanban";
 import { KanbanStage } from "@/types/funnel";
 
 export const useKanbanColumns = (stages: KanbanStage[], leads: any[], funnelId?: string) => {
+  console.log('🔍 [DEBUG] useKanbanColumns - ENTRADA:', {
+    stagesCount: stages?.length || 0,
+    leadsCount: leads?.length || 0,
+    funnelId,
+    stagesTitles: stages?.map(s => s.title),
+    leadsStages: leads?.map(l => l.columnId).slice(0, 5)
+  });
+
   // Memoizar as colunas com dependências estáveis para evitar recriações desnecessárias
   const columns = useMemo(() => {
     if (!stages?.length || !funnelId) {
-      console.log('[useKanbanColumns] ⚠️ Sem stages ou funnelId:', { stagesCount: stages?.length || 0, funnelId });
+      console.log('🔍 [DEBUG] useKanbanColumns - SEM DADOS:', { stagesCount: stages?.length || 0, funnelId });
       return [];
     }
 

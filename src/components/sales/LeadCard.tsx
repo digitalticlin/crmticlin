@@ -52,23 +52,35 @@ export const LeadCard = memo(({
   const isLost = isWonLostView && lead.columnId === lostStageId;
   
   const handleCardClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+    console.log('[LeadCard] 🖱️ CARD CLICADO:', { 
+      leadId: lead.id, 
+      leadName: lead.name,
+      isSelectionMode,
+      hasOnOpenChat: !!onOpenChat,
+      target: (e.target as HTMLElement).className 
+    });
     
     // Se estiver em modo seleção e não clicou no checkbox
     if (isSelectionMode && !(e.target as HTMLElement).closest('.selection-checkbox')) {
+      console.log('[LeadCard] ☑️ Modo seleção ativo - toggle lead');
       toggleLead(lead.id);
       return;
     }
     
-    // Comportamento normal - priorizar onOpenChat
+    // PRIORIDADE: onOpenChat para abrir chat
     if (onOpenChat) {
-      console.log('[LeadCard] 💬 Abrindo chat para lead:', lead.name);
+      console.log('[LeadCard] 💬 ✅ ABRINDO CHAT para:', lead.name);
+      e.preventDefault();
+      e.stopPropagation();
       onOpenChat();
-    } else {
-      console.log('[LeadCard] 👆 Executando onClick para lead:', lead.name);
-      onClick();
+      return;
     }
+    
+    // FALLBACK: onClick padrão
+    console.log('[LeadCard] 👆 Executando onClick padrão para:', lead.name);
+    e.preventDefault();
+    e.stopPropagation();
+    onClick();
   };
 
   const handleCheckboxClick = (e: React.MouseEvent) => {

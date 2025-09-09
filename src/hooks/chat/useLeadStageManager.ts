@@ -3,6 +3,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { 
+  chatStagesQueryKeys, 
+  chatContactsQueryKeys, 
+  chatLeadsQueryKeys,
+  chatClientsQueryKeys 
+} from './queryKeys';
 
 export interface StageOption {
   id: string;
@@ -28,7 +34,7 @@ export const useLeadStageManager = (leadId: string | null, currentStageId: strin
 
   // Buscar todas as etapas disponíveis para o usuário
   const { data: stages = [], isLoading } = useQuery({
-    queryKey: ['lead-stages', user?.id],
+    queryKey: chatStagesQueryKeys.byUser(user?.id || ''),
     queryFn: async () => {
       if (!user?.id) return [];
 
@@ -101,22 +107,21 @@ export const useLeadStageManager = (leadId: string | null, currentStageId: strin
       setLocalCurrentStageId(stageId);
       
       // Cancelar queries em andamento para evitar conflitos
-      await queryClient.cancelQueries({ queryKey: ['whatsapp-contacts'] });
+      await queryClient.cancelQueries({ queryKey: chatContactsQueryKeys.base });
       
       return { previousStageId: localCurrentStageId };
     },
     onSuccess: ({ stageName, stageId }) => {
       console.log('[LeadStageManager] 🔄 Invalidando caches após sucesso...');
       
-      // Invalidar todas as queries relevantes para buscar dados atualizados
-      queryClient.invalidateQueries({ queryKey: ['kanban-leads'] });
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      queryClient.invalidateQueries({ queryKey: ['whatsapp-contacts'] });
-      queryClient.invalidateQueries({ queryKey: ['lead-stages'] });
+      // Invalidar queries ISOLADAS do chat (não interfere com Sales Funnel)
+      queryClient.invalidateQueries({ queryKey: chatLeadsQueryKeys.base });
+      queryClient.invalidateQueries({ queryKey: chatClientsQueryKeys.base });
+      queryClient.invalidateQueries({ queryKey: chatContactsQueryKeys.base });
+      queryClient.invalidateQueries({ queryKey: chatStagesQueryKeys.base });
       
       // Refetch específico para garantir sincronização
-      queryClient.refetchQueries({ queryKey: ['whatsapp-contacts'] });
+      queryClient.refetchQueries({ queryKey: chatContactsQueryKeys.base });
       
       // 🚀 CORREÇÃO: Só fazer refresh de contatos se realmente necessário
       // Mudanças de etapa não afetam a ordem da lista de contatos

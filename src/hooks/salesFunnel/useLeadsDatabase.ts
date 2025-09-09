@@ -3,16 +3,16 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { salesFunnelQueryKeys } from "./queryKeys";
+import { salesFunnelLeadsQueryKeys } from "./queryKeys";
 
-export function useLeadsDatabase(funnelId?: string, canViewAllFunnels: boolean = false) {
+export function useLeadsDatabase(funnelId?: string) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  console.log('[useLeadsDatabase] 🔍 Iniciando query com:', { funnelId, userId: user?.id, canViewAllFunnels });
+  console.log('[useLeadsDatabase] 🔍 Iniciando query com:', { funnelId, userId: user?.id });
 
   const { data: leads = [], refetch: refetchLeads } = useQuery({
-    queryKey: salesFunnelQueryKeys.leads(funnelId || '', user?.id || '', canViewAllFunnels),
+    queryKey: salesFunnelLeadsQueryKeys.byFunnel(funnelId || '', user?.id || '', false), // ISOLADO
     queryFn: async () => {
       if (!funnelId || !user?.id) {
         console.log('[useLeadsDatabase] ⚠️ Faltam parâmetros:', { funnelId, userId: user?.id });
@@ -94,7 +94,7 @@ export function useLeadsDatabase(funnelId?: string, canViewAllFunnels: boolean =
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
+      queryClient.invalidateQueries({ queryKey: salesFunnelLeadsQueryKeys.base });
       toast.success("Tag adicionada com sucesso!");
     },
     onError: (error) => {
@@ -119,7 +119,7 @@ export function useLeadsDatabase(funnelId?: string, canViewAllFunnels: boolean =
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
+      queryClient.invalidateQueries({ queryKey: salesFunnelLeadsQueryKeys.base });
       toast.success("Tag removida com sucesso!");
     },
     onError: (error) => {
@@ -143,7 +143,7 @@ export function useLeadsDatabase(funnelId?: string, canViewAllFunnels: boolean =
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
+      queryClient.invalidateQueries({ queryKey: salesFunnelLeadsQueryKeys.base });
     },
     onError: (error) => {
       console.error("Erro ao atualizar lead:", error);

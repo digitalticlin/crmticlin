@@ -29,6 +29,8 @@ export function SalesFunnelContent() {
   const { user } = useAuth();
   const navigate = useNavigate();
   
+  // Component inicializado
+  
   // ✅ Hook isolado para seleção em massa (sem Provider) - FUNCIONANDO
   const massSelection = useMassSelection();
   
@@ -48,11 +50,6 @@ export function SalesFunnelContent() {
     stages,
     leads,
     openLeadDetail,
-    updateLeadNotes,
-    updateLeadPurchaseValue,
-    updateLeadAssignedUser,
-    updateLeadName,
-    toggleTagOnLead,
     moveLeadToStage,
     refetchLeads,
     refetchStages,
@@ -63,6 +60,8 @@ export function SalesFunnelContent() {
     wonStageId,
     lostStageId
   } = useSalesFunnelDirect();
+
+  // Hook data ready
 
   const { isAdmin } = useUserRole();
   const [activeTab, setActiveTab] = useState("funnel");

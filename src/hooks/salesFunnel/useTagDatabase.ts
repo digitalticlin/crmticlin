@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { salesFunnelQueryKeys } from "./queryKeys";
+import { salesFunnelTagsQueryKeys } from "./queryKeys";
 
 export interface Tag {
   id: string;
@@ -19,7 +19,7 @@ export function useTagDatabase() {
   const { user } = useAuth();
 
   const { data: tags = [], isLoading } = useQuery({
-    queryKey: salesFunnelQueryKeys.tags(user?.id || ''),
+    queryKey: salesFunnelTagsQueryKeys.byUser(user?.id || ''), // ISOLADO
     queryFn: async (): Promise<Tag[]> => {
       if (!user?.id) return [];
 
@@ -55,7 +55,7 @@ export function useTagDatabase() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tags"] });
+      queryClient.invalidateQueries({ queryKey: salesFunnelTagsQueryKeys.base });
       toast.success("Tag criada com sucesso!");
     },
     onError: (error) => {
@@ -82,7 +82,7 @@ export function useTagDatabase() {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tags"] });
+      queryClient.invalidateQueries({ queryKey: salesFunnelTagsQueryKeys.base });
       toast.success("Tag atualizada com sucesso!");
     },
     onError: (error) => {
@@ -114,7 +114,7 @@ export function useTagDatabase() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tags"] });
+      queryClient.invalidateQueries({ queryKey: salesFunnelTagsQueryKeys.base });
       // TEMPORÁRIO: Removido invalidateQueries de leads para evitar loop infinito
       toast.success("Tag removida com sucesso!");
     },

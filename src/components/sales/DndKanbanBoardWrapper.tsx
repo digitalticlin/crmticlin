@@ -4,7 +4,8 @@ import { DndKanbanColumnWrapper } from './DndKanbanColumnWrapper';
 import { DataErrorBoundary } from './funnel/DataErrorBoundary';
 import { KanbanColumn as IKanbanColumn, KanbanLead } from '@/types/kanban';
 import { MassSelectionReturn } from '@/hooks/useMassSelection';
-import { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
+import { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { LeadCard } from './LeadCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -159,6 +160,8 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
     const { active } = event;
     const activeId = active.id as string;
     
+    console.log('[DndKanbanBoardWrapper] 🔄 DRAG START:', { activeId });
+    
     // Encontrar o lead sendo arrastado
     let foundLead: KanbanLead | null = null;
     for (const column of columns) {
@@ -169,18 +172,127 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
       }
     }
     
+    console.log('[DndKanbanBoardWrapper] ✅ DRAG INICIADO:', { 
+      leadId: activeId,
+      leadName: foundLead?.name 
+    });
+    
     setActiveId(activeId);
     setDraggedLead(foundLead);
   }, [columns]);
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+    
+    // Encontrar colunas de origem e destino
+    const activeColumnId = columns.find(col => 
+      col.leads.some(lead => lead.id === active.id)
+    )?.id;
+    
+    const overColumnId = typeof over.id === 'string' && over.id.startsWith('column-') 
+      ? over.id.replace('column-', '') 
+      : columns.find(col => col.leads.some(lead => lead.id === over.id))?.id;
+    
+    if (!activeColumnId || !overColumnId || activeColumnId === overColumnId) return;
+    
+    console.log('[DndKanbanBoardWrapper] 🔄 MOVENDO ENTRE COLUNAS:', {
+      activeId: active.id,
+      fromColumn: activeColumnId,
+      toColumn: overColumnId
+    });
+    
+    // Atualizar visualmente (otimistic update)
+    const newColumns = columns.map(column => {
+      if (column.id === activeColumnId) {
+        return {
+          ...column,
+          leads: column.leads.filter(lead => lead.id !== active.id)
+        };
+      } else if (column.id === overColumnId) {
+        const movingLead = columns.find(col => col.id === activeColumnId)
+          ?.leads.find(lead => lead.id === active.id);
+        
+        if (movingLead) {
+          return {
+            ...column,
+            leads: [...column.leads, { ...movingLead, columnId: overColumnId }]
+          };
+        }
+      }
+      return column;
+    });
+    
+    onColumnsChange(newColumns);
+  }, [columns, onColumnsChange]);
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
     // Limpar estado do drag
     setActiveId(null);
     setDraggedLead(null);
     
-    // Processar o drag end
-    dndKanban.handleDragEnd(event);
-  }, [dndKanban]);
+    if (!over || active.id === over.id) return;
+    
+    console.log('[DndKanbanBoardWrapper] ✅ DRAG END:', {
+      activeId: active.id,
+      overId: over.id
+    });
+    
+    // Encontrar a coluna do lead ativo
+    const activeColumn = columns.find(col => 
+      col.leads.some(lead => lead.id === active.id)
+    );
+    
+    if (!activeColumn) return;
+    
+    // Verificar se é reordenação dentro da mesma coluna
+    const activeIndex = activeColumn.leads.findIndex(lead => lead.id === active.id);
+    const overIndex = activeColumn.leads.findIndex(lead => lead.id === over.id);
+    
+    if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+      console.log('[DndKanbanBoardWrapper] 📋 REORDENANDO DENTRO DA COLUNA:', {
+        columnId: activeColumn.id,
+        fromIndex: activeIndex,
+        toIndex: overIndex
+      });
+      
+      // Reordenar dentro da mesma coluna
+      const newColumns = columns.map(column => {
+        if (column.id === activeColumn.id) {
+          return {
+            ...column,
+            leads: arrayMove(column.leads, activeIndex, overIndex)
+          };
+        }
+        return column;
+      });
+      
+      onColumnsChange(newColumns);
+    }
+    
+    // Persistir mudança no banco (se necessário)
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ 
+          kanban_stage_id: activeColumn.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', active.id);
+
+      if (error) {
+        console.error('[DndKanbanBoardWrapper] ❌ Erro ao persistir:', error);
+        toast.error('Erro ao salvar mudança');
+      } else {
+        console.log('[DndKanbanBoardWrapper] ✅ Mudança persistida');
+      }
+    } catch (error) {
+      console.error('[DndKanbanBoardWrapper] ❌ Erro inesperado:', error);
+    }
+  }, [columns, onColumnsChange]);
 
   const isEmpty = !columns || columns.length === 0;
 
@@ -234,6 +346,7 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
         {enableDnd ? (
           <DndKanbanWrapper 
             onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
             dragOverlay={draggedLead ? (
               <div className="opacity-90 scale-105 rotate-2">

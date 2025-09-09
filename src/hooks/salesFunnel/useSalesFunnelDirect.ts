@@ -9,7 +9,11 @@ import { KanbanColumn, KanbanLead, KanbanTag } from "@/types/kanban";
 import { Funnel, KanbanStage } from "@/types/funnel";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { salesFunnelQueryKeys } from "./queryKeys";
+import { 
+  salesFunnelFunnelsQueryKeys,
+  salesFunnelStagesQueryKeys,
+  salesFunnelLeadsQueryKeys 
+} from "./queryKeys";
 
 export function useSalesFunnelDirect() {
   const { user } = useAuth();
@@ -24,22 +28,26 @@ export function useSalesFunnelDirect() {
   const isAdmin = user?.user_metadata?.role === 'admin' || user?.email === 'inacio@ticlin.com.br';
   
   // Logging básico para monitoring
-  console.log('[useSalesFunnelDirect] Hook iniciado:', {
+  console.log('🔍 [DEBUG] useSalesFunnelDirect Hook iniciado:', {
     userId: user?.id,
     isAdmin,
-    selectedFunnelId: selectedFunnel?.id
+    selectedFunnelId: selectedFunnel?.id,
+    accessLoading,
+    canViewAllFunnels,
+    userFunnels: userFunnels.length
   });
 
   // Database hooks - usando queries diretas COM filtro de acesso corrigido
   const { data: funnels = [], isLoading: funnelLoading, refetch: refetchFunnels } = useQuery({
-    queryKey: salesFunnelQueryKeys.funnels(user?.id || '', canViewAllFunnels, userFunnels),
+    queryKey: salesFunnelFunnelsQueryKeys.list(user?.id || '', canViewAllFunnels, userFunnels),
     queryFn: async () => {
       if (!user?.id || accessLoading) return [];
       
-      console.log('[useSalesFunnelDirect] 🔍 Buscando funis acessíveis:', {
+      console.log('🔍 [DEBUG] FUNNELS - Buscando funis acessíveis:', {
         userId: user.id,
         canViewAll: canViewAllFunnels,
-        userFunnelsCount: userFunnels.length
+        userFunnelsCount: userFunnels.length,
+        accessLoading
       });
       
       try {
@@ -52,7 +60,7 @@ export function useSalesFunnelDirect() {
             .order('created_at', { ascending: true });
             
           if (error) throw error;
-          console.log('[useSalesFunnelDirect] ✅ Funis próprios encontrados:', ownedFunnels?.length || 0);
+          console.log('🔍 [DEBUG] FUNNELS - Admin funis encontrados:', ownedFunnels?.length || 0, ownedFunnels);
           return ownedFunnels || [];
         } else {
           // Operacional: buscar apenas funis atribuídos
@@ -68,7 +76,7 @@ export function useSalesFunnelDirect() {
             .order('created_at', { ascending: true });
             
           if (error) throw error;
-          console.log('[useSalesFunnelDirect] ✅ Funis atribuídos encontrados:', assignedFunnels?.length || 0);
+          console.log('🔍 [DEBUG] FUNNELS - Operacional funis encontrados:', assignedFunnels?.length || 0, assignedFunnels);
           return assignedFunnels || [];
         }
       } catch (error) {
@@ -82,7 +90,7 @@ export function useSalesFunnelDirect() {
   });
 
   const { data: stages = [], isLoading: stagesLoading, refetch: refetchStages } = useQuery({
-    queryKey: salesFunnelQueryKeys.stages(selectedFunnel?.id || ''),
+    queryKey: salesFunnelStagesQueryKeys.byFunnel(selectedFunnel?.id || ''),
     queryFn: async () => {
       if (!selectedFunnel?.id) return [];
       
@@ -93,7 +101,7 @@ export function useSalesFunnelDirect() {
         .order('order_position', { ascending: true });
       
       if (error) throw error;
-      console.log('[useSalesFunnelDirect] Stages encontrados:', data?.length || 0);
+      console.log('🔍 [DEBUG] STAGES - Encontrados:', data?.length || 0, 'para funnel:', selectedFunnel.id);
       return data || [];
     },
     enabled: !!selectedFunnel?.id,
@@ -103,17 +111,24 @@ export function useSalesFunnelDirect() {
 
   // 🔄 REVERTER: Query de leads original que funcionava
   const { data: leads = [], isLoading: leadsLoading, refetch: refetchLeads, error: leadsError } = useQuery({
-    queryKey: salesFunnelQueryKeys.leads(selectedFunnel?.id || '', user?.id || '', canViewAllFunnels),
+    queryKey: salesFunnelLeadsQueryKeys.byFunnel(selectedFunnel?.id || '', user?.id || '', canViewAllFunnels),
     queryFn: async () => {
       if (!selectedFunnel?.id || !user?.id || accessLoading) {
-        console.log('[useSalesFunnelDirect] ⏸️ Query BLOQUEADA - falta funnel ou user ou access carregando');
+        console.log('🔍 [DEBUG] LEADS - Query BLOQUEADA:', {
+          selectedFunnelId: selectedFunnel?.id,
+          userId: user?.id,
+          accessLoading,
+          reason: !selectedFunnel?.id ? 'sem funnel' : !user?.id ? 'sem user' : 'access loading'
+        });
         return [];
       }
 
-      console.log('[useSalesFunnelDirect] 🔍 EXECUTANDO QUERY LEADS:', {
+      console.log('🔍 [DEBUG] LEADS - EXECUTANDO QUERY:', {
         funnelId: selectedFunnel.id,
+        funnelName: selectedFunnel.name,
         userId: user.id,
-        canViewAll: canViewAllFunnels
+        canViewAll: canViewAllFunnels,
+        accessLoading
       });
       
       try {
@@ -146,11 +161,12 @@ export function useSalesFunnelDirect() {
           throw error;
         }
         
-        console.log('[useSalesFunnelDirect] ✅ LEADS ENCONTRADOS:', {
+        console.log('🔍 [DEBUG] LEADS - RESULTADO QUERY:', {
           count: allLeads?.length || 0,
           funnelId: selectedFunnel.id,
           canViewAll: canViewAllFunnels,
-          first3: allLeads?.slice(0, 3)?.map(l => ({ id: l.id, name: l.name, stage: l.kanban_stage_id }))
+          first3: allLeads?.slice(0, 3)?.map(l => ({ id: l.id, name: l.name, stage: l.kanban_stage_id })),
+          allLeadsIds: allLeads?.map(l => l.id).slice(0, 10)
         });
         
         return allLeads || [];
@@ -176,14 +192,7 @@ export function useSalesFunnelDirect() {
     deleteColumn: deleteStageFromDatabase 
   } = useStageManagement();
 
-  console.log('[useSalesFunnelDirect] 📊 Estado atual:', {
-    selectedFunnelId: selectedFunnel?.id,
-    funnelsCount: funnels?.length || 0,
-    stagesCount: stages?.length || 0,
-    leadsCount: leads?.length || 0,
-    columnsCount: columns.length,
-    loading: { funnel: funnelLoading, stages: stagesLoading, leads: leadsLoading }
-  });
+  // Estado atual monitorado
 
   // Auto-selecionar primeiro funil - SÓ UMA VEZ
   useEffect(() => {
@@ -195,15 +204,6 @@ export function useSalesFunnelDirect() {
 
   // 🚀 PERFORMANCE: Construir colunas Kanban com cache otimizado
   const kanbanColumns = useMemo(() => {
-    // Debounce desnecessário - só logar em dev
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[useSalesFunnelDirect] 🔧 Reconstruindo kanbanColumns:', {
-        stagesLength: stages?.length,
-        leadsLength: leads?.length,
-        selectedFunnelId: selectedFunnel?.id
-      });
-    }
-
     if (!stages?.length || !selectedFunnel?.id) {
       return [];
     }
@@ -224,7 +224,7 @@ export function useSalesFunnelDirect() {
       leadsByStage.get(lead.kanban_stage_id)?.push(lead);
     });
 
-    return mainStages.map(stage => {
+    const columns = mainStages.map(stage => {
       const stageLeads = (leadsByStage.get(stage.id) || [])
         .map((lead): KanbanLead => ({
           id: lead.id,
@@ -262,19 +262,13 @@ export function useSalesFunnelDirect() {
         ai_enabled: stage.ai_enabled !== false
       };
     });
-  }, [
-    // 🚀 PERFORMANCE: Dependências otimizadas para evitar re-renders
-    stages?.map(s => `${s.id}-${s.title}`).join(','), // String simples para stages
-    leads?.length, // Apenas length ao invés do array completo
-    selectedFunnel?.id
-  ]);
 
-  // Atualizar columns apenas quando kanbanColumns mudar - COM verificação simples para evitar loops  
+    return columns;
+  }, [stages, leads, selectedFunnel?.id]);
+
+  // Atualizar columns apenas quando kanbanColumns mudar - SIMPLIFICADO
   useEffect(() => {
-    // Comparação simples por length primeiro (mais eficiente)
-    if (columns.length !== kanbanColumns.length || 
-        (kanbanColumns.length > 0 && columns[0]?.id !== kanbanColumns[0]?.id)) {
-      console.log('[useSalesFunnelDirect] 🔄 Atualizando columns:', kanbanColumns.length);
+    if (kanbanColumns.length > 0) {
       setColumns(kanbanColumns);
     }
   }, [kanbanColumns]); // SEM dependência de columns para evitar loop
@@ -319,7 +313,7 @@ export function useSalesFunnelDirect() {
         },
         (payload) => {
           // Só invalidar na página atual para performance
-          throttledInvalidation(salesFunnelQueryKeys.leads(selectedFunnel.id, user.id, canViewAllFunnels));
+          throttledInvalidation(salesFunnelLeadsQueryKeys.byFunnel(selectedFunnel.id, user.id, canViewAllFunnels));
         }
       )
       .on(
@@ -331,7 +325,7 @@ export function useSalesFunnelDirect() {
           filter: `funnel_id=eq.${selectedFunnel.id}`
         },
         (payload) => {
-          throttledInvalidation(salesFunnelQueryKeys.stages(selectedFunnel.id));
+          throttledInvalidation(salesFunnelStagesQueryKeys.byFunnel(selectedFunnel.id));
         }
       )
       .subscribe();
@@ -500,7 +494,11 @@ export function useSalesFunnelDirect() {
   return {
     // Estado de carregamento - incluir accessLoading para evitar render prematuro
     loading: funnelLoading || stagesLoading || leadsLoading || accessLoading,
+    funnelLoading,
+    stagesLoading,
+    leadsLoading,
     error: leadsError,
+    leadsError,
 
     // Dados do funil
     funnels: funnels || [],

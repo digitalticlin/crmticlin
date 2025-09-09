@@ -5,6 +5,8 @@ import { KanbanColumn as KanbanColumnType, KanbanLead } from '@/types/kanban';
 import { MassSelectionReturn } from '@/hooks/useMassSelection';
 import { AIToggleSwitchEnhanced } from './ai/AIToggleSwitchEnhanced';
 import { useAIStageControl } from '@/hooks/salesFunnel/useAIStageControl';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { DndSortableLeadCard } from './DndSortableLeadCard';
 
 interface DndKanbanColumnWrapperProps {
   column: KanbanColumnType;
@@ -58,17 +60,21 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
       toggleAI(column.id, column.ai_enabled === true);
     }
   };
+  // Debug removido para evitar loops
+
   // Limitar leads para performance
   const visibleLeads = column.leads.slice(0, maxVisibleLeads);
   const hasMoreLeads = column.leads.length > maxVisibleLeads;
 
+  // IDs dos leads para o SortableContext
+  const leadIds = visibleLeads.map(lead => lead.id);
+
   const renderLeadCard = (lead: KanbanLead, index: number) => (
-    <DndLeadCardWrapper
+    <DndSortableLeadCard
       key={lead.id}
       lead={lead}
-      enableDnd={enableDnd}
-      onClick={() => onOpenLeadDetail(lead)}
-      onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
+      onOpenLeadDetail={onOpenLeadDetail}
+      onOpenChat={onOpenChat}
       onMoveToWon={onMoveToWonLost ? () => onMoveToWonLost(lead, 'won') : undefined}
       onMoveToLost={onMoveToWonLost ? () => onMoveToWonLost(lead, 'lost') : undefined}
       onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
@@ -76,6 +82,7 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
       wonStageId={wonStageId}
       lostStageId={lostStageId}
       massSelection={massSelection}
+      enableDnd={enableDnd}
       className="mb-2"
     />
   );
@@ -117,7 +124,7 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
         style={{ backgroundColor: column.color || "#e0e0e0" }}
       />
 
-      {/* Lista de leads - aparência original */}
+      {/* Lista de leads com SortableContext - aparência original */}
       <div
         className="flex-1 rounded-xl px-0.5 pt-1 pb-0 kanban-column-scrollbar overflow-y-auto overflow-x-hidden"
         style={{
@@ -126,7 +133,13 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
           scrollbarColor: "#ffffff66 transparent"
         }}
       >
-        {visibleLeads.map((lead, index) => renderLeadCard(lead, index))}
+        {enableDnd ? (
+          <SortableContext items={leadIds} strategy={verticalListSortingStrategy}>
+            {visibleLeads.map((lead, index) => renderLeadCard(lead, index))}
+          </SortableContext>
+        ) : (
+          visibleLeads.map((lead, index) => renderLeadCard(lead, index))
+        )}
         
         {hasMoreLeads && (
           <div className="p-2 text-center text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded mx-1 mb-2">
@@ -154,7 +167,7 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
   if (enableDnd) {
     return (
       <DndDropZone 
-        id={column.id}
+        id={`column-${column.id}`}
         className={`bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 pt-1.5 pb-0 min-w-[300px] w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg ${className || ''}`}
       >
         {columnContent}
