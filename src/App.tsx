@@ -21,6 +21,7 @@ import WhatsAppWebPage from './pages/WhatsAppChat';
 import AutomationPage from './pages/Automation';
 import AIAgentsPage from './pages/AIAgents';
 import PlansPage from './pages/Plans';
+import TestOperationalData from './pages/TestOperationalData';
 import { AcceptInvite } from './components/invite/AcceptInvite';
 import ConfirmEmail from './pages/ConfirmEmail';
 import ConfirmEmailInstructions from './pages/ConfirmEmailInstructions';
@@ -135,6 +136,14 @@ function AppLayoutRoutes() {
         element={
           <AppLayout fullHeight>
             <WhatsAppWebPage />
+          </AppLayout>
+        } 
+      />
+      <Route 
+        path="/test-operational" 
+        element={
+          <AppLayout>
+            <TestOperationalData />
           </AppLayout>
         } 
       />

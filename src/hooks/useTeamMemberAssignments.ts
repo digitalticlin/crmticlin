@@ -44,6 +44,21 @@ export const useTeamMemberAssignments = (companyId: string | null) => {
       console.log('[useTeamMemberAssignments]   funnelIds:', funnelIds, 'Tipo:', typeof funnelIds, 'É array:', Array.isArray(funnelIds));
       console.log('[useTeamMemberAssignments]   whatsappIds:', whatsappIds, 'Tipo:', typeof whatsappIds, 'É array:', Array.isArray(whatsappIds));
 
+      // 🏢 CORREÇÃO MULTI-TENANT: Buscar created_by_user_id do profile do usuário operacional
+      const { data: memberProfile, error: memberProfileError } = await supabase
+        .from('profiles')
+        .select('created_by_user_id')
+        .eq('id', memberId)
+        .single();
+
+      if (memberProfileError || !memberProfile?.created_by_user_id) {
+        console.error('[useTeamMemberAssignments] ❌ Erro ao buscar created_by_user_id do membro:', memberProfileError);
+        throw new Error('Não foi possível encontrar o admin responsável pelo usuário operacional');
+      }
+
+      const adminUserId = memberProfile.created_by_user_id;
+      console.log('[useTeamMemberAssignments] 🏢 Admin responsável (created_by_user_id):', adminUserId);
+
       // ===== WHATSAPP ASSIGNMENTS =====
       console.log('[useTeamMemberAssignments] ===== WHATSAPP ASSIGNMENTS =====');
       console.log('[useTeamMemberAssignments] 🗑️ Deletando WhatsApps existentes para membro:', memberId);
@@ -66,7 +81,7 @@ export const useTeamMemberAssignments = (companyId: string | null) => {
         const whatsappInserts = whatsappIds.map(whatsappId => ({
           profile_id: memberId,
           whatsapp_number_id: whatsappId,
-          created_by_user_id: companyId
+          created_by_user_id: adminUserId
         }));
         
         console.log('[useTeamMemberAssignments] Dados para insert WhatsApp:', whatsappInserts);
@@ -107,7 +122,7 @@ export const useTeamMemberAssignments = (companyId: string | null) => {
         const funnelInserts = funnelIds.map(funnelId => ({
           profile_id: memberId,
           funnel_id: funnelId,
-          created_by_user_id: companyId
+          created_by_user_id: adminUserId
         }));
         
         console.log('[useTeamMemberAssignments] Dados para insert Funnel:', funnelInserts);

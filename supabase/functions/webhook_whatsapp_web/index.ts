@@ -241,7 +241,7 @@ class MediaProcessor {
       // 7. Atualizar mensagem com URL do Storage
       const { error: updateError } = await supabase.from('messages').update({
         media_url: storageUrl,
-        text: mediaData.caption || ''
+        text: mediaData.caption || getMediaDisplayName(mediaData.mediaType)
       }).eq('id', messageId);
       if (updateError) {
         console.error('[Media] ❌ Erro ao atualizar mensagem:', updateError);
@@ -300,7 +300,7 @@ class MediaProcessor {
       console.warn('[Media] ⚠️ Fallback desabilitado - mensagem ficará sem mídia temporariamente');
       // Atualizar apenas o texto, sem salvar base64 na media_url
       const { error: updateError } = await supabase.from('messages').update({
-        text: mediaData.caption || ''
+        text: mediaData.caption || getMediaDisplayName(mediaData.mediaType)
       }).eq('id', messageId);
       if (updateError) {
         console.error('[Media] ❌ Erro ao atualizar mensagem fallback:', updateError);
@@ -660,7 +660,7 @@ async function processMessage(supabase, data) {
       fromMe: baileyMsg.key.fromMe,
       externalMessageId: baileyMsg.key.id,
       message: {
-        text: baileyMsg.message?.conversation || baileyMsg.message?.extendedTextMessage?.text || data.caption || getMediaDisplayName(data.messageType)
+        text: baileyMsg.message?.conversation || baileyMsg.message?.extendedTextMessage?.text || data.message?.text || data.text || data.caption || getMediaDisplayName(data.messageType)
       },
       messageType: data.messageType === 'sticker' ? 'image' : (data.messageType === 'unknown' ? 'text' : data.messageType) || 'text',
       mediaUrl: data.mediaUrl,
@@ -683,7 +683,7 @@ async function processMessage(supabase, data) {
       fromMe: data.fromMe,
       externalMessageId: data.data?.messageId || data.messageId || data.id || data.external_message_id,
       message: {
-        text: data.message?.text || data.caption || getMediaDisplayName(data.messageType)
+        text: data.message?.text || data.text || data.caption || getMediaDisplayName(data.messageType)
       },
       messageType: data.messageType === 'sticker' ? 'image' : (data.messageType === 'unknown' ? 'text' : data.messageType) || 'text',
       mediaUrl: data.mediaUrl,

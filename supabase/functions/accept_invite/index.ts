@@ -60,16 +60,18 @@ serve(async (req) => {
 
     console.log('[accept_invite] ✅ Convite encontrado:', profile.full_name)
 
-    // 2. Criar usuário no Auth (já confirmado) usando Service Role
-    console.log('[accept_invite] 👤 Criando usuário no Auth...')
+    // 2. Criar usuário no Auth usando o ID do profile (SINCRONIZADO)
+    console.log('[accept_invite] 👤 Criando usuário no Auth com profile ID:', profile.id)
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      user_id: profile.id, // ✅ CRUCIAL: Usar profile.id como user_id no Auth
       email: profile.email,
       password: password,
-      email_confirm: true, // ← CRUCIAL: Criar já confirmado
+      email_confirm: true, // Criar já confirmado
       user_metadata: {
         full_name: profile.full_name,
         role: profile.role,
-        is_invite: 'true'
+        is_invite: 'true',
+        profile_synced: 'true'
       }
     })
 
@@ -87,29 +89,28 @@ serve(async (req) => {
       )
     }
 
-    console.log('[accept_invite] ✅ Usuário criado no Auth:', authUser.user.id)
+    console.log('[accept_invite] ✅ Usuário criado no Auth com ID sincronizado:', authUser.user.id)
 
-    // 3. Vincular profile ao usuário do Auth
-    console.log('[accept_invite] 🔗 Vinculando profile ao Auth...')
-    const { error: linkError } = await supabase
+    // 3. Atualizar status do convite (ID já sincronizado automaticamente)
+    console.log('[accept_invite] ✅ Atualizando status do convite...')
+    const { error: updateError } = await supabase
       .from('profiles')
       .update({
-        linked_auth_user_id: authUser.user.id,
         invite_status: 'accepted',
         invite_token: null, // Limpar token usado
         temp_password: null
       })
       .eq('id', profile.id)
 
-    if (linkError) {
-      console.error('[accept_invite] ❌ Erro ao vincular profile:', linkError)
-      // Tentar limpar o usuário criado se a vinculação falhar
+    if (updateError) {
+      console.error('[accept_invite] ❌ Erro ao atualizar status:', updateError)
+      // Limpar usuário criado se falhar
       await supabase.auth.admin.deleteUser(authUser.user.id)
       
       return new Response(
         JSON.stringify({
           success: false,
-          error: `Erro ao vincular conta: ${linkError.message}`
+          error: `Erro ao finalizar convite: ${updateError.message}`
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -118,7 +119,7 @@ serve(async (req) => {
       )
     }
 
-    console.log('[accept_invite] ✅ Profile vinculado com sucesso!')
+    console.log('[accept_invite] ✅ Convite finalizado! IDs sincronizados: profile.id = auth.user.id =', profile.id)
 
     // 4. Gerar tokens de sessão para login automático
     console.log('[accept_invite] 🔐 Gerando tokens de sessão...')
