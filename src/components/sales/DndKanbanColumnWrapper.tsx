@@ -44,7 +44,7 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
   enableDnd = false,
   className
 }) => {
-  const { toggleAI, isLoading: isTogglingAI } = useAIStageControl();
+  const { toggleAI, isLoading: isTogglingAI, canToggleAI } = useAIStageControl();
   
   // Estado para scroll infinito - inicia com 30 leads
   const [visibleCount, setVisibleCount] = useState(LEADS_PER_PAGE);
@@ -109,6 +109,25 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
   // IDs dos leads para o SortableContext
   const leadIds = visibleLeads.map(lead => lead.id);
 
+  // Calcular valor total em negociação
+  const totalValue = column.leads.reduce((sum, lead) => {
+    // Tentar ambas as propriedades: purchase_value e purchaseValue
+    const value = lead.purchase_value || lead.purchaseValue || 0;
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    return sum + (isNaN(numericValue) ? 0 : numericValue);
+  }, 0);
+
+  console.log(`[DndKanbanColumnWrapper] 💰 Calculando valor total para ${column.title}:`, {
+    leadsCount: column.leads.length,
+    totalValue,
+    leadsSample: column.leads.slice(0, 3).map(l => ({
+      id: l.id,
+      name: l.name,
+      purchase_value: l.purchase_value,
+      purchaseValue: l.purchaseValue
+    }))
+  });
+
   const renderLeadCard = (lead: KanbanLead, index: number) => (
     <DndSortableLeadCard
       key={lead.id}
@@ -132,16 +151,19 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
     <div className="flex flex-col h-full">
       {/* Header da coluna - aparência original */}
       <div className="flex items-center justify-between mb-4 px-1">
-        <div className="flex items-center gap-2 flex-1">
-          <h3 
-            className="text-sm font-medium text-gray-900 truncate"
-            style={{ color: column.color }}
-          >
-            {column.title}
-          </h3>
-          <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
-            {column.leads.length}
-          </span>
+        <div className="flex flex-col gap-1 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 
+              className="text-sm font-medium text-gray-900 truncate"
+              style={{ color: column.color }}
+            >
+              {column.title}
+            </h3>
+            <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+              {column.leads.length}
+            </span>
+          </div>
+          
         </div>
         
         {/* Toggle de IA - Não mostrar para etapas GANHO e PERDIDO */}
@@ -150,6 +172,7 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
             enabled={column.ai_enabled === true}
             onToggle={handleAIToggle}
             isLoading={isTogglingAI}
+            disabled={!canToggleAI}
             size="sm"
             variant="compact"
             showLabel={true}
@@ -219,22 +242,40 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
     </div>
   );
 
+  // Renderizar valor em negociação acima da coluna
+  const valueDisplay = (
+    <div className="mb-2 text-center px-2">
+      <div className="text-sm font-medium text-black">
+        💰 Em negociação: {new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL'
+        }).format(totalValue)}
+      </div>
+    </div>
+  );
+
   // Se DnD habilitado, envolver em DndDropZone (aparência original)
   if (enableDnd) {
     return (
-      <DndDropZone 
-        id={`column-${column.id}`}
-        className={`bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 pt-1.5 pb-0 min-w-[300px] w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg ${className || ''}`}
-      >
-        {columnContent}
-      </DndDropZone>
+      <div className="flex flex-col">
+        {valueDisplay}
+        <DndDropZone 
+          id={`column-${column.id}`}
+          className={`bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 pt-1.5 pb-0 min-w-[300px] w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg ${className || ''}`}
+        >
+          {columnContent}
+        </DndDropZone>
+      </div>
     );
   }
 
   // Sem DnD - renderização normal (aparência original)
   return (
-    <div className={`bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 pt-1.5 pb-0 min-w-[300px] w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg ${className || ''}`}>
-      {columnContent}
+    <div className="flex flex-col">
+      {valueDisplay}
+      <div className={`bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 pt-1.5 pb-0 min-w-[300px] w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg ${className || ''}`}>
+        {columnContent}
+      </div>
     </div>
   );
 };

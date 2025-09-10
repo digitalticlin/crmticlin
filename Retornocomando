@@ -1,472 +1,93 @@
-{contactId: 'f7587962-a29f-4f63-b5e3-3d8cb9d3363e', contactName: 'Legran James', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'bf77cf9a-1f92-47cd-9beb-ca2a7c79dd2d', contactName: '+55 (12) 9962-33733', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '995ff8f4-c3a7-4f8b-a58f-07c88bcf3328', contactName: '+55 (99) 8823-6612', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '56d588b7-f683-4507-99e6-b948abdef1a5', contactName: 'Monalisa ✨', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '211ed4d7-713b-424b-9777-7c2900d23ffc', contactName: 'Aninha', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '13d25cf4-1211-4240-9a39-2c9ffd51b4ca', contactName: 'Joao Prado', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'de1201b9-36ae-4000-8cb1-11db2a6acdf5', contactName: 'Criativo Ge', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a6956604-4df4-4c33-a355-0b04cb29c038', contactName: 'Pedro Baggio', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd4832cf7-5253-4aa6-b9cb-bf27576f06fe', contactName: '+55 (12) 9910-35332', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c0d61117-2271-47c6-9c3d-ec1a17567fc4', contactName: '+55 (62) 8409-8395', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '9e1b5cb3-c1be-477f-b2da-1c75a8436d62', contactName: 'Luiza Sophia', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f12473a8-2b98-4194-be54-d5aea630728d', contactName: 'Matheus', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', contactName: 'Lo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd3f14df-27c0-4d5b-8045-c88b08d7cf19', contactName: 'Renata Fontinele', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5e48b14e-93e3-4cfc-8d83-fb2a891ba912', contactName: 'Pirata Júnior', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cf8e53bd-2073-49aa-8574-bd0479a22439', contactName: '+55 (86) 8131-0673', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '18c5c6c5-b222-41e8-9e48-0b8acf48046a', contactName: 'Felipe Segati', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8d5fbc02-ffa7-436e-84d4-4c7a7d056d3c', contactName: 'Marketing Colégio Ávila', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cc063542-c76e-4b2a-906a-9eb883e55a94', contactName: '252170582622339@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8da0138d-1612-47bb-90f2-d9143a214142', contactName: 'Vittorya Santana Viêra', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c030c05e-977b-4d6d-868f-a7fbc495da8f', contactName: '+55 (69) 9250-1867', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f43e18ff-7944-4d8d-abe5-ed0f30d1c3f4', contactName: 'jp', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '32644f4c-db27-4d13-92fc-de77d48986fd', contactName: '5511935019634', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b7c23ae7-cedc-4116-b113-f93992c00ea8', contactName: 'Pedro Penna', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1a79d05e-1dd9-4e55-8622-6778a248638e', contactName: '+55 (18) 9982-22088', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '90404502-be38-4c73-a097-44337d8e4f50', contactName: 'vitória', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '431c2960-494e-4eb1-9d31-3bd7bedbae82', contactName: '42847063507005@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '78e96060-5ab9-406d-b514-5746490d4a4b', contactName: 'Jaqueline', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '0c80b426-548b-48a6-8cad-796d157d52fa', contactName: 'joão victor jotsvi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '57a52800-e126-40a9-bb89-f1827097604e', contactName: 'Maryanna', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '96c3ad90-f2e4-4832-b7d8-af21bf16e913', contactName: 'Maria Clara Silva', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '07268e60-a360-46a0-9a0d-81d8281cda03', contactName: 'clara cristina', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '78602390-e5f1-4b05-a38d-b68ac71465f7', contactName: 'Eduardo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7d6d8ce1-3d76-4dd2-b447-f9522f1c2edd', contactName: 'Giovanna', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '4b5018c3-1145-42da-9db0-29e94eef8bd4', contactName: 'Kayllane', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '667bef37-de31-4369-be19-bbf8c0477775', contactName: 'Bruna', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'e602ff38-3e63-461f-9b0c-8613080446da', contactName: 'Nilson Bervig', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'dacd0407-2393-48ec-b0df-d126aacc9b4a', contactName: '95202446426232@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f71762ea-6534-4bf3-b7ef-06d69f54cf0f', contactName: 'Eduardohenrike27', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5a3c1252-4bde-4bb9-bd5e-f17c74436aed', contactName: '186423055536333@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f482882d-8687-4cef-87c2-7e69bc7b4042', contactName: 'Junior Duarte', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'e2207256-94e0-4450-b662-8384c3c1df30', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: false, currentStageTitle: undefined, currentStageColor: undefined, …}
-WhatsAppMessagesList.tsx:52 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 0, isLoading: true, isLoadingMore: false, hasMoreMessages: false}
-logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
-logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
-logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 7c197601-01cc-4f71-a4d8-7c1357cac113
-useLeadTags.ts:16 [useLeadTags] 🔄 Buscando tags para lead: e2207256-94e0-4450-b662-8384c3c1df30
-useLeadTags.ts:16 [useLeadTags] 🔄 Buscando tags para lead: e2207256-94e0-4450-b662-8384c3c1df30
-LeadDetailsSidebar.tsx:46 [LeadDetailsSidebar] 🔄 Carregando dados do contato selecionado: {contactId: 'e2207256-94e0-4450-b662-8384c3c1df30', name: 'gestao expedicao', email: null, company: null, purchaseValue: 0, …}
-useWhatsAppMessages.ts:85 [WhatsApp Messages RQ] 🚀 Buscando mensagens via React Query: {userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', contactId: 'e2207256-94e0-4450-b662-8384c3c1df30', activeInstanceId: 'b0b4177e-ee83-4d7c-9223-44f4b5739be0'}
-useWhatsAppRealtime.ts:254 [WhatsApp Realtime] 🔍 Setup mensagens com React Query: {hasSelectedContact: true, hasUserId: true, selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30'}
-useWhatsAppRealtime.ts:266 [WhatsApp Realtime] 🚀 Configurando real-time para mensagens com React Query: {contactId: 'e2207256-94e0-4450-b662-8384c3c1df30', contactName: 'gestao expedicao', userId: '7c197601-01cc-4f71-a4d8-7c1357cac113'}
-useWhatsAppContacts.ts:118 [WhatsApp Contacts RQ] ✅ Dados recebidos: {totalContacts: 39, loadedContacts: 39}
-useWhatsAppContacts.ts:118 [WhatsApp Contacts RQ] ✅ Dados recebidos: {totalContacts: 39, loadedContacts: 39}
-useWhatsAppRealtime.ts:130 [WhatsApp Realtime] 🔄 Invalidando contatos via React Query
-useWhatsAppContacts.ts:73 [WhatsApp Contacts RQ] 🚀 Buscando contatos via React Query: {userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', activeInstanceId: 'b0b4177e-ee83-4d7c-9223-44f4b5739be0'}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'e2207256-94e0-4450-b662-8384c3c1df30', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-useWhatsAppContacts.ts:118 [WhatsApp Contacts RQ] ✅ Dados recebidos: {totalContacts: 39, loadedContacts: 39}
-useWhatsAppMessages.ts:122 [WhatsApp Messages RQ] ✅ Mensagens carregadas: {totalCount: 0, loadedCount: 0, firstMessage: undefined, lastMessage: undefined}
-WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - iniciando hooks isolados
-useWhatsAppChat.ts:71 [WhatsApp Chat] 🚀 HOOK EXECUTADO COM REACT QUERY - INÍCIO
-useWhatsAppChat.ts:80 [WhatsApp Chat] 🎯 Hook principal inicializado com React Query: {userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', leadId: null, phoneParam: null, timestamp: '2025-09-09T18:00:22.072Z'}
-useWhatsAppContacts.ts:191 [WhatsApp Contacts RQ] 📊 Hook state: {isLoading: false, hasData: true, contactsCount: 50, totalAvailable: 615}
-useWhatsAppMessages.ts:168 [WhatsApp Messages RQ] 📊 Hook state: {isLoading: false, hasData: true, messagesCount: 0, selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30'}
-useWhatsAppRealtime.ts:93 [WhatsApp Realtime] 🚀 HOOK EXECUTADO com React Query: {hasSelectedContact: true, hasActiveInstance: true, selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30'}
-WhatsAppChatContainer.tsx:36 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 50, messagesCount: 0, selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30', selectedContactName: 'gestao expedicao', isLoadingContacts: false, …}
-WhatsAppMessagesList.tsx:52 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 0, isLoading: false, isLoadingMore: false, hasMoreMessages: false}
-ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 50, searchQuery: '', activeFilter: 'all', selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30'}
-ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 50, searchQuery: '', activeFilter: 'all'}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'e2207256-94e0-4450-b662-8384c3c1df30', contactName: 'gestao expedicao', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'abdc758b-cdec-49f5-8f2a-dc53d5c8a9bd', contactName: 'sarah 🩷', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'e7e209bd-aa8c-4091-acf3-31ac9b49a58f', contactName: 'Ge Uniformes', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '13178c9b-afe8-4c34-a067-57ef5df118e1', contactName: 'Max Taylor', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b7ab3ab6-0655-4706-80e9-882530d4a618', contactName: 'Matheus', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f0a393f1-1748-4684-9ef8-24898db429d2', contactName: '21084044824808@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8c79d086-3432-4648-8ddb-57d62bd3da4c', contactName: '+55 (47) 9773-4542', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '578bb5ac-77d5-44a5-bc15-308864ac39de', contactName: 'Diogo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '0fcf2c05-1312-46a2-bd21-b4200b1aef44', contactName: '+55 (64) 8414-2652', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f7587962-a29f-4f63-b5e3-3d8cb9d3363e', contactName: 'Legran James', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'bf77cf9a-1f92-47cd-9beb-ca2a7c79dd2d', contactName: '+55 (12) 9962-33733', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '995ff8f4-c3a7-4f8b-a58f-07c88bcf3328', contactName: '+55 (99) 8823-6612', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '56d588b7-f683-4507-99e6-b948abdef1a5', contactName: 'Monalisa ✨', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '211ed4d7-713b-424b-9777-7c2900d23ffc', contactName: 'Aninha', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '13d25cf4-1211-4240-9a39-2c9ffd51b4ca', contactName: 'Joao Prado', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'de1201b9-36ae-4000-8cb1-11db2a6acdf5', contactName: 'Criativo Ge', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a6956604-4df4-4c33-a355-0b04cb29c038', contactName: 'Pedro Baggio', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd4832cf7-5253-4aa6-b9cb-bf27576f06fe', contactName: '+55 (12) 9910-35332', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c0d61117-2271-47c6-9c3d-ec1a17567fc4', contactName: '+55 (62) 8409-8395', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '9e1b5cb3-c1be-477f-b2da-1c75a8436d62', contactName: 'Luiza Sophia', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f12473a8-2b98-4194-be54-d5aea630728d', contactName: 'Matheus', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', contactName: 'Lo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd3f14df-27c0-4d5b-8045-c88b08d7cf19', contactName: 'Renata Fontinele', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5e48b14e-93e3-4cfc-8d83-fb2a891ba912', contactName: 'Pirata Júnior', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cf8e53bd-2073-49aa-8574-bd0479a22439', contactName: '+55 (86) 8131-0673', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '18c5c6c5-b222-41e8-9e48-0b8acf48046a', contactName: 'Felipe Segati', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8d5fbc02-ffa7-436e-84d4-4c7a7d056d3c', contactName: 'Marketing Colégio Ávila', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cc063542-c76e-4b2a-906a-9eb883e55a94', contactName: '252170582622339@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8da0138d-1612-47bb-90f2-d9143a214142', contactName: 'Vittorya Santana Viêra', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c030c05e-977b-4d6d-868f-a7fbc495da8f', contactName: '+55 (69) 9250-1867', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f43e18ff-7944-4d8d-abe5-ed0f30d1c3f4', contactName: 'jp', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '32644f4c-db27-4d13-92fc-de77d48986fd', contactName: '5511935019634', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b7c23ae7-cedc-4116-b113-f93992c00ea8', contactName: 'Pedro Penna', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1a79d05e-1dd9-4e55-8622-6778a248638e', contactName: '+55 (18) 9982-22088', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '90404502-be38-4c73-a097-44337d8e4f50', contactName: 'vitória', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '431c2960-494e-4eb1-9d31-3bd7bedbae82', contactName: '42847063507005@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '78e96060-5ab9-406d-b514-5746490d4a4b', contactName: 'Jaqueline', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '0c80b426-548b-48a6-8cad-796d157d52fa', contactName: 'joão victor jotsvi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '57a52800-e126-40a9-bb89-f1827097604e', contactName: 'Maryanna', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '96c3ad90-f2e4-4832-b7d8-af21bf16e913', contactName: 'Maria Clara Silva', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '07268e60-a360-46a0-9a0d-81d8281cda03', contactName: 'clara cristina', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '78602390-e5f1-4b05-a38d-b68ac71465f7', contactName: 'Eduardo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7d6d8ce1-3d76-4dd2-b447-f9522f1c2edd', contactName: 'Giovanna', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '4b5018c3-1145-42da-9db0-29e94eef8bd4', contactName: 'Kayllane', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '667bef37-de31-4369-be19-bbf8c0477775', contactName: 'Bruna', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'e602ff38-3e63-461f-9b0c-8613080446da', contactName: 'Nilson Bervig', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'dacd0407-2393-48ec-b0df-d126aacc9b4a', contactName: '95202446426232@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f71762ea-6534-4bf3-b7ef-06d69f54cf0f', contactName: 'Eduardohenrike27', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5a3c1252-4bde-4bb9-bd5e-f17c74436aed', contactName: '186423055536333@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f482882d-8687-4cef-87c2-7e69bc7b4042', contactName: 'Junior Duarte', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'e2207256-94e0-4450-b662-8384c3c1df30', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-WhatsAppMessagesList.tsx:52 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 0, isLoading: false, isLoadingMore: false, hasMoreMessages: false}
-logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
-logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 7c197601-01cc-4f71-a4d8-7c1357cac113
-useWhatsAppRealtime.ts:351 [WhatsApp Realtime] 📡 Status mensagens (React Query): SUBSCRIBED
-WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - iniciando hooks isolados
-useWhatsAppChat.ts:71 [WhatsApp Chat] 🚀 HOOK EXECUTADO COM REACT QUERY - INÍCIO
-useWhatsAppChat.ts:80 [WhatsApp Chat] 🎯 Hook principal inicializado com React Query: {userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', leadId: null, phoneParam: null, timestamp: '2025-09-09T18:00:22.313Z'}
-useWhatsAppContacts.ts:191 [WhatsApp Contacts RQ] 📊 Hook state: {isLoading: false, hasData: true, contactsCount: 50, totalAvailable: 615}
-useWhatsAppMessages.ts:168 [WhatsApp Messages RQ] 📊 Hook state: {isLoading: false, hasData: true, messagesCount: 0, selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30'}
-useWhatsAppRealtime.ts:93 [WhatsApp Realtime] 🚀 HOOK EXECUTADO com React Query: {hasSelectedContact: true, hasActiveInstance: true, selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30'}
-WhatsAppChatContainer.tsx:36 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 50, messagesCount: 0, selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30', selectedContactName: 'gestao expedicao', isLoadingContacts: false, …}
-ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 50, searchQuery: '', activeFilter: 'all', selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30'}
-ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 50, searchQuery: '', activeFilter: 'all'}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'e2207256-94e0-4450-b662-8384c3c1df30', contactName: 'gestao expedicao', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'abdc758b-cdec-49f5-8f2a-dc53d5c8a9bd', contactName: 'sarah 🩷', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'e7e209bd-aa8c-4091-acf3-31ac9b49a58f', contactName: 'Ge Uniformes', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '13178c9b-afe8-4c34-a067-57ef5df118e1', contactName: 'Max Taylor', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b7ab3ab6-0655-4706-80e9-882530d4a618', contactName: 'Matheus', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f0a393f1-1748-4684-9ef8-24898db429d2', contactName: '21084044824808@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8c79d086-3432-4648-8ddb-57d62bd3da4c', contactName: '+55 (47) 9773-4542', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '578bb5ac-77d5-44a5-bc15-308864ac39de', contactName: 'Diogo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '0fcf2c05-1312-46a2-bd21-b4200b1aef44', contactName: '+55 (64) 8414-2652', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f7587962-a29f-4f63-b5e3-3d8cb9d3363e', contactName: 'Legran James', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'bf77cf9a-1f92-47cd-9beb-ca2a7c79dd2d', contactName: '+55 (12) 9962-33733', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '995ff8f4-c3a7-4f8b-a58f-07c88bcf3328', contactName: '+55 (99) 8823-6612', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '56d588b7-f683-4507-99e6-b948abdef1a5', contactName: 'Monalisa ✨', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '211ed4d7-713b-424b-9777-7c2900d23ffc', contactName: 'Aninha', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '13d25cf4-1211-4240-9a39-2c9ffd51b4ca', contactName: 'Joao Prado', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'de1201b9-36ae-4000-8cb1-11db2a6acdf5', contactName: 'Criativo Ge', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a6956604-4df4-4c33-a355-0b04cb29c038', contactName: 'Pedro Baggio', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd4832cf7-5253-4aa6-b9cb-bf27576f06fe', contactName: '+55 (12) 9910-35332', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c0d61117-2271-47c6-9c3d-ec1a17567fc4', contactName: '+55 (62) 8409-8395', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '9e1b5cb3-c1be-477f-b2da-1c75a8436d62', contactName: 'Luiza Sophia', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f12473a8-2b98-4194-be54-d5aea630728d', contactName: 'Matheus', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', contactName: 'Lo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd3f14df-27c0-4d5b-8045-c88b08d7cf19', contactName: 'Renata Fontinele', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5e48b14e-93e3-4cfc-8d83-fb2a891ba912', contactName: 'Pirata Júnior', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cf8e53bd-2073-49aa-8574-bd0479a22439', contactName: '+55 (86) 8131-0673', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '18c5c6c5-b222-41e8-9e48-0b8acf48046a', contactName: 'Felipe Segati', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8d5fbc02-ffa7-436e-84d4-4c7a7d056d3c', contactName: 'Marketing Colégio Ávila', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cc063542-c76e-4b2a-906a-9eb883e55a94', contactName: '252170582622339@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8da0138d-1612-47bb-90f2-d9143a214142', contactName: 'Vittorya Santana Viêra', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c030c05e-977b-4d6d-868f-a7fbc495da8f', contactName: '+55 (69) 9250-1867', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f43e18ff-7944-4d8d-abe5-ed0f30d1c3f4', contactName: 'jp', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '32644f4c-db27-4d13-92fc-de77d48986fd', contactName: '5511935019634', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b7c23ae7-cedc-4116-b113-f93992c00ea8', contactName: 'Pedro Penna', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1a79d05e-1dd9-4e55-8622-6778a248638e', contactName: '+55 (18) 9982-22088', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '90404502-be38-4c73-a097-44337d8e4f50', contactName: 'vitória', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '431c2960-494e-4eb1-9d31-3bd7bedbae82', contactName: '42847063507005@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '78e96060-5ab9-406d-b514-5746490d4a4b', contactName: 'Jaqueline', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '0c80b426-548b-48a6-8cad-796d157d52fa', contactName: 'joão victor jotsvi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '57a52800-e126-40a9-bb89-f1827097604e', contactName: 'Maryanna', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '96c3ad90-f2e4-4832-b7d8-af21bf16e913', contactName: 'Maria Clara Silva', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '07268e60-a360-46a0-9a0d-81d8281cda03', contactName: 'clara cristina', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '78602390-e5f1-4b05-a38d-b68ac71465f7', contactName: 'Eduardo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7d6d8ce1-3d76-4dd2-b447-f9522f1c2edd', contactName: 'Giovanna', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '4b5018c3-1145-42da-9db0-29e94eef8bd4', contactName: 'Kayllane', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '667bef37-de31-4369-be19-bbf8c0477775', contactName: 'Bruna', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'e602ff38-3e63-461f-9b0c-8613080446da', contactName: 'Nilson Bervig', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'dacd0407-2393-48ec-b0df-d126aacc9b4a', contactName: '95202446426232@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f71762ea-6534-4bf3-b7ef-06d69f54cf0f', contactName: 'Eduardohenrike27', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5a3c1252-4bde-4bb9-bd5e-f17c74436aed', contactName: '186423055536333@s.whatsapp.net', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f482882d-8687-4cef-87c2-7e69bc7b4042', contactName: 'Junior Duarte', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'e2207256-94e0-4450-b662-8384c3c1df30', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
-logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 7c197601-01cc-4f71-a4d8-7c1357cac113
-useLeadTags.ts:63 [useLeadTags] ✅ Tags carregadas: {leadTags: 0, availableTags: 1, leadId: 'e2207256-94e0-4450-b662-8384c3c1df30', userId: '7c197601-01cc-4f71-a4d8-7c1357cac113'}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'e2207256-94e0-4450-b662-8384c3c1df30', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - iniciando hooks isolados
-useWhatsAppChat.ts:71 [WhatsApp Chat] 🚀 HOOK EXECUTADO COM REACT QUERY - INÍCIO
-useWhatsAppChat.ts:80 [WhatsApp Chat] 🎯 Hook principal inicializado com React Query: {userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', leadId: null, phoneParam: null, timestamp: '2025-09-09T18:00:22.503Z'}
-useWhatsAppContacts.ts:191 [WhatsApp Contacts RQ] 📊 Hook state: {isLoading: false, hasData: true, contactsCount: 39, totalAvailable: 39}
-useWhatsAppMessages.ts:168 [WhatsApp Messages RQ] 📊 Hook state: {isLoading: false, hasData: true, messagesCount: 0, selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30'}
-useWhatsAppRealtime.ts:93 [WhatsApp Realtime] 🚀 HOOK EXECUTADO com React Query: {hasSelectedContact: true, hasActiveInstance: true, selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30'}
-WhatsAppChatContainer.tsx:36 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 39, messagesCount: 0, selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30', selectedContactName: 'gestao expedicao', isLoadingContacts: false, …}
-WhatsAppContactsList.tsx:114 [WhatsAppContactsList] 📊 Contatos recebidos: {total: 39, hasSearch: false, searchQuery: '', contactsLength: 39}
-WhatsAppContactsList.tsx:125 [WhatsAppContactsList] Filtering contacts: {totalContacts: 39, activeFilter: 'all', searchQuery: ''}
-ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 39, searchQuery: '', activeFilter: 'all', selectedContactId: 'e2207256-94e0-4450-b662-8384c3c1df30'}
-ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 39, searchQuery: '', activeFilter: 'all'}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', contactName: 'Lo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd3f14df-27c0-4d5b-8045-c88b08d7cf19', contactName: 'Renata Fontinele', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f482882d-8687-4cef-87c2-7e69bc7b4042', contactName: 'Junior Duarte', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6a46849f-f3b1-462c-a392-11272f387db3', contactName: 'Fixa Estúdio - Rainier Filho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '744da3ed-b123-4abd-ae6b-29140cd504f8', contactName: 'Nelly🧡', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '05b79641-2426-4d8b-93a1-fca2deb115ef', contactName: 'Ludmila', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f8dd0069-8f30-4641-aa80-efa3f1d7e4e9', contactName: 'Letícia Ardaia.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '2837cfd8-a994-411a-86c6-95bb6c4fd0a5', contactName: '+55 (64) 9984-9640', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '07ccf969-3719-4636-9d34-cc3e306df57e', contactName: '+55 (87) 8128-2406', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c2bbc74e-074f-4b32-9986-182c73ca67b7', contactName: '+55 (35) 8854-5050', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f616476e-2e72-41c7-b818-794469eae3ba', contactName: '+55 (43) 8446-9772', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c737fa10-edcc-4540-8417-f6371dc8bc6a', contactName: 'Marina', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd777a772-1a0e-4eb6-a31f-3990ee6fdcaf', contactName: '.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '90e03620-f929-4052-a0e0-9a3fd9fd691c', contactName: 'Guilherme Arruda', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5ab3daee-91fe-45cf-92c6-112054d047a9', contactName: '+55 (16) 99142-0806', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'bdbf3f66-d541-4bef-a0e5-96624151433d', contactName: 'João Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cc4dcab0-caeb-4420-866a-471a2c19eda4', contactName: 'Mauricio Granzotto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7073190f-bbcf-43d4-888d-6a48c0b682a2', contactName: 'Bruno Quevedo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '4d2f804a-b695-4cc4-af48-aa3195bfc825', contactName: 'Yuri', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1a617aac-fa0a-483b-be39-2693241a67d7', contactName: 'Fouad', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'fcd735c9-7bb3-46f5-8a97-f5639e8ad404', contactName: 'Enzo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1293ea7b-99d1-4153-a090-fd756c6d4154', contactName: 'Carlos Eduardo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ab8aedf6-eaf0-49da-a155-beb52a2d4dee', contactName: 'Juliana', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8004d925-0835-496d-8d54-124726dbe35e', contactName: 'Jujuba', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eda7f7b5-919e-422e-a34b-dd2773c4156b', contactName: 'Mavi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd115375a-e5be-4b16-a980-8aa8b047337e', contactName: 'Fernando Rios', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '54913f91-7f22-4237-a198-de1cef6bf6b9', contactName: 'Fernanda Firmino', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd19f91ab-bb2f-43d1-a392-a63b73bcdd64', contactName: 'Ana Proto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6a760063-82f1-41d2-be40-2f1af1e193fc', contactName: 'João Victor M.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5f1df1f6-e4b0-44a7-84bb-482a0a89c82f', contactName: 'Ruan Pizzatto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b3e33200-5ff7-48d1-8d3c-b1b5ccf81c7b', contactName: 'gabi buzetti', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f4e52c7e-9074-432d-b003-5fd4eac509e6', contactName: 'Letícia Franciosi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ea2632d3-5eb7-4335-b21b-803f11aa85dc', contactName: 'Lara Maria', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '16a16649-a2d7-4df7-905a-0b0a16bd9960', contactName: 'Antonio Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '695d83e9-9a26-43ca-9ee7-68fdf7ab25fa', contactName: '+55 (68) 9976-1807', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6de272d6-4708-4a58-bd0e-13532fcb0b03', contactName: 'Jessica Gonçalves', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '9bbfc9e2-d8ea-45fd-8850-598195f74f27', contactName: '+55 (21) 97564-9179', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7857ee53-53df-4099-a1e1-846bd1de6c85', contactName: '+55 (65) 9674-9666', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ae9e8b05-1a48-4e0c-a6a8-92fc259b3450', contactName: 'Braytner Coelho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'e2207256-94e0-4450-b662-8384c3c1df30', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
-logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 7c197601-01cc-4f71-a4d8-7c1357cac113
-useLeadTags.ts:63 [useLeadTags] ✅ Tags carregadas: {leadTags: 0, availableTags: 1, leadId: 'e2207256-94e0-4450-b662-8384c3c1df30', userId: '7c197601-01cc-4f71-a4d8-7c1357cac113'}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'e2207256-94e0-4450-b662-8384c3c1df30', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-useWhatsAppChat.ts:218 [WhatsApp Chat] 👆 Selecionando contato via React Query: {contactName: 'Lo', contactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', hasUnreadCount: false}
-useWhatsAppChat.ts:253 [WhatsApp Chat] ✅ Contato selecionado via React Query: Lo
-WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - iniciando hooks isolados
-useWhatsAppChat.ts:71 [WhatsApp Chat] 🚀 HOOK EXECUTADO COM REACT QUERY - INÍCIO
-useWhatsAppChat.ts:80 [WhatsApp Chat] 🎯 Hook principal inicializado com React Query: {userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', leadId: null, phoneParam: null, timestamp: '2025-09-09T18:00:28.364Z'}
-useWhatsAppContacts.ts:191 [WhatsApp Contacts RQ] 📊 Hook state: {isLoading: false, hasData: true, contactsCount: 39, totalAvailable: 39}
-useWhatsAppMessages.ts:168 [WhatsApp Messages RQ] 📊 Hook state: {isLoading: true, hasData: false, messagesCount: 0, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-useWhatsAppRealtime.ts:93 [WhatsApp Realtime] 🚀 HOOK EXECUTADO com React Query: {hasSelectedContact: true, hasActiveInstance: true, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-WhatsAppChatContainer.tsx:36 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 39, messagesCount: 0, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', selectedContactName: 'Lo', isLoadingContacts: false, …}
-WhatsAppMessagesList.tsx:52 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 0, isLoading: true, isLoadingMore: false, hasMoreMessages: false}
-ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 39, searchQuery: '', activeFilter: 'all', selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 39, searchQuery: '', activeFilter: 'all'}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', contactName: 'Lo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd3f14df-27c0-4d5b-8045-c88b08d7cf19', contactName: 'Renata Fontinele', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f482882d-8687-4cef-87c2-7e69bc7b4042', contactName: 'Junior Duarte', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6a46849f-f3b1-462c-a392-11272f387db3', contactName: 'Fixa Estúdio - Rainier Filho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '744da3ed-b123-4abd-ae6b-29140cd504f8', contactName: 'Nelly🧡', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '05b79641-2426-4d8b-93a1-fca2deb115ef', contactName: 'Ludmila', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f8dd0069-8f30-4641-aa80-efa3f1d7e4e9', contactName: 'Letícia Ardaia.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '2837cfd8-a994-411a-86c6-95bb6c4fd0a5', contactName: '+55 (64) 9984-9640', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '07ccf969-3719-4636-9d34-cc3e306df57e', contactName: '+55 (87) 8128-2406', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c2bbc74e-074f-4b32-9986-182c73ca67b7', contactName: '+55 (35) 8854-5050', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f616476e-2e72-41c7-b818-794469eae3ba', contactName: '+55 (43) 8446-9772', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c737fa10-edcc-4540-8417-f6371dc8bc6a', contactName: 'Marina', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd777a772-1a0e-4eb6-a31f-3990ee6fdcaf', contactName: '.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '90e03620-f929-4052-a0e0-9a3fd9fd691c', contactName: 'Guilherme Arruda', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5ab3daee-91fe-45cf-92c6-112054d047a9', contactName: '+55 (16) 99142-0806', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'bdbf3f66-d541-4bef-a0e5-96624151433d', contactName: 'João Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cc4dcab0-caeb-4420-866a-471a2c19eda4', contactName: 'Mauricio Granzotto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7073190f-bbcf-43d4-888d-6a48c0b682a2', contactName: 'Bruno Quevedo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '4d2f804a-b695-4cc4-af48-aa3195bfc825', contactName: 'Yuri', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1a617aac-fa0a-483b-be39-2693241a67d7', contactName: 'Fouad', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'fcd735c9-7bb3-46f5-8a97-f5639e8ad404', contactName: 'Enzo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1293ea7b-99d1-4153-a090-fd756c6d4154', contactName: 'Carlos Eduardo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ab8aedf6-eaf0-49da-a155-beb52a2d4dee', contactName: 'Juliana', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8004d925-0835-496d-8d54-124726dbe35e', contactName: 'Jujuba', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eda7f7b5-919e-422e-a34b-dd2773c4156b', contactName: 'Mavi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd115375a-e5be-4b16-a980-8aa8b047337e', contactName: 'Fernando Rios', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '54913f91-7f22-4237-a198-de1cef6bf6b9', contactName: 'Fernanda Firmino', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd19f91ab-bb2f-43d1-a392-a63b73bcdd64', contactName: 'Ana Proto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6a760063-82f1-41d2-be40-2f1af1e193fc', contactName: 'João Victor M.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5f1df1f6-e4b0-44a7-84bb-482a0a89c82f', contactName: 'Ruan Pizzatto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b3e33200-5ff7-48d1-8d3c-b1b5ccf81c7b', contactName: 'gabi buzetti', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f4e52c7e-9074-432d-b003-5fd4eac509e6', contactName: 'Letícia Franciosi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ea2632d3-5eb7-4335-b21b-803f11aa85dc', contactName: 'Lara Maria', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '16a16649-a2d7-4df7-905a-0b0a16bd9960', contactName: 'Antonio Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '695d83e9-9a26-43ca-9ee7-68fdf7ab25fa', contactName: '+55 (68) 9976-1807', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6de272d6-4708-4a58-bd0e-13532fcb0b03', contactName: 'Jessica Gonçalves', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '9bbfc9e2-d8ea-45fd-8850-598195f74f27', contactName: '+55 (21) 97564-9179', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7857ee53-53df-4099-a1e1-846bd1de6c85', contactName: '+55 (65) 9674-9666', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ae9e8b05-1a48-4e0c-a6a8-92fc259b3450', contactName: 'Braytner Coelho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'e2207256-94e0-4450-b662-8384c3c1df30', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-WhatsAppMessagesList.tsx:52 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 0, isLoading: true, isLoadingMore: false, hasMoreMessages: false}
-logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
-useWhatsAppRealtime.ts:351 [WhatsApp Realtime] 📡 Status mensagens (React Query): CLOSED
-logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 7c197601-01cc-4f71-a4d8-7c1357cac113
-LeadDetailsSidebar.tsx:46 [LeadDetailsSidebar] 🔄 Carregando dados do contato selecionado: {contactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', name: 'Lo', email: null, company: null, purchaseValue: 0, …}
-useWhatsAppMessages.ts:85 [WhatsApp Messages RQ] 🚀 Buscando mensagens via React Query: {userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', contactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', activeInstanceId: 'b0b4177e-ee83-4d7c-9223-44f4b5739be0'}
-useWhatsAppRealtime.ts:254 [WhatsApp Realtime] 🔍 Setup mensagens com React Query: {hasSelectedContact: true, hasUserId: true, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-useWhatsAppRealtime.ts:266 [WhatsApp Realtime] 🚀 Configurando real-time para mensagens com React Query: {contactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', contactName: 'Lo', userId: '7c197601-01cc-4f71-a4d8-7c1357cac113'}
-WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - iniciando hooks isolados
-useWhatsAppChat.ts:71 [WhatsApp Chat] 🚀 HOOK EXECUTADO COM REACT QUERY - INÍCIO
-useWhatsAppChat.ts:80 [WhatsApp Chat] 🎯 Hook principal inicializado com React Query: {userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', leadId: null, phoneParam: null, timestamp: '2025-09-09T18:00:28.520Z'}
-useWhatsAppContacts.ts:191 [WhatsApp Contacts RQ] 📊 Hook state: {isLoading: false, hasData: true, contactsCount: 39, totalAvailable: 39}
-useWhatsAppMessages.ts:168 [WhatsApp Messages RQ] 📊 Hook state: {isLoading: true, hasData: false, messagesCount: 0, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-useWhatsAppRealtime.ts:93 [WhatsApp Realtime] 🚀 HOOK EXECUTADO com React Query: {hasSelectedContact: true, hasActiveInstance: true, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-WhatsAppChatContainer.tsx:36 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 39, messagesCount: 0, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', selectedContactName: 'Lo', isLoadingContacts: false, …}
-WhatsAppMessagesList.tsx:52 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 0, isLoading: true, isLoadingMore: false, hasMoreMessages: false}
-ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 39, searchQuery: '', activeFilter: 'all', selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 39, searchQuery: '', activeFilter: 'all'}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', contactName: 'Lo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd3f14df-27c0-4d5b-8045-c88b08d7cf19', contactName: 'Renata Fontinele', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f482882d-8687-4cef-87c2-7e69bc7b4042', contactName: 'Junior Duarte', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6a46849f-f3b1-462c-a392-11272f387db3', contactName: 'Fixa Estúdio - Rainier Filho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '744da3ed-b123-4abd-ae6b-29140cd504f8', contactName: 'Nelly🧡', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '05b79641-2426-4d8b-93a1-fca2deb115ef', contactName: 'Ludmila', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f8dd0069-8f30-4641-aa80-efa3f1d7e4e9', contactName: 'Letícia Ardaia.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '2837cfd8-a994-411a-86c6-95bb6c4fd0a5', contactName: '+55 (64) 9984-9640', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '07ccf969-3719-4636-9d34-cc3e306df57e', contactName: '+55 (87) 8128-2406', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c2bbc74e-074f-4b32-9986-182c73ca67b7', contactName: '+55 (35) 8854-5050', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f616476e-2e72-41c7-b818-794469eae3ba', contactName: '+55 (43) 8446-9772', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c737fa10-edcc-4540-8417-f6371dc8bc6a', contactName: 'Marina', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd777a772-1a0e-4eb6-a31f-3990ee6fdcaf', contactName: '.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '90e03620-f929-4052-a0e0-9a3fd9fd691c', contactName: 'Guilherme Arruda', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5ab3daee-91fe-45cf-92c6-112054d047a9', contactName: '+55 (16) 99142-0806', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'bdbf3f66-d541-4bef-a0e5-96624151433d', contactName: 'João Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cc4dcab0-caeb-4420-866a-471a2c19eda4', contactName: 'Mauricio Granzotto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7073190f-bbcf-43d4-888d-6a48c0b682a2', contactName: 'Bruno Quevedo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '4d2f804a-b695-4cc4-af48-aa3195bfc825', contactName: 'Yuri', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1a617aac-fa0a-483b-be39-2693241a67d7', contactName: 'Fouad', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'fcd735c9-7bb3-46f5-8a97-f5639e8ad404', contactName: 'Enzo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1293ea7b-99d1-4153-a090-fd756c6d4154', contactName: 'Carlos Eduardo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ab8aedf6-eaf0-49da-a155-beb52a2d4dee', contactName: 'Juliana', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8004d925-0835-496d-8d54-124726dbe35e', contactName: 'Jujuba', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eda7f7b5-919e-422e-a34b-dd2773c4156b', contactName: 'Mavi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd115375a-e5be-4b16-a980-8aa8b047337e', contactName: 'Fernando Rios', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '54913f91-7f22-4237-a198-de1cef6bf6b9', contactName: 'Fernanda Firmino', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd19f91ab-bb2f-43d1-a392-a63b73bcdd64', contactName: 'Ana Proto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6a760063-82f1-41d2-be40-2f1af1e193fc', contactName: 'João Victor M.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5f1df1f6-e4b0-44a7-84bb-482a0a89c82f', contactName: 'Ruan Pizzatto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b3e33200-5ff7-48d1-8d3c-b1b5ccf81c7b', contactName: 'gabi buzetti', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f4e52c7e-9074-432d-b003-5fd4eac509e6', contactName: 'Letícia Franciosi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ea2632d3-5eb7-4335-b21b-803f11aa85dc', contactName: 'Lara Maria', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '16a16649-a2d7-4df7-905a-0b0a16bd9960', contactName: 'Antonio Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '695d83e9-9a26-43ca-9ee7-68fdf7ab25fa', contactName: '+55 (68) 9976-1807', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6de272d6-4708-4a58-bd0e-13532fcb0b03', contactName: 'Jessica Gonçalves', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '9bbfc9e2-d8ea-45fd-8850-598195f74f27', contactName: '+55 (21) 97564-9179', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7857ee53-53df-4099-a1e1-846bd1de6c85', contactName: '+55 (65) 9674-9666', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ae9e8b05-1a48-4e0c-a6a8-92fc259b3450', contactName: 'Braytner Coelho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-WhatsAppMessagesList.tsx:52 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 0, isLoading: true, isLoadingMore: false, hasMoreMessages: false}
-logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
-logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 7c197601-01cc-4f71-a4d8-7c1357cac113
-useLeadTags.ts:16 [useLeadTags] 🔄 Buscando tags para lead: a0d3c70b-c60b-4f3c-8229-99b1475cdc35
-useLeadTags.ts:16 [useLeadTags] 🔄 Buscando tags para lead: a0d3c70b-c60b-4f3c-8229-99b1475cdc35
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-useWhatsAppRealtime.ts:351 [WhatsApp Realtime] 📡 Status mensagens (React Query): SUBSCRIBED
-WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - iniciando hooks isolados
-useWhatsAppChat.ts:71 [WhatsApp Chat] 🚀 HOOK EXECUTADO COM REACT QUERY - INÍCIO
-useWhatsAppChat.ts:80 [WhatsApp Chat] 🎯 Hook principal inicializado com React Query: {userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', leadId: null, phoneParam: null, timestamp: '2025-09-09T18:00:28.737Z'}
-useWhatsAppContacts.ts:191 [WhatsApp Contacts RQ] 📊 Hook state: {isLoading: false, hasData: true, contactsCount: 39, totalAvailable: 39}
-useWhatsAppMessages.ts:168 [WhatsApp Messages RQ] 📊 Hook state: {isLoading: true, hasData: false, messagesCount: 0, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-useWhatsAppRealtime.ts:93 [WhatsApp Realtime] 🚀 HOOK EXECUTADO com React Query: {hasSelectedContact: true, hasActiveInstance: true, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-WhatsAppChatContainer.tsx:36 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 39, messagesCount: 0, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', selectedContactName: 'Lo', isLoadingContacts: false, …}
-WhatsAppMessagesList.tsx:52 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 0, isLoading: true, isLoadingMore: false, hasMoreMessages: false}
-ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 39, searchQuery: '', activeFilter: 'all', selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 39, searchQuery: '', activeFilter: 'all'}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', contactName: 'Lo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd3f14df-27c0-4d5b-8045-c88b08d7cf19', contactName: 'Renata Fontinele', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f482882d-8687-4cef-87c2-7e69bc7b4042', contactName: 'Junior Duarte', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6a46849f-f3b1-462c-a392-11272f387db3', contactName: 'Fixa Estúdio - Rainier Filho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '744da3ed-b123-4abd-ae6b-29140cd504f8', contactName: 'Nelly🧡', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '05b79641-2426-4d8b-93a1-fca2deb115ef', contactName: 'Ludmila', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f8dd0069-8f30-4641-aa80-efa3f1d7e4e9', contactName: 'Letícia Ardaia.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '2837cfd8-a994-411a-86c6-95bb6c4fd0a5', contactName: '+55 (64) 9984-9640', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '07ccf969-3719-4636-9d34-cc3e306df57e', contactName: '+55 (87) 8128-2406', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c2bbc74e-074f-4b32-9986-182c73ca67b7', contactName: '+55 (35) 8854-5050', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f616476e-2e72-41c7-b818-794469eae3ba', contactName: '+55 (43) 8446-9772', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c737fa10-edcc-4540-8417-f6371dc8bc6a', contactName: 'Marina', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd777a772-1a0e-4eb6-a31f-3990ee6fdcaf', contactName: '.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '90e03620-f929-4052-a0e0-9a3fd9fd691c', contactName: 'Guilherme Arruda', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5ab3daee-91fe-45cf-92c6-112054d047a9', contactName: '+55 (16) 99142-0806', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'bdbf3f66-d541-4bef-a0e5-96624151433d', contactName: 'João Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cc4dcab0-caeb-4420-866a-471a2c19eda4', contactName: 'Mauricio Granzotto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7073190f-bbcf-43d4-888d-6a48c0b682a2', contactName: 'Bruno Quevedo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '4d2f804a-b695-4cc4-af48-aa3195bfc825', contactName: 'Yuri', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1a617aac-fa0a-483b-be39-2693241a67d7', contactName: 'Fouad', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'fcd735c9-7bb3-46f5-8a97-f5639e8ad404', contactName: 'Enzo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1293ea7b-99d1-4153-a090-fd756c6d4154', contactName: 'Carlos Eduardo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ab8aedf6-eaf0-49da-a155-beb52a2d4dee', contactName: 'Juliana', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8004d925-0835-496d-8d54-124726dbe35e', contactName: 'Jujuba', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eda7f7b5-919e-422e-a34b-dd2773c4156b', contactName: 'Mavi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd115375a-e5be-4b16-a980-8aa8b047337e', contactName: 'Fernando Rios', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '54913f91-7f22-4237-a198-de1cef6bf6b9', contactName: 'Fernanda Firmino', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd19f91ab-bb2f-43d1-a392-a63b73bcdd64', contactName: 'Ana Proto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6a760063-82f1-41d2-be40-2f1af1e193fc', contactName: 'João Victor M.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5f1df1f6-e4b0-44a7-84bb-482a0a89c82f', contactName: 'Ruan Pizzatto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b3e33200-5ff7-48d1-8d3c-b1b5ccf81c7b', contactName: 'gabi buzetti', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f4e52c7e-9074-432d-b003-5fd4eac509e6', contactName: 'Letícia Franciosi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ea2632d3-5eb7-4335-b21b-803f11aa85dc', contactName: 'Lara Maria', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '16a16649-a2d7-4df7-905a-0b0a16bd9960', contactName: 'Antonio Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '695d83e9-9a26-43ca-9ee7-68fdf7ab25fa', contactName: '+55 (68) 9976-1807', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6de272d6-4708-4a58-bd0e-13532fcb0b03', contactName: 'Jessica Gonçalves', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '9bbfc9e2-d8ea-45fd-8850-598195f74f27', contactName: '+55 (21) 97564-9179', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7857ee53-53df-4099-a1e1-846bd1de6c85', contactName: '+55 (65) 9674-9666', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ae9e8b05-1a48-4e0c-a6a8-92fc259b3450', contactName: 'Braytner Coelho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-WhatsAppMessagesList.tsx:52 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 0, isLoading: true, isLoadingMore: false, hasMoreMessages: false}
-logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
-logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 7c197601-01cc-4f71-a4d8-7c1357cac113
-useWhatsAppMessages.ts:122 [WhatsApp Messages RQ] ✅ Mensagens carregadas: {totalCount: 2, loadedCount: 2, firstMessage: 'Olá tudo bem ?', lastMessage: 'Vc sabe me informar onde está '}
-WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - iniciando hooks isolados
-useWhatsAppChat.ts:71 [WhatsApp Chat] 🚀 HOOK EXECUTADO COM REACT QUERY - INÍCIO
-useWhatsAppChat.ts:80 [WhatsApp Chat] 🎯 Hook principal inicializado com React Query: {userId: '7c197601-01cc-4f71-a4d8-7c1357cac113', leadId: null, phoneParam: null, timestamp: '2025-09-09T18:00:28.897Z'}
-useWhatsAppContacts.ts:191 [WhatsApp Contacts RQ] 📊 Hook state: {isLoading: false, hasData: true, contactsCount: 39, totalAvailable: 39}
-useWhatsAppMessages.ts:168 [WhatsApp Messages RQ] 📊 Hook state: {isLoading: false, hasData: true, messagesCount: 2, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-useWhatsAppRealtime.ts:93 [WhatsApp Realtime] 🚀 HOOK EXECUTADO com React Query: {hasSelectedContact: true, hasActiveInstance: true, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-WhatsAppChatContainer.tsx:36 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 39, messagesCount: 2, selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', selectedContactName: 'Lo', isLoadingContacts: false, …}
-WhatsAppMessagesList.tsx:52 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 2, isLoading: false, isLoadingMore: false, hasMoreMessages: false}
-ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 39, searchQuery: '', activeFilter: 'all', selectedContactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35'}
-ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 39, searchQuery: '', activeFilter: 'all'}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', contactName: 'Lo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd3f14df-27c0-4d5b-8045-c88b08d7cf19', contactName: 'Renata Fontinele', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f482882d-8687-4cef-87c2-7e69bc7b4042', contactName: 'Junior Duarte', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6a46849f-f3b1-462c-a392-11272f387db3', contactName: 'Fixa Estúdio - Rainier Filho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '744da3ed-b123-4abd-ae6b-29140cd504f8', contactName: 'Nelly🧡', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '05b79641-2426-4d8b-93a1-fca2deb115ef', contactName: 'Ludmila', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f8dd0069-8f30-4641-aa80-efa3f1d7e4e9', contactName: 'Letícia Ardaia.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '2837cfd8-a994-411a-86c6-95bb6c4fd0a5', contactName: '+55 (64) 9984-9640', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '07ccf969-3719-4636-9d34-cc3e306df57e', contactName: '+55 (87) 8128-2406', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c2bbc74e-074f-4b32-9986-182c73ca67b7', contactName: '+55 (35) 8854-5050', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f616476e-2e72-41c7-b818-794469eae3ba', contactName: '+55 (43) 8446-9772', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c737fa10-edcc-4540-8417-f6371dc8bc6a', contactName: 'Marina', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd777a772-1a0e-4eb6-a31f-3990ee6fdcaf', contactName: '.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '90e03620-f929-4052-a0e0-9a3fd9fd691c', contactName: 'Guilherme Arruda', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5ab3daee-91fe-45cf-92c6-112054d047a9', contactName: '+55 (16) 99142-0806', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'bdbf3f66-d541-4bef-a0e5-96624151433d', contactName: 'João Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cc4dcab0-caeb-4420-866a-471a2c19eda4', contactName: 'Mauricio Granzotto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7073190f-bbcf-43d4-888d-6a48c0b682a2', contactName: 'Bruno Quevedo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '4d2f804a-b695-4cc4-af48-aa3195bfc825', contactName: 'Yuri', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1a617aac-fa0a-483b-be39-2693241a67d7', contactName: 'Fouad', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'fcd735c9-7bb3-46f5-8a97-f5639e8ad404', contactName: 'Enzo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1293ea7b-99d1-4153-a090-fd756c6d4154', contactName: 'Carlos Eduardo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ab8aedf6-eaf0-49da-a155-beb52a2d4dee', contactName: 'Juliana', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8004d925-0835-496d-8d54-124726dbe35e', contactName: 'Jujuba', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eda7f7b5-919e-422e-a34b-dd2773c4156b', contactName: 'Mavi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd115375a-e5be-4b16-a980-8aa8b047337e', contactName: 'Fernando Rios', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '54913f91-7f22-4237-a198-de1cef6bf6b9', contactName: 'Fernanda Firmino', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd19f91ab-bb2f-43d1-a392-a63b73bcdd64', contactName: 'Ana Proto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6a760063-82f1-41d2-be40-2f1af1e193fc', contactName: 'João Victor M.', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '5f1df1f6-e4b0-44a7-84bb-482a0a89c82f', contactName: 'Ruan Pizzatto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b3e33200-5ff7-48d1-8d3c-b1b5ccf81c7b', contactName: 'gabi buzetti', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f4e52c7e-9074-432d-b003-5fd4eac509e6', contactName: 'Letícia Franciosi', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ea2632d3-5eb7-4335-b21b-803f11aa85dc', contactName: 'Lara Maria', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '16a16649-a2d7-4df7-905a-0b0a16bd9960', contactName: 'Antonio Neto', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '695d83e9-9a26-43ca-9ee7-68fdf7ab25fa', contactName: '+55 (68) 9976-1807', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6de272d6-4708-4a58-bd0e-13532fcb0b03', contactName: 'Jessica Gonçalves', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '9bbfc9e2-d8ea-45fd-8850-598195f74f27', contactName: '+55 (21) 97564-9179', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7857ee53-53df-4099-a1e1-846bd1de6c85', contactName: '+55 (65) 9674-9666', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ae9e8b05-1a48-4e0c-a6a8-92fc259b3450', contactName: 'Braytner Coelho', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-WhatsAppMessagesList.tsx:52 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 2, isLoading: false, isLoadingMore: false, hasMoreMessages: false}
-2WhatsAppMessagesList.tsx:82 [WhatsApp MessagesList] ⚡ PRE-POSITIONED: Posicionando antes do paint
-logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
-logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 7c197601-01cc-4f71-a4d8-7c1357cac113
-useLeadTags.ts:63 [useLeadTags] ✅ Tags carregadas: {leadTags: 0, availableTags: 1, leadId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', userId: '7c197601-01cc-4f71-a4d8-7c1357cac113'}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
-useLeadTags.ts:63 [useLeadTags] ✅ Tags carregadas: {leadTags: 0, availableTags: 1, leadId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', userId: '7c197601-01cc-4f71-a4d8-7c1357cac113'}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'a0d3c70b-c60b-4f3c-8229-99b1475cdc35', currentStageId: 'bae8f613-dd1a-4177-a430-36434cda972e', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
+DndKanbanBoardWrapper.tsx:62 Uncaught ReferenceError: useEffect is not defined
+    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
+
+DataErrorBoundary.tsx:24 [DataErrorBoundary] 🚨 Erro capturado: ReferenceError: useEffect is not defined
+    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
+DndKanbanBoardWrapper.tsx:62 Uncaught ReferenceError: useEffect is not defined
+    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
+DataErrorBoundary.tsx:24 [DataErrorBoundary] 🚨 Erro capturado: ReferenceError: useEffect is not defined
+    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
+@react-refresh:160 The above error occurred in the <DndKanbanBoardWrapper> component:
+
+    at DndKanbanBoardWrapper (http://localhost:8080/src/components/sales/DndKanbanBoardWrapper.tsx?t=1757491025941:35:45)
+    at DataErrorBoundary (http://localhost:8080/src/components/sales/funnel/DataErrorBoundary.tsx:244:9)
+    at div
+    at KanbanBoard (http://localhost:8080/src/components/sales/KanbanBoard.tsx?t=1757490742272:25:31)
+    at div
+    at div
+    at div
+    at div
+    at SalesFunnelContent (http://localhost:8080/src/components/sales/funnel/SalesFunnelContent.tsx?t=1757490742272:47:22)
+    at ErrorBoundary (http://localhost:8080/src/components/ErrorBoundary.tsx:296:5)
+    at div
+    at SalesFunnel
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx?t=1757488261932:28:29)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=781cb5d5:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1757490771169:622:5)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, DataErrorBoundary.
+DataErrorBoundary.tsx:29 [DataErrorBoundary] Kanban Board - Fases 2+3 + Clone Visual: ReferenceError: useEffect is not defined
+    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
+ 
+{componentStack: '\n    at DndKanbanBoardWrapper (http://localhost:80…localhost:8080/src/App.tsx?t=1757490771169:622:5)'}
+DndKanbanBoardWrapper.tsx:62 Uncaught ReferenceError: useEffect is not defined
+    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
+DataErrorBoundary.tsx:24 [DataErrorBoundary] 🚨 Erro capturado: ReferenceError: useEffect is not defined
+    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
+DndKanbanBoardWrapper.tsx:62 Uncaught ReferenceError: useEffect is not defined
+    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
+DataErrorBoundary.tsx:24 [DataErrorBoundary] 🚨 Erro capturado: ReferenceError: useEffect is not defined
+    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
+@react-refresh:160 The above error occurred in the <DndKanbanBoardWrapper> component:
+
+    at DndKanbanBoardWrapper (http://localhost:8080/src/components/sales/DndKanbanBoardWrapper.tsx?t=1757491025941:35:45)
+    at DataErrorBoundary (http://localhost:8080/src/components/sales/funnel/DataErrorBoundary.tsx:244:9)
+    at div
+    at KanbanBoard (http://localhost:8080/src/components/sales/KanbanBoard.tsx?t=1757490742272:25:31)
+    at div
+    at div
+    at div
+    at div
+    at SalesFunnelContent (http://localhost:8080/src/components/sales/funnel/SalesFunnelContent.tsx?t=1757490742272:47:22)
+    at ErrorBoundary (http://localhost:8080/src/components/ErrorBoundary.tsx:296:5)
+    at div
+    at SalesFunnel
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx?t=1757488261932:28:29)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=781cb5d5:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1757490771169:622:5)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, DataErrorBoundary.
+DataErrorBoundary.tsx:29 [DataErrorBoundary] Kanban Board - Fases 2+3 + Clone Visual: ReferenceError: useEffect is not defined
+    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
+ 
+{componentStack: '\n    at DndKanbanBoardWrapper (http://localhost:80…localhost:8080/src/App.tsx?t=1757490771169:622:5)'}

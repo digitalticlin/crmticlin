@@ -166,19 +166,6 @@ export default function ResponsiveSidebar() {
           </Sheet>
           <SidebarLogo isCollapsed={false} />
           
-          {/* Badge do Role */}
-          {permissions.role && (
-            <div className="ml-auto">
-              <span className={cn(
-                "text-xs px-2 py-1 rounded-full font-medium",
-                permissions.role === 'admin' 
-                  ? "bg-yellow-100/80 text-yellow-800 border border-yellow-200/60"
-                  : "bg-blue-100/80 text-blue-800 border border-blue-200/60"
-              )}>
-                 {permissions.role === 'admin' ? 'ADMIN' : 'OPERACIONAL'}
-              </span>
-            </div>
-          )}
         </div>
       </>
     );
@@ -194,19 +181,6 @@ export default function ResponsiveSidebar() {
     >
       <SidebarContent />
       
-      {/* Badge do Role - Desktop */}
-      {permissions.role && !isCollapsed && (
-        <div className="absolute top-4 right-4">
-          <span className={cn(
-            "text-xs px-2 py-1 rounded-full font-medium",
-            permissions.role === 'admin' 
-              ? "bg-yellow-100/80 text-yellow-800 border border-yellow-200/60"
-              : "bg-blue-100/80 text-blue-800 border border-blue-200/60"
-          )}>
-             {permissions.role === 'admin' ? 'ADMIN' : 'OPERACIONAL'}
-          </span>
-        </div>
-      )}
     </div>
   );
 }

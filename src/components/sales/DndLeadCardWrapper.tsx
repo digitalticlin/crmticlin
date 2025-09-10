@@ -36,6 +36,16 @@ export const DndLeadCardWrapper: React.FC<DndLeadCardWrapperProps> = ({
   const isInSelectionMode = leadCardProps.massSelection?.isSelectionMode || false;
   const shouldDisableDnd = !enableDnd || isInSelectionMode;
 
+  console.log('[DndLeadCardWrapper] 🔧 RENDERIZANDO LEAD:', {
+    leadId: lead.id,
+    leadName: lead.name,
+    enableDnd,
+    isInSelectionMode,
+    shouldDisableDnd,
+    hasOnOpenChat: !!leadCardProps.onOpenChat,
+    hasOnClick: !!leadCardProps.onClick
+  });
+
   // Dados para o sistema DnD
   const dndData = {
     leadId: lead.id,
@@ -46,25 +56,53 @@ export const DndLeadCardWrapper: React.FC<DndLeadCardWrapperProps> = ({
 
   // Se DnD desabilitado (incluindo modo seleção), renderizar LeadCard normal
   if (shouldDisableDnd) {
+    console.log('[DndLeadCardWrapper] ⚠️ DnD DESABILITADO - renderizando LeadCard diretamente');
     return (
-      <div className={className}>
+      <div className={className} onClick={() => {
+        console.log('[DndLeadCardWrapper] 🖱️ CLIQUE DIRETO NA DIV (DnD desabilitado)');
+        if (leadCardProps.onOpenChat) {
+          console.log('[DndLeadCardWrapper] 💬 Executando onOpenChat direto...');
+          leadCardProps.onOpenChat();
+        } else if (leadCardProps.onClick) {
+          console.log('[DndLeadCardWrapper] 👆 Executando onClick direto...');
+          leadCardProps.onClick();
+        }
+      }}>
         <LeadCard lead={lead} {...leadCardProps} />
       </div>
     );
   }
 
-  // Handler para duplo clique que prioriza onOpenChat
-  const handleDoubleClick = useCallback(() => {
-    console.log('[DndLeadCardWrapper] 💬 DUPLO CLIQUE - ABRINDO CHAT:', { 
+  // Handler para clique simples que prioriza onOpenChat
+  const handleClick = useCallback(() => {
+    console.log('[DndLeadCardWrapper] 💬 CLIQUE RECEBIDO - PROCESSANDO:', { 
       leadId: lead.id, 
-      leadName: lead.name 
+      leadName: lead.name,
+      hasOnOpenChat: !!leadCardProps.onOpenChat,
+      hasOnClick: !!leadCardProps.onClick,
+      onOpenChatType: typeof leadCardProps.onOpenChat,
+      onClickType: typeof leadCardProps.onClick
     });
     
     // Priorizar onOpenChat para abrir chat
     if (leadCardProps.onOpenChat) {
-      leadCardProps.onOpenChat();
+      console.log('[DndLeadCardWrapper] 🚀 EXECUTANDO onOpenChat...');
+      try {
+        leadCardProps.onOpenChat();
+        console.log('[DndLeadCardWrapper] ✅ onOpenChat EXECUTADO COM SUCESSO');
+      } catch (error) {
+        console.error('[DndLeadCardWrapper] ❌ ERRO ao executar onOpenChat:', error);
+      }
+    } else if (leadCardProps.onClick) {
+      console.log('[DndLeadCardWrapper] 🚀 EXECUTANDO onClick fallback...');
+      try {
+        leadCardProps.onClick();
+        console.log('[DndLeadCardWrapper] ✅ onClick EXECUTADO COM SUCESSO');
+      } catch (error) {
+        console.error('[DndLeadCardWrapper] ❌ ERRO ao executar onClick:', error);
+      }
     } else {
-      leadCardProps.onClick();
+      console.error('[DndLeadCardWrapper] ❌ NEM onOpenChat NEM onClick EXISTEM!');
     }
   }, [lead.id, lead.name, leadCardProps.onOpenChat, leadCardProps.onClick]);
 
@@ -73,7 +111,7 @@ export const DndLeadCardWrapper: React.FC<DndLeadCardWrapperProps> = ({
       id={lead.id}
       data={dndData}
       className={className}
-      onClick={handleDoubleClick}
+      onClick={handleClick}
     >
       <LeadCard lead={lead} {...leadCardProps} />
     </DndDraggableCard>

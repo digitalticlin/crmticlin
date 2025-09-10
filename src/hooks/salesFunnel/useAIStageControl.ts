@@ -4,15 +4,23 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useDataFilters } from '@/hooks/useDataFilters';
+import { useAccessControl } from '@/hooks/useAccessControl';
 
 export const useAIStageControl = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const dataFilters = useDataFilters();
+  const { userFunnels } = useAccessControl();
 
   const toggleAIMutation = useMutation({
     mutationFn: async ({ stageId, enabled }: { stageId: string; enabled: boolean }) => {
       if (!user?.id) {
         throw new Error('Usuário não autenticado');
+      }
+
+      if (dataFilters.loading || !dataFilters.role) {
+        throw new Error('Carregando permissões do usuário...');
       }
 
       console.log('[useAIStageControl] 🤖 Alterando status da IA:', {
@@ -22,13 +30,30 @@ export const useAIStageControl = () => {
         timestamp: new Date().toISOString()
       });
 
-      // Primeiro, verificar se a etapa existe e pertence ao usuário
-      const { data: existingStage, error: fetchError } = await supabase
+      // 🚀 CORREÇÃO: Verificar permissão baseada no role do usuário
+      console.log('[useAIStageControl] 🔍 Verificando permissões:', {
+        role: dataFilters.role,
+        userFunnels: userFunnels,
+        stageId
+      });
+
+      let stageQuery = supabase
         .from('kanban_stages')
-        .select('id, title, ai_enabled, funnel_id')
-        .eq('id', stageId)
-        .eq('created_by_user_id', user.id)
-        .single();
+        .select('id, title, ai_enabled, funnel_id, created_by_user_id')
+        .eq('id', stageId);
+
+      // Aplicar filtros baseados no role
+      if (dataFilters.role === 'admin') {
+        stageQuery = stageQuery.eq('created_by_user_id', user.id);
+      } else if (dataFilters.role === 'operational') {
+        // Operacional: pode alterar etapas dos funis atribuídos
+        if (userFunnels.length === 0) {
+          throw new Error('Usuário operacional sem funis atribuídos');
+        }
+        stageQuery = stageQuery.in('funnel_id', userFunnels);
+      }
+
+      const { data: existingStage, error: fetchError } = await stageQuery.single();
 
       if (fetchError) {
         console.error('[useAIStageControl] ❌ Erro ao buscar etapa:', fetchError);
@@ -41,15 +66,24 @@ export const useAIStageControl = () => {
         newAIEnabled: enabled
       });
 
-      // Atualizar o status da IA
-      const { error } = await supabase
+      // 🚀 CORREÇÃO: Atualizar status da IA com filtros por role
+      let updateQuery = supabase
         .from('kanban_stages')
         .update({ 
           ai_enabled: enabled,
           updated_at: new Date().toISOString()
         })
-        .eq('id', stageId)
-        .eq('created_by_user_id', user.id);
+        .eq('id', stageId);
+
+      // Aplicar filtros baseados no role
+      if (dataFilters.role === 'admin') {
+        updateQuery = updateQuery.eq('created_by_user_id', user.id);
+      } else if (dataFilters.role === 'operational') {
+        // Operacional: pode atualizar etapas dos funis atribuídos
+        updateQuery = updateQuery.in('funnel_id', userFunnels);
+      }
+
+      const { error } = await updateQuery;
 
       if (error) {
         console.error('[useAIStageControl] ❌ Erro ao atualizar status da IA:', error);
@@ -110,6 +144,7 @@ export const useAIStageControl = () => {
 
   return {
     toggleAI,
-    isLoading: toggleAIMutation.isPending
+    isLoading: toggleAIMutation.isPending,
+    canToggleAI: !dataFilters.loading && !!dataFilters.role
   };
 };

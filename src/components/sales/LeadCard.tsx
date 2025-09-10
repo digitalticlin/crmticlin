@@ -4,7 +4,7 @@ import { LeadCardContent } from "./lead/LeadCardContent";
 import { LeadCardTags } from "./lead/LeadCardTags";
 import { LeadCardActions } from "./lead/LeadCardActions";
 import { Check } from "lucide-react";
-import React, { memo } from "react";
+import React, { memo, useRef, useState } from "react";
 import { MassSelectionReturn } from "@/hooks/useMassSelection";
 
 interface LeadCardProps {
@@ -36,6 +36,14 @@ export const LeadCard = memo(({
   lostStageId,
   massSelection
 }: LeadCardProps) => {
+  console.log('[LeadCard] 🎴 RENDERIZANDO CARD:', {
+    leadId: lead.id,
+    leadName: lead.name,
+    hasOnClick: !!onClick,
+    hasOnOpenChat: !!onOpenChat,
+    onClickType: typeof onClick,
+    onOpenChatType: typeof onOpenChat
+  });
   // Se não tiver massSelection via props, usar valores padrão
   const effectiveMassSelection = massSelection || {
     selectedLeads: new Set(),
@@ -47,40 +55,41 @@ export const LeadCard = memo(({
   const { selectedLeads, isSelectionMode, toggleLead, isLeadSelected } = effectiveMassSelection;
   const isSelected = isLeadSelected ? isLeadSelected(lead.id) : selectedLeads.has(lead.id);
   
+  // Removido sistema de detecção - DndDraggableCard cuida disso
+  
   // Debug logs removidos para produção
   const isWon = isWonLostView && lead.columnId === wonStageId;
   const isLost = isWonLostView && lead.columnId === lostStageId;
   
   const handleCardClick = (e: React.MouseEvent) => {
-    console.log('[LeadCard] 🖱️ CARD CLICADO:', { 
+    console.log('[LeadCard] 🖱️ CLIQUE DETECTADO:', { 
       leadId: lead.id, 
       leadName: lead.name,
       isSelectionMode,
       hasOnOpenChat: !!onOpenChat,
-      target: (e.target as HTMLElement).className 
+      targetClass: (e.target as Element).className,
+      isChatIconArea: (e.target as Element).closest('.chat-icon-area') !== null
     });
     
-    // Se estiver em modo seleção e não clicou no checkbox
-    if (isSelectionMode && !(e.target as HTMLElement).closest('.selection-checkbox')) {
-      console.log('[LeadCard] ☑️ Modo seleção ativo - toggle lead');
-      toggleLead(lead.id);
-      return;
-    }
-    
-    // PRIORIDADE: onOpenChat para abrir chat
-    if (onOpenChat) {
-      console.log('[LeadCard] 💬 ✅ ABRINDO CHAT para:', lead.name);
+    // Se clicou no ícone de chat, abrir chat
+    if ((e.target as Element).closest('.chat-icon-area') && onOpenChat) {
+      console.log('[LeadCard] 💬 ✅ ABRINDO CHAT VIA ÍCONE para:', lead.name);
       e.preventDefault();
       e.stopPropagation();
       onOpenChat();
       return;
     }
     
-    // FALLBACK: onClick padrão
-    console.log('[LeadCard] 👆 Executando onClick padrão para:', lead.name);
-    e.preventDefault();
-    e.stopPropagation();
-    onClick();
+    // Se estiver em modo seleção
+    if (isSelectionMode) {
+      console.log('[LeadCard] ☑️ Modo seleção ativo - toggle lead');
+      toggleLead(lead.id);
+      return;
+    }
+    
+    // RESTANTE DO CARD: ativar DnD ou onClick padrão
+    console.log('[LeadCard] 🔄 Área de DnD - não interceptar clique');
+    // Não prevenir - deixar DnD funcionar
   };
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
@@ -91,8 +100,8 @@ export const LeadCard = memo(({
   return (
     <div
       className={cn(
-        // Base do card - design glassmórfico
-        "bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg mb-2 rounded-xl p-2 cursor-pointer group",
+        // Base do card - design glassmórfico com padding reduzido
+        "bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg mb-2 rounded-xl p-1.5 cursor-pointer group",
         "w-[98.5%] max-w-[380px] mx-auto",
         
         // Estados normais - hover e transições (não aplicar hover se em modo seleção)
@@ -110,8 +119,25 @@ export const LeadCard = memo(({
         isSelectionMode && !isSelected && "cursor-pointer hover:ring-1 hover:ring-blue-300 hover:bg-blue-50/10"
       )}
       onClick={handleCardClick}
+      onMouseDown={(e) => {
+        console.log('[LeadCard] 🖱️ MOUSE DOWN DETECTADO!', { leadId: lead.id, target: (e.target as any).className });
+      }}
+      onMouseUp={(e) => {
+        console.log('[LeadCard] 🖱️ MOUSE UP DETECTADO!', { leadId: lead.id, target: (e.target as any).className });
+      }}
+      onPointerDown={(e) => {
+        console.log('[LeadCard] 👆 POINTER DOWN DETECTADO!', { leadId: lead.id, target: (e.target as any).className });
+      }}
+      onTouchStart={(e) => {
+        console.log('[LeadCard] 👆 TOUCH START DETECTADO!', { leadId: lead.id, target: (e.target as any).className });
+      }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      style={{
+        pointerEvents: 'auto',
+        zIndex: 10,
+        position: 'relative'
+      }}
     >
       {/* Checkbox de seleção - aparece apenas no modo seleção */}
       {isSelectionMode && (
@@ -138,10 +164,10 @@ export const LeadCard = memo(({
       <div className="relative z-20">
         <LeadCardContent lead={lead} isWonLostView={isWonLostView} lostStageId={lostStageId} />
         
-        {/* Tags and Actions Footer */}
-        <div className="flex justify-between items-center mt-3 pt-2 border-t border-white/30">
+        {/* Tags and Actions Footer - altura reduzida */}
+        <div className="flex justify-between items-center mt-1.5 pt-1.5 border-t border-white/30">
           <div className="flex-1 min-w-0 mr-2 max-w-[70%]">
-            <LeadCardTags tags={lead.tags} />
+            <LeadCardTags tags={lead.tags} maxTags={2} />
           </div>
           <LeadCardActions
             leadId={lead.id}

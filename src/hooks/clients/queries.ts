@@ -2,6 +2,8 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientData } from "./types";
+import { useDataFilters } from "@/hooks/useDataFilters";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 const CLIENTS_PER_PAGE = 50;
 const SEARCH_LIMIT = 500; // Limite de segurança para buscas
@@ -32,10 +34,13 @@ export const useDefaultWhatsAppInstance = (userId: string | null) => {
   });
 };
 
-// Hook principal com paginação infinita
+// Hook principal com paginação infinita com filtros por role
 export const useClientsQuery = (userId: string | null, searchQuery: string = "") => {
+  const dataFilters = useDataFilters();
+  const { permissions } = useUserPermissions();
+  
   return useInfiniteQuery({
-    queryKey: ["clients", userId, searchQuery],
+    queryKey: ["clients", userId, searchQuery, dataFilters.role, permissions.role],
     initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }): Promise<{
       data: ClientData[];
@@ -43,15 +48,19 @@ export const useClientsQuery = (userId: string | null, searchQuery: string = "")
       hasMore: boolean;
       totalCount: number;
     }> => {
-      if (!userId) return { data: [], nextCursor: undefined, hasMore: false, totalCount: 0 };
+      if (!userId || dataFilters.loading || !dataFilters.role) {
+        return { data: [], nextCursor: undefined, hasMore: false, totalCount: 0 };
+      }
       
-      console.log('[Clients Query] 📊 Carregando página:', {
+      console.log('[Clients Query] 📊 Carregando clientes com filtros de role:', {
         pageParam,
         limit: CLIENTS_PER_PAGE,
-        userId
+        userId,
+        role: dataFilters.role,
+        leadsFilter: dataFilters.leadsFilter
       });
       
-      // Buscar leads do usuário com paginação incluindo tags
+      // Aplicar filtros baseados no role do usuário
       let query = supabase
         .from("leads")
         .select(`
@@ -64,8 +73,23 @@ export const useClientsQuery = (userId: string | null, searchQuery: string = "")
             )
           )
         `, { count: 'exact' })
-        .eq("created_by_user_id", userId)
         .order("created_at", { ascending: false });
+
+      // 🎯 APLICAR FILTROS POR ROLE (igual ao funil de vendas)
+      if (dataFilters.role === 'admin') {
+        // ADMIN: Vê leads que ele criou
+        query = query.eq("created_by_user_id", userId);
+        console.log('[Clients Query] 👑 ADMIN - Filtrando por created_by_user_id:', userId);
+      } else if (dataFilters.role === 'operational' && dataFilters.leadsFilter) {
+        // OPERACIONAL: Usar filtros do useDataFilters
+        if (dataFilters.leadsFilter.whatsapp_number_id) {
+          query = query.in("whatsapp_number_id", dataFilters.leadsFilter.whatsapp_number_id.in);
+          console.log('[Clients Query] 🎯 OPERACIONAL - Filtrando por whatsapp_number_id:', dataFilters.leadsFilter.whatsapp_number_id.in);
+        } else if (dataFilters.leadsFilter.owner_id) {
+          query = query.eq("owner_id", dataFilters.leadsFilter.owner_id);
+          console.log('[Clients Query] 🎯 OPERACIONAL - Filtrando por owner_id:', dataFilters.leadsFilter.owner_id);
+        }
+      }
 
       if (searchQuery && searchQuery.trim()) {
         const q = searchQuery.trim();
@@ -131,7 +155,7 @@ export const useClientsQuery = (userId: string | null, searchQuery: string = "")
       };
     },
     getNextPageParam: (lastPage) => lastPage.nextCursor,
-    enabled: !!userId,
+    enabled: !!userId && !dataFilters.loading && !!dataFilters.role,
     staleTime: 1000 * 60 * 15, // 🔧 OTIMIZAÇÃO: 15 minutos cache para clientes
     gcTime: 1000 * 60 * 30, // 30 minutos garbage collection
   });
@@ -139,70 +163,66 @@ export const useClientsQuery = (userId: string | null, searchQuery: string = "")
 
 // Hook para buscar opções de filtros
 export const useFilterOptions = (userId: string | null) => {
+  const dataFilters = useDataFilters();
+  
   return useQuery({
-    queryKey: ["filter-options", userId],
+    queryKey: ["filter-options", userId, dataFilters.role],
     queryFn: async () => {
-      if (!userId) return null;
+      if (!userId || dataFilters.loading || !dataFilters.role) return null;
 
-      // Buscar todas as tags do usuário
-      const { data: tagsData } = await supabase
-        .from("tags")
-        .select("id, name, color")
-        .eq("created_by_user_id", userId)
-        .order("name");
+      console.log('[Filter Options] 🔍 Buscando opções de filtro para role:', dataFilters.role);
 
-      // Buscar usuários responsáveis
-      const { data: usersData } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .eq("created_by_user_id", userId) // Corrigir: usar created_by_user_id baseado no schema
-        .order("full_name");
+      // Aplicar filtros baseados no role
+      let tagQuery = supabase.from("tags").select("id, name, color").order("name");
+      let userQuery = supabase.from("profiles").select("id, full_name").order("full_name");
+      let funnelQuery = supabase.from("funnels").select("id, name").order("name");
+      let stagesQuery = supabase.from("kanban_stages").select("id, title").order("order_position");
+      let leadsQuery = supabase.from("leads");
 
-      // Buscar funis
-      const { data: funnelsData } = await supabase
-        .from("funnels")
-        .select("id, name")
-        .eq("created_by_user_id", userId) // Ajustar conforme a estrutura real de funis
-        .order("name");
+      if (dataFilters.role === 'admin') {
+        // ADMIN: Vê recursos criados por ele
+        tagQuery = tagQuery.eq("created_by_user_id", userId);
+        userQuery = userQuery.eq("created_by_user_id", userId);
+        funnelQuery = funnelQuery.eq("created_by_user_id", userId);
+        stagesQuery = stagesQuery.eq("created_by_user_id", userId);
+        leadsQuery = leadsQuery.eq("created_by_user_id", userId);
+        console.log('[Filter Options] 👑 ADMIN - Buscando recursos criados pelo admin');
+      } else if (dataFilters.role === 'operational') {
+        // OPERACIONAL: Usar filtros específicos dos recursos atribuídos
+        if (dataFilters.leadsFilter?.whatsapp_number_id) {
+          leadsQuery = leadsQuery.in("whatsapp_number_id", dataFilters.leadsFilter.whatsapp_number_id.in);
+          console.log('[Filter Options] 🎯 OPERACIONAL - Filtrando por instâncias WhatsApp atribuídas');
+        } else if (dataFilters.leadsFilter?.owner_id) {
+          leadsQuery = leadsQuery.eq("owner_id", dataFilters.leadsFilter.owner_id);
+          console.log('[Filter Options] 🎯 OPERACIONAL - Filtrando por owner_id');
+        }
+        
+        // Para operacionais, os filtros de tags, usuários, funis, etc. podem ser limitados
+        // vamos manter as queries sem filtro adicional por enquanto, mas os leads já são filtrados
+      }
 
-      // Buscar etapas de funis
-      const { data: stagesData } = await supabase
-        .from("kanban_stages")
-        .select("id, title")
-        .eq("created_by_user_id", userId) // Ajustar conforme a estrutura real de etapas
-        .order("order_position");
+      // Buscar dados
+      const { data: tagsData } = await tagQuery;
+      const { data: usersData } = await userQuery;
+      const { data: funnelsData } = await funnelQuery;
+      const { data: stagesData } = await stagesQuery;
 
-      // Buscar estados únicos  
-      const { data: statesData } = await supabase
-        .from("leads")
+      // Buscar dados únicos dos leads (com filtros aplicados)
+      const { data: statesData } = await leadsQuery
         .select("state")
-        .eq("created_by_user_id", userId)
-        .not("state", "is", null)
-        .order("state");
+        .not("state", "is", null);
 
-      // Buscar cidades únicas
-      const { data: citiesData } = await supabase
-        .from("leads")
+      const { data: citiesData } = await leadsQuery
         .select("city")
-        .eq("created_by_user_id", userId)
-        .not("city", "is", null)
-        .order("city");
+        .not("city", "is", null);
 
-      // Buscar países únicos
-      const { data: countriesData } = await supabase
-        .from("leads")
+      const { data: countriesData } = await leadsQuery
         .select("country")
-        .eq("created_by_user_id", userId)
-        .not("country", "is", null)
-        .order("country");
+        .not("country", "is", null);
 
-      // Buscar empresas únicas
-      const { data: companiesData } = await supabase
-        .from("leads")
+      const { data: companiesData } = await leadsQuery
         .select("company")
-        .eq("created_by_user_id", userId)
-        .not("company", "is", null)
-        .order("company");
+        .not("company", "is", null);
 
       return {
         tags: tagsData || [],
@@ -215,7 +235,7 @@ export const useFilterOptions = (userId: string | null) => {
         countries: [...new Set((countriesData || []).map(c => c.country).filter(Boolean))]
       };
     },
-    enabled: !!userId,
+    enabled: !!userId && !dataFilters.loading && !!dataFilters.role,
     staleTime: 1000 * 60 * 20, // 🔧 OTIMIZAÇÃO: 20 minutos para filtros (mudam pouco)
     gcTime: 1000 * 60 * 45, // 45 minutos garbage collection
   });
@@ -227,10 +247,12 @@ export const useFilteredClientsQuery = (
   searchQuery: string = "",
   filters: any = {}
 ) => {
+  const dataFilters = useDataFilters();
+  
   return useQuery({
-    queryKey: ["filtered-clients", userId, searchQuery, filters],
+    queryKey: ["filtered-clients", userId, searchQuery, filters, dataFilters.role],
     queryFn: async (): Promise<ClientData[]> => {
-      if (!userId) return [];
+      if (!userId || dataFilters.loading || !dataFilters.role) return [];
       
       let query = supabase
         .from("leads")
@@ -244,8 +266,21 @@ export const useFilteredClientsQuery = (
             )
           )
         `)
-        .eq("created_by_user_id", userId)
         .order("created_at", { ascending: false });
+
+      // 🎯 APLICAR FILTROS POR ROLE (igual aos outros hooks)
+      if (dataFilters.role === 'admin') {
+        query = query.eq("created_by_user_id", userId);
+        console.log('[Filtered Clients] 👑 ADMIN - Filtrando por created_by_user_id:', userId);
+      } else if (dataFilters.role === 'operational' && dataFilters.leadsFilter) {
+        if (dataFilters.leadsFilter.whatsapp_number_id) {
+          query = query.in("whatsapp_number_id", dataFilters.leadsFilter.whatsapp_number_id.in);
+          console.log('[Filtered Clients] 🎯 OPERACIONAL - Filtrando por whatsapp_number_id');
+        } else if (dataFilters.leadsFilter.owner_id) {
+          query = query.eq("owner_id", dataFilters.leadsFilter.owner_id);
+          console.log('[Filtered Clients] 🎯 OPERACIONAL - Filtrando por owner_id');
+        }
+      }
 
       // Aplicar filtros de busca
       if (searchQuery && searchQuery.trim()) {
@@ -313,7 +348,7 @@ export const useFilteredClientsQuery = (
 
       return transformedData;
     },
-    enabled: !!userId,
+    enabled: !!userId && !dataFilters.loading && !!dataFilters.role,
     staleTime: 1000 * 60 * 5, // 🔧 OTIMIZAÇÃO: 5 minutos para filtros avançados
     gcTime: 1000 * 60 * 15, // 15 minutos garbage collection
   });

@@ -260,28 +260,49 @@ export function SalesFunnelContent() {
 
   // 🚀 FUNÇÃO CORRIGIDA: Aceitar leadId em vez de lead completo
   const handleOpenChat = useCallback((leadId: string) => {
+    console.log('[SalesFunnelContent] 💬 handleOpenChat CHAMADO:', {
+      leadId,
+      totalLeads: leads.length,
+      hasNavigate: !!navigate
+    });
+    
     const lead = leads.find(l => l.id === leadId);
     if (!lead) {
+      console.error('[SalesFunnelContent] ❌ Lead não encontrado:', { leadId, availableLeads: leads.map(l => l.id) });
       toast.error("Lead não encontrado");
       return;
     }
 
-    console.log('[SalesFunnelContent] 💬 Abrindo chat do WhatsApp para lead:', {
+    console.log('[SalesFunnelContent] 🚀 Lead encontrado - navegando para chat:', {
       leadId: lead.id,
       leadName: lead.name,
-      leadPhone: lead.phone
+      leadPhone: lead.phone,
+      navigateUrl: `/whatsapp-chat?leadId=${lead.id}`
     });
 
-    // Navegar para WhatsApp Chat com o leadId na URL
-    navigate(`/whatsapp-chat?leadId=${lead.id}`);
-    
-    toast.success(`Abrindo chat com ${lead.name}`, {
-      description: "Redirecionando para o WhatsApp..."
-    });
+    try {
+      // Navegar para WhatsApp Chat com o leadId na URL
+      navigate(`/whatsapp-chat?leadId=${lead.id}`);
+      
+      toast.success(`Abrindo chat com ${lead.name}`, {
+        description: "Redirecionando para o WhatsApp..."
+      });
+      
+      console.log('[SalesFunnelContent] ✅ Navegação executada com sucesso');
+    } catch (error) {
+      console.error('[SalesFunnelContent] ❌ ERRO na navegação:', error);
+      toast.error('Erro ao abrir chat');
+    }
   }, [navigate, leads]);
 
   // Função auxiliar para uso em outros componentes que ainda passam KanbanLead
   const handleOpenChatWithLead = useCallback((lead: KanbanLead) => {
+    console.log('[SalesFunnelContent] 📨 handleOpenChatWithLead CHAMADO:', {
+      leadId: lead.id,
+      leadName: lead.name,
+      hasHandleOpenChat: !!handleOpenChat
+    });
+    
     handleOpenChat(lead.id);
   }, [handleOpenChat]);
 

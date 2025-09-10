@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,13 @@ export const CurrentDealSection = ({ currentDeal, onUpdateDeal }: CurrentDealSec
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [editedValue, setEditedValue] = useState(currentDeal?.value?.toString() || "");
+  const [editedNotes, setEditedNotes] = useState(currentDeal?.notes || "");
+
+  // Atualizar valores editados quando currentDeal mudar
+  useEffect(() => {
+    setEditedValue(currentDeal?.value?.toString() || "");
+    setEditedNotes(currentDeal?.notes || "");
+  }, [currentDeal]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -59,7 +66,8 @@ export const CurrentDealSection = ({ currentDeal, onUpdateDeal }: CurrentDealSec
     try {
       await onUpdateDeal({
         ...currentDeal,
-        value
+        value,
+        notes: editedNotes
       });
       setIsEditing(false);
     } catch (error) {
@@ -71,6 +79,7 @@ export const CurrentDealSection = ({ currentDeal, onUpdateDeal }: CurrentDealSec
 
   const handleCancel = () => {
     setEditedValue(currentDeal?.value?.toString() || "");
+    setEditedNotes(currentDeal?.notes || "");
     setIsEditing(false);
   };
 
@@ -124,35 +133,24 @@ export const CurrentDealSection = ({ currentDeal, onUpdateDeal }: CurrentDealSec
             </span>
           )}
         </div>
-        
-        {/* Status e Estágio */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-700">Status:</span>
-          <Badge className={getStatusColor(currentDeal.status)}>
-            {getStatusLabel(currentDeal.status)}
-          </Badge>
-        </div>
 
-        <div className="flex justify-between items-center">
-          <span className="text-gray-700">Estágio Atual:</span>
-          <Badge className="bg-blue-500/30 text-blue-200">
-            {currentDeal.currentStage}
-          </Badge>
+        {/* Observações */}
+        <div className="space-y-2">
+          <span className="text-gray-700 text-sm">Observações:</span>
+          {isEditing ? (
+            <textarea
+              value={editedNotes}
+              onChange={(e) => setEditedNotes(e.target.value)}
+              className="w-full p-2 bg-white/50 backdrop-blur-sm border border-white/40 rounded-md focus:border-blue-400 text-gray-800 text-sm resize-none"
+              placeholder="Adicione observações sobre a negociação..."
+              rows={3}
+            />
+          ) : (
+            <p className="text-gray-800 text-sm bg-white/20 p-2 rounded-md min-h-[60px]">
+              {currentDeal.notes || "Nenhuma observação adicionada"}
+            </p>
+          )}
         </div>
-        
-        {/* Data de Início */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-700">No funil desde:</span>
-          <span className="text-gray-800">{formatDate(currentDeal.startDate)}</span>
-        </div>
-
-        {/* Notas */}
-        {currentDeal.notes && (
-          <div className="pt-2 border-t border-white/20">
-            <span className="text-gray-700 text-sm">Observações:</span>
-            <p className="text-gray-800 text-sm mt-1">{currentDeal.notes}</p>
-          </div>
-        )}
 
         {/* Botões de ação */}
         {isEditing && (

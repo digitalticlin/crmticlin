@@ -42,7 +42,7 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
   });
 
   return (
-    <div className="flex items-center gap-3 mb-3">
+    <div className="flex items-center gap-2 mb-2">
       {/* Avatar */}
       <Avatar className="h-8 w-8 flex-shrink-0">
         <img 

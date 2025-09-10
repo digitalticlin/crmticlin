@@ -1,99 +1,224 @@
 [
-    {
-      "policyname": "kanban_stages_multitenant_access",
-      "cmd": "ALL",
-      "qual": "((EXISTS ( SELECT 1\n   FROM funnels f\n  WHERE ((f.id = kanban_stages.funnel_id) AND (f.created_by_user_id = auth.uid())))) OR (EXISTS ( SELECT 1\n   FROM (user_funnels uf\n     JOIN funnels f ON ((f.id = uf.funnel_id)))\n  WHERE ((uf.funnel_id = kanban_stages.funnel_id) AND (uf.profile_id = auth.uid()) AND (f.created_by_user_id = ( SELECT p.created_by_user_id\n           FROM profiles p\n          WHERE (p.id = auth.uid())))))))",
-      "with_check": null
-    },
-    {
-      "policyname": "service_role_kanban_stages_access",
-      "cmd": "ALL",
-      "qual": "true",
-      "with_check": "true"
-    }
-  ]
-
-
-
-  [
-    {
-      "id": "bae8f613-dd1a-4177-a430-36434cda972e",
-      "title": "Entrada de Leads",
-      "funnel_id": "28dfc9bb-3c5c-482c-aca6-805a5c2bf280",
-      "order_position": 1,
-      "access_reason": "Via Nova Política RLS"
-    },
-    {
-      "id": "9ebe4d03-f2c5-4dea-8e96-2a683161fee2",
-      "title": "Em atendimento",
-      "funnel_id": "28dfc9bb-3c5c-482c-aca6-805a5c2bf280",
-      "order_position": 2,
-      "access_reason": "Via Nova Política RLS"
-    },
-    {
-      "id": "7ddb2f1a-19c8-47e5-a673-1be5f39b1452",
-      "title": "Em negociação",
-      "funnel_id": "28dfc9bb-3c5c-482c-aca6-805a5c2bf280",
-      "order_position": 3,
-      "access_reason": "Via Nova Política RLS"
-    },
-    {
-      "id": "9cc8c516-b358-4be4-9cfb-dc5fc18a31fc",
-      "title": "Entrar em contato",
-      "funnel_id": "28dfc9bb-3c5c-482c-aca6-805a5c2bf280",
-      "order_position": 4,
-      "access_reason": "Via Nova Política RLS"
-    },
-    {
-      "id": "51729bef-2d43-456d-baac-266a660b4439",
-      "title": "GANHO",
-      "funnel_id": "28dfc9bb-3c5c-482c-aca6-805a5c2bf280",
-      "order_position": 5,
-      "access_reason": "Via Nova Política RLS"
-    },
-    {
-      "id": "437edb01-09bf-4a0c-b346-c9e3fae9980f",
-      "title": "PERDIDO",
-      "funnel_id": "28dfc9bb-3c5c-482c-aca6-805a5c2bf280",
-      "order_position": 6,
-      "access_reason": "Via Nova Política RLS"
-    }
-  ]
-
-
-
-
-  [
-    {
-      "total_etapas_acessiveis": 0,
-      "status": "Após correção RLS"
-    }
-  ]
-
-
-  [
-    {
-      "id": "28dfc9bb-3c5c-482c-aca6-805a5c2bf280",
-      "name": "Funil Principal",
-      "created_by_user_id": "7c197601-01cc-4f71-a4d8-7c1357cac113",
-      "info": "Dados do funil"
-    }
-  ]
-
-  [
-    {
-      "profile_id": "d0bdb8e2-556f-48da-af90-63f14c119340",
-      "funnel_id": "28dfc9bb-3c5c-482c-aca6-805a5c2bf280",
-      "email": "vendas02@geuniformes.com.br",
-      "created_by_user_id": "7c197601-01cc-4f71-a4d8-7c1357cac113",
-      "info": "Permissão operacional"
-    }
-  ]
-
-
-
-  [
-    {
-      "resultado": "RLS CORRIGIDA! Operacionais agora podem ver etapas de funis atribuídos."
-    }
-  ]
+  {
+    "column_name": "id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": "gen_random_uuid()"
+  },
+  {
+    "column_name": "name",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "phone",
+    "data_type": "text",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "email",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "address",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "company",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "document_id",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "notes",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "purchase_value",
+    "data_type": "numeric",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "column_name": "kanban_stage_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "funnel_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "whatsapp_number_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "last_message",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "last_message_time",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "unread_count",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "column_name": "order_position",
+    "data_type": "integer",
+    "is_nullable": "YES",
+    "column_default": "0"
+  },
+  {
+    "column_name": "created_by_user_id",
+    "data_type": "uuid",
+    "is_nullable": "NO",
+    "column_default": null
+  },
+  {
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone",
+    "is_nullable": "YES",
+    "column_default": "now()"
+  },
+  {
+    "column_name": "import_source",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": "'realtime'::text"
+  },
+  {
+    "column_name": "deleted_whatsapp_instance_name",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "profile_pic_url",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "profile_pic_media_cache_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "city",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "state",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "zip_code",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "neighborhood",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "country",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": "'Brasil'::text"
+  },
+  {
+    "column_name": "conversation_status",
+    "data_type": "character varying",
+    "is_nullable": "YES",
+    "column_default": "'active'::character varying"
+  },
+  {
+    "column_name": "has_company",
+    "data_type": "boolean",
+    "is_nullable": "YES",
+    "column_default": "false"
+  },
+  {
+    "column_name": "company_segment",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "company_address",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "company_cidade",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "company_estado",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "company_cnpj",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "owner_id_backup",
+    "data_type": "text",
+    "is_nullable": "YES",
+    "column_default": null
+  },
+  {
+    "column_name": "owner_id",
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "column_default": null
+  }
+]

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { DndKanbanWrapper, useDndKanban } from '@/components/dnd';
 import { DndKanbanColumnWrapper } from './DndKanbanColumnWrapper';
 import { DataErrorBoundary } from './funnel/DataErrorBoundary';
@@ -9,6 +9,9 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { LeadCard } from './LeadCard';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { salesFunnelLeadsQueryKeys, salesFunnelStagesQueryKeys } from '@/hooks/salesFunnel/queryKeys';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DndKanbanBoardWrapperProps {
   columns: IKanbanColumn[];
@@ -32,6 +35,13 @@ interface DndKanbanBoardWrapperProps {
  * Board híbrido que pode funcionar com ou sem DnD
  * Permite migração gradual sem quebrar funcionalidades
  */
+/**
+ * 🎯 ESTRATÉGIA DE SINCRONIZAÇÃO:
+ * 1. DnD atualiza APENAS estado local (columns) - ZERO delay
+ * 2. Persiste no Supabase em background silenciosamente
+ * 3. NUNCA invalida queries durante a sessão
+ * 4. Sincroniza apenas em eventos específicos (navegação, refresh, etc)
+ */
 export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
   columns,
   onColumnsChange,
@@ -48,9 +58,35 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
   enableDnd = false,
   className
 }) => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  
   // Estado para o drag overlay
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draggedLead, setDraggedLead] = useState<KanbanLead | null>(null);
+
+  // 🎯 SINCRONIZAÇÃO MANUAL: Listener para sincronizar quando necessário
+  useEffect(() => {
+    const handleManualSync = () => {
+      console.log('[DndKanbanBoardWrapper] 🔄 Sincronização manual solicitada');
+      
+      // Só sincroniza quando explicitamente solicitado
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          return key.includes('salesfunnel-leads');
+        }
+      });
+    };
+
+    // Escutar evento de sincronização manual
+    window.addEventListener('dnd-manual-sync', handleManualSync);
+    
+    return () => {
+      window.removeEventListener('dnd-manual-sync', handleManualSync);
+    };
+  }, [queryClient]);
+
 
   // Converter colunas para formato do useDndKanban
   const dndColumns = columns.map(column => ({
@@ -128,7 +164,7 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
           return;
         }
 
-        console.log('[DndKanbanBoardWrapper] ✅ Mudança de etapa persistida no Supabase');
+        console.log('[DndKanbanBoardWrapper] ✅ Mudança de etapa persistida no Supabase - mantendo estado otimista');
         
         // Encontrar nome da nova etapa
         const toColumn = columns.find(col => col.id === toColumnId);
@@ -145,6 +181,9 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
             fromStageId: fromColumnId
           }
         }));
+
+        // 🚀 SOLUÇÃO CIRÚRGICA: Apenas persistir, ZERO invalidação
+        console.log('[DndKanbanBoardWrapper] ✅ Estado local atualizado + persistência silenciosa');
 
       } catch (error) {
         console.error('[DndKanbanBoardWrapper] ❌ Erro inesperado ao persistir:', error);
@@ -234,63 +273,196 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
     setActiveId(null);
     setDraggedLead(null);
     
-    if (!over || active.id === over.id) return;
+    if (!over) {
+      console.log('[DndKanbanBoardWrapper] ❌ DROP CANCELADO - Sem área de destino');
+      return;
+    }
     
     console.log('[DndKanbanBoardWrapper] ✅ DRAG END:', {
       activeId: active.id,
-      overId: over.id
+      overId: over.id,
+      overData: over.data?.current
     });
     
-    // Encontrar a coluna do lead ativo
-    const activeColumn = columns.find(col => 
-      col.leads.some(lead => lead.id === active.id)
-    );
+    // Encontrar lead sendo movido
+    let sourceLead: KanbanLead | null = null;
+    let sourceColumnId: string | null = null;
     
-    if (!activeColumn) return;
-    
-    // Verificar se é reordenação dentro da mesma coluna
-    const activeIndex = activeColumn.leads.findIndex(lead => lead.id === active.id);
-    const overIndex = activeColumn.leads.findIndex(lead => lead.id === over.id);
-    
-    if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
-      console.log('[DndKanbanBoardWrapper] 📋 REORDENANDO DENTRO DA COLUNA:', {
-        columnId: activeColumn.id,
-        fromIndex: activeIndex,
-        toIndex: overIndex
-      });
-      
-      // Reordenar dentro da mesma coluna
-      const newColumns = columns.map(column => {
-        if (column.id === activeColumn.id) {
-          return {
-            ...column,
-            leads: arrayMove(column.leads, activeIndex, overIndex)
-          };
-        }
-        return column;
-      });
-      
-      onColumnsChange(newColumns);
+    for (const column of columns) {
+      const lead = column.leads.find(l => l.id === active.id);
+      if (lead) {
+        sourceLead = lead;
+        sourceColumnId = column.id;
+        break;
+      }
     }
     
-    // Persistir mudança no banco (se necessário)
+    if (!sourceLead || !sourceColumnId) {
+      console.error('[DndKanbanBoardWrapper] ❌ Lead não encontrado:', active.id);
+      return;
+    }
+    
+    // Determinar coluna de destino
+    let targetColumnId: string | null = null;
+    
+    // Se droppou numa coluna (over.id começa com 'column-')
+    if (typeof over.id === 'string' && over.id.startsWith('column-')) {
+      targetColumnId = over.id.replace('column-', '');
+    } 
+    // Se droppou em outro lead, usar a coluna desse lead
+    else {
+      for (const column of columns) {
+        if (column.leads.some(l => l.id === over.id)) {
+          targetColumnId = column.id;
+          break;
+        }
+      }
+    }
+    
+    if (!targetColumnId) {
+      console.error('[DndKanbanBoardWrapper] ❌ Coluna de destino não encontrada');
+      return;
+    }
+    
+    console.log('[DndKanbanBoardWrapper] 🎯 MOVIMENTO DETECTADO:', {
+      leadId: active.id,
+      leadName: sourceLead.name,
+      fromColumn: sourceColumnId,
+      toColumn: targetColumnId,
+      sameColumn: sourceColumnId === targetColumnId
+    });
+    
+    // Se mesmo column, reordenar
+    if (sourceColumnId === targetColumnId) {
+      const sourceColumn = columns.find(col => col.id === sourceColumnId)!;
+      const activeIndex = sourceColumn.leads.findIndex(lead => lead.id === active.id);
+      const overIndex = sourceColumn.leads.findIndex(lead => lead.id === over.id);
+      
+      if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+        console.log('[DndKanbanBoardWrapper] 📋 REORDENANDO DENTRO DA COLUNA');
+        
+        const newColumns = columns.map(column => {
+          if (column.id === sourceColumnId) {
+            return {
+              ...column,
+              leads: arrayMove(column.leads, activeIndex, overIndex)
+            };
+          }
+          return column;
+        });
+        
+        onColumnsChange(newColumns);
+        
+        // 🚀 PERSISTIR reordenação no Supabase usando order_position
+        console.log('[DndKanbanBoardWrapper] 💾 PERSISTINDO reordenação no Supabase');
+        
+        const reorderedLeads = newColumns.find(col => col.id === sourceColumnId)?.leads || [];
+        
+        // Atualizar order_position de todos os leads da coluna
+        const updatePromises = reorderedLeads.map((lead, index) => {
+          return supabase
+            .from('leads')
+            .update({ 
+              order_position: index,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', lead.id);
+        });
+        
+        Promise.all(updatePromises).then((results) => {
+          const hasError = results.some(result => result.error);
+          if (hasError) {
+            console.error('[DndKanbanBoardWrapper] ❌ Erro ao persistir reordenação:', results);
+            toast.error('Erro ao salvar nova ordem dos cards');
+            // Reverter UI
+            onColumnsChange(columns);
+          } else {
+            console.log('[DndKanbanBoardWrapper] ✅ Reordenação persistida com sucesso');
+            toast.success('Ordem dos cards atualizada');
+            
+            // ZERO invalidação - estado local permanente
+          }
+        }).catch(error => {
+          console.error('[DndKanbanBoardWrapper] ❌ Erro inesperado na reordenação:', error);
+          toast.error('Erro inesperado ao reordenar');
+          onColumnsChange(columns);
+        });
+      }
+      return;
+    }
+    
+    // Movimento entre colunas - atualizar UI otimisticamente
+    const newColumns = columns.map(column => {
+      if (column.id === sourceColumnId) {
+        // Remover da coluna origem
+        return {
+          ...column,
+          leads: column.leads.filter(l => l.id !== active.id)
+        };
+      } else if (column.id === targetColumnId) {
+        // Adicionar na coluna destino
+        const updatedLead = { ...sourceLead, columnId: targetColumnId };
+        return {
+          ...column,
+          leads: [...column.leads, updatedLead]
+        };
+      }
+      return column;
+    });
+    
+    onColumnsChange(newColumns);
+    
+    // Persistir mudança no Supabase
     try {
+      console.log('[DndKanbanBoardWrapper] 💾 PERSISTINDO no Supabase:', {
+        leadId: active.id,
+        newStageId: targetColumnId
+      });
+      
       const { error } = await supabase
         .from('leads')
         .update({ 
-          kanban_stage_id: activeColumn.id,
+          kanban_stage_id: targetColumnId,
           updated_at: new Date().toISOString()
         })
         .eq('id', active.id);
 
       if (error) {
         console.error('[DndKanbanBoardWrapper] ❌ Erro ao persistir:', error);
-        toast.error('Erro ao salvar mudança');
-      } else {
-        console.log('[DndKanbanBoardWrapper] ✅ Mudança persistida');
+        toast.error('Erro ao salvar mudança de etapa');
+        
+        // Reverter UI em caso de erro
+        onColumnsChange(columns);
+        return;
       }
+
+      console.log('[DndKanbanBoardWrapper] ✅ Mudança persistida com sucesso - mantendo estado otimista');
+      
+      // Encontrar nome da nova etapa
+      const targetColumn = columns.find(col => col.id === targetColumnId);
+      const stageName = targetColumn?.title || 'Nova etapa';
+      
+      toast.success(`Lead "${sourceLead.name}" movido para: ${stageName}`);
+      
+      // Disparar evento para atualização em tempo real
+      window.dispatchEvent(new CustomEvent('leadStageChanged', {
+        detail: { 
+          leadId: active.id, 
+          newStageId: targetColumnId, 
+          newStageName: stageName,
+          fromStageId: sourceColumnId
+        }
+      }));
+
+      // 🚀 SOLUÇÃO CIRÚRGICA: Apenas persistir, ZERO invalidação
+      console.log('[DndKanbanBoardWrapper] ✅ Mudança entre etapas - estado local + persistência silenciosa');
+      
     } catch (error) {
       console.error('[DndKanbanBoardWrapper] ❌ Erro inesperado:', error);
+      toast.error('Erro inesperado ao salvar');
+      
+      // Reverter UI em caso de erro
+      onColumnsChange(columns);
     }
   }, [columns, onColumnsChange]);
 
@@ -349,7 +521,7 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
             dragOverlay={draggedLead ? (
-              <div className="opacity-90 scale-105 rotate-2">
+              <div className="opacity-90">
                 <LeadCard 
                   lead={draggedLead}
                   onClick={() => {}}

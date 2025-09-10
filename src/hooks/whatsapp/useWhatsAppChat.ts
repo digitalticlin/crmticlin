@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useDataFilters } from '@/hooks/useDataFilters';
 
 // Hooks isolados NOVOS (React Query)
 import { useWhatsAppInstances } from './useWhatsAppInstances';
@@ -80,6 +81,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
+  const dataFilters = useDataFilters();
   
   const leadId = searchParams.get('leadId');
   const phoneParam = searchParams.get('phone');
@@ -260,9 +262,9 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     console.log('[WhatsApp Chat] ✅ Contato selecionado via React Query:', contact?.name);
   }, [markAsRead, handleUpdateUnreadCount, user?.id, instances.activeInstance?.id]);
 
-  // Auto-seleção de contato da URL (com React Query)
+  // Auto-seleção de contato da URL (com React Query) - aguardando filtros carregarem
   useEffect(() => {
-    if ((leadId || phoneParam) && !selectedContact && !hasInitialized && user?.id) {
+    if ((leadId || phoneParam) && !selectedContact && !hasInitialized && user?.id && !dataFilters.loading && dataFilters.role) {
       const findAndSelectContact = async () => {
         console.log('[WhatsApp Chat] 🎯 Procurando contato da URL via React Query:', { leadId, phoneParam });
         
@@ -288,8 +290,17 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
           }
         }
         
-        // Se não encontrou, buscar no banco
-        console.log('[WhatsApp Chat] 🔍 Buscando contato no banco via React Query...');
+        // Se não encontrou, buscar no banco com filtros baseados no role
+        console.log('[WhatsApp Chat] 🔍 Buscando contato no banco via React Query com filtros por role:', {
+          role: dataFilters.role,
+          loading: dataFilters.loading
+        });
+        
+        if (dataFilters.loading || !dataFilters.role) {
+          console.log('[WhatsApp Chat] ⏳ Aguardando carregamento dos filtros de permissão...');
+          return;
+        }
+        
         try {
           let query = supabase
             .from('leads')
@@ -297,8 +308,45 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
               id, name, phone, email, address, company, document_id, notes, purchase_value, 
               owner_id, last_message, last_message_time, unread_count, created_at, updated_at,
               whatsapp_number_id, kanban_stage_id, created_by_user_id, profile_pic_url
-            `)
-            .eq('created_by_user_id', user.id);
+            `);
+
+          // 🚀 CORREÇÃO: Aplicar filtros baseados no role do usuário
+          if (dataFilters.role === 'admin') {
+            query = query.eq('created_by_user_id', user.id);
+          } else if (dataFilters.role === 'operational') {
+            // Operacional: buscar por instâncias WhatsApp atribuídas + admin que criou
+            const { data: userWhatsAppNumbers } = await supabase
+              .from('user_whatsapp_numbers')
+              .select('whatsapp_number_id')
+              .eq('profile_id', user.id);
+
+            if (!userWhatsAppNumbers || userWhatsAppNumbers.length === 0) {
+              console.log('[WhatsApp Chat] ⚠️ Usuário operacional sem instâncias WhatsApp atribuídas');
+              toast.error('Você não tem permissão para acessar este lead');
+              return;
+            }
+
+            const whatsappIds = userWhatsAppNumbers.map(uwn => uwn.whatsapp_number_id);
+            
+            // Buscar o admin que criou o usuário operacional
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('created_by_user_id')
+              .eq('id', user.id)
+              .single();
+
+            const adminId = profile?.created_by_user_id || user.id;
+            
+            query = query
+              .in('whatsapp_number_id', whatsappIds)
+              .eq('created_by_user_id', adminId);
+              
+            console.log('[WhatsApp Chat] 🎯 Filtros operacionais aplicados:', {
+              whatsappIds,
+              adminId,
+              userProfile: profile
+            });
+          }
           
           if (leadId) {
             query = query.eq('id', leadId);
@@ -359,7 +407,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
       
       findAndSelectContact();
     }
-  }, [leadId, phoneParam, selectedContact, hasInitialized, user?.id, contacts.contacts.length, handleSelectContact, contacts.addNewContact]);
+  }, [leadId, phoneParam, selectedContact, hasInitialized, user?.id, contacts.contacts.length, handleSelectContact, contacts.addNewContact, dataFilters.loading, dataFilters.role]);
 
   // Notificações de saúde
   useEffect(() => {

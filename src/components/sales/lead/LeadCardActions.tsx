@@ -71,7 +71,7 @@ export const LeadCardActions = ({
   // In won/lost view, only show return to funnel button
   if (isWonLostView) {
     return (
-      <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
+      <div className="lead-actions flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
         {onReturnToFunnel && (
           <button 
             onClick={(e) => {
@@ -90,7 +90,7 @@ export const LeadCardActions = ({
 
   // In funnel view, only show won/lost actions (stage control removed from here)
   return (
-    <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
+    <div className="lead-actions flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
       {onMoveToWon && !isInWonStage && !isInLostStage && (
         <button 
           onClick={(e) => {

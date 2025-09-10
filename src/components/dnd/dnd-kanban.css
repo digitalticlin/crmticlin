@@ -25,11 +25,11 @@
   border-radius: 12px;
 }
 
-/* Draggable Card */
+/* Draggable Card - EFEITOS DESATIVADOS TEMPORARIAMENTE */
 .drag-card--dragging {
-  transform: scale(1.05) rotate(2deg) !important;
+  /* transform: scale(1.05) rotate(2deg) !important; */
   z-index: 999;
-  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.2));
+  /* filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.2)); */
 }
 
 .drag-card--ghost {

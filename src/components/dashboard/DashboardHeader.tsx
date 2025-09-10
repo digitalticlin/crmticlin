@@ -31,7 +31,7 @@ export default function DashboardHeader({}: DashboardHeaderProps) {
   return (
     <div className="flex justify-between items-center mb-8 rounded-2xl bg-white/30 backdrop-blur-lg border border-white/30 p-6 shadow-lg">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{greeting}, Admin</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{greeting}</h1>
         <p className="text-gray-800 font-medium">Bem-vindo de volta ao seu dashboard</p>
       </div>
       <div className="flex items-center gap-4">

@@ -11,14 +11,14 @@ const SidebarLogo = ({ isCollapsed }: SidebarLogoProps) => {
       {!isCollapsed ? (
         <div className="flex items-center">
           <img 
-            src="/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png" 
+            src="/lovable-uploads/68c955d6-5aab-40d3-9018-c372a8f3faf6.png" 
             alt="Ticlin Logo" 
             className="h-8" 
           />
         </div>
       ) : (
         <img 
-          src="/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png" 
+          src="/lovable-uploads/68c955d6-5aab-40d3-9018-c372a8f3faf6.png" 
           alt="Ticlin Logo" 
           className="h-8" 
         />

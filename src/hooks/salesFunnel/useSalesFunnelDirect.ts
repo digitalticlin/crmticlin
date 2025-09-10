@@ -378,10 +378,10 @@ export function useSalesFunnelDirect() {
 
   // Atualizar columns apenas quando kanbanColumns mudar - SIMPLIFICADO
   useEffect(() => {
-    if (kanbanColumns.length > 0) {
+    if (kanbanColumns.length > 0 && JSON.stringify(kanbanColumns) !== JSON.stringify(columns)) {
       setColumns(kanbanColumns);
     }
-  }, [kanbanColumns]); // SEM dependência de columns para evitar loop
+  }, [kanbanColumns, columns]); // Comparação profunda para evitar loop
 
   // 🚀 REAL-TIME SUBSCRIPTIONS - ULTRA OTIMIZADO
   useEffect(() => {

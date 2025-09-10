@@ -2,10 +2,15 @@
 import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
 import { RealClientsLayout } from "@/components/clients/RealClientsLayout";
 import { useRealClientManagement } from "@/hooks/useRealClientManagement";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { useDataFilters } from "@/hooks/useDataFilters";
 import { Button } from "@/components/ui/button";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Loader2 } from "lucide-react";
 
 export default function Clients() {
+  const { permissions, loading: permissionsLoading } = useUserPermissions();
+  const dataFilters = useDataFilters();
+
   const {
     clients,
     setSearchQuery,
@@ -29,6 +34,37 @@ export default function Clients() {
     handleUpdateAddress,
     refetch,
   } = useRealClientManagement();
+
+  console.log('[Clients] 🔍 Sistema de controle de acesso:', {
+    role: permissions.role,
+    canViewAllData: permissions.canViewAllData,
+    dataFilters: dataFilters.role,
+    loading: permissionsLoading || dataFilters.loading
+  });
+
+  // Loading state para permissões
+  if (permissionsLoading || dataFilters.loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-3 text-gray-600">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Carregando clientes...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Verificar se tem permissão para acessar clientes
+  if (!permissions.allowedPages.includes('clients')) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Acesso Negado</h3>
+          <p className="text-gray-600">Você não tem permissão para acessar a página de clientes.</p>
+        </div>
+      </div>
+    );
+  }
 
   const addClientAction = (
     <div className="flex items-center gap-2">
@@ -56,7 +92,26 @@ export default function Clients() {
     <>
       <ModernPageHeader 
         title="Clientes" 
-        description="Gerencie seus clientes e relacionamentos comerciais"
+        description={
+          <div className="flex flex-col gap-2">
+            <p className="text-gray-600">
+              {permissions.role === 'admin' 
+                ? 'Gerencie todos os clientes da sua organização' 
+                : 'Visualize os clientes dos recursos atribuídos a você'
+              }
+            </p>
+            {/* Badge indicativo do tipo de acesso */}
+            <div>
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                permissions.role === 'admin' 
+                  ? 'bg-blue-100 text-blue-800' 
+                  : 'bg-green-100 text-green-800'
+              }`}>
+                {permissions.role === 'admin' ? '👑 Admin - Visão Completa' : '🎯 Operacional - Recursos Atribuídos'}
+              </span>
+            </div>
+          </div>
+        }
         action={addClientAction}
       />
       
