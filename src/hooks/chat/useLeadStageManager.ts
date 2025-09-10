@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +9,7 @@ import {
   chatLeadsQueryKeys,
   chatClientsQueryKeys 
 } from './queryKeys';
+import { useUserRole } from '@/hooks/useUserRole';
 
 export interface StageOption {
   id: string;
@@ -24,13 +25,38 @@ export interface StageOption {
 export const useLeadStageManager = (leadId: string | null, currentStageId: string | null) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { role } = useUserRole();
   const [isOpen, setIsOpen] = useState(false);
   const [localCurrentStageId, setLocalCurrentStageId] = useState(currentStageId);
+  const [createdByUserId, setCreatedByUserId] = useState<string | null>(null);
 
   // Sincronizar localCurrentStageId quando currentStageId muda
   if (localCurrentStageId !== currentStageId) {
     setLocalCurrentStageId(currentStageId);
   }
+
+  // Buscar created_by_user_id do perfil se for operacional
+  useEffect(() => {
+    const fetchCreatedByUserId = async () => {
+      if (!user?.id || role !== 'operational') {
+        setCreatedByUserId(null);
+        return;
+      }
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('created_by_user_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.created_by_user_id) {
+        console.log('[LeadStageManager] 👤 Operacional - created_by_user_id:', profile.created_by_user_id);
+        setCreatedByUserId(profile.created_by_user_id);
+      }
+    };
+    
+    fetchCreatedByUserId();
+  }, [user?.id, role]);
 
   // Buscar todas as etapas disponíveis para o usuário
   const { data: stages = [], isLoading } = useQuery({
@@ -38,8 +64,7 @@ export const useLeadStageManager = (leadId: string | null, currentStageId: strin
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Buscar todas as etapas dos funis do usuário
-      const { data: stagesData, error } = await supabase
+      let query = supabase
         .from('kanban_stages')
         .select(`
           id,
@@ -49,9 +74,37 @@ export const useLeadStageManager = (leadId: string | null, currentStageId: strin
           is_won,
           is_lost,
           funnel_id,
-          funnels!inner(name)
-        `)
-        .eq('created_by_user_id', user.id)
+          funnels!inner(name, created_by_user_id)
+        `);
+
+      // MULTITENANT: Aplicar filtro correto baseado no role
+      if (role === 'admin') {
+        // Admin vê etapas dos funis onde created_by_user_id = seu ID
+        query = query.eq('funnels.created_by_user_id', user.id);
+      } else if (role === 'operational' && createdByUserId) {
+        // Operacional vê etapas dos funis do admin ao qual pertence
+        // E que foram atribuídos a ele via user_funnels
+        const { data: userFunnels } = await supabase
+          .from('user_funnels')
+          .select('funnel_id')
+          .eq('profile_id', user.id);
+        
+        const funnelIds = userFunnels?.map(uf => uf.funnel_id) || [];
+        
+        if (funnelIds.length > 0) {
+          query = query
+            .in('funnel_id', funnelIds)
+            .eq('funnels.created_by_user_id', createdByUserId);
+        } else {
+          // Se não tem funis atribuídos, retorna vazio
+          return [];
+        }
+      } else {
+        // Fallback seguro
+        query = query.eq('funnels.created_by_user_id', user.id);
+      }
+
+      const { data: stagesData, error } = await query
         .order('order_position', { ascending: true });
 
       if (error) {
@@ -70,7 +123,7 @@ export const useLeadStageManager = (leadId: string | null, currentStageId: strin
         funnel_name: (stage.funnels as any)?.name || 'Funil'
       }));
     },
-    enabled: !!user?.id
+    enabled: !!user?.id && (role === 'admin' || (role === 'operational' && !!createdByUserId))
   });
 
   // Mutação para alterar etapa do lead

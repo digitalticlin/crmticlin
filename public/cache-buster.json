@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0-cache-buster",
+  "timestamp": "2025-09-09T18:18:00Z",
+  "whatsappHooksVersion": "V2.0_CACHE_BUSTER",
+  "changes": [
+    "Added distinctive version logs with 🚀🚀🚀",
+    "Implemented anti-loop controls for React Query",
+    "Disabled refetchOnWindowFocus and automatic polling",
+    "Increased staleTime and gcTime for stable cache",
+    "Added version control system for cache busting"
+  ]
+}

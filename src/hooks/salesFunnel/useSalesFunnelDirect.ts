@@ -9,6 +9,7 @@ import { KanbanColumn, KanbanLead, KanbanTag } from "@/types/kanban";
 import { Funnel, KanbanStage } from "@/types/funnel";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { 
   salesFunnelFunnelsQueryKeys,
   salesFunnelStagesQueryKeys,
@@ -18,19 +19,46 @@ import {
 export function useSalesFunnelDirect() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { role } = useUserRole();
   const { userFunnels, canViewAllFunnels, isLoading: accessLoading } = useAccessControl();
   const [selectedFunnel, setSelectedFunnel] = useState<Funnel | null>(null);
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
+  const [createdByUserId, setCreatedByUserId] = useState<string | null>(null);
 
-  // Verificar se o usuário é admin
-  const isAdmin = user?.user_metadata?.role === 'admin' || user?.email === 'inacio@ticlin.com.br';
+  // Usar o role do hook useUserRole
+  const isAdmin = role === 'admin';
+  
+  // Buscar created_by_user_id do perfil se for operacional
+  useEffect(() => {
+    const fetchCreatedByUserId = async () => {
+      if (!user?.id || role !== 'operational') {
+        setCreatedByUserId(null);
+        return;
+      }
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('created_by_user_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.created_by_user_id) {
+        console.log('[useSalesFunnelDirect] 👤 Operacional - created_by_user_id:', profile.created_by_user_id);
+        setCreatedByUserId(profile.created_by_user_id);
+      }
+    };
+    
+    fetchCreatedByUserId();
+  }, [user?.id, role]);
   
   // Logging básico para monitoring
   console.log('🔍 [DEBUG] useSalesFunnelDirect Hook iniciado:', {
     userId: user?.id,
     isAdmin,
+    role,
+    createdByUserId,
     selectedFunnelId: selectedFunnel?.id,
     accessLoading,
     canViewAllFunnels,
@@ -94,14 +122,71 @@ export function useSalesFunnelDirect() {
     queryFn: async () => {
       if (!selectedFunnel?.id) return [];
       
+      console.log('🔍 [DEBUG] STAGES - INÍCIO DA QUERY:', {
+        funnelId: selectedFunnel.id,
+        funnelName: selectedFunnel.name,
+        role,
+        isAdmin,
+        createdByUserId
+      });
+      
+      // SOLUÇÃO: Buscar etapas através do funil para contornar RLS
+      // Primeiro, vamos buscar o funil com suas etapas
+      const { data: funnelWithStages, error: funnelError } = await supabase
+        .from('funnels')
+        .select(`
+          id,
+          name,
+          kanban_stages (
+            id,
+            title,
+            color,
+            order_position,
+            is_fixed,
+            is_won,
+            is_lost,
+            funnel_id,
+            created_by_user_id
+          )
+        `)
+        .eq('id', selectedFunnel.id)
+        .single();
+      
+      console.log('🔍 [DEBUG] STAGES - Via FUNIL:', {
+        erro: funnelError,
+        funnel: funnelWithStages?.name,
+        totalEtapas: funnelWithStages?.kanban_stages?.length || 0,
+        etapas: funnelWithStages?.kanban_stages?.map(s => ({ id: s.id, title: s.title }))
+      });
+      
+      // Se conseguiu buscar via funil, usar esses dados
+      if (funnelWithStages?.kanban_stages && funnelWithStages.kanban_stages.length > 0) {
+        const sortedStages = funnelWithStages.kanban_stages.sort((a, b) => a.order_position - b.order_position);
+        console.log('🔍 [DEBUG] STAGES - SUCESSO VIA FUNIL:', {
+          total: sortedStages.length,
+          etapas: sortedStages.map(s => s.title)
+        });
+        return sortedStages;
+      }
+      
+      // Fallback: tentar buscar direto (pode falhar por RLS)
       const { data, error } = await supabase
         .from('kanban_stages')
         .select('*')
         .eq('funnel_id', selectedFunnel.id)
         .order('order_position', { ascending: true });
       
-      if (error) throw error;
-      console.log('🔍 [DEBUG] STAGES - Encontrados:', data?.length || 0, 'para funnel:', selectedFunnel.id);
+      if (error) {
+        console.error('🔍 [DEBUG] STAGES - ERRO:', error);
+        throw error;
+      }
+      
+      console.log('🔍 [DEBUG] STAGES - FALLBACK DIRETO:', {
+        totalEncontradas: data?.length || 0,
+        funnelId: selectedFunnel.id,
+        etapas: data?.map(s => ({ id: s.id, title: s.title }))
+      });
+      
       return data || [];
     },
     enabled: !!selectedFunnel?.id,
@@ -109,9 +194,9 @@ export function useSalesFunnelDirect() {
     gcTime: 3 * 60 * 1000
   });
 
-  // 🔄 REVERTER: Query de leads original que funcionava
+  // 🔄 REVERTER: Query de leads original que funcionava + filtro por instância
   const { data: leads = [], isLoading: leadsLoading, refetch: refetchLeads, error: leadsError } = useQuery({
-    queryKey: salesFunnelLeadsQueryKeys.byFunnel(selectedFunnel?.id || '', user?.id || '', canViewAllFunnels),
+    queryKey: salesFunnelLeadsQueryKeys.byFunnel(selectedFunnel?.id || '', user?.id || '', canViewAllFunnels, role, createdByUserId),
     queryFn: async () => {
       if (!selectedFunnel?.id || !user?.id || accessLoading) {
         console.log('🔍 [DEBUG] LEADS - Query BLOQUEADA:', {
@@ -145,13 +230,38 @@ export function useSalesFunnelDirect() {
           .eq('funnel_id', selectedFunnel.id)
           .in('conversation_status', ['active', 'closed']);
 
-        // 🚀 ESCALA: RLS automático - filtros no backend
-        console.log('[useSalesFunnelDirect] 🔐 Confiando no RLS para filtros multitenant');
-        console.log('[useSalesFunnelDirect] 🔑 Auth context:', {
-          authUserId: user.id,
-          userRole: canViewAllFunnels ? 'admin' : 'operational',
-          funnelId: selectedFunnel.id
-        });
+        // 🚀 FILTRO POR INSTÂNCIA: Aplicar mesmo filtro do WhatsApp Chat
+        if (role === 'admin') {
+          // Admin: vê leads que criou (RLS já filtra)
+          console.log('[useSalesFunnelDirect] 🔑 Filtro ADMIN aplicado - RLS automático');
+          query = query.eq('created_by_user_id', user.id);
+        } else if (role === 'operational') {
+          // Operacional: vê APENAS leads das instâncias que tem acesso
+          console.log('[useSalesFunnelDirect] 🔒 Filtro OPERACIONAL aplicado - buscando instâncias acessíveis');
+          
+          // Buscar instâncias que o usuário operacional pode acessar
+          const { data: userWhatsAppNumbers } = await supabase
+            .from('user_whatsapp_numbers')
+            .select('whatsapp_number_id')
+            .eq('profile_id', user.id);
+
+          if (!userWhatsAppNumbers || userWhatsAppNumbers.length === 0) {
+            console.log('[useSalesFunnelDirect] ⚠️ Usuário operacional sem instâncias atribuídas');
+            // Retornar query impossível para não mostrar nada
+            query = query.eq('id', 'impossible-id');
+          } else {
+            const whatsappIds = userWhatsAppNumbers.map(uwn => uwn.whatsapp_number_id);
+            console.log('[useSalesFunnelDirect] 🎯 Instâncias acessíveis:', whatsappIds);
+            
+            // Filtrar leads por instâncias acessíveis + admin correto
+            query = query
+              .in('whatsapp_number_id', whatsappIds)
+              .eq('created_by_user_id', createdByUserId || user.id);
+          }
+        } else {
+          // Fallback seguro
+          query = query.eq('created_by_user_id', user.id);
+        }
 
         const { data: allLeads, error } = await query
           .order('updated_at', { ascending: false });
@@ -175,7 +285,7 @@ export function useSalesFunnelDirect() {
         return [];
       }
     },
-    enabled: !!selectedFunnel?.id && !!user?.id && !accessLoading,
+    enabled: !!selectedFunnel?.id && !!user?.id && !accessLoading && (role === 'admin' || (role === 'operational' && !!createdByUserId)),
     staleTime: 3 * 60 * 1000, // 3 minutos para reduzir refetch
     gcTime: 10 * 60 * 1000, // 10 minutos
     retry: 2,

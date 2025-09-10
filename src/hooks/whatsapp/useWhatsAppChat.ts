@@ -18,7 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Hooks isolados NOVOS (React Query)
 import { useWhatsAppInstances } from './useWhatsAppInstances';
-import { useWhatsAppContacts } from './useWhatsAppContacts'; // REACT QUERY VERSION
+import { useWhatsAppContacts } from './useWhatsAppContactsInfinite'; // SCROLL INFINITO VERSION
 import { useWhatsAppMessages } from './chat/useWhatsAppMessages'; // REACT QUERY VERSION
 import { useWhatsAppRealtime } from './realtime/useWhatsAppRealtime'; // REACT QUERY VERSION
 import { Contact, Message } from '@/types/chat';
@@ -26,6 +26,9 @@ import { readMessagesService } from '@/services/whatsapp/readMessagesService';
 
 // Query keys isoladas APENAS do Chat
 import { chatContactsQueryKeys, chatMessagesQueryKeys } from '@/hooks/chat/queryKeys';
+
+// Version control para cache busting
+import { WHATSAPP_HOOKS_VERSION, isNewVersion } from './version';
 
 interface UseWhatsAppChatReturn {
   selectedContact: Contact | null;
@@ -68,7 +71,11 @@ interface UseWhatsAppChatReturn {
 }
 
 export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
-  console.log('[WhatsApp Chat] 🚀 HOOK EXECUTADO COM REACT QUERY - INÍCIO');
+  // Verificar versão para cache busting
+  isNewVersion();
+  
+  console.log('[WhatsApp Chat] 🚀🚀🚀 HOOK EXECUTADO COM REACT QUERY V2.0 CACHE BUSTER - INÍCIO');
+  console.warn(`🔥 CACHE BUSTER ATIVO - VERSÃO ${WHATSAPP_HOOKS_VERSION} DO HOOK CHAT PRINCIPAL CARREGADA! 🔥`);
   
   const { user } = useAuth();
   const queryClient = useQueryClient();

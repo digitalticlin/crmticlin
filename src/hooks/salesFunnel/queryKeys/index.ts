@@ -42,12 +42,14 @@ export const salesFunnelStagesQueryKeys = {
 // Módulo: Leads
 export const salesFunnelLeadsQueryKeys = {
   base: ['salesfunnel-leads'] as const,
-  byFunnel: (funnelId: string, userId: string, canViewAllFunnels: boolean) => [
+  byFunnel: (funnelId: string, userId: string, canViewAllFunnels: boolean, role?: string, createdByUserId?: string) => [
     ...salesFunnelLeadsQueryKeys.base,
     'by-funnel',
     funnelId, 
     userId, 
-    canViewAllFunnels
+    canViewAllFunnels,
+    role || 'admin',
+    createdByUserId || null
   ] as const,
   paginated: (funnelId: string, userId: string, canViewAllFunnels: boolean, page: number) => [
     ...salesFunnelLeadsQueryKeys.base,

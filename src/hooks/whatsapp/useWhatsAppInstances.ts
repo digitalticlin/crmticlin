@@ -76,7 +76,7 @@ export const useWhatsAppInstances = (): UseWhatsAppInstancesReturn => {
   const throttleRef = useRef<NodeJS.Timeout | null>(null);
   const pendingUpdate = useRef<boolean>(false);
 
-  // Buscar instâncias (isolado)
+  // Buscar instâncias (isolado) com filtro multitenant
   const fetchInstances = useCallback(async () => {
     if (!user?.id) {
       setInstances([]);
@@ -89,23 +89,73 @@ export const useWhatsAppInstances = (): UseWhatsAppInstancesReturn => {
       setIsLoading(true);
       setError(null);
 
-      console.log('[WhatsApp Instances] 🔍 Buscando instâncias para usuário:', user.id);
+      console.log('[WhatsApp Instances] 🔍🔍🔍 VERSÃO 2.0 MULTITENANT - Buscando instâncias para usuário:', user.id);
+      console.warn('🔥 HOOK WHATSAPP INSTANCES MULTITENANT V2.0 CARREGADO! 🔥');
 
-      const { data, error } = await supabase
-        .from('whatsapp_instances')
-        .select('*')
-        .eq('connection_type', 'web')
-        .eq('created_by_user_id', user.id)
-        .in('connection_status', ['connected', 'ready', 'connecting', 'disconnected'])
-        .order('connection_status', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(20);
+      // 1. Buscar role do usuário
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, created_by_user_id')
+        .eq('id', user.id)
+        .single();
 
-      if (error) throw error;
+      if (!profile) {
+        console.error('[WhatsApp Instances] ❌ Profile não encontrado');
+        setInstances([]);
+        return;
+      }
 
-      const validInstances = (data || []).filter(instance => 
-        instance.created_by_user_id === user.id
-      );
+      console.log('[WhatsApp Instances] 👤 Role do usuário:', profile.role);
+
+      let validInstances: WhatsAppInstance[] = [];
+
+      if (profile.role === 'admin') {
+        // Admin: vê instâncias que criou
+        console.log('[WhatsApp Instances] 🔑 Aplicando filtro ADMIN');
+        
+        const { data, error } = await supabase
+          .from('whatsapp_instances')
+          .select('*')
+          .eq('connection_type', 'web')
+          .eq('created_by_user_id', user.id)
+          .in('connection_status', ['connected', 'ready', 'connecting', 'disconnected'])
+          .order('connection_status', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) throw error;
+        validInstances = data || [];
+
+      } else {
+        // Operacional: vê instâncias através de user_whatsapp_numbers
+        console.log('[WhatsApp Instances] 🔒 Aplicando filtro OPERACIONAL');
+        
+        const { data: userWhatsAppNumbers } = await supabase
+          .from('user_whatsapp_numbers')
+          .select('whatsapp_number_id')
+          .eq('profile_id', user.id);
+
+        if (!userWhatsAppNumbers || userWhatsAppNumbers.length === 0) {
+          console.log('[WhatsApp Instances] ⚠️ Usuário operacional sem instâncias atribuídas');
+          validInstances = [];
+        } else {
+          const whatsappIds = userWhatsAppNumbers.map(uwn => uwn.whatsapp_number_id);
+          console.log('[WhatsApp Instances] 🎯 IDs de instâncias vinculadas:', whatsappIds);
+          
+          const { data, error } = await supabase
+            .from('whatsapp_instances')
+            .select('*')
+            .eq('connection_type', 'web')
+            .in('id', whatsappIds)
+            .in('connection_status', ['connected', 'ready', 'connecting', 'disconnected'])
+            .order('connection_status', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+          if (error) throw error;
+          validInstances = data || [];
+        }
+      }
 
       // Atualizar cache isolado
       const activeInstance = validInstances.find(i => 
@@ -192,15 +242,13 @@ export const useWhatsAppInstances = (): UseWhatsAppInstancesReturn => {
     }, 1000);
   }, [fetchInstances]);
 
-  // Handler para realtime isolado
+  // Handler para realtime isolado (multitenant)
   const handleRealtimeUpdate = useCallback((payload: any) => {
     if (!user?.id) return;
 
-    const instanceData = payload.new || payload.old;
-    if (instanceData && instanceData.created_by_user_id !== user.id) {
-      console.warn('[WhatsApp Instances] 🚨 Update cross-user bloqueado');
-      return;
-    }
+    // Para updates realtime, vamos invalidar cache e refetch
+    // A lógica multitenant será aplicada no fetchInstances
+    console.log('[WhatsApp Instances] 🔄 Realtime update recebido, invalidando cache');
     
     // Invalidar cache
     cache.current = { instances: [], activeInstance: null, timestamp: 0 };

@@ -116,11 +116,18 @@ export const useDataFilters = (): DataFilters => {
             console.warn('[useDataFilters] ⚠️ userWhatsapp raw:', userWhatsapp);
           }
 
+          // NOVA LÓGICA: Operacional vê TODOS os leads das instâncias atribuídas
           const operationalFilters = {
-            leadsFilter: { owner_id: user.id }, // Leads atribuídos diretamente
+            // Se tem WhatsApp atribuído, vê TODOS os leads dessa instância
+            leadsFilter: whatsappIds.length > 0 
+              ? { whatsapp_number_id: { in: whatsappIds } }  // TODOS da instância
+              : { owner_id: user.id }, // Fallback para owner_id se não tem WhatsApp
             funnelsFilter: funnelIds.length > 0 ? { id: { in: funnelIds } } : { id: 'no-access' },
             whatsappFilter: whatsappIds.length > 0 ? { id: { in: whatsappIds } } : { id: 'no-access' },
-            messagesFilter: { 'leads.owner_id': user.id },
+            // Mensagens: todas das instâncias atribuídas
+            messagesFilter: whatsappIds.length > 0
+              ? { 'leads.whatsapp_number_id': { in: whatsappIds } }
+              : { 'leads.owner_id': user.id },
             role: 'operational' as const,
             loading: false
           };

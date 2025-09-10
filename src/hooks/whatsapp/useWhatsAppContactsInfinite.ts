@@ -1,18 +1,18 @@
 /**
- * 🚀 HOOK WHATSAPP CONTATOS - REACT QUERY V2.0 CACHE BUSTER
+ * 🚀 HOOK WHATSAPP CONTATOS - SCROLL INFINITO COM REACT QUERY
  * 
  * RESPONSABILIDADES:
- * ✅ Gerenciar lista de contatos com React Query
+ * ✅ Gerenciar lista de contatos com scroll infinito
  * ✅ Query keys isoladas (chat-contacts)  
- * ✅ Paginação simples (não infinita por enquanto)
+ * ✅ Paginação de 30 contatos por página
  * ✅ Cache automático do React Query
  * ✅ Invalidação automática
  * 
- * VERSION: 2.0 - CACHE BUSTER ATIVO
+ * VERSION: 3.0 - SCROLL INFINITO IMPLEMENTADO
  */
 
-import { useCallback, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useRef, useMemo } from 'react';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact } from '@/types/chat';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,7 +38,7 @@ interface UseWhatsAppContactsReturn {
   searchContacts: (query: string) => Promise<void>;
 }
 
-const CONTACTS_LIMIT = 50;
+const CONTACTS_PER_PAGE = 30; // SCROLL INFINITO: 30 contatos por página
 
 // Função para converter dados do banco para Contact
 const convertToContact = (leadData: any): Contact => {
@@ -67,20 +67,22 @@ const convertToContact = (leadData: any): Contact => {
   };
 };
 
-// Função para buscar contatos (simplificada)
+// Função para buscar contatos com paginação (SCROLL INFINITO)
 const fetchContacts = async (
   userId: string,
-  activeInstanceId?: string | null
+  activeInstanceId?: string | null,
+  pageParam = 0
 ) => {
-  console.log('[WhatsApp Contacts RQ] 🚀🚀🚀 VERSÃO 2.0 CACHE BUSTER - Buscando contatos via React Query:', {
+  console.log('[WhatsApp Contacts INFINITE] 🚀🚀🚀 SCROLL INFINITO - Buscando contatos com paginação:', {
     userId,
     activeInstanceId,
-    version: 'V2.0_CACHE_BUSTER',
+    pageParam,
+    version: 'V3.0_INFINITE_SCROLL',
     timestamp: new Date().toISOString()
   });
   
   // CACHE BUSTER: Log único para verificar se nova versão está ativa
-  console.warn('🔥 CACHE BUSTER ATIVO - VERSÃO 2.0 DO HOOK CONTATOS CARREGADA! 🔥');
+  console.warn('🔥 SCROLL INFINITO ATIVO - VERSÃO 3.0 DO HOOK CONTATOS CARREGADA! 🔥');
 
   // FILTRO MULTITENANT: Buscar role do usuário primeiro
   const { data: profile } = await supabase
@@ -93,7 +95,7 @@ const fetchContacts = async (
     throw new Error('Profile não encontrado');
   }
 
-  console.log('[WhatsApp Contacts RQ] 👤 Role do usuário:', profile.role);
+  console.log('[WhatsApp Contacts INFINITE] 👤 Role do usuário:', profile.role);
 
   // Query base
   let query = supabase
@@ -127,11 +129,11 @@ const fetchContacts = async (
   // Aplicar filtro multitenant baseado na role
   if (profile.role === 'admin') {
     // Admin: vê leads que criou
-    console.log('[WhatsApp Contacts RQ] 🔑 Filtro ADMIN aplicado');
+    console.log('[WhatsApp Contacts INFINITE] 🔑 Filtro ADMIN aplicado');
     query = query.eq('created_by_user_id', userId);
   } else {
     // Operacional: vê TODOS os leads das instâncias que tem acesso
-    console.log('[WhatsApp Contacts RQ] 🔒 Filtro OPERACIONAL aplicado - buscando instâncias acessíveis');
+    console.log('[WhatsApp Contacts INFINITE] 🔒 Filtro OPERACIONAL aplicado - buscando instâncias acessíveis');
     
     // Buscar instâncias que o usuário operacional pode acessar
     const { data: userWhatsAppNumbers } = await supabase
@@ -140,12 +142,12 @@ const fetchContacts = async (
       .eq('profile_id', userId);
 
     if (!userWhatsAppNumbers || userWhatsAppNumbers.length === 0) {
-      console.log('[WhatsApp Contacts RQ] ⚠️ Usuário operacional sem instâncias atribuídas');
+      console.log('[WhatsApp Contacts INFINITE] ⚠️ Usuário operacional sem instâncias atribuídas');
       // Retornar query impossível para não mostrar nada
       query = query.eq('id', 'impossible-id');
     } else {
       const whatsappIds = userWhatsAppNumbers.map(uwn => uwn.whatsapp_number_id);
-      console.log('[WhatsApp Contacts RQ] 🎯 Instâncias acessíveis:', whatsappIds);
+      console.log('[WhatsApp Contacts INFINITE] 🎯 Instâncias acessíveis:', whatsappIds);
       
       // Filtrar leads por instâncias acessíveis
       query = query.in('whatsapp_number_id', whatsappIds);
@@ -154,18 +156,26 @@ const fetchContacts = async (
 
   // Filtrar por instância específica se fornecida (refinamento)
   if (activeInstanceId) {
-    console.log('[WhatsApp Contacts RQ] 📱 Filtro por instância específica aplicado:', activeInstanceId);
+    console.log('[WhatsApp Contacts INFINITE] 📱 Filtro por instância específica aplicado:', activeInstanceId);
     query = query.eq('whatsapp_number_id', activeInstanceId);
   }
 
+  // Calcular range para paginação
+  const from = pageParam * CONTACTS_PER_PAGE;
+  const to = from + CONTACTS_PER_PAGE - 1;
+  
   const { data: leadsData, error, count } = await query
-    .range(0, CONTACTS_LIMIT - 1);
+    .range(from, to);
 
   if (error) throw error;
 
-  console.log('[WhatsApp Contacts RQ] ✅ Dados recebidos:', {
+  console.log('[WhatsApp Contacts INFINITE] ✅ Dados recebidos (SCROLL INFINITO):', {
     totalContacts: count,
-    loadedContacts: leadsData?.length || 0
+    loadedContacts: leadsData?.length || 0,
+    pageParam,
+    from,
+    to,
+    hasMore: (leadsData?.length || 0) === CONTACTS_PER_PAGE
   });
 
   // Converter para formato Contact
@@ -207,7 +217,9 @@ const fetchContacts = async (
   return {
     contacts,
     total: count || 0,
-    hasMore: (leadsData?.length || 0) === CONTACTS_LIMIT
+    hasMore: (leadsData?.length || 0) === CONTACTS_PER_PAGE,
+    nextPage: (leadsData?.length || 0) === CONTACTS_PER_PAGE ? pageParam + 1 : undefined,
+    currentPage: pageParam
   };
 };
 
@@ -216,22 +228,24 @@ export const useWhatsAppContacts = ({
 }: UseWhatsAppContactsParams = {}): UseWhatsAppContactsReturn => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
-  // Estados adicionais
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Query para contatos (ANTI-LOOP com controles rígidos)
+  // Query infinita para contatos (SCROLL INFINITO + ANTI-LOOP)
   const {
     data: queryData,
     isLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     refetch
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: chatContactsQueryKeys.list(user?.id || ''),
-    queryFn: () => {
+    queryFn: ({ pageParam = 0 }) => {
       if (!user?.id) throw new Error('User ID required');
-      return fetchContacts(user.id, activeInstanceId);
+      return fetchContacts(user.id, activeInstanceId, pageParam);
     },
     enabled: !!user?.id,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
     staleTime: 3 * 60 * 1000, // 3 minutos - AUMENTADO para evitar loops
     gcTime: 15 * 60 * 1000, // 15 minutos - AUMENTADO para cache estável
     refetchOnWindowFocus: false, // DESABILITADO - evita refetch desnecessário
@@ -240,27 +254,36 @@ export const useWhatsAppContacts = ({
     retry: 1, // Máximo 1 retry para evitar loops
   });
 
-  console.log('[WhatsApp Contacts RQ] 📊 Hook state:', {
+  console.log('[WhatsApp Contacts INFINITE] 📊 Hook state:', {
     isLoading,
+    isFetchingNextPage,
+    hasNextPage,
     hasData: !!queryData,
-    contactsCount: queryData?.contacts?.length || 0,
-    totalAvailable: queryData?.total || 0
+    pagesCount: queryData?.pages?.length || 0,
+    totalContactsLoaded: queryData?.pages?.reduce((acc, page) => acc + page.contacts.length, 0) || 0
   });
 
-  // Dados extraídos
-  const contacts = queryData?.contacts || [];
-  const totalContactsAvailable = queryData?.total || 0;
-  const hasMoreContacts = queryData?.hasMore || false;
+  // Dados extraídos de todas as páginas
+  const contacts = useMemo(() => {
+    return queryData?.pages?.reduce((acc, page) => {
+      return [...acc, ...page.contacts];
+    }, [] as Contact[]) || [];
+  }, [queryData?.pages]);
 
-  // Função para carregar mais contatos (placeholder por enquanto)
+  const totalContactsAvailable = queryData?.pages?.[0]?.total || 0;
+  const hasMoreContacts = hasNextPage;
+
+  // Função para carregar mais contatos (SCROLL INFINITO)
   const loadMoreContacts = useCallback(async () => {
-    console.log('[WhatsApp Contacts RQ] 📖 Load more contacts (placeholder)');
-    // TODO: Implementar paginação se necessário
-  }, []);
+    if (!isFetchingNextPage && hasNextPage) {
+      console.log('[WhatsApp Contacts INFINITE] 📖 Carregando mais contatos via scroll infinito');
+      await fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   // Função para refresh
   const refreshContacts = useCallback(() => {
-    console.log('[WhatsApp Contacts RQ] 🔄 Refresh via React Query invalidation');
+    console.log('[WhatsApp Contacts INFINITE] 🔄 Refresh via React Query invalidation');
     queryClient.invalidateQueries({
       queryKey: chatContactsQueryKeys.base
     });
@@ -271,25 +294,34 @@ export const useWhatsAppContacts = ({
     queryClient.setQueryData(
       chatContactsQueryKeys.list(user?.id || ''),
       (oldData: any) => {
-        if (!oldData?.contacts) return oldData;
+        if (!oldData?.pages) return oldData;
 
-        const contacts = [...oldData.contacts];
-        const contactIndex = contacts.findIndex(c => c.id === contactId);
-        
-        if (contactIndex !== -1) {
-          const contact = contacts.splice(contactIndex, 1)[0];
+        const newPages = [...oldData.pages];
+        let movedContact: Contact | null = null;
+
+        // Encontrar e remover o contato de qualquer página
+        for (let pageIndex = 0; pageIndex < newPages.length; pageIndex++) {
+          const page = newPages[pageIndex];
+          const contactIndex = page.contacts.findIndex((c: Contact) => c.id === contactId);
           
-          // Atualizar dados do contato se houver nova mensagem
-          if (newMessage) {
-            contact.lastMessage = newMessage.text || contact.lastMessage;
-            contact.lastMessageTime = newMessage.timestamp || contact.lastMessageTime;
+          if (contactIndex !== -1) {
+            movedContact = page.contacts.splice(contactIndex, 1)[0];
+            
+            // Atualizar dados do contato se houver nova mensagem
+            if (newMessage) {
+              movedContact.lastMessage = newMessage.text || movedContact.lastMessage;
+              movedContact.lastMessageTime = newMessage.timestamp || movedContact.lastMessageTime;
+            }
+            break;
           }
-          
-          // Mover para o topo
-          contacts.unshift(contact);
         }
 
-        return { ...oldData, contacts };
+        // Se encontrou o contato, adicionar no topo da primeira página
+        if (movedContact && newPages[0]) {
+          newPages[0].contacts.unshift(movedContact);
+        }
+
+        return { ...oldData, pages: newPages };
       }
     );
   }, [queryClient, user?.id]);
@@ -299,21 +331,24 @@ export const useWhatsAppContacts = ({
     queryClient.setQueryData(
       chatContactsQueryKeys.list(user?.id || ''),
       (oldData: any) => {
-        if (!oldData?.contacts) return oldData;
+        if (!oldData?.pages) return oldData;
 
-        const contacts = oldData.contacts.map((contact: Contact) => {
-          if (contact.id === contactId) {
-            const currentCount = contact.unreadCount || 0;
-            const newCount = increment ? currentCount + 1 : 0;
-            return {
-              ...contact,
-              unreadCount: newCount > 0 ? newCount : undefined
-            };
-          }
-          return contact;
-        });
+        const newPages = oldData.pages.map((page: any) => ({
+          ...page,
+          contacts: page.contacts.map((contact: Contact) => {
+            if (contact.id === contactId) {
+              const currentCount = contact.unreadCount || 0;
+              const newCount = increment ? currentCount + 1 : 0;
+              return {
+                ...contact,
+                unreadCount: newCount > 0 ? newCount : undefined
+              };
+            }
+            return contact;
+          })
+        }));
 
-        return { ...oldData, contacts };
+        return { ...oldData, pages: newPages };
       }
     );
   }, [queryClient, user?.id]);
@@ -323,7 +358,7 @@ export const useWhatsAppContacts = ({
     queryClient.setQueryData(
       chatContactsQueryKeys.list(user?.id || ''),
       (oldData: any) => {
-        if (!oldData?.contacts) return oldData;
+        if (!oldData?.pages || oldData.pages.length === 0) return oldData;
 
         const newContact: Contact = {
           id: newContactData.id || '',
@@ -349,8 +384,14 @@ export const useWhatsAppContacts = ({
           profilePicUrl: newContactData.profilePicUrl
         };
 
-        const contacts = [newContact, ...oldData.contacts];
-        return { ...oldData, contacts, total: oldData.total + 1 };
+        const newPages = [...oldData.pages];
+        newPages[0] = {
+          ...newPages[0],
+          contacts: [newContact, ...newPages[0].contacts],
+          total: newPages[0].total + 1
+        };
+
+        return { ...oldData, pages: newPages };
       }
     );
   }, [queryClient, user?.id]);
@@ -362,14 +403,14 @@ export const useWhatsAppContacts = ({
 
   // Função para busca (placeholder)
   const searchContacts = useCallback(async (query: string) => {
-    console.log('[WhatsApp Contacts RQ] 🔍 Busca:', query);
+    console.log('[WhatsApp Contacts INFINITE] 🔍 Busca:', query);
     // TODO: Implementar busca se necessário
   }, []);
 
   return {
     contacts,
     isLoading,
-    isLoadingMore,
+    isLoadingMore: isFetchingNextPage,
     hasMoreContacts,
     totalContactsAvailable,
     loadMoreContacts,
