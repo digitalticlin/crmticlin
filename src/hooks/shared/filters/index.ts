@@ -22,15 +22,13 @@ export interface DashboardFilters {
 }
 
 export const useDashboardFilters = (): DashboardFilters => {
-  // ⚠️ COMPATIBILIDADE: Usar adapter temporário para manter interface original
-  const { useDataFiltersAdapter } = require("../adapters/useDataFiltersAdapter");
-  const originalFilters = useDataFiltersAdapter();
+  const { user } = useAuth();
+  const { role } = useUserRole();
+  const { data: companyData, loading: companyLoading } = useCompanyData();
   
-  // Retornar interface compatível mas com contexto Dashboard
+  // Retornar filtros específicos do Dashboard
   return {
-    ...originalFilters,
-    // Campos específicos do Dashboard (extensões)
-    funnelsFilter: originalFilters.funnelsFilter || [],
+    funnelsFilter: [],
     kpisFilter: {
       showRevenue: true,
       showConversion: true, 
@@ -44,7 +42,11 @@ export const useDashboardFilters = (): DashboardFilters => {
     periodFilter: {
       period: 'month',
       customRange: null
-    }
+    },
+    role: role || '',
+    userId: user?.id || null,
+    companyId: companyData?.id || null,
+    loading: companyLoading
   };
 };
 
@@ -63,16 +65,20 @@ export interface SalesFunnelFilters {
 }
 
 export const useSalesFunnelFilters = (): SalesFunnelFilters => {
-  // ⚠️ COMPATIBILIDADE: Usar adapter temporário para manter interface original
-  const { useDataFiltersAdapter } = require("../adapters/useDataFiltersAdapter");
-  const originalFilters = useDataFiltersAdapter();
+  const { user } = useAuth();
+  const { role } = useUserRole();
+  const { data: companyData, loading: companyLoading } = useCompanyData();
   
-  // Retornar interface compatível mas com contexto Sales Funnel
+  // Retornar filtros específicos do Sales Funnel
   return {
-    ...originalFilters,
-    // Campos específicos do Sales Funnel (extensões)
-    stagesFilter: originalFilters.stagesFilter || [],
-    tagsFilter: originalFilters.tagsFilter || []
+    leadsFilter: [],
+    funnelsFilter: [],
+    stagesFilter: [],
+    tagsFilter: [],
+    role: role || '',
+    userId: user?.id || null,
+    companyId: companyData?.id || null,
+    loading: companyLoading
   };
 };
 
@@ -91,16 +97,14 @@ export interface ChatFilters {
 }
 
 export const useChatFilters = (): ChatFilters => {
-  // ⚠️ COMPATIBILIDADE: Usar adapter temporário para manter interface original
-  const { useDataFiltersAdapter } = require("../adapters/useDataFiltersAdapter");
-  const originalFilters = useDataFiltersAdapter();
+  const { user } = useAuth();
+  const { role } = useUserRole();
+  const { data: companyData, loading: companyLoading } = useCompanyData();
   
-  // Retornar interface compatível mas com contexto Chat
+  // Retornar filtros específicos do Chat
   return {
-    ...originalFilters,
-    // Campos específicos do Chat (extensões)
-    contactsFilter: originalFilters.leadsFilter || [],
-    messagesFilter: originalFilters.messagesFilter || {
+    contactsFilter: [],
+    messagesFilter: {
       unreadOnly: false,
       dateRange: null,
       searchQuery: ''
@@ -112,7 +116,11 @@ export const useChatFilters = (): ChatFilters => {
     statusFilter: {
       showOnline: true,
       showOffline: false
-    }
+    },
+    role: role || '',
+    userId: user?.id || null,
+    companyId: companyData?.id || null,
+    loading: companyLoading
   };
 };
 
@@ -178,29 +186,31 @@ export interface ClientsFilters {
 }
 
 export const useClientsFilters = (): ClientsFilters => {
-  // ⚠️ COMPATIBILIDADE: Usar adapter temporário para manter interface original
-  const { useDataFiltersAdapter } = require("../adapters/useDataFiltersAdapter");
-  const originalFilters = useDataFiltersAdapter();
+  const { user } = useAuth();
+  const { role } = useUserRole();
+  const { data: companyData, loading: companyLoading } = useCompanyData();
   
-  // Retornar interface compatível mas com contexto Clients
+  // Retornar filtros específicos dos Clients
   return {
-    ...originalFilters,
-    // Campos específicos dos Clientes (extensões)
-    listFilter: originalFilters.leadsFilter || [],
+    listFilter: [],
     detailsFilter: {
       showHistory: true,
       showDeals: true,
       showNotes: true
     },
-    tagsFilter: originalFilters.tagsFilter || [],
+    tagsFilter: [],
     dealsFilter: {
       status: 'all',
       dateRange: null
     },
     importExportFilter: {
       showJobs: true,
-      showTemplates: originalFilters.role === 'admin'
-    }
+      showTemplates: role === 'admin'
+    },
+    role: role || '',
+    userId: user?.id || null,
+    companyId: companyData?.id || null,
+    loading: companyLoading
   };
 };
 

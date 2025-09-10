@@ -6,7 +6,6 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { BigQueryOptimizer } from './utils/immediate-bigquery-fix';
 import { supabase } from './integrations/supabase/client'; // 🚀 IMPORTAR SUPABASE
-import './utils/debug-messages-test'; // 🔧 IMPORTAR SCRIPTS DE DEBUG
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AdminGuard } from './components/auth/AdminGuard';
 import { PortalErrorBoundary } from './components/error/PortalErrorBoundary';
