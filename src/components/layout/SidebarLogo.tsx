@@ -18,7 +18,7 @@ const SidebarLogo = ({ isCollapsed }: SidebarLogoProps) => {
         </div>
       ) : (
         <img 
-          src="/lovable-uploads/68c955d6-5aab-40d3-9018-c372a8f3faf6.png" 
+          src="/logo-t.png" 
           alt="Ticlin Logo" 
           className="h-8" 
         />

@@ -1,93 +1,28 @@
-DndKanbanBoardWrapper.tsx:62 Uncaught ReferenceError: useEffect is not defined
-    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
+Lista de tarefas para fazermos.
+Só avance para a proxima tarefa se a anterior  estiver testada e aprovada por mim, sempre faça o COMMIT GITPUSH total to projeto, excluindo arquivos da nuvem que não existem no Local, e npm run build após cada tarefa.
 
-DataErrorBoundary.tsx:24 [DataErrorBoundary] 🚨 Erro capturado: ReferenceError: useEffect is not defined
-    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
-DndKanbanBoardWrapper.tsx:62 Uncaught ReferenceError: useEffect is not defined
-    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
-DataErrorBoundary.tsx:24 [DataErrorBoundary] 🚨 Erro capturado: ReferenceError: useEffect is not defined
-    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
-@react-refresh:160 The above error occurred in the <DndKanbanBoardWrapper> component:
 
-    at DndKanbanBoardWrapper (http://localhost:8080/src/components/sales/DndKanbanBoardWrapper.tsx?t=1757491025941:35:45)
-    at DataErrorBoundary (http://localhost:8080/src/components/sales/funnel/DataErrorBoundary.tsx:244:9)
-    at div
-    at KanbanBoard (http://localhost:8080/src/components/sales/KanbanBoard.tsx?t=1757490742272:25:31)
-    at div
-    at div
-    at div
-    at div
-    at SalesFunnelContent (http://localhost:8080/src/components/sales/funnel/SalesFunnelContent.tsx?t=1757490742272:47:22)
-    at ErrorBoundary (http://localhost:8080/src/components/ErrorBoundary.tsx:296:5)
-    at div
-    at SalesFunnel
-    at div
-    at div
-    at main
-    at div
-    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx?t=1757488261932:28:29)
-    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4088:5)
-    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4558:5)
-    at AppLayoutRoutes
-    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
-    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4088:5)
-    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4558:5)
-    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
-    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
-    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4501:15)
-    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:5247:5)
-    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
-    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=781cb5d5:2933:3)
-    at App (http://localhost:8080/src/App.tsx?t=1757490771169:622:5)
+1 - Alterar logo do sidebar, quando o sidebar está compactado, alterar para a imagem logo-t.png que está na pasta public.
 
-React will try to recreate this component tree from scratch using the error boundary you provided, DataErrorBoundary.
-DataErrorBoundary.tsx:29 [DataErrorBoundary] Kanban Board - Fases 2+3 + Clone Visual: ReferenceError: useEffect is not defined
-    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
- 
-{componentStack: '\n    at DndKanbanBoardWrapper (http://localhost:80…localhost:8080/src/App.tsx?t=1757490771169:622:5)'}
-DndKanbanBoardWrapper.tsx:62 Uncaught ReferenceError: useEffect is not defined
-    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
-DataErrorBoundary.tsx:24 [DataErrorBoundary] 🚨 Erro capturado: ReferenceError: useEffect is not defined
-    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
-DndKanbanBoardWrapper.tsx:62 Uncaught ReferenceError: useEffect is not defined
-    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
-DataErrorBoundary.tsx:24 [DataErrorBoundary] 🚨 Erro capturado: ReferenceError: useEffect is not defined
-    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
-@react-refresh:160 The above error occurred in the <DndKanbanBoardWrapper> component:
+2 - Analisar todo arquivo do Drag And DROP da página funil de vendas, e descobrir porque há  um delay quando o card é feito o drop na nova etapa. Ele volta a  etapa anterior, depois de alguns segundos atualiza para a nova etapa. Ele deve ficar direto na nova etapa.
 
-    at DndKanbanBoardWrapper (http://localhost:8080/src/components/sales/DndKanbanBoardWrapper.tsx?t=1757491025941:35:45)
-    at DataErrorBoundary (http://localhost:8080/src/components/sales/funnel/DataErrorBoundary.tsx:244:9)
-    at div
-    at KanbanBoard (http://localhost:8080/src/components/sales/KanbanBoard.tsx?t=1757490742272:25:31)
-    at div
-    at div
-    at div
-    at div
-    at SalesFunnelContent (http://localhost:8080/src/components/sales/funnel/SalesFunnelContent.tsx?t=1757490742272:47:22)
-    at ErrorBoundary (http://localhost:8080/src/components/ErrorBoundary.tsx:296:5)
-    at div
-    at SalesFunnel
-    at div
-    at div
-    at main
-    at div
-    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx?t=1757488261932:28:29)
-    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4088:5)
-    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4558:5)
-    at AppLayoutRoutes
-    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
-    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4088:5)
-    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4558:5)
-    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
-    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
-    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:4501:15)
-    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=781cb5d5:5247:5)
-    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
-    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=781cb5d5:2933:3)
-    at App (http://localhost:8080/src/App.tsx?t=1757490771169:622:5)
+3 - No ícone de Chat que consta no Card do Lead da página funil de vendas, quero que adicione redirecionamento ao chat na  pagina whatsapp-chat ao clicar, e qualquer outro lugar do card deve acionar o draganddrop.
 
-React will try to recreate this component tree from scratch using the error boundary you provided, DataErrorBoundary.
-DataErrorBoundary.tsx:29 [DataErrorBoundary] Kanban Board - Fases 2+3 + Clone Visual: ReferenceError: useEffect is not defined
-    at DndKanbanBoardWrapper (DndKanbanBoardWrapper.tsx:62:3)
- 
-{componentStack: '\n    at DndKanbanBoardWrapper (http://localhost:80…localhost:8080/src/App.tsx?t=1757490771169:622:5)'}
+4 - Quero ativar o envio de audio pelo front, na página whatsapp-chat, no botão do microfone na conversa
+
+5 - Vamos colocar em produção o envio de midia e documentos pelo front, na página whatsapp chat.
+
+6 - Vamos criar o envio otimista ao enviar mensagem, ele fica com status pendente (igual whatsapp) e apenas atualiza seu status com 1 "check" quando a vps retorna sucesso. Sem criar duplicaão de mensagem.
+
+7 - habilitar para o usuário poder continuar digiranto e enviar, enquando a mensagem anterior está perndente.
+
+8 - Alterar a cor das mensagens FROMME TRUE para o mesmo verde  gradiente do botão de COENCTAR WHATSAPP da págian settings da aba whatsapp.
+
+9 - Planejar a função de encaminhar mensagem igual ao whastapp, o usuário clica na  mensagem para encaminhar, abre o modal  com a lista de  contatos, ele seleciona e envia.
+
+
+
+Quero que execute tudo respeitando este método - LEVANTAR STADO ATUAL, PLANEJAR, IMPLEMENTAR, TESTAR, VALIDAR e LIMPEZA (Exluir arquivos osoletos)
+
+Obrigatório- A estrutura deve ser toda modularizada e isolada uma função da outra, se encontrar arquivos com multiplas tarefas que podem ser isolados, avise para fazermos. 
+Respeite a esrttura MULTTENANT para não vazar dados, e os níveis operacional e admin.
