@@ -1,0 +1,10 @@
+[33m10342f8e[m feat: Implementar UI otimista e melhorias de UX no sistema de mensagens
+[33meddde7ac[m  Implementar sincronização de notificações de mensagens não lidas entre WhatsApp Chat e Sales Funnel
+[33m9f1fd5c9[m feat: Implementa sistema de diagnóstico completo do funil de vendas
+[33m618399a4[m Fix: Implement WhatsApp notification fix
+[33mb7120aaa[m Fix realtime subscription types
+[33m6c9daf0a[m feat: Implement full realtime consolidation
+[33m98f919a9[m Fix: Prevent duplicate realtime subscriptions
+[33m872ae60b[m Fix: Prevent duplicate Supabase subscriptions
+[33m80ff9e50[m Fix: Prevent duplicate realtime subscriptions
+[33ma5da6244[m Fix: Implement message sending and display

@@ -1,0 +1,28 @@
+Lista de tarefas para fazermos.
+Só avance para a proxima tarefa se a anterior  estiver testada e aprovada por mim, sempre faça o COMMIT GITPUSH total to projeto, excluindo arquivos da nuvem que não existem no Local, e npm run build após cada tarefa.
+
+
+1 - Alterar logo do sidebar, quando o sidebar está compactado, alterar para a imagem logo-t.png que está na pasta public.
+
+2 - Analisar todo arquivo do Drag And DROP da página funil de vendas, porque ele não está persistindo o card do lead na nova etapa, ao atualizr sair da página e volttar o card volta a  etapa anterior, e se der f5 na página da erro ao voltar conforme os logs no arquivo @RETORNO.
+
+3 - No ícone de Chat que consta no Card do Lead da página funil de vendas, quero que adicione redirecionamento ao chat na  pagina whatsapp-chat ao clicar, e qualquer outro lugar do card deve acionar o draganddrop.
+
+4 - Quero ativar o envio de audio pelo front, na página whatsapp-chat, no botão do microfone na conversa
+
+5 - Vamos colocar em produção o envio de midia e documentos pelo front, na página whatsapp chat.
+
+6 - Vamos criar o envio otimista ao enviar mensagem, ele fica com status pendente (igual whatsapp) e apenas atualiza seu status com 1 "check" quando a vps retorna sucesso. Sem criar duplicaão de mensagem.
+
+7 - habilitar para o usuário poder continuar digiranto e enviar, enquando a mensagem anterior está perndente.
+
+8 - Alterar a cor das mensagens FROMME TRUE para o mesmo verde  gradiente do botão de COENCTAR WHATSAPP da págian settings da aba whatsapp.
+
+9 - Planejar a função de encaminhar mensagem igual ao whastapp, o usuário clica na  mensagem para encaminhar, abre o modal  com a lista de  contatos, ele seleciona e envia.
+
+
+
+Quero que execute tudo respeitando este método - LEVANTAR STADO ATUAL, PLANEJAR, IMPLEMENTAR, TESTAR, VALIDAR e LIMPEZA (Exluir arquivos osoletos)
+
+Obrigatório- A estrutura deve ser toda modularizada e isolada uma função da outra, se encontrar arquivos com multiplas tarefas que podem ser isolados, avise para fazermos. 
+Respeite a esrttura MULTTENANT para não vazar dados, e os níveis operacional e admin.
