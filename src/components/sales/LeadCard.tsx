@@ -36,14 +36,6 @@ export const LeadCard = memo(({
   lostStageId,
   massSelection
 }: LeadCardProps) => {
-  console.log('[LeadCard] 🎴 RENDERIZANDO CARD:', {
-    leadId: lead.id,
-    leadName: lead.name,
-    hasOnClick: !!onClick,
-    hasOnOpenChat: !!onOpenChat,
-    onClickType: typeof onClick,
-    onOpenChatType: typeof onOpenChat
-  });
   // Se não tiver massSelection via props, usar valores padrão
   const effectiveMassSelection = massSelection || {
     selectedLeads: new Set(),

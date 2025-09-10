@@ -70,16 +70,21 @@ export const ColumnHeader = ({
   const aiEnabled = column.ai_enabled === true;
 
   // Handler para toggle AI
-  const handleAIToggle = (enabled: boolean) => {
-    console.log('[ColumnHeader] 🎛️ Toggle AI:', {
+  const handleAIToggle = async (enabled: boolean) => {
+    console.log('[ColumnHeader] 🎛️ Toggle AI INICIADO:', {
       columnId: column.id,
       columnTitle: column.title,
       currentEnabled: aiEnabled,
-      newEnabled: enabled
+      newEnabled: enabled,
+      isWonLostStage,
+      isLoading: isTogglingAI
     });
     
-    if (!isWonLostStage) {
-      toggleAI(column.id, aiEnabled);
+    if (!isWonLostStage && !isTogglingAI) {
+      const success = await toggleAI(column.id, enabled);
+      console.log('[ColumnHeader] ✅ Toggle AI RESULTADO:', { success });
+    } else {
+      console.log('[ColumnHeader] ❌ Toggle AI BLOQUEADO:', { isWonLostStage, isTogglingAI });
     }
   };
 

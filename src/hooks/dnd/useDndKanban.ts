@@ -38,14 +38,15 @@ export const useDndKanban = ({
 }: UseDndKanbanProps): UseDndKanbanReturn => {
   const [columns, setColumns] = useState<KanbanColumn[]>(initialColumns);
   
-  // Sincronizar com colunas externas quando mudarem (otimizado para evitar loops)
+  // 🔴 REMOVER SINCRONIZAÇÃO QUE CAUSA CONFLITO
+  // O estado deve ser gerenciado APENAS pelo componente pai
+  // Não sincronizar automaticamente para evitar loops e conflitos
   useEffect(() => {
-    // Verificar se realmente mudou para evitar loops
-    const hasChanged = JSON.stringify(columns) !== JSON.stringify(initialColumns);
-    if (hasChanged) {
+    // Só atualizar se estiver vazio (inicialização)
+    if (columns.length === 0 && initialColumns.length > 0) {
       setColumns(initialColumns);
     }
-  }, [initialColumns]);
+  }, []); // Sem dependências para executar apenas uma vez
 
   // Encontrar item e sua coluna
   const findItemAndColumn = useCallback((itemId: string, searchColumns: KanbanColumn[] = columns) => {

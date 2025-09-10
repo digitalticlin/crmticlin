@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStageManagement } from "./useStageManagement";
 import { useTagDatabase } from "./useTagDatabase";
-import { useDataFilters } from "@/hooks/useDataFilters";
+import { useSalesFunnelFilters } from "@/hooks/shared/filters";
 import { KanbanColumn, KanbanLead, KanbanTag } from "@/types/kanban";
 import { Funnel, KanbanStage } from "@/types/funnel";
 import { toast } from "sonner";
@@ -18,7 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export function useSalesFunnelWithFilters() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { role, funnelsFilter, leadsFilter, loading: filtersLoading } = useDataFilters();
+  const { role, funnelsFilter, leadsFilter, loading: filtersLoading } = useSalesFunnelFilters();
   const [selectedFunnel, setSelectedFunnel] = useState<Funnel | null>(null);
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);

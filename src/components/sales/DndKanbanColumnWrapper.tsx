@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { DndDropZone } from '@/components/dnd';
 import { DndLeadCardWrapper } from './DndLeadCardWrapper';
 import { KanbanColumn as KanbanColumnType, KanbanLead } from '@/types/kanban';
@@ -109,24 +109,14 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
   // IDs dos leads para o SortableContext
   const leadIds = visibleLeads.map(lead => lead.id);
 
-  // Calcular valor total em negociação
-  const totalValue = column.leads.reduce((sum, lead) => {
-    // Tentar ambas as propriedades: purchase_value e purchaseValue
-    const value = lead.purchase_value || lead.purchaseValue || 0;
-    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
-    return sum + (isNaN(numericValue) ? 0 : numericValue);
-  }, 0);
-
-  console.log(`[DndKanbanColumnWrapper] 💰 Calculando valor total para ${column.title}:`, {
-    leadsCount: column.leads.length,
-    totalValue,
-    leadsSample: column.leads.slice(0, 3).map(l => ({
-      id: l.id,
-      name: l.name,
-      purchase_value: l.purchase_value,
-      purchaseValue: l.purchaseValue
-    }))
-  });
+  // Calcular valor total em negociação com useMemo para evitar recálculos
+  const totalValue = useMemo(() => {
+    return column.leads.reduce((sum, lead) => {
+      const value = lead.purchase_value || lead.purchaseValue || 0;
+      const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+      return sum + (isNaN(numericValue) ? 0 : numericValue);
+    }, 0);
+  }, [column.leads]);
 
   const renderLeadCard = (lead: KanbanLead, index: number) => (
     <DndSortableLeadCard

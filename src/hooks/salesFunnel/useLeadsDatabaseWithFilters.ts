@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDataFilters } from "@/hooks/useDataFilters";
+import { useSalesFunnelFilters } from "@/hooks/shared/filters";
 import { toast } from "sonner";
 import { salesFunnelLeadsQueryKeys } from "./queryKeys";
 
@@ -14,7 +14,7 @@ import { salesFunnelLeadsQueryKeys } from "./queryKeys";
 export function useLeadsDatabaseWithFilters(funnelId?: string) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { role, leadsFilter, loading: filtersLoading } = useDataFilters();
+  const { role, leadsFilter, loading: filtersLoading } = useSalesFunnelFilters();
 
   console.log('[useLeadsDatabaseWithFilters] 🔍 Iniciando com filtros:', { 
     funnelId, 
@@ -110,7 +110,8 @@ export function useLeadsDatabaseWithFilters(funnelId?: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads-with-filters'] });
+      // ✅ ISOLAMENTO: Usar query keys específicas do Sales Funnel apenas
+      queryClient.invalidateQueries({ queryKey: salesFunnelLeadsQueryKeys.base });
       toast.success("Tag adicionada com sucesso!");
     },
     onError: (error) => {
@@ -141,7 +142,8 @@ export function useLeadsDatabaseWithFilters(funnelId?: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads-with-filters'] });
+      // ✅ ISOLAMENTO: Usar query keys específicas do Sales Funnel apenas
+      queryClient.invalidateQueries({ queryKey: salesFunnelLeadsQueryKeys.base });
       toast.success("Tag removida com sucesso!");
     },
     onError: (error) => {
@@ -178,7 +180,8 @@ export function useLeadsDatabaseWithFilters(funnelId?: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leads-with-filters'] });
+      // ✅ ISOLAMENTO: Usar query keys específicas do Sales Funnel apenas
+      queryClient.invalidateQueries({ queryKey: salesFunnelLeadsQueryKeys.base });
     },
     onError: (error) => {
       console.error("Erro ao atualizar lead:", error);

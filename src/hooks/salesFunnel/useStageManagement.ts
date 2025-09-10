@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { salesFunnelStagesQueryKeys, salesFunnelLeadsQueryKeys } from "./queryKeys";
 
 export function useStageManagement() {
   const queryClient = useQueryClient();
@@ -60,9 +61,11 @@ export function useStageManagement() {
       if (leadError) throw leadError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
-      queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
-      queryClient.invalidateQueries({ queryKey: ["client-deals"] });
+      // 🔴 REMOVIDO: Invalidações globais causavam conflito com drag and drop
+      // Usar apenas queries específicas e isoladas quando necessário
+      // queryClient.invalidateQueries({ queryKey: ["leads"] });
+      // queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
+      // queryClient.invalidateQueries({ queryKey: ["client-deals"] });
       toast.success("Lead movido com sucesso!");
     },
     onError: (error) => {
@@ -89,7 +92,8 @@ export function useStageManagement() {
     }
 
     console.log('[useStageManagement] ✅ Lead movido com sucesso');
-    queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
+    // 🔴 REMOVIDO: Invalidação global causava conflito com drag and drop
+    // queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
   };
 
   const addColumn = async (title: string, color: string, funnelId: string) => {
@@ -152,9 +156,11 @@ export function useStageManagement() {
       console.log('[useStageManagement] Stage criado com sucesso:', newStage);
 
       // Invalidar queries relacionadas para forçar atualização
-      queryClient.invalidateQueries({ queryKey: ["stages"] });
-      queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
-      queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
+      // 🔴 REMOVIDO: Invalidações globais causavam conflito com drag and drop  
+      // queryClient.invalidateQueries({ queryKey: ["stages"] });
+      // queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
+      // 🔴 REMOVIDO: Invalidação global causava conflito com drag and drop
+    // queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
 
       return newStage;
     } catch (error) {
@@ -194,8 +200,9 @@ export function useStageManagement() {
 
     if (error) throw error;
 
-    queryClient.invalidateQueries({ queryKey: ["stages"] });
-    queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
+    // ✅ ISOLAMENTO: Usar query keys específicas do Sales Funnel apenas
+    queryClient.invalidateQueries({ queryKey: salesFunnelStagesQueryKeys.base });
+    queryClient.invalidateQueries({ queryKey: salesFunnelLeadsQueryKeys.base });
   };
 
   const deleteColumn = async (columnId: string) => {
@@ -221,13 +228,15 @@ export function useStageManagement() {
 
     if (error) throw error;
 
-    queryClient.invalidateQueries({ queryKey: ["stages"] });
-    queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
+    // ✅ ISOLAMENTO: Usar query keys específicas do Sales Funnel apenas
+    queryClient.invalidateQueries({ queryKey: salesFunnelStagesQueryKeys.base });
+    queryClient.invalidateQueries({ queryKey: salesFunnelLeadsQueryKeys.base });
   };
 
   const refreshColumns = async () => {
-    queryClient.invalidateQueries({ queryKey: ["stages"] });
-    queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
+    // ✅ ISOLAMENTO: Usar query keys específicas do Sales Funnel apenas
+    queryClient.invalidateQueries({ queryKey: salesFunnelStagesQueryKeys.base });
+    queryClient.invalidateQueries({ queryKey: salesFunnelLeadsQueryKeys.base });
   };
 
   // NOVA FUNÇÃO: Garantir que novos leads sempre tenham uma etapa
@@ -282,7 +291,8 @@ export function useStageManagement() {
           throw updateError;
         }
 
-        queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
+        // 🔴 REMOVIDO: Invalidação global causava conflito com drag and drop
+    // queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
         return stageId;
       }
     } catch (error) {

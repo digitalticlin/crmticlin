@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { salesFunnelLeadsQueryKeys } from "./queryKeys";
 
 export interface CreateLeadData {
   name: string;
@@ -88,8 +89,8 @@ export function useLeadCreation() {
       return newLead;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
-      queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
+      // ✅ ISOLAMENTO: Usar query keys específicas do Sales Funnel apenas
+      queryClient.invalidateQueries({ queryKey: salesFunnelLeadsQueryKeys.base });
       toast.success("Lead criado com sucesso!");
     },
     onError: (error) => {

@@ -58,7 +58,8 @@ export function SalesFunnelContent() {
     deleteColumn,
     availableTags,
     wonStageId,
-    lostStageId
+    lostStageId,
+    markOptimisticChange
   } = useSalesFunnelDirect();
 
   // Hook data ready
@@ -449,6 +450,7 @@ export function SalesFunnelContent() {
                 wonStageId={wonStageId}
                 lostStageId={lostStageId}
                 massSelection={massSelection}
+                markOptimisticChange={markOptimisticChange}
               />
             </div>
           </div>

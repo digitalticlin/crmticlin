@@ -19,6 +19,7 @@ interface KanbanBoardProps {
   wonStageId?: string;
   lostStageId?: string;
   massSelection?: MassSelectionReturn;
+  markOptimisticChange?: (value: boolean) => void;
 }
 
 export const KanbanBoard = ({
@@ -33,7 +34,8 @@ export const KanbanBoard = ({
   isWonLostView = false,
   wonStageId,
   lostStageId,
-  massSelection
+  massSelection,
+  markOptimisticChange
 }: KanbanBoardProps) => {
   // Validar colunas uma vez com memoização
   const validatedColumns = useMemo(() => {
@@ -91,6 +93,7 @@ export const KanbanBoard = ({
             wonStageId={wonStageId}
             lostStageId={lostStageId}
             massSelection={massSelection}
+            markOptimisticChange={markOptimisticChange}
             enableDnd={true}
           />
         )}

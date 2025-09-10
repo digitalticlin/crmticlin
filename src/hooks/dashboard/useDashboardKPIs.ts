@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAccessControl } from "@/hooks/useAccessControl";
-import { useDataFilters } from "@/hooks/useDataFilters";
+import { useDashboardFilters } from "@/hooks/shared/filters";
 
 interface KPIData {
   novos_leads: number;
@@ -18,7 +18,7 @@ interface KPIData {
 export function useDashboardKPIs(periodFilter: string) {
   const { user } = useAuth();
   const { userFunnels, canViewAllFunnels, isLoading: accessLoading } = useAccessControl();
-  const dataFilters = useDataFilters();
+  const dataFilters = useDashboardFilters();
 
   return useQuery({
     queryKey: ['dashboard-kpis', user?.id, periodFilter, userFunnels, canViewAllFunnels, dataFilters.role],

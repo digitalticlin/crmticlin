@@ -26,6 +26,7 @@ export function useSalesFunnelDirect() {
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
   const [createdByUserId, setCreatedByUserId] = useState<string | null>(null);
+  const [hasOptimisticChanges, setHasOptimisticChanges] = useState(false);
 
   // Usar o role do hook useUserRole
   const isAdmin = role === 'admin';
@@ -190,8 +191,10 @@ export function useSalesFunnelDirect() {
       return data || [];
     },
     enabled: !!selectedFunnel?.id,
-    staleTime: 1 * 60 * 1000, // 1 minuto de cache para stages
-    gcTime: 3 * 60 * 1000
+    staleTime: 30 * 60 * 1000, // 30 minutos - evitar refetch durante drag
+    gcTime: 60 * 60 * 1000, // 60 minutos - manter cache por mais tempo
+    refetchOnWindowFocus: false, // NÃO refazer query ao focar janela
+    refetchOnReconnect: false // NÃO refazer query ao reconectar
   });
 
   // 🔄 REVERTER: Query de leads original que funcionava + filtro por instância
@@ -230,38 +233,18 @@ export function useSalesFunnelDirect() {
           .eq('funnel_id', selectedFunnel.id)
           .in('conversation_status', ['active', 'closed']);
 
-        // 🚀 FILTRO POR INSTÂNCIA: Aplicar mesmo filtro do WhatsApp Chat
-        if (role === 'admin') {
-          // Admin: vê leads que criou (RLS já filtra)
-          console.log('[useSalesFunnelDirect] 🔑 Filtro ADMIN aplicado - RLS automático');
-          query = query.eq('created_by_user_id', user.id);
-        } else if (role === 'operational') {
-          // Operacional: vê APENAS leads das instâncias que tem acesso
-          console.log('[useSalesFunnelDirect] 🔒 Filtro OPERACIONAL aplicado - buscando instâncias acessíveis');
-          
-          // Buscar instâncias que o usuário operacional pode acessar
-          const { data: userWhatsAppNumbers } = await supabase
-            .from('user_whatsapp_numbers')
-            .select('whatsapp_number_id')
-            .eq('profile_id', user.id);
-
-          if (!userWhatsAppNumbers || userWhatsAppNumbers.length === 0) {
-            console.log('[useSalesFunnelDirect] ⚠️ Usuário operacional sem instâncias atribuídas');
-            // Retornar query impossível para não mostrar nada
-            query = query.eq('id', 'impossible-id');
-          } else {
-            const whatsappIds = userWhatsAppNumbers.map(uwn => uwn.whatsapp_number_id);
-            console.log('[useSalesFunnelDirect] 🎯 Instâncias acessíveis:', whatsappIds);
-            
-            // Filtrar leads por instâncias acessíveis + admin correto
-            query = query
-              .in('whatsapp_number_id', whatsappIds)
-              .eq('created_by_user_id', createdByUserId || user.id);
-          }
-        } else {
-          // Fallback seguro
-          query = query.eq('created_by_user_id', user.id);
-        }
+        // 🚀 FILTRO SIMPLIFICADO: Admin vê todos os seus leads
+        console.log('[useSalesFunnelDirect] 🔑 Aplicando filtro por usuário criador');
+        query = query.eq('created_by_user_id', user.id);
+        
+        // Log do filtro aplicado
+        console.log('[useSalesFunnelDirect] 📊 Query construída:', {
+          role,
+          isAdmin: role === 'admin',
+          userId: user.id,
+          funnelId: selectedFunnel.id,
+          filtroAplicado: 'created_by_user_id'
+        });
 
         const { data: allLeads, error } = await query
           .order('updated_at', { ascending: false });
@@ -285,9 +268,11 @@ export function useSalesFunnelDirect() {
         return [];
       }
     },
-    enabled: !!selectedFunnel?.id && !!user?.id && !accessLoading && (role === 'admin' || (role === 'operational' && !!createdByUserId)),
-    staleTime: 3 * 60 * 1000, // 3 minutos para reduzir refetch
-    gcTime: 10 * 60 * 1000, // 10 minutos
+    enabled: !!selectedFunnel?.id && !!user?.id && !accessLoading && !!role && !stagesLoading,
+    staleTime: 30 * 60 * 1000, // 30 minutos - evitar refetch durante drag
+    gcTime: 60 * 60 * 1000, // 60 minutos - manter cache por mais tempo
+    refetchOnWindowFocus: false, // NÃO refazer query ao focar janela
+    refetchOnReconnect: false, // NÃO refazer query ao reconectar
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000) // Exponential backoff
   });
@@ -376,39 +361,66 @@ export function useSalesFunnelDirect() {
     return columns;
   }, [stages, leads, selectedFunnel?.id]);
 
-  // Atualizar columns apenas quando kanbanColumns mudar - SIMPLIFICADO
+  // 🎯 SINCRONIZAÇÃO INTELIGENTE - Respeitar mudanças otimistas
   useEffect(() => {
-    if (kanbanColumns.length > 0 && JSON.stringify(kanbanColumns) !== JSON.stringify(columns)) {
+    // Durante drag, não sincronizar
+    const isDragging = document.body.hasAttribute('data-dragging');
+    if (isDragging || hasOptimisticChanges) {
+      console.log('[useSalesFunnelDirect] 🚫 Sync pausado - drag ou mudanças otimistas em progresso');
+      return;
+    }
+    
+    // APENAS sincronizar se columns estiver vazio (primeira carga) 
+    // OU se não há mudanças otimistas ativas
+    if (columns.length === 0 && kanbanColumns.length > 0) {
+      console.log('[useSalesFunnelDirect] 🚀 Inicializando columns com dados do servidor');
       setColumns(kanbanColumns);
     }
-  }, [kanbanColumns, columns]); // Comparação profunda para evitar loop
+  }, [kanbanColumns, hasOptimisticChanges]); // Observar mudanças mas respeitar otimistas
 
-  // 🚀 REAL-TIME SUBSCRIPTIONS - ULTRA OTIMIZADO
+  // 🚀 REAL-TIME SUBSCRIPTIONS COM CONTROLE INTELIGENTE
   useEffect(() => {
     if (!user?.id || !selectedFunnel?.id || accessLoading) return;
+
+    // 🔴 VERIFICAR SE ESTÁ DRAGGING - SE SIM, NÃO CONFIGURAR SUBSCRIPTIONS
+    const checkDragging = () => {
+      return document.body.hasAttribute('data-dragging');
+    };
+
+    // Se está dragging, simplesmente retornar sem configurar subscriptions
+    if (checkDragging()) {
+      console.log('[useSalesFunnelDirect] 🚫 Drag em progresso - subscriptions pausadas');
+      return;
+    }
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[useSalesFunnelDirect] 🔄 Configurando Real-time subscriptions para funil:', selectedFunnel.id);
     }
 
-    // Throttle mais agressivo para reduzir invalidações excessivas
+    // Debounce inteligente com verificação de drag
     let invalidationTimeout: NodeJS.Timeout | null = null;
-    let pendingInvalidations = new Set<string>();
     
     const throttledInvalidation = (queryKey: any[]) => {
-      const keyString = JSON.stringify(queryKey);
-      pendingInvalidations.add(keyString);
+      // 🔴 NUNCA invalidar durante drag OU mudanças otimistas
+      if (checkDragging() || hasOptimisticChanges) {
+        console.log('[useSalesFunnelDirect] ⏸️ Drag/otimista ativo - ignorando invalidação completamente');
+        return;
+      }
       
-      if (invalidationTimeout) return;
+      // Limpar timeout anterior se existir
+      if (invalidationTimeout) {
+        clearTimeout(invalidationTimeout);
+      }
       
+      // Aguardar 5 segundos antes de invalidar (debounce maior)
       invalidationTimeout = setTimeout(() => {
-        // Processar todas as invalidações pendentes de uma vez
-        pendingInvalidations.forEach(key => {
-          queryClient.invalidateQueries({ queryKey: JSON.parse(key) });
-        });
-        pendingInvalidations.clear();
+        // Verificar NOVAMENTE se não está dragging nem com mudanças otimistas
+        if (!checkDragging() && !hasOptimisticChanges) {
+          queryClient.invalidateQueries({ queryKey });
+          console.log('[useSalesFunnelDirect] ✅ Query invalidada após debounce seguro');
+        }
         invalidationTimeout = null;
-      }, 5000); // 5 segundos de throttle para reduzir queries
+      }, 5000); // 5 segundos de debounce para maior segurança
     };
 
     const leadsSubscription = supabase
@@ -566,6 +578,9 @@ export function useSalesFunnelDirect() {
         targetColumn.leads.push({ ...movingLead, columnId: newStageId, kanban_stage_id: newStageId });
       }
 
+      // 🔴 IMPORTANTE: Marcar que há mudanças otimistas ativas
+      setHasOptimisticChanges(true);
+      document.body.setAttribute('data-dragging', 'true');
       setColumns(optimisticColumns);
 
       // Sync com banco de dados
@@ -588,6 +603,12 @@ export function useSalesFunnelDirect() {
 
       console.log('[useSalesFunnelDirect] ✅ Lead movido com sucesso - Real-time ativo');
       toast.success("Lead movido com sucesso!");
+      
+      // 🔴 Remover marcações após 2 segundos
+      setTimeout(() => {
+        document.body.removeAttribute('data-dragging');
+        setHasOptimisticChanges(false); // Permitir sincronização futura
+      }, 2000);
 
     } catch (error) {
       console.error('[useSalesFunnelDirect] ❌ Erro crítico ao mover lead:', error);
@@ -637,6 +658,9 @@ export function useSalesFunnelDirect() {
     // Ações de lead
     openLeadDetail,
     moveLeadToStage,
+
+    // 🔴 Função para marcar mudanças otimistas (para uso no DnD)
+    markOptimisticChange: (value: boolean) => setHasOptimisticChanges(value),
 
     // Funções de refresh
     refetchLeads: async () => {

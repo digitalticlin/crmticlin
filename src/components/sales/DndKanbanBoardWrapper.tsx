@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { salesFunnelLeadsQueryKeys, salesFunnelStagesQueryKeys } from '@/hooks/salesFunnel/queryKeys';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface DndKanbanBoardWrapperProps {
   columns: IKanbanColumn[];
@@ -26,6 +27,7 @@ interface DndKanbanBoardWrapperProps {
   wonStageId?: string;
   lostStageId?: string;
   massSelection?: MassSelectionReturn;
+  markOptimisticChange?: (value: boolean) => void;
   // Sistema híbrido
   enableDnd?: boolean;
   className?: string;
@@ -55,11 +57,13 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
   wonStageId,
   lostStageId,
   massSelection,
+  markOptimisticChange,
   enableDnd = false,
   className
 }) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { role } = useUserRole();
   
   // Estado para o drag overlay
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -70,13 +74,14 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
     const handleManualSync = () => {
       console.log('[DndKanbanBoardWrapper] 🔄 Sincronização manual solicitada');
       
-      // Só sincroniza quando explicitamente solicitado
-      queryClient.invalidateQueries({
-        predicate: (query) => {
-          const key = query.queryKey;
-          return key.includes('salesfunnel-leads');
-        }
-      });
+      // 🚀 DESABILITADO: Não fazer invalidação automática para evitar delay
+      // Só sincroniza quando explicitamente solicitado via F5 ou navegação
+      // queryClient.invalidateQueries({
+      //   predicate: (query) => {
+      //     const key = query.queryKey;
+      //     return key.includes('salesfunnel-leads');
+      //   }
+      // });
     };
 
     // Escutar evento de sincronização manual
@@ -101,10 +106,11 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
   }));
   
 
-  // Hook do DnD (só usado se enableDnd = true)
-  const dndKanban = useDndKanban({
-    initialColumns: dndColumns,
-    onItemMove: useCallback(async (itemId: string, fromColumnId: string, toColumnId: string, newIndex: number) => {
+  // 🔴 REMOVIDO: Hook do DnD causava conflito de estado
+  // Vamos gerenciar tudo diretamente sem estado intermediário
+  
+  // Callback simplificado para movimento de items
+  const handleItemMove = useCallback(async (itemId: string, fromColumnId: string, toColumnId: string, newIndex: number) => {
       // Encontrar o lead
       const fromColumn = columns.find(col => col.id === fromColumnId);
       const lead = fromColumn?.leads.find(l => l.id === itemId);
@@ -192,14 +198,17 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
         // Reverter UI em caso de erro
         onColumnsChange(columns);
       }
-    }, [columns, onColumnsChange])
-  });
+    }, [columns, onColumnsChange]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
     const activeId = active.id as string;
     
     console.log('[DndKanbanBoardWrapper] 🔄 DRAG START:', { activeId });
+    
+    // 🚀 Marcar que está fazendo drag para evitar invalidações
+    document.body.setAttribute('data-dragging', 'true');
+    markOptimisticChange?.(true);
     
     // Encontrar o lead sendo arrastado
     let foundLead: KanbanLead | null = null;
@@ -256,7 +265,11 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
         if (movingLead) {
           return {
             ...column,
-            leads: [...column.leads, { ...movingLead, columnId: overColumnId }]
+            leads: [...column.leads, { 
+              ...movingLead, 
+              columnId: overColumnId,
+              kanban_stage_id: overColumnId // IMPORTANTE: atualizar também kanban_stage_id
+            }]
           };
         }
       }
@@ -272,6 +285,14 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
     // Limpar estado do drag
     setActiveId(null);
     setDraggedLead(null);
+    
+    // 🚀 IMPORTANTE: Manter marcação de dragging por mais 3 segundos
+    // para evitar conflitos com subscriptions
+    setTimeout(() => {
+      document.body.removeAttribute('data-dragging');
+      markOptimisticChange?.(false);
+      console.log('[DndKanbanBoardWrapper] 🔓 Drag lock removido - subscriptions podem reativar');
+    }, 3000);
     
     if (!over) {
       console.log('[DndKanbanBoardWrapper] ❌ DROP CANCELADO - Sem área de destino');
@@ -343,9 +364,16 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
         
         const newColumns = columns.map(column => {
           if (column.id === sourceColumnId) {
+            const reorderedLeads = arrayMove(column.leads, activeIndex, overIndex);
+            // Garantir que todos os leads mantêm o columnId correto
+            const leadsWithCorrectColumnId = reorderedLeads.map(lead => ({
+              ...lead,
+              columnId: sourceColumnId,
+              kanban_stage_id: sourceColumnId
+            }));
             return {
               ...column,
-              leads: arrayMove(column.leads, activeIndex, overIndex)
+              leads: leadsWithCorrectColumnId
             };
           }
           return column;
@@ -380,7 +408,10 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
             console.log('[DndKanbanBoardWrapper] ✅ Reordenação persistida com sucesso');
             toast.success('Ordem dos cards atualizada');
             
-            // ZERO invalidação - estado local permanente
+            // 🚀 Garantir que a nova ordem persista visualmente
+            setTimeout(() => {
+              onColumnsChange([...newColumns]);
+            }, 100);
           }
         }).catch(error => {
           console.error('[DndKanbanBoardWrapper] ❌ Erro inesperado na reordenação:', error);
@@ -400,11 +431,30 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
           leads: column.leads.filter(l => l.id !== active.id)
         };
       } else if (column.id === targetColumnId) {
-        // Adicionar na coluna destino
-        const updatedLead = { ...sourceLead, columnId: targetColumnId };
+        // Adicionar na coluna destino com TODOS os campos atualizados
+        const updatedLead = { 
+          ...sourceLead, 
+          columnId: targetColumnId,
+          kanban_stage_id: targetColumnId // IMPORTANTE: atualizar também kanban_stage_id
+        };
+        
+        // Determinar posição de inserção
+        let insertIndex = column.leads.length; // Por padrão, adiciona no final
+        
+        // Se droppou em cima de outro lead, inserir na posição dele
+        if (over.id !== `column-${targetColumnId}`) {
+          const overIndex = column.leads.findIndex(l => l.id === over.id);
+          if (overIndex !== -1) {
+            insertIndex = overIndex;
+          }
+        }
+        
+        const newLeads = [...column.leads];
+        newLeads.splice(insertIndex, 0, updatedLead);
+        
         return {
           ...column,
-          leads: [...column.leads, updatedLead]
+          leads: newLeads
         };
       }
       return column;
@@ -416,10 +466,14 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
     try {
       console.log('[DndKanbanBoardWrapper] 💾 PERSISTINDO no Supabase:', {
         leadId: active.id,
-        newStageId: targetColumnId
+        leadName: sourceLead.name,
+        fromStage: sourceColumnId,
+        toStage: targetColumnId,
+        userId: user?.id
       });
       
-      const { error } = await supabase
+      // 🔴 Preparar query com filtros de segurança corretos
+      let updateQuery = supabase
         .from('leads')
         .update({ 
           kanban_stage_id: targetColumnId,
@@ -427,16 +481,36 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
         })
         .eq('id', active.id);
 
+      // Aplicar filtro baseado no role
+      if (role === 'admin') {
+        // Admin: só pode mover leads que criou
+        updateQuery = updateQuery.eq('created_by_user_id', user.id);
+      } else {
+        // Operacional: pode mover qualquer lead (RLS já filtra por instância)
+        console.log('[DndKanbanBoardWrapper] 🔒 Usuário operacional - RLS aplicará filtros');
+      }
+
+      const { error, data } = await updateQuery;
+
       if (error) {
         console.error('[DndKanbanBoardWrapper] ❌ Erro ao persistir:', error);
         toast.error('Erro ao salvar mudança de etapa');
         
         // Reverter UI em caso de erro
         onColumnsChange(columns);
+        
+        // Remover marcação de dragging em caso de erro
+        document.body.removeAttribute('data-dragging');
+        markOptimisticChange?.(false);
         return;
       }
 
-      console.log('[DndKanbanBoardWrapper] ✅ Mudança persistida com sucesso - mantendo estado otimista');
+      console.log('[DndKanbanBoardWrapper] ✅ Mudança persistida com sucesso:', {
+        leadId: active.id,
+        newStage: targetColumnId,
+        affectedRows: data?.length || 'N/A',
+        data: data
+      });
       
       // Encontrar nome da nova etapa
       const targetColumn = columns.find(col => col.id === targetColumnId);
@@ -454,7 +528,12 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
         }
       }));
 
-      // 🚀 SOLUÇÃO CIRÚRGICA: Apenas persistir, ZERO invalidação
+      // 🚀 APÓS SUCESSO: Garantir que o estado local persista
+      // Forçar re-render das colunas para garantir que a mudança seja vista
+      setTimeout(() => {
+        onColumnsChange([...newColumns]); // Clone para forçar re-render
+      }, 100);
+      
       console.log('[DndKanbanBoardWrapper] ✅ Mudança entre etapas - estado local + persistência silenciosa');
       
     } catch (error) {
@@ -463,6 +542,10 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
       
       // Reverter UI em caso de erro
       onColumnsChange(columns);
+      
+      // Remover marcação de dragging em caso de erro
+      document.body.removeAttribute('data-dragging');
+      markOptimisticChange?.(false);
     }
   }, [columns, onColumnsChange]);
 

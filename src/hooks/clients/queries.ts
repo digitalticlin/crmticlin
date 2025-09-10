@@ -2,7 +2,7 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientData } from "./types";
-import { useDataFilters } from "@/hooks/useDataFilters";
+import { useClientsFilters } from "@/hooks/shared/filters";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 const CLIENTS_PER_PAGE = 50;
@@ -36,7 +36,7 @@ export const useDefaultWhatsAppInstance = (userId: string | null) => {
 
 // Hook principal com paginação infinita com filtros por role
 export const useClientsQuery = (userId: string | null, searchQuery: string = "") => {
-  const dataFilters = useDataFilters();
+  const dataFilters = useClientsFilters();
   const { permissions } = useUserPermissions();
   
   return useInfiniteQuery({
@@ -163,7 +163,7 @@ export const useClientsQuery = (userId: string | null, searchQuery: string = "")
 
 // Hook para buscar opções de filtros
 export const useFilterOptions = (userId: string | null) => {
-  const dataFilters = useDataFilters();
+  const dataFilters = useClientsFilters();
   
   return useQuery({
     queryKey: ["filter-options", userId, dataFilters.role],
@@ -247,7 +247,7 @@ export const useFilteredClientsQuery = (
   searchQuery: string = "",
   filters: any = {}
 ) => {
-  const dataFilters = useDataFilters();
+  const dataFilters = useClientsFilters();
   
   return useQuery({
     queryKey: ["filtered-clients", userId, searchQuery, filters, dataFilters.role],

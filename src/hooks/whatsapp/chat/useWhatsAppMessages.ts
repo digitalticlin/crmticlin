@@ -45,7 +45,7 @@ interface UseWhatsAppMessagesReturn {
 }
 
 const MESSAGES_PER_PAGE = 30; // PRIMEIRA CARGA: 30 mensagens
-const MESSAGE_REFETCH_INTERVAL = 5000; // Refetch apenas a cada 5 segundos, não contínuo
+const MESSAGE_REFETCH_INTERVAL = 15000; // ✅ OTIMIZADO: Refetch a cada 15 segundos (menos agressivo)
 
 // Helper para normalizar mediaType
 const normalizeMediaType = (mediaType?: string): "text" | "image" | "video" | "audio" | "document" => {

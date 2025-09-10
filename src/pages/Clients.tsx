@@ -3,13 +3,13 @@ import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
 import { RealClientsLayout } from "@/components/clients/RealClientsLayout";
 import { useRealClientManagement } from "@/hooks/useRealClientManagement";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
-import { useDataFilters } from "@/hooks/useDataFilters";
+import { useClientsFilters } from "@/hooks/shared/filters";
 import { Button } from "@/components/ui/button";
 import { Plus, RefreshCw, Loader2 } from "lucide-react";
 
 export default function Clients() {
   const { permissions, loading: permissionsLoading } = useUserPermissions();
-  const dataFilters = useDataFilters();
+  const dataFilters = useClientsFilters();
 
   const {
     clients,

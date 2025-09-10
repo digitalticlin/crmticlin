@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useDataFilters } from '@/hooks/useDataFilters';
+import { useChatFilters } from '@/hooks/shared/filters';
 
 // Hooks isolados NOVOS (React Query)
 import { useWhatsAppInstances } from './useWhatsAppInstances';
@@ -81,7 +81,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
-  const dataFilters = useDataFilters();
+  const dataFilters = useChatFilters();
   
   const leadId = searchParams.get('leadId');
   const phoneParam = searchParams.get('phone');

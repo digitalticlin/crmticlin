@@ -5,13 +5,13 @@ import LazyKPIGrid from "@/components/dashboard/lazy/LazyKPIGrid";
 import LazyChartsSection from "@/components/dashboard/lazy/LazyChartsSection";
 import PeriodFilter from "@/components/dashboard/PeriodFilter";
 import { DashboardConfigProvider } from "@/hooks/dashboard/useDashboardConfig";
-import { useDataFilters } from "@/hooks/useDataFilters";
+import { useDashboardFilters } from "@/hooks/shared/filters";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Loader2 } from "lucide-react";
 
 export default function Dashboard() {
   const { permissions, loading: permissionsLoading } = useUserPermissions();
-  const dataFilters = useDataFilters();
+  const dataFilters = useDashboardFilters();
 
   console.log('[Dashboard] 🔍 Sistema de controle de acesso:', {
     role: permissions.role,
