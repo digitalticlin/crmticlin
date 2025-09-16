@@ -20,25 +20,27 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    minify: 'esbuild', // ESBuild é mais seguro que Terser para hoisting
+    minify: 'esbuild', // ESBuild é mais seguro para evitar problemas de hoisting
     rollupOptions: {
-      treeshake: {
-        // Configuração conservadora de tree-shaking
-        preset: 'safest'
-      },
       output: {
-        // Usar bundle único para evitar completamente problemas de ordem de inicialização
-        inlineDynamicImports: true,
+        // Bundle único para evitar problemas de ordem de inicialização
+        inlineDynamicImports: false,
         manualChunks: undefined,
-        // Configurações para prevenir problemas de hoisting
-        hoistTransitiveImports: false
-      }
+        // Previne problemas de hoisting
+        hoistTransitiveImports: false,
+      },
     },
-    chunkSizeWarningLimit: 10000,
-    // Configurações adicionais para resolver problemas de dependência
+    chunkSizeWarningLimit: 3000,
+    cssCodeSplit: false, // CSS em um único arquivo
+    sourcemap: false,
+    reportCompressedSize: false,
+    // Configurações para resolver problemas de dependência
     commonjsOptions: {
       include: [/node_modules/],
-      transformMixedEsModules: true
-    }
-  }
+      transformMixedEsModules: true,
+    },
+  },
+  optimizeDeps: {
+    exclude: ['lovable-tagger'], // Exclui do bundle de desenvolvimento
+  },
 }));

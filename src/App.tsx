@@ -1,6 +1,6 @@
 
-import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import React, { useEffect, lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
@@ -10,19 +10,21 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AdminGuard } from './components/auth/AdminGuard';
 import { PortalErrorBoundary } from './components/error/PortalErrorBoundary';
 import { AppLayout } from './components/layout/AppLayout';
-import Dashboard from './pages/Dashboard';
-import Login from './pages/Index';
-import Register from './pages/Register';
-import FunnelsPage from './pages/SalesFunnel';
-import LeadsPage from './pages/Clients';
-import SettingsPage from './pages/Settings';
-import WhatsAppWebPage from './pages/WhatsAppChat';
-import AutomationPage from './pages/Automation';
-import AIAgentsPage from './pages/AIAgents';
-import PlansPage from './pages/Plans';
-import { AcceptInvite } from './components/invite/AcceptInvite';
-import ConfirmEmail from './pages/ConfirmEmail';
-import ConfirmEmailInstructions from './pages/ConfirmEmailInstructions';
+
+// Lazy loading para todas as páginas
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Login = lazy(() => import('./pages/Index'));
+const Register = lazy(() => import('./pages/Register'));
+const FunnelsPage = lazy(() => import('./pages/SalesFunnel'));
+const LeadsPage = lazy(() => import('./pages/Clients'));
+const SettingsPage = lazy(() => import('./pages/Settings'));
+const WhatsAppWebPage = lazy(() => import('./pages/WhatsAppChat'));
+const AutomationPage = lazy(() => import('./pages/Automation'));
+const AIAgentsPage = lazy(() => import('./pages/AIAgents'));
+const PlansPage = lazy(() => import('./pages/Plans'));
+const AcceptInvite = lazy(() => import('./components/invite/AcceptInvite').then(m => ({ default: m.AcceptInvite })));
+const ConfirmEmail = lazy(() => import('./pages/ConfirmEmail'));
+const ConfirmEmailInstructions = lazy(() => import('./pages/ConfirmEmailInstructions'));
 
 // 🚀 DECLARAÇÃO GLOBAL PARA TYPESCRIPT
 declare global {
@@ -33,6 +35,13 @@ declare global {
 
 const queryClient = new QueryClient();
 
+// Componente de Loading
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-yellow-500"></div>
+  </div>
+);
+
 // ✅ COMPONENTE DE ROTAS SPA - SIDEBAR FIXO
 function AppLayoutRoutes() {
   return (
@@ -40,16 +49,16 @@ function AppLayoutRoutes() {
       <Route 
         path="/" 
         element={
-          <AppLayout>
-            <Dashboard />
-          </AppLayout>
+          <Navigate to="/dashboard" replace />
         } 
       />
       <Route 
         path="/dashboard" 
         element={
           <AppLayout>
-            <Dashboard />
+            <Suspense fallback={<PageLoader />}>
+              <Dashboard />
+            </Suspense>
           </AppLayout>
         } 
       />
@@ -57,7 +66,9 @@ function AppLayoutRoutes() {
         path="/funnels" 
         element={
           <AppLayout fullHeight>
-            <FunnelsPage />
+            <Suspense fallback={<PageLoader />}>
+              <FunnelsPage />
+            </Suspense>
           </AppLayout>
         } 
       />
@@ -65,7 +76,9 @@ function AppLayoutRoutes() {
         path="/sales-funnel" 
         element={
           <AppLayout fullHeight>
-            <FunnelsPage />
+            <Suspense fallback={<PageLoader />}>
+              <FunnelsPage />
+            </Suspense>
           </AppLayout>
         } 
       />
@@ -73,7 +86,9 @@ function AppLayoutRoutes() {
         path="/whatsapp-chat" 
         element={
           <AppLayout fullHeight>
-            <WhatsAppWebPage />
+            <Suspense fallback={<PageLoader />}>
+              <WhatsAppWebPage />
+            </Suspense>
           </AppLayout>
         } 
       />
@@ -81,7 +96,9 @@ function AppLayoutRoutes() {
         path="/clients" 
         element={
           <AppLayout>
-            <LeadsPage />
+            <Suspense fallback={<PageLoader />}>
+              <LeadsPage />
+            </Suspense>
           </AppLayout>
         } 
       />
@@ -89,7 +106,9 @@ function AppLayoutRoutes() {
         path="/leads" 
         element={
           <AppLayout>
-            <LeadsPage />
+            <Suspense fallback={<PageLoader />}>
+              <LeadsPage />
+            </Suspense>
           </AppLayout>
         } 
       />
@@ -97,7 +116,9 @@ function AppLayoutRoutes() {
         path="/automation" 
         element={
           <AppLayout>
-            <AutomationPage />
+            <Suspense fallback={<PageLoader />}>
+              <AutomationPage />
+            </Suspense>
           </AppLayout>
         } 
       />
@@ -106,7 +127,9 @@ function AppLayoutRoutes() {
         element={
           <AdminGuard>
             <AppLayout>
-              <AIAgentsPage />
+              <Suspense fallback={<PageLoader />}>
+                <AIAgentsPage />
+              </Suspense>
             </AppLayout>
           </AdminGuard>
         } 
@@ -115,7 +138,9 @@ function AppLayoutRoutes() {
         path="/plans" 
         element={
           <AppLayout>
-            <PlansPage />
+            <Suspense fallback={<PageLoader />}>
+              <PlansPage />
+            </Suspense>
           </AppLayout>
         } 
       />
@@ -124,7 +149,9 @@ function AppLayoutRoutes() {
         element={
           <AdminGuard>
             <AppLayout>
-              <SettingsPage />
+              <Suspense fallback={<PageLoader />}>
+                <SettingsPage />
+              </Suspense>
             </AppLayout>
           </AdminGuard>
         } 
@@ -133,7 +160,9 @@ function AppLayoutRoutes() {
         path="/whatsapp-web" 
         element={
           <AppLayout fullHeight>
-            <WhatsAppWebPage />
+            <Suspense fallback={<PageLoader />}>
+              <WhatsAppWebPage />
+            </Suspense>
           </AppLayout>
         } 
       />
@@ -235,11 +264,11 @@ function App() {
             <SidebarProvider>
                 <Routes>
                   {/* Rotas públicas - fora do layout */}
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/invite/:token" element={<AcceptInvite />} />
-                  <Route path="/confirm-email" element={<ConfirmEmailInstructions />} />
-                  <Route path="/confirm/:token" element={<ConfirmEmail />} />
+                  <Route path="/login" element={<Suspense fallback={<PageLoader />}><Login /></Suspense>} />
+                  <Route path="/register" element={<Suspense fallback={<PageLoader />}><Register /></Suspense>} />
+                  <Route path="/invite/:token" element={<Suspense fallback={<PageLoader />}><AcceptInvite /></Suspense>} />
+                  <Route path="/confirm-email" element={<Suspense fallback={<PageLoader />}><ConfirmEmailInstructions /></Suspense>} />
+                  <Route path="/confirm/:token" element={<Suspense fallback={<PageLoader />}><ConfirmEmail /></Suspense>} />
                   
                   {/* Rotas protegidas - dentro do layout SPA */}
                   <Route 
