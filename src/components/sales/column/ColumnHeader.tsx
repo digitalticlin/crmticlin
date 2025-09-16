@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { AIToggleSwitchEnhanced } from "../ai/AIToggleSwitchEnhanced";
 import { useAIStageControl } from "@/hooks/salesFunnel/useAIStageControl";
 import { MassSelectionReturn } from "@/hooks/useMassSelection";
+import { useStageLeadCount } from "@/hooks/salesFunnel/stages/useStageLeadCount";
 
 interface ColumnHeaderProps {
   column: KanbanColumn;
@@ -31,6 +32,7 @@ interface ColumnHeaderProps {
   onUpdate: (field: keyof KanbanColumn, value: any) => void;
   onDelete: () => void;
   massSelection?: MassSelectionReturn;
+  funnelId?: string | null;
 }
 
 export const ColumnHeader = ({
@@ -39,10 +41,17 @@ export const ColumnHeader = ({
   canEdit,
   onUpdate,
   onDelete,
-  massSelection
+  massSelection,
+  funnelId
 }: ColumnHeaderProps) => {
   const [editingColumn, setEditingColumn] = useState<KanbanColumn | null>(null);
   const { toggleAI, isLoading: isTogglingAI } = useAIStageControl();
+
+  // Hook para contar total de leads na etapa no banco de dados
+  const { getStageCount } = useStageLeadCount({
+    funnelId,
+    enabled: !!funnelId
+  });
   
   // Usar massSelection via props ou valores padrão
   const effectiveMassSelection = massSelection || {
@@ -144,9 +153,9 @@ export const ColumnHeader = ({
         <h3 className="font-semibold font-inter text-lg truncate text-gray-900">{displayTitle}</h3>
         
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Contador de leads */}
+          {/* Contador de leads - total no banco de dados */}
           <span className="bg-gray-100 text-gray-800 font-bold rounded-xl px-3 py-0.5 text-xs border border-gray-300">
-            {column.leads.length}
+            {getStageCount(column.id)}
           </span>
           
           {/* Valor total da etapa */}

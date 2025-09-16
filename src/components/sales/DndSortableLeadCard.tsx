@@ -56,7 +56,11 @@ export const DndSortableLeadCard: React.FC<DndSortableLeadCardProps> = ({
             onOpenLeadDetail(lead);
           }}
           onOpenChat={onOpenChat ? () => {
-            console.log('[DndSortableLeadCard] 💬 onOpenChat (modo puro)');
+            console.log('[DndSortableLeadCard] 💬 onOpenChat (modo puro):', {
+              leadId: lead.id,
+              leadName: lead.name,
+              hasOnOpenChat: !!onOpenChat
+            });
             onOpenChat(lead);
           } : undefined}
           onMoveToWon={onMoveToWon}
@@ -126,9 +130,16 @@ export const DndSortableLeadCard: React.FC<DndSortableLeadCardProps> = ({
             }
           }}
           onOpenChat={onOpenChat ? () => {
-            console.log('[DndSortableLeadCard] 💬 onOpenChat do LeadCard (área de clique)');
+            console.log('[DndSortableLeadCard] 💬 onOpenChat do LeadCard (área de clique):', {
+              isDragging,
+              leadId: lead.id,
+              leadName: lead.name
+            });
             if (!isDragging) {
+              console.log('[DndSortableLeadCard] ✅ Executando onOpenChat - não está arrastando');
               onOpenChat(lead);
+            } else {
+              console.log('[DndSortableLeadCard] ❌ Bloqueado - está arrastando (isDragging=true)');
             }
           } : undefined}
           onMoveToWon={onMoveToWon}

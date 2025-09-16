@@ -15,6 +15,7 @@ import { AIToggleSwitchEnhanced } from "./ai/AIToggleSwitchEnhanced";
 import { useAIStageControl } from "@/hooks/salesFunnel/useAIStageControl";
 import { toast } from "sonner";
 import { MassSelectionReturn } from "@/hooks/useMassSelection";
+import { useStageLeadCount } from "@/hooks/salesFunnel/stages/useStageLeadCount";
 
 // Hook customizado para gerenciar scroll infinito
 const useInfiniteScroll = (totalItems: number, initialCount: number = 25) => {
@@ -114,6 +115,7 @@ interface ColumnHeaderProps {
   onEdit: () => void;
   onDelete: () => void;
   massSelection?: MassSelectionReturn;
+  funnelId?: string | null;
   titleEditor: {
     isEditing: boolean;
     editTitle: string;
@@ -133,11 +135,18 @@ const ColumnHeader = ({
   onEdit,
   onDelete,
   massSelection,
+  funnelId,
   titleEditor
 }: ColumnHeaderProps) => {
   // Verificar se é etapa GANHO ou PERDIDO (essas não devem ter controle de IA)
   const isWonLostStage = column.title === "GANHO" || column.title === "PERDIDO";
-  
+
+  // Hook para contar total de leads na etapa no banco de dados
+  const { getStageCount } = useStageLeadCount({
+    funnelId,
+    enabled: !!funnelId
+  });
+
   // Lógica para seleção de etapa
   const stageSelectionState = massSelection?.getStageSelectionState(column.leads) || 'none';
   const handleStageSelection = () => {
@@ -209,7 +218,7 @@ const ColumnHeader = ({
             </h3>
           )}
           <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
-            {column.leads.length}
+            {getStageCount(column.id)}
           </span>
         </div>
 
@@ -320,6 +329,7 @@ interface KanbanColumnProps {
   wonStageId?: string;
   lostStageId?: string;
   massSelection?: MassSelectionReturn;
+  funnelId?: string | null;
 }
 
 export function KanbanColumn({
@@ -334,7 +344,8 @@ export function KanbanColumn({
   isWonLostView = false,
   wonStageId,
   lostStageId,
-  massSelection
+  massSelection,
+  funnelId
 }: KanbanColumnProps) {
   
   // Hooks customizados
@@ -433,6 +444,7 @@ export function KanbanColumn({
         onEdit={titleEditor.startEditing}
         onDelete={handleDelete}
         massSelection={massSelection}
+        funnelId={funnelId}
         titleEditor={titleEditor}
       />
 

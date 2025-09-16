@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { MassActionsService } from "./massActionsService";
 
 /**
  * Configuração para processamento em lotes
@@ -226,7 +227,6 @@ export class BatchingService {
 
     // Se poucos leads, usar método direto com exclusão completa
     if (leadIds.length <= BATCH_CONFIG.MAX_BATCH_SIZE) {
-      const { MassActionsService } = await import('./massActionsService');
       return await MassActionsService.deleteLeads(leadIds);
     }
 
@@ -241,7 +241,6 @@ export class BatchingService {
       
       try {
         // Usar MassActionsService para exclusão completa (leads + mensagens)
-        const { MassActionsService } = await import('./massActionsService');
         const result = await MassActionsService.deleteLeads(batch);
 
         if (!result.success) {

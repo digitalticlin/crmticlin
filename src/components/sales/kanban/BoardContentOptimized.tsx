@@ -15,6 +15,7 @@ interface BoardContentOptimizedProps {
   wonStageId?: string;
   lostStageId?: string;
   massSelection?: MassSelectionReturn;
+  funnelId?: string | null;
 }
 
 export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
@@ -28,7 +29,8 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
   isWonLostView = false,
   wonStageId,
   lostStageId,
-  massSelection
+  massSelection,
+  funnelId
 }) => {
   console.log('[BoardContentOptimized] 🎯 FASES 2+3 - Renderizando com arquitetura refinada:', {
     columnsCount: columns?.length || 0,
@@ -177,6 +179,7 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
             wonStageId={wonStageId}
             lostStageId={lostStageId}
             massSelection={massSelection}
+            funnelId={funnelId}
           />
         ))}
       </div>

@@ -28,6 +28,7 @@ interface DndKanbanBoardWrapperProps {
   lostStageId?: string;
   massSelection?: MassSelectionReturn;
   markOptimisticChange?: (value: boolean) => void;
+  funnelId?: string | null;
   // Sistema híbrido
   enableDnd?: boolean;
   className?: string;
@@ -58,6 +59,7 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
   lostStageId,
   massSelection,
   markOptimisticChange,
+  funnelId,
   enableDnd = false,
   className
 }) => {
@@ -589,6 +591,7 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
           wonStageId={wonStageId}
           lostStageId={lostStageId}
           massSelection={massSelection}
+          funnelId={funnelId}
           enableDnd={enableDnd}
         />
       ))}

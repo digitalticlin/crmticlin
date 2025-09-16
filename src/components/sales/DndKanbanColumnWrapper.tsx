@@ -8,6 +8,8 @@ import { useAIStageControl } from '@/hooks/salesFunnel/useAIStageControl';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { DndSortableLeadCard } from './DndSortableLeadCard';
 import { useInfiniteScroll } from '@/hooks/salesFunnel/useInfiniteScroll';
+import { useStageLeadCount } from '@/hooks/salesFunnel/stages/useStageLeadCount';
+import { useStageInfiniteScroll } from '@/hooks/salesFunnel/stages/useStageInfiniteScroll';
 import { Loader2 } from 'lucide-react';
 
 interface DndKanbanColumnWrapperProps {
@@ -20,6 +22,7 @@ interface DndKanbanColumnWrapperProps {
   wonStageId?: string;
   lostStageId?: string;
   massSelection?: MassSelectionReturn;
+  funnelId?: string | null;
   // Novo sistema DnD
   enableDnd?: boolean;
   className?: string;
@@ -41,12 +44,33 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
   wonStageId,
   lostStageId,
   massSelection,
+  funnelId,
   enableDnd = false,
   className
 }) => {
   const { toggleAI, isLoading: isTogglingAI, canToggleAI } = useAIStageControl();
-  
-  // Estado para scroll infinito - inicia com 30 leads
+
+  // Hook para contar total de leads na etapa no banco de dados
+  const { getStageCount } = useStageLeadCount({
+    funnelId,
+    enabled: !!funnelId
+  });
+
+  // ✅ HOOK ISOLADO para scroll infinito por etapa - carrega dados do servidor
+  const {
+    leads: stageLeads,
+    isLoading: isLoadingStageLeads,
+    isFetchingNextPage,
+    hasNextPage,
+    loadMore: loadMoreFromServer
+  } = useStageInfiniteScroll({
+    stageId: column.id,
+    funnelId,
+    enabled: !!funnelId && !!column.id,
+    pageSize: 20 // 20 leads por página
+  });
+
+  // Estado para scroll infinito local (apenas visual) - mantido para compatibilidade
   const [visibleCount, setVisibleCount] = useState(LEADS_PER_PAGE);
 
   // Verificar se é etapa GANHO ou PERDIDO (não devem ter controle de IA)
@@ -65,27 +89,38 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
       toggleAI(column.id, column.ai_enabled === true);
     }
   };
-  // Lógica de scroll infinito
-  const visibleLeads = column.leads.slice(0, visibleCount);
-  const hasMoreLeads = column.leads.length > visibleCount;
-  
-  // Função para carregar mais leads
+  // ✅ NOVA LÓGICA: Usar leads do hook isolado ou fallback para leads da coluna
+  const leadsToShow = stageLeads.length > 0 ? stageLeads : column.leads;
+  const visibleLeads = leadsToShow.slice(0, visibleCount);
+  const hasMoreLeadsLocal = leadsToShow.length > visibleCount;
+
+  // ✅ NOVA FUNÇÃO: Carregar mais leads do servidor OU mostrar mais leads locais
   const loadMoreLeads = useCallback(async () => {
     console.log('[DndKanbanColumnWrapper] 📜 Carregando mais leads:', {
       currentVisible: visibleCount,
-      totalLeads: column.leads.length,
+      stageLeadsFromServer: stageLeads.length,
+      columnLeadsLocal: column.leads.length,
+      hasNextPageServer: hasNextPage,
       columnTitle: column.title
     });
-    
-    // Simular pequeno delay para UX
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    setVisibleCount(prevCount => 
-      Math.min(prevCount + LEADS_PER_PAGE, column.leads.length)
-    );
-  }, [visibleCount, column.leads.length, column.title]);
+
+    // Prioridade 1: Se há mais páginas no servidor, carregar do servidor
+    if (hasNextPage && !isFetchingNextPage) {
+      console.log('[DndKanbanColumnWrapper] 🌐 Carregando próxima página do servidor...');
+      loadMoreFromServer();
+    }
+    // Prioridade 2: Se não há mais no servidor mas temos leads locais não mostrados
+    else if (hasMoreLeadsLocal) {
+      console.log('[DndKanbanColumnWrapper] 📄 Mostrando mais leads locais...');
+      await new Promise(resolve => setTimeout(resolve, 200));
+      setVisibleCount(prevCount =>
+        Math.min(prevCount + LEADS_PER_PAGE, leadsToShow.length)
+      );
+    }
+  }, [visibleCount, stageLeads.length, column.leads.length, column.title, hasNextPage, isFetchingNextPage, loadMoreFromServer, hasMoreLeadsLocal, leadsToShow.length]);
 
   // Hook de scroll infinito
+  const hasMoreLeads = hasNextPage || hasMoreLeadsLocal;
   const infiniteScroll = useInfiniteScroll({
     hasMore: hasMoreLeads,
     onLoadMore: loadMoreLeads,
@@ -93,18 +128,21 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
     rootMargin: '0px 0px 100px 0px'
   });
 
-  // Reset scroll infinito quando os leads da coluna mudam drasticamente
+  // Reset scroll infinito quando os leads da fonte principal mudam drasticamente
   useEffect(() => {
+    const currentLeadsCount = leadsToShow.length;
     // Se o total de leads mudou significativamente ou se temos menos leads do que estamos mostrando
-    if (column.leads.length < visibleCount) {
+    if (currentLeadsCount < visibleCount) {
       console.log('[DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados:', {
-        totalLeads: column.leads.length,
+        leadsFromServer: stageLeads.length,
+        leadsFromColumn: column.leads.length,
+        totalLeadsToShow: currentLeadsCount,
         visibleCount,
         columnTitle: column.title
       });
-      setVisibleCount(Math.min(LEADS_PER_PAGE, column.leads.length));
+      setVisibleCount(Math.min(LEADS_PER_PAGE, currentLeadsCount));
     }
-  }, [column.leads.length, visibleCount, column.title]);
+  }, [leadsToShow.length, stageLeads.length, column.leads.length, visibleCount, column.title]);
 
   // IDs dos leads para o SortableContext
   const leadIds = visibleLeads.map(lead => lead.id);
@@ -150,7 +188,7 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
               {column.title}
             </h3>
             <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
-              {column.leads.length}
+              {getStageCount(column.id)}
             </span>
           </div>
           
@@ -194,21 +232,24 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
           visibleLeads.map((lead, index) => renderLeadCard(lead, index))
         )}
         
-        {/* Sentinel para scroll infinito */}
+        {/* Sentinel para scroll infinito - ATUALIZADO com novo hook */}
         {hasMoreLeads && (
-          <div 
+          <div
             ref={infiniteScroll.sentinelRef}
             className="p-4 text-center text-xs text-gray-500 flex flex-col items-center justify-center gap-2"
           >
-            {infiniteScroll.isLoading ? (
+            {(infiniteScroll.isLoading || isFetchingNextPage) ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                <span className="text-blue-600">Carregando mais leads...</span>
+                <span className="text-blue-600">
+                  {isFetchingNextPage ? 'Buscando no servidor...' : 'Carregando mais leads...'}
+                </span>
               </>
             ) : (
               <>
                 <div className="text-gray-400">
-                  {visibleCount} de {column.leads.length} leads
+                  {visibleCount} de {leadsToShow.length} leads
+                  {hasNextPage && ' (+ mais no servidor)'}
                 </div>
                 <div className="text-xs text-gray-300">
                   Role para carregar mais
@@ -218,13 +259,22 @@ export const DndKanbanColumnWrapper: React.FC<DndKanbanColumnWrapperProps> = ({
           </div>
         )}
         
-        {column.leads.length === 0 && (
+        {leadsToShow.length === 0 && !isLoadingStageLeads && (
           <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
             <div className="text-center">
               <div className="w-12 h-12 mx-auto mb-2 opacity-50">
                 📋
               </div>
               Nenhum lead nesta etapa
+            </div>
+          </div>
+        )}
+
+        {isLoadingStageLeads && leadsToShow.length === 0 && (
+          <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
+            <div className="text-center">
+              <Loader2 className="h-6 w-6 mx-auto mb-2 animate-spin text-blue-500" />
+              <div>Carregando leads...</div>
             </div>
           </div>
         )}

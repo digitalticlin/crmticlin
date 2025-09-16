@@ -21,7 +21,8 @@ import { useChatFilters } from '@/hooks/shared/filters';
 import { useWhatsAppInstances } from './useWhatsAppInstances';
 import { useWhatsAppContacts } from './useWhatsAppContactsInfinite'; // SCROLL INFINITO VERSION
 import { useWhatsAppMessages } from './chat/useWhatsAppMessages'; // REACT QUERY VERSION
-import { useWhatsAppRealtime } from './realtime/useWhatsAppRealtime'; // REACT QUERY VERSION
+import { useContactsRealtime } from './realtime/useContactsRealtime'; // REAL-TIME ISOLADO PARA CONTATOS
+import { useMessagesRealtime } from './realtime/useMessagesRealtime'; // REAL-TIME ISOLADO PARA MENSAGENS
 import { Contact, Message } from '@/types/chat';
 import { readMessagesService } from '@/services/whatsapp/readMessagesService';
 
@@ -34,7 +35,7 @@ import { WHATSAPP_HOOKS_VERSION, isNewVersion } from './version';
 interface UseWhatsAppChatReturn {
   selectedContact: Contact | null;
   setSelectedContact: (contact: Contact | null) => void;
-  activeInstance: any;
+  activeInstance: { id: string; instance_name: string; connection_status: string } | null;
   companyLoading: boolean;
   contacts: Contact[];
   isLoadingContacts: boolean;
@@ -67,7 +68,7 @@ interface UseWhatsAppChatReturn {
     chatsReconnectAttempts: number;
     messagesReconnectAttempts: number;
     queuedMessages: number;
-    cacheStats: any;
+    cacheStats: Record<string, unknown>;
   };
 }
 
@@ -133,20 +134,20 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     });
   }, [queryClient]);
 
-  const handleMoveContactToTop = useCallback((contactId: string, newMessage?: any) => {
+  const handleMoveContactToTop = useCallback((contactId: string, newMessage?: unknown) => {
     console.log('[WhatsApp Chat] 📈 Movendo contato para o topo via React Query:', contactId);
     contacts.moveContactToTop(contactId, newMessage);
-  }, [contacts.moveContactToTop]);
+  }, [contacts]);
 
   const handleUpdateUnreadCount = useCallback((contactId: string, increment = true) => {
     console.log('[WhatsApp Chat] 🔢 Atualizando contador via React Query:', { contactId, increment });
     contacts.updateUnreadCount(contactId, increment);
-  }, [contacts.updateUnreadCount]);
+  }, [contacts]);
 
-  const handleAddNewContact = useCallback((newContactData: any) => {
+  const handleAddNewContact = useCallback((newContactData: Record<string, unknown>) => {
     console.log('[WhatsApp Chat] ➕ Novo contato via React Query:', newContactData.name);
     contacts.addNewContact(newContactData);
-  }, [contacts.addNewContact]);
+  }, [contacts]);
 
   const handleNewMessage = useCallback((message: Message) => {
     console.log('[WhatsApp Chat] 📨 Nova mensagem via React Query:', {
@@ -177,22 +178,23 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
         });
       }
     }
-  }, [messages.addMessage, selectedContact, handleUpdateUnreadCount, handleMoveContactToTop]);
+  }, [messages, selectedContact, handleUpdateUnreadCount, handleMoveContactToTop]);
 
   const handleMessageUpdate = useCallback((message: Message) => {
     console.log('[WhatsApp Chat] 🔄 Atualizando mensagem via React Query:', message.id);
     messages.updateMessage(message);
-  }, [messages.updateMessage]);
+  }, [messages]);
 
-  // Real-time com React Query
-  const realtime = useWhatsAppRealtime({
-    // Para contatos
+  // Real-time ISOLADO para contatos
+  const contactsRealtime = useContactsRealtime({
     activeInstanceId: instances.activeInstance?.id,
     onContactUpdate: handleContactRefresh,
     onMoveContactToTop: handleMoveContactToTop,
-    onUpdateUnreadCount: handleUpdateUnreadCount,
-    
-    // Para mensagens
+    onUpdateUnreadCount: handleUpdateUnreadCount
+  });
+
+  // Real-time ISOLADO para mensagens
+  const messagesRealtime = useMessagesRealtime({
     selectedContact,
     activeInstance: adaptedActiveInstance,
     onNewMessage: handleNewMessage,
@@ -407,7 +409,7 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
       
       findAndSelectContact();
     }
-  }, [leadId, phoneParam, selectedContact, hasInitialized, user?.id, contacts.contacts.length, handleSelectContact, contacts.addNewContact, dataFilters.loading, dataFilters.role]);
+  }, [leadId, phoneParam, selectedContact, hasInitialized, user?.id, contacts, handleSelectContact, dataFilters.loading, dataFilters.role]);
 
   // Notificações de saúde
   useEffect(() => {
@@ -459,18 +461,22 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
       totalInstances: instances.totalInstances
     },
     realtimeStats: {
-      chatsConnected: realtime.isContactsConnected,
-      messagesConnected: realtime.isMessagesConnected,
-      totalChatsEvents: realtime.totalContactEvents,
-      totalMessagesEvents: realtime.totalMessageEvents,
-      lastChatsUpdate: realtime.lastContactUpdate,
-      lastMessagesUpdate: realtime.lastMessageUpdate,
-      chatsReconnectAttempts: realtime.contactsReconnectAttempts,
-      messagesReconnectAttempts: realtime.messagesReconnectAttempts,
+      chatsConnected: contactsRealtime.isConnected,
+      messagesConnected: messagesRealtime.isConnected,
+      totalChatsEvents: contactsRealtime.totalEvents,
+      totalMessagesEvents: messagesRealtime.totalEvents,
+      lastChatsUpdate: contactsRealtime.lastUpdate,
+      lastMessagesUpdate: messagesRealtime.lastUpdate,
+      chatsReconnectAttempts: contactsRealtime.reconnectAttempts,
+      messagesReconnectAttempts: messagesRealtime.reconnectAttempts,
       queuedMessages: 0, // React Query gerencia automaticamente
+      processedMessages: messagesRealtime.processedCount,
+      duplicateMessages: messagesRealtime.duplicateCount,
       cacheStats: {
         reactQuery: 'enabled',
-        isolation: 'chat-keys-only'
+        isolation: 'complete-separated-hooks',
+        contactsIsolated: 'useContactsRealtime',
+        messagesIsolated: 'useMessagesRealtime'
       }
     }
   };

@@ -13,12 +13,13 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
 import { useStageManagement } from "@/hooks/salesFunnel/useStageManagement";
 import { toast } from "sonner";
 
 interface AddColumnDialogProps {
   onAddColumn?: (title: string) => void;
+  selectedFunnel?: any;
+  onRefetchStages?: () => void;
 }
 
 const COLORS = [
@@ -32,13 +33,16 @@ const COLORS = [
   "#14b8a6", // teal
 ];
 
-export const AddColumnDialog = ({ onAddColumn }: AddColumnDialogProps) => {
+export const AddColumnDialog = ({
+  onAddColumn,
+  selectedFunnel,
+  onRefetchStages
+}: AddColumnDialogProps) => {
   const [newColumnTitle, setNewColumnTitle] = useState("");
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
-  const { selectedFunnel, refetchStages } = useSalesFunnelDirect();
+
   const { addColumn } = useStageManagement();
 
   const handleAddColumn = async () => {
@@ -66,7 +70,7 @@ export const AddColumnDialog = ({ onAddColumn }: AddColumnDialogProps) => {
       console.log('[AddColumnDialog] Etapa criada:', newStage);
       
       // Refresh das etapas
-      await refetchStages();
+      await onRefetchStages?.();
       
       // Callback de compatibilidade se fornecido
       if (onAddColumn) {

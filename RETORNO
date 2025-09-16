@@ -1,29 +1,164 @@
-[AI Messaging Service] ❌ Erro ao salvar mensagem no banco: { code: "PGRST203", details: null, hint: "Try renaming the parameters or the function itself in the database so function overloading can be resolved", message: "Could not choose the best candidate function between: public.save_sent_message_from_ai(p_vps_instance_id => text, p_phone => text, p_message_text => text, p_from_me => boolean, p_media_type => text, p_media_url => text, p_external_message_id => text, p_contact_name => text, p_profile_pic_url => text, p_base64_data => text, p_mime_type => text, p_file_name => text, p_whatsapp_number_id => uuid, p_source_edge => text), public.save_sent_message_from_ai(p_vps_instance_id => uuid, p_phone => text, p_message_text => text, p_from_me => boolean, p_media_type => text, p_media_url => text, p_external_message_id => text, p_contact_name => text, p_profile_pic_url => text, p_base64_data => text, p_mime_type => text, p_file_name => text, p_whatsapp_number_id => uuid, p_source_edge => text)" }
-[AI Messaging Service] ✅ Mensagem enviada com sucesso pela VPS: { success: true, messageId: "3EB08D5707B900DCCC15A6", timestamp: "2025-09-16T12:53:14.722Z", mediaType: "text", hasAudio: false, isPTT: false, finalMimeType: null, agentId: "N/A", vpsInstanceId: "digitalticlingmailcom", originalVpsInstanceId: "digitalticlingmailcom", phone: "5562****", messageTextSaved: "Oi! Acabei de mover um lead para a etapa de Em atendimento! \n" + "\n" + "É o +55 (62) 8603-2824 (556286032824). \n" + "Ele já passou pela qualificação e está pronto para o próximo contato.\n" + "\n" + "Pode dar uma olhada quando conseguir? 😊", vpsMessageSent: "Oi! Acabei de mover um lead para a etapa de Em atendimento! \n" + "\n" + "É o +55 (62) 8603-2824 (556286032824). \n" + "Ele já passou pela qualificação e está pronto para o próximo contato.\n" + "\n" + "Pode dar uma olhada quando conseguir? 😊" }
-[AI Messaging Service] 💾 Salvando mensagem do AI Agent com RPC isolada - FLUXO DIRETO...
-[AI Messaging Service] 📡 Enviando para VPS (CORREÇÃO CRITICAL: instanceId deve ser nome real): { url: "http://vpswhatsapp.ticlin.com.br/queue/add-message", vpsInstanceIdFromDB: "digitalticlingmailcom", payload: { instanceId: "digitalticlingmailcom", phone: "5562****", message: "Oi! Acabei de mover um lead para a etapa de Em atendimento! \n" + "\n" + "É o +55 (62) 8603-2824 (556286032824). \n" + "Ele já passou pela qualificação e está pronto para o próximo contato.\n" + "\n" + "Pode dar uma olhada quando conseguir? 😊", mediaType: "text", mediaUrl: null, messageIsEmpty: false, messageIsSpace: false, isPTT: false } }
-[AI Messaging Service] 🤖 Enviando mensagem do AI Agent: { instanceName: "digitalticlingmailcom", vpsInstanceId: "digitalticlingmailcom", originalVpsInstanceId: "digitalticlingmailcom", leadName: "", phoneMatch: false, mediaType: "text", hasAudio: false, isPTT: false, agentId: "N/A" }
-[AI Messaging Service] 🎯 Using real VPS instance ID: digitalticlingmailcom (original: digitalticlingmailcom)
-[AI Messaging Service] 📤 Processando mensagem do AI Agent: { instanceId: "66ae98b4-1c72-49e4-a7e9-ab774db101ec", leadId: "6e69d560-05b4-428d-835b-86898518a43e", createdByUserId: "712e7708-2299-4a00-9128-577c8f113ca4", phone: "5562****", messageLength: 213, mediaType: "text", hasAudio: false, hasMediaUrl: false, isPTT: false, agentId: "N/A" }
-[AI Messaging Service] 🚀 Iniciando processamento - N8N AI Agent com suporte a áudio NATIVO corrigido
-Listening on http://localhost:9999/
-booted (time: 28ms)
-[AI Messaging Service] ❌ Erro ao salvar mensagem no banco: { code: "PGRST203", details: null, hint: "Try renaming the parameters or the function itself in the database so function overloading can be resolved", message: "Could not choose the best candidate function between: public.save_sent_message_from_ai(p_vps_instance_id => text, p_phone => text, p_message_text => text, p_from_me => boolean, p_media_type => text, p_media_url => text, p_external_message_id => text, p_contact_name => text, p_profile_pic_url => text, p_base64_data => text, p_mime_type => text, p_file_name => text, p_whatsapp_number_id => uuid, p_source_edge => text), public.save_sent_message_from_ai(p_vps_instance_id => uuid, p_phone => text, p_message_text => text, p_from_me => boolean, p_media_type => text, p_media_url => text, p_external_message_id => text, p_contact_name => text, p_profile_pic_url => text, p_base64_data => text, p_mime_type => text, p_file_name => text, p_whatsapp_number_id => uuid, p_source_edge => text)" }
-[AI Messaging Service] 💾 Salvando mensagem do AI Agent com RPC isolada - FLUXO DIRETO...
-[AI Messaging Service] ✅ Mensagem enviada com sucesso pela VPS: { success: true, messageId: "3EB050CC1845E6D34067A8", timestamp: "2025-09-16T12:52:55.341Z", mediaType: "text", hasAudio: false, isPTT: false, finalMimeType: null, agentId: "5f52fa27-a5e8-4f69-8254-f9811b781a8b", vpsInstanceId: "digitalticlingmailcom", originalVpsInstanceId: "digitalticlingmailcom", phone: "5562****", messageTextSaved: "Como posso ajudá-lo hoje?", vpsMessageSent: "Como posso ajudá-lo hoje?" }
-[AI Messaging Service] 🤖 Enviando mensagem do AI Agent: { instanceName: "digitalticlingmailcom", vpsInstanceId: "digitalticlingmailcom", originalVpsInstanceId: "digitalticlingmailcom", leadName: "+55 (62) 8603-2824", phoneMatch: true, mediaType: "text", hasAudio: false, isPTT: false, agentId: "5f52fa27-a5e8-4f69-8254-f9811b781a8b" }
-[AI Messaging Service] 📡 Enviando para VPS (CORREÇÃO CRITICAL: instanceId deve ser nome real): { url: "http://vpswhatsapp.ticlin.com.br/queue/add-message", vpsInstanceIdFromDB: "digitalticlingmailcom", payload: { instanceId: "digitalticlingmailcom", phone: "5562****", message: "Como posso ajudá-lo hoje?", mediaType: "text", mediaUrl: null, messageIsEmpty: false, messageIsSpace: false, isPTT: false } }
-[AI Messaging Service] 🎯 Using real VPS instance ID: digitalticlingmailcom (original: digitalticlingmailcom)
-[AI Messaging Service] 📤 Processando mensagem do AI Agent: { instanceId: "66ae98b4-1c72-49e4-a7e9-ab774db101ec", leadId: "6e69d560-05b4-428d-835b-86898518a43e", createdByUserId: "712e7708-2299-4a00-9128-577c8f113ca4", phone: "5562****", messageLength: 25, mediaType: "text", hasAudio: false, hasMediaUrl: false, isPTT: false, agentId: "5f52fa27-a5e8-4f69-8254-f9811b781a8b" }
-[AI Messaging Service] 🚀 Iniciando processamento - N8N AI Agent com suporte a áudio NATIVO corrigido
-Listening on http://localhost:9999/
-booted (time: 38ms)
-[AI Messaging Service] ❌ Erro ao salvar mensagem no banco: { code: "PGRST203", details: null, hint: "Try renaming the parameters or the function itself in the database so function overloading can be resolved", message: "Could not choose the best candidate function between: public.save_sent_message_from_ai(p_vps_instance_id => text, p_phone => text, p_message_text => text, p_from_me => boolean, p_media_type => text, p_media_url => text, p_external_message_id => text, p_contact_name => text, p_profile_pic_url => text, p_base64_data => text, p_mime_type => text, p_file_name => text, p_whatsapp_number_id => uuid, p_source_edge => text), public.save_sent_message_from_ai(p_vps_instance_id => uuid, p_phone => text, p_message_text => text, p_from_me => boolean, p_media_type => text, p_media_url => text, p_external_message_id => text, p_contact_name => text, p_profile_pic_url => text, p_base64_data => text, p_mime_type => text, p_file_name => text, p_whatsapp_number_id => uuid, p_source_edge => text)" }
-[AI Messaging Service] ✅ Mensagem enviada com sucesso pela VPS: { success: true, messageId: "3EB08E9E8C32A681C8AD0F", timestamp: "2025-09-16T12:52:53.342Z", mediaType: "text", hasAudio: false, isPTT: false, finalMimeType: null, agentId: "5f52fa27-a5e8-4f69-8254-f9811b781a8b", vpsInstanceId: "digitalticlingmailcom", originalVpsInstanceId: "digitalticlingmailcom", phone: "5562****", messageTextSaved: "Vamos avançar com a sua solicitação.", vpsMessageSent: "Vamos avançar com a sua solicitação." }
-[AI Messaging Service] 💾 Salvando mensagem do AI Agent com RPC isolada - FLUXO DIRETO...
-[AI Messaging Service] 🤖 Enviando mensagem do AI Agent: { instanceName: "digitalticlingmailcom", vpsInstanceId: "digitalticlingmailcom", originalVpsInstanceId: "digitalticlingmailcom", leadName: "+55 (62) 8603-2824", phoneMatch: true, mediaType: "text", hasAudio: false, isPTT: false, agentId: "5f52fa27-a5e8-4f69-8254-f9811b781a8b" }
-[AI Messaging Service] 🎯 Using real VPS instance ID: digitalticlingmailcom (original: digitalticlingmailcom)
-[AI Messaging Service] 📡 Enviando para VPS (CORREÇÃO CRITICAL: instanceId deve ser nome real): { url: "http://vpswhatsapp.ticlin.com.br/queue/add-message", vpsInstanceIdFromDB: "digitalticlingmailcom", payload: { instanceId: "digitalticlingmailcom", phone: "5562****", message: "Vamos avançar com a sua solicitação.", mediaType: "text", mediaUrl: null, messageIsEmpty: false, messageIsSpace: false, isPTT: false } }
-[AI Messaging Service] 📤 Processando mensagem do AI Agent: { instanceId: "66ae98b4-1c72-49e4-a7e9-ab774db101ec", leadId: "6e69d560-05b4-428d-835b-86898518a43e", createdByUserId: "712e7708-2299-4a00-9128-577c8f113ca4", phone: "5562****", messageLength: 36, mediaType: "text", hasAudio: false, hasMediaUrl: false, isPTT: false, agentId: "5f52fa27-a5e8-4f69-8254-f9811b781a8b" }
-[AI Messaging Service] 🚀 Iniciando processamento - N8N AI Agent com suporte a áudio NATIVO corrigido
-Listening on http://localhost:9999/
+[App] 📍 Rota atual: /sales-funnel
+App.tsx:197 [App] ✅ Supabase exposto globalmente para debug
+App.tsx:242 [App] ✅ BigQuery Optimizer carregado - ativará apenas se necessário
+AuthContext.tsx:65 [Auth] 📡 SIGNED_IN contatoluizantoniooliveira@gmail.com
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/sales-funnel', hasUser: true, authLoading: false, roleLoading: true, userRole: 'operational', …}
+ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
+useUserRole.ts:25 [useUserRole] 👤 Buscando perfil do usuário: 9936ae64-b78c-48fe-97e8-bf67623349c6
+AuthContext.tsx:49 [Auth] 🔍 Sessão inicial: contatoluizantoniooliveira@gmail.com
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/sales-funnel', hasUser: true, authLoading: false, roleLoading: true, userRole: 'operational', …}
+ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
+AuthContext.tsx:65 [Auth] 📡 INITIAL_SESSION contatoluizantoniooliveira@gmail.com
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/sales-funnel', hasUser: true, authLoading: false, roleLoading: true, userRole: 'operational', …}
+ProtectedRoute.tsx:30 [ProtectedRoute] ⏳ Carregando autenticação e roles...
+App.tsx:227 [App] 🔐 Estado inicial de autenticação: {hasSession: true, userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', userEmail: 'contatoluizantoniooliveira@gmail.com', currentPath: '/sales-funnel', error: undefined}
+useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', role: 'admin', isAdmin: true, createdByUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6'}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: {pathname: '/sales-funnel', hasUser: true, authLoading: false, roleLoading: false, userRole: 'admin', …}
+ProtectedRoute.tsx:101 [ProtectedRoute] ✅ Usuário autenticado e autorizado
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …}
+SalesFunnel.tsx:5 [SalesFunnel] 🚀 Inicializando Sales Funnel ESCALÁVEL - Hooks Isolados
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
+useFunnelStages.ts:137 [useFunnelStages] 📊 Etapas processadas: {total: 0, main: 0, wonStageId: undefined, lostStageId: undefined, firstStageId: undefined}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
+useLeadTags.ts:45 [useLeadTags] 🔍 Buscando tags disponíveis para usuário: 9936ae64-b78c-48fe-97e8-bf67623349c6
+useLeadsRealtime.ts:184 [useLeadsRealtime] ❌ Condições não atendidas
+useUserRole.ts:13 [useUserRole] 🔍 Verificando role real do usuário
+useUserRole.ts:25 [useUserRole] 👤 Buscando perfil do usuário: 9936ae64-b78c-48fe-97e8-bf67623349c6
+useLeadTags.ts:58 [useLeadTags] ✅ Tags encontradas: 4
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
+useFunnelStages.ts:137 [useFunnelStages] 📊 Etapas processadas: {total: 0, main: 0, wonStageId: undefined, lostStageId: undefined, firstStageId: undefined}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
+useLeadsRealtime.ts:184 [useLeadsRealtime] ❌ Condições não atendidas
+useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', role: 'admin', isAdmin: true, createdByUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6'}
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
+useFunnelStages.ts:137 [useFunnelStages] 📊 Etapas processadas: {total: 0, main: 0, wonStageId: undefined, lostStageId: undefined, firstStageId: undefined}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+useLeadsRealtime.ts:184 [useLeadsRealtime] ❌ Condições não atendidas
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …}
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …}
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
+useFunnelStages.ts:137 [useFunnelStages] 📊 Etapas processadas: {total: 0, main: 0, wonStageId: undefined, lostStageId: undefined, firstStageId: undefined}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+useAccessControl.ts:28 [useAccessControl] 🔍 Buscando acessos a funis: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', role: 'admin'}
+useLeadsRealtime.ts:184 [useLeadsRealtime] ❌ Condições não atendidas
+useAccessControl.ts:86 [useAccessControl] 📊 Todas instâncias encontradas (admin): 13
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
+useFunnelStages.ts:137 [useFunnelStages] 📊 Etapas processadas: {total: 0, main: 0, wonStageId: undefined, lostStageId: undefined, firstStageId: undefined}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+useLeadsRealtime.ts:184 [useLeadsRealtime] ❌ Condições não atendidas
+useAccessControl.ts:45 [useAccessControl] 📊 Todos os funis encontrados (admin): 13
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
+useFunnelStages.ts:137 [useFunnelStages] 📊 Etapas processadas: {total: 0, main: 0, wonStageId: undefined, lostStageId: undefined, firstStageId: undefined}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+SalesFunnelContent.tsx:60 [SalesFunnelContent] 🔍 Buscando funis acessíveis: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', canViewAll: true, userFunnelsCount: 13}
+useLeadsRealtime.ts:184 [useLeadsRealtime] ❌ Condições não atendidas
+SalesFunnelContent.tsx:75 [SalesFunnelContent] ✅ Admin funis encontrados: 1
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
+useFunnelStages.ts:137 [useFunnelStages] 📊 Etapas processadas: {total: 0, main: 0, wonStageId: undefined, lostStageId: undefined, firstStageId: undefined}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
+useUserRole.ts:13 [useUserRole] 🔍 Verificando role real do usuário
+useLeadsRealtime.ts:184 [useLeadsRealtime] ❌ Condições não atendidas
+SalesFunnelContent.tsx:164 [SalesFunnelContent] Auto-selecionando primeiro funil: Funil Principal
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
+useFunnelStages.ts:137 [useFunnelStages] 📊 Etapas processadas: {total: 0, main: 0, wonStageId: undefined, lostStageId: undefined, firstStageId: undefined}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+useFunnelStages.ts:51 [useFunnelStages] 🔍 Buscando etapas para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
+useFunnelLeads.ts:82 [useFunnelLeads] 🔍 Buscando leads COM TAGS - página: 0
+useLeadsRealtime.ts:188 [useLeadsRealtime] 🚀 Configurando real-time para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
+useUserRole.ts:25 [useUserRole] 👤 Buscando perfil do usuário: 9936ae64-b78c-48fe-97e8-bf67623349c6
+useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', role: 'admin', isAdmin: true, createdByUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6'}
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …}
+useFunnelStages.ts:102 [useFunnelStages] ✅ Etapas encontradas: {total: 15, etapas: Array(15)}
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
+useFunnelStages.ts:137 [useFunnelStages] 📊 Etapas processadas: {total: 15, main: 13, wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', firstStageId: 'a614e510-51e5-495a-b361-0c43a2e171dd'}
+SalesFunnelContent.tsx:175 [SalesFunnelContent] 🏗️ Construindo colunas Kanban: {stages: 13, leads: 0, funil: 'Funil Principal'}
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Entrada de Leads": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Em atendimento": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Em Cálculo": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "DESLIGAR IA": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Em análise de venda": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "CLIENTE FECHADO VINICIUS": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Em negociação": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "CLIENTE EMBRACON EM ATENDIMENTO": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Cliente fechado EMBRACON": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Follow Up": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Cliente fechado": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "TESTE DE IA": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "CLIENTE EM NEGOCIACAO PROCESSO": 0 leads, 0 com tags
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+useLeadsRealtime.ts:278 [useLeadsRealtime] 📡 Status: CLOSED
+useLeadsRealtime.ts:188 [useLeadsRealtime] 🚀 Configurando real-time para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
+SalesFunnelContent.tsx:219 [SalesFunnelContent] 🚀 Inicializando columns com dados do servidor
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
+useFunnelStages.ts:137 [useFunnelStages] 📊 Etapas processadas: {total: 15, main: 13, wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', firstStageId: 'a614e510-51e5-495a-b361-0c43a2e171dd'}
+SalesFunnelContent.tsx:175 [SalesFunnelContent] 🏗️ Construindo colunas Kanban: {stages: 13, leads: 0, funil: 'Funil Principal'}
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Entrada de Leads": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Em atendimento": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Em Cálculo": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "DESLIGAR IA": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Em análise de venda": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "CLIENTE FECHADO VINICIUS": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Em negociação": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "CLIENTE EMBRACON EM ATENDIMENTO": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Cliente fechado EMBRACON": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Follow Up": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Cliente fechado": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "TESTE DE IA": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "CLIENTE EM NEGOCIACAO PROCESSO": 0 leads, 0 com tags
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+useLeadsRealtime.ts:278 [useLeadsRealtime] 📡 Status: CLOSED
+useLeadsRealtime.ts:188 [useLeadsRealtime] 🚀 Configurando real-time para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
+useFunnelLeads.ts:131 [useFunnelLeads] ✅ Leads encontrados: {página: 0, leads: 15, total: 2530, hasMore: true}
+useFunnelLeads.ts:188 [useFunnelLeads] ✅ Leads formatados com tags: {página: 0, total: 15, comTags: 0, semTags: 15}
+useMassSelection.ts:34 [useMassSelection] 🔧 Hook renderizado: {isSelectionMode: false, selectedCount: 0}
+useFunnelStages.ts:137 [useFunnelStages] 📊 Etapas processadas: {total: 15, main: 13, wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', firstStageId: 'a614e510-51e5-495a-b361-0c43a2e171dd'}
+SalesFunnelContent.tsx:175 [SalesFunnelContent] 🏗️ Construindo colunas Kanban: {stages: 13, leads: 15, funil: 'Funil Principal'}
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Entrada de Leads": 10 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Em atendimento": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Em Cálculo": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "DESLIGAR IA": 2 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Em análise de venda": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "CLIENTE FECHADO VINICIUS": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Em negociação": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "CLIENTE EMBRACON EM ATENDIMENTO": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Cliente fechado EMBRACON": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Follow Up": 3 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "Cliente fechado": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "TESTE DE IA": 0 leads, 0 com tags
+SalesFunnelContent.tsx:194 [SalesFunnelContent] 📊 Stage "CLIENTE EM NEGOCIACAO PROCESSO": 0 leads, 0 com tags
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: false, role: 'operational', loading: true}
+useFunnelStages.ts:137 [useFunnelStages] 📊 Etapas processadas: {total: 15, main: 13, wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', firstStageId: 'a614e510-51e5-495a-b361-0c43a2e171dd'}
+MassMoveModal.tsx:36 [MassMoveModal] 📦 Props recebidas: {isOpen: false, selectedLeads: 0, leadsData: Array(0)}
+useLeadsRealtime.ts:278 [useLeadsRealtime] 📡 Status: CLOSED
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'Entrada de Leads'}
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'Em atendimento'}
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'Em Cálculo'}
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'DESLIGAR IA'}
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'Em análise de venda'}
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'CLIENTE FECHADO VINICIUS'}
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'Em negociação'}
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'CLIENTE EMBRACON EM ATENDIMENTO'}
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'Cliente fechado EMBRACON'}
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'Follow Up'}
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'Cliente fechado'}
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'TESTE DE IA'}
+DndKanbanColumnWrapper.tsx:100 [DndKanbanColumnWrapper] 🔄 Resetando scroll infinito - leads alterados: {totalLeads: 0, visibleCount: 30, columnTitle: 'CLIENTE EM NEGOCIACAO PROCESSO'}
+useUserRole.ts:13 [useUserRole] 🔍 Verificando role real do usuário
+useLeadsRealtime.ts:188 [useLeadsRealtime] 🚀 Configurando real-time para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
+MassMoveModal.tsx:36 [MassMoveModal] 📦 Props recebidas: {isOpen: false, selectedLeads: 0, leadsData: Array(0)}
+useUserPermissions.ts:60 [useUserPermissions] 🔍 Role do usuário: admin
+useUserPermissions.ts:105 [useUserPermissions] ✅ Permissões definidas: {canViewAllData: true, canDeleteData: true, canManageTeam: true, canAccessSettings: true, canManageFunnels: true, …}
+useLeadsRealtime.ts:278 [useLeadsRealtime] 📡 Status: SUBSCRIBED
+useUserRole.ts:25 [useUserRole] 👤 Buscando perfil do usuário: 9936ae64-b78c-48fe-97e8-bf67623349c6
+useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', role: 'admin', isAdmin: true, createdByUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6'}
+useUserRole.ts:75 [useUserRole] 📊 Estado atual: {isAdmin: true, role: 'admin', loading: false}

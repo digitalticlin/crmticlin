@@ -2,11 +2,37 @@
 import { PageLayout } from "@/components/layout/PageLayout";
 import { TrendingUp, Plus } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const FunnelEmptyState = () => {
   const { isAdmin } = useUserRole();
-  const { createFunnel } = useSalesFunnelDirect();
+  const { user } = useAuth();
+
+  const createFunnel = async (name: string, description?: string) => {
+    if (!user?.id) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('funnels')
+        .insert([{
+          name,
+          description,
+          created_by_user_id: user.id
+        }]);
+
+      if (error) throw error;
+      toast.success("Funil criado com sucesso!");
+      window.location.reload(); // Recarregar para mostrar o novo funil
+    } catch (error: any) {
+      console.error('Erro ao criar funil:', error);
+      toast.error(error.message || "Erro ao criar funil");
+    }
+  };
 
   const handleCreateFunnel = () => {
     createFunnel("Funil Principal", "Funil principal de vendas");

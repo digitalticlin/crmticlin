@@ -1,7 +1,15 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
+// HOOKS ISOLADOS DIRETOS - Performance otimizada
+import { useFunnelLeads } from "@/hooks/salesFunnel/leads/useFunnelLeads";
+import { useLeadsRealtime } from "@/hooks/salesFunnel/leads/useLeadsRealtime";
+import { useLeadTags } from "@/hooks/salesFunnel/leads/useLeadTags";
+import { useFunnelStages } from "@/hooks/salesFunnel/stages/useFunnelStages";
+import { useQuery } from "@tanstack/react-query";
+import { salesFunnelFunnelsQueryKeys } from "@/hooks/salesFunnel/queryKeys";
+import { useAccessControl } from "@/hooks/useAccessControl";
+import { useStageManagement } from "@/hooks/salesFunnel/useStageManagement";
 import { KanbanBoard } from "../KanbanBoard";
 import { FunnelLoadingState } from "./FunnelLoadingState";
 import { FunnelEmptyState } from "./FunnelEmptyState";
@@ -28,41 +36,364 @@ import { MassActionWrapper } from "../mass-selection/MassActionWrapper";
 export function SalesFunnelContent() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  
-  // Component inicializado
-  
-  // ✅ Hook isolado para seleção em massa (sem Provider) - FUNCIONANDO
+  const { userFunnels, canViewAllFunnels, isLoading: accessLoading } = useAccessControl();
+  const { addColumn: addStageToDatabase, updateColumn: updateStageInDatabase, deleteColumn: deleteStageFromDatabase } = useStageManagement();
+
+  // Estados locais
+  const [selectedFunnel, setSelectedFunnel] = useState<any>(null);
+  const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
+  const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
+  const [columns, setColumns] = useState<any[]>([]);
+  const [hasOptimisticChanges, setHasOptimisticChanges] = useState(false);
+
+  // ✅ Hook isolado para seleção em massa
   const massSelection = useMassSelection();
-  
-  // 🚀 HOOKS ISOLADOS - ESCALÁVEL PARA MILHARES DE USUÁRIOS COM PAGINAÇÃO
+
+  // 🚀 HOOKS ISOLADOS DIRETOS - Maximum Performance
+
+  // 1. BUSCAR FUNIS DISPONÍVEIS
+  const { data: funnels = [], isLoading: funnelLoading, refetch: refetchFunnels } = useQuery({
+    queryKey: salesFunnelFunnelsQueryKeys.list(user?.id || '', canViewAllFunnels, userFunnels),
+    queryFn: async () => {
+      if (!user?.id || accessLoading) return [];
+
+      console.log('[SalesFunnelContent] 🔍 Buscando funis acessíveis:', {
+        userId: user.id,
+        canViewAll: canViewAllFunnels,
+        userFunnelsCount: userFunnels.length
+      });
+
+      try {
+        if (canViewAllFunnels) {
+          const { data: ownedFunnels, error } = await supabase
+            .from('funnels')
+            .select('*')
+            .eq('created_by_user_id', user.id)
+            .order('created_at', { ascending: true });
+
+          if (error) throw error;
+          console.log('[SalesFunnelContent] ✅ Admin funis encontrados:', ownedFunnels?.length || 0);
+          return ownedFunnels || [];
+        } else {
+          if (userFunnels.length === 0) {
+            console.log('[SalesFunnelContent] ⚠️ Usuário sem funis atribuídos');
+            return [];
+          }
+
+          const { data: assignedFunnels, error } = await supabase
+            .from('funnels')
+            .select('*')
+            .in('id', userFunnels)
+            .order('created_at', { ascending: true });
+
+          if (error) throw error;
+          console.log('[SalesFunnelContent] ✅ Operacional funis encontrados:', assignedFunnels?.length || 0);
+          return assignedFunnels || [];
+        }
+      } catch (error) {
+        console.error('[SalesFunnelContent] ❌ Erro ao buscar funis:', error);
+        throw error;
+      }
+    },
+    enabled: !!user?.id && !accessLoading,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000
+  });
+
+  // 2. HOOKS ISOLADOS PARA FUNCIONALIDADES ESPECÍFICAS
   const {
-    loading,
-    error,
-    funnels,
-    selectedFunnel,
-    setSelectedFunnel,
-    createFunnel,
-    columns,
-    setColumns,
-    selectedLead,
-    isLeadDetailOpen,
-    setIsLeadDetailOpen,
     stages,
-    leads,
-    openLeadDetail,
-    moveLeadToStage,
-    refetchLeads,
-    refetchStages,
-    addColumn,
-    updateColumn,
-    deleteColumn,
-    availableTags,
+    mainStages,
+    wonStage,
+    lostStage,
+    firstStage,
     wonStageId,
     lostStageId,
-    markOptimisticChange
-  } = useSalesFunnelDirect();
+    firstStageId,
+    isLoading: stagesLoading,
+    refetch: refetchStages
+  } = useFunnelStages({
+    funnelId: selectedFunnel?.id || null,
+    enabled: !!selectedFunnel?.id
+  });
 
-  // Hook data ready
+  const {
+    leads,
+    isLoading: leadsLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    error: leadsError,
+    refetch: refetchLeads,
+    loadMore,
+    totalCount
+  } = useFunnelLeads({
+    funnelId: selectedFunnel?.id || null,
+    enabled: !!selectedFunnel?.id,
+    pageSize: 20 // Scroll infinito otimizado com 20 leads por vez
+  });
+
+  const {
+    availableTags,
+    addTag,
+    removeTag,
+    addTagsInBatch,
+    removeTagsInBatch,
+    isAddingTag,
+    isRemovingTag,
+    isAddingBatch,
+    isRemovingBatch
+  } = useLeadTags(selectedFunnel?.id);
+
+  // 3. REAL-TIME COM CONTROLE INTELIGENTE
+  const { pauseRealtime, resumeRealtime, isPaused } = useLeadsRealtime({
+    funnelId: selectedFunnel?.id || null,
+    firstStageId,
+    enabled: !!selectedFunnel?.id && !hasOptimisticChanges,
+    onNewLead: (newLead) => {
+      console.log('[SalesFunnelContent] 📨 Novo lead recebido:', newLead.name);
+    }
+  });
+
+  // Estados computados - Loading mais restritivo para evitar estado infinito
+  const loading = accessLoading || funnelLoading || (stagesLoading && !!selectedFunnel?.id);
+  const error = leadsError;
+
+  // Auto-selecionar primeiro funil
+  useEffect(() => {
+    if (!funnelLoading && !selectedFunnel && funnels && funnels.length > 0) {
+      console.log('[SalesFunnelContent] Auto-selecionando primeiro funil:', funnels[0].name);
+      setSelectedFunnel(funnels[0]);
+    }
+  }, [funnelLoading, funnels, selectedFunnel]);
+
+  // ✅ FORÇA REFETCH DE LEADS QUANDO FUNIL MUDA - Fix para problema de carregamento inicial
+  useEffect(() => {
+    if (selectedFunnel?.id && !leadsLoading) {
+      console.log('[SalesFunnelContent] 🔄 Forçando refetch de leads para funil:', selectedFunnel.name);
+      refetchLeads();
+    }
+  }, [selectedFunnel?.id, refetchLeads, leadsLoading]);
+
+  // 🏗️ CONSTRUIR COLUNAS KANBAN OTIMIZADAS
+  const kanbanColumns = useMemo(() => {
+    if (!mainStages?.length || !selectedFunnel?.id) {
+      return [];
+    }
+
+    console.log('[SalesFunnelContent] 🏗️ Construindo colunas Kanban:', {
+      stages: mainStages.length,
+      leads: leads.length,
+      funil: selectedFunnel.name
+    });
+
+    // Criar Map para lookup mais rápido
+    const leadsByStage = new Map();
+    leads.forEach(lead => {
+      const stageId = lead.kanban_stage_id || lead.columnId || '';
+      console.log(`[SalesFunnelContent] 🔗 Lead "${lead.name}" -> Stage: ${stageId}`);
+      if (!leadsByStage.has(stageId)) {
+        leadsByStage.set(stageId, []);
+      }
+      leadsByStage.get(stageId)?.push(lead);
+    });
+
+    console.log('[SalesFunnelContent] 📋 Mapa de leads por etapa:', {
+      totalLeads: leads.length,
+      etapasComLeads: Array.from(leadsByStage.keys()),
+      distribuicao: Array.from(leadsByStage.entries()).map(([stageId, stageLeads]) => ({
+        stageId,
+        count: stageLeads.length
+      }))
+    });
+
+    const columns = mainStages.map(stage => {
+      const stageLeads = leadsByStage.get(stage.id) || [];
+
+      console.log(`[SalesFunnelContent] 📊 Stage "${stage.title}": ${stageLeads.length} leads, ${stageLeads.filter(l => l.tags && l.tags.length > 0).length} com tags`);
+
+      return {
+        id: stage.id,
+        title: stage.title,
+        leads: stageLeads,
+        color: stage.color || "#e0e0e0",
+        isFixed: stage.is_fixed || false,
+        isHidden: false,
+        ai_enabled: stage.ai_enabled !== false
+      };
+    });
+
+    return columns;
+  }, [mainStages, leads, selectedFunnel?.id]);
+
+  // Sincronizar columns com dados do servidor (respeitando otimistas)
+  useEffect(() => {
+    const isDragging = document.body.hasAttribute('data-dragging');
+    if (isDragging || hasOptimisticChanges) {
+      console.log('[SalesFunnelContent] 🚫 Sync pausado - drag ou mudanças otimistas em progresso');
+      return;
+    }
+
+    if (columns.length === 0 && kanbanColumns.length > 0) {
+      console.log('[SalesFunnelContent] 🚀 Inicializando columns com dados do servidor');
+      setColumns(kanbanColumns);
+    }
+  }, [kanbanColumns, hasOptimisticChanges, columns.length]);
+
+  // FUNÇÕES DE GERENCIAMENTO
+  const createFunnel = useCallback(async (name: string, description?: string): Promise<void> => {
+    if (!user?.id) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('funnels')
+        .insert([{
+          name,
+          description,
+          created_by_user_id: user.id
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await refetchFunnels();
+      toast.success("Funil criado com sucesso!");
+    } catch (error: any) {
+      console.error('[SalesFunnelContent] ❌ Erro ao criar funil:', error);
+      toast.error(error.message || "Erro ao criar funil");
+      throw error;
+    }
+  }, [refetchFunnels, user?.id]);
+
+  // FUNÇÕES DE GERENCIAMENTO DE ETAPAS
+  const addColumn = useCallback(async (title: string) => {
+    if (!selectedFunnel?.id) {
+      toast.error("Nenhum funil selecionado");
+      return;
+    }
+
+    console.log('[SalesFunnelContent] ➕ Adicionando coluna:', title);
+
+    try {
+      await addStageToDatabase(title, "#3b82f6", selectedFunnel.id);
+      await refetchStages();
+      toast.success("Etapa criada com sucesso!");
+    } catch (error: any) {
+      console.error('[SalesFunnelContent] ❌ Erro ao adicionar coluna:', error);
+      toast.error(error.message || "Erro ao criar etapa");
+    }
+  }, [selectedFunnel?.id, addStageToDatabase, refetchStages]);
+
+  const updateColumn = useCallback(async (column: any) => {
+    console.log('[SalesFunnelContent] ✏️ Atualizando coluna:', column.title);
+
+    try {
+      await updateStageInDatabase(column.id, {
+        title: column.title,
+        color: column.color
+      });
+      await refetchStages();
+      toast.success("Etapa atualizada com sucesso!");
+    } catch (error: any) {
+      console.error('[SalesFunnelContent] ❌ Erro ao atualizar coluna:', error);
+      toast.error(error.message || "Erro ao atualizar etapa");
+    }
+  }, [updateStageInDatabase, refetchStages]);
+
+  const deleteColumn = useCallback(async (columnId: string) => {
+    console.log('[SalesFunnelContent] 🗑️ Deletando coluna:', columnId);
+
+    try {
+      await deleteStageFromDatabase(columnId);
+      await refetchStages();
+      toast.success("Etapa removida com sucesso!");
+    } catch (error: any) {
+      console.error('[SalesFunnelContent] ❌ Erro ao deletar coluna:', error);
+      toast.error(error.message || "Erro ao remover etapa");
+    }
+  }, [deleteStageFromDatabase, refetchStages]);
+
+  // FUNÇÃO DE LEAD
+  const openLeadDetail = useCallback((lead: KanbanLead) => {
+    console.log('[SalesFunnelContent] 👤 Abrindo detalhes do lead:', lead.name);
+    setSelectedLead(lead);
+    setIsLeadDetailOpen(true);
+  }, []);
+
+  // DRAG & DROP OTIMIZADO
+  const moveLeadToStage = useCallback(async (leadId: string, newStageId: string) => {
+    if (!user?.id || !selectedFunnel?.id) {
+      toast.error("Usuário não autenticado ou funil não selecionado");
+      return;
+    }
+
+    console.log('[SalesFunnelContent] 🎯 Movendo lead para stage:', { leadId, newStageId });
+
+    try {
+      // Pausar real-time durante drag
+      pauseRealtime();
+
+      // Update otimista na UI
+      const optimisticColumns = columns.map(col => ({
+        ...col,
+        leads: col.leads.map(lead =>
+          lead.id === leadId
+            ? { ...lead, columnId: newStageId, kanban_stage_id: newStageId }
+            : lead
+        ).filter(lead => lead.id !== leadId || col.id === newStageId)
+      }));
+
+      // Adicionar lead na nova coluna se não estiver lá
+      const targetColumn = optimisticColumns.find(col => col.id === newStageId);
+      const movingLead = columns.flatMap(col => col.leads).find(lead => lead.id === leadId);
+
+      if (targetColumn && movingLead && !targetColumn.leads.find(l => l.id === leadId)) {
+        targetColumn.leads.push({ ...movingLead, columnId: newStageId, kanban_stage_id: newStageId });
+      }
+
+      // Marcar mudanças otimistas
+      setHasOptimisticChanges(true);
+      document.body.setAttribute('data-dragging', 'true');
+      setColumns(optimisticColumns);
+
+      // Sync com banco de dados
+      const { error } = await supabase
+        .from('leads')
+        .update({
+          kanban_stage_id: newStageId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', leadId)
+        .eq('created_by_user_id', user.id);
+
+      if (error) {
+        console.error('[SalesFunnelContent] ❌ Erro ao mover lead:', error);
+        await refetchLeads();
+        toast.error("Erro ao mover lead");
+        return;
+      }
+
+      console.log('[SalesFunnelContent] ✅ Lead movido com sucesso');
+      toast.success("Lead movido com sucesso!");
+
+      // Limpar marcações após 2 segundos
+      setTimeout(() => {
+        document.body.removeAttribute('data-dragging');
+        setHasOptimisticChanges(false);
+        resumeRealtime();
+      }, 2000);
+
+    } catch (error) {
+      console.error('[SalesFunnelContent] ❌ Erro crítico ao mover lead:', error);
+      await refetchLeads();
+      toast.error("Erro ao mover lead");
+    }
+  }, [user?.id, selectedFunnel?.id, columns, setColumns, refetchLeads, pauseRealtime, resumeRealtime]);
+
+  const markOptimisticChange = useCallback((value: boolean) => setHasOptimisticChanges(value), []);
 
   const { isAdmin } = useUserRole();
   const [activeTab, setActiveTab] = useState("funnel");
@@ -301,10 +632,16 @@ export function SalesFunnelContent() {
     console.log('[SalesFunnelContent] 📨 handleOpenChatWithLead CHAMADO:', {
       leadId: lead.id,
       leadName: lead.name,
-      hasHandleOpenChat: !!handleOpenChat
+      hasHandleOpenChat: !!handleOpenChat,
+      timestamp: new Date().toISOString()
     });
-    
-    handleOpenChat(lead.id);
+
+    try {
+      handleOpenChat(lead.id);
+      console.log('[SalesFunnelContent] ✅ handleOpenChat executado com sucesso para:', lead.name);
+    } catch (error) {
+      console.error('[SalesFunnelContent] ❌ Erro ao executar handleOpenChat:', error);
+    }
   }, [handleOpenChat]);
 
   // Handlers para ações em massa - COM VALIDAÇÃO E BATCHING
@@ -451,6 +788,7 @@ export function SalesFunnelContent() {
                 lostStageId={lostStageId}
                 massSelection={massSelection}
                 markOptimisticChange={markOptimisticChange}
+                funnelId={selectedFunnel?.id}
               />
             </div>
           </div>
@@ -535,6 +873,7 @@ export function SalesFunnelContent() {
       <FunnelConfigModal
         isOpen={isFunnelConfigModalOpen}
         onClose={() => setIsFunnelConfigModalOpen(false)}
+        selectedFunnelId={selectedFunnel?.id}
       />
 
       {/* Toolbar de seleção em massa - aparece quando há leads selecionados */}

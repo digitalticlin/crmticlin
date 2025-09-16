@@ -17,6 +17,7 @@ interface KanbanColumnMemoProps {
   wonStageId?: string;
   lostStageId?: string;
   massSelection?: MassSelectionReturn;
+  funnelId?: string | null;
 }
 
 // Memoização inteligente da KanbanColumn - evita re-renders desnecessários
@@ -56,10 +57,11 @@ export const KanbanColumnMemo = React.memo<KanbanColumnMemoProps>(
       });
 
     // Verificar mudanças de estado
-    const stateChanged = 
+    const stateChanged =
       prevProps.isWonLostView !== nextProps.isWonLostView ||
       prevProps.wonStageId !== nextProps.wonStageId ||
       prevProps.lostStageId !== nextProps.lostStageId ||
+      prevProps.funnelId !== nextProps.funnelId ||
       prevProps.index !== nextProps.index;
     
     // 🚀 CORREÇÃO CRÍTICA: Verificar mudanças no massSelection

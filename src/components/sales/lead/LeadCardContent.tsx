@@ -85,13 +85,13 @@ export const LeadCardContent = ({ lead, isWonLostView = false, lostStageId }: Le
           )}
           
           {/* Ícone de Chat - área clicável separada do DnD */}
-          <div 
+          <div
             className="p-1 hover:bg-blue-100 rounded-full cursor-pointer transition-colors duration-200 chat-icon-area"
             onClick={(e) => {
-              e.stopPropagation();
+              console.log('[LeadCardContent] 💬 Chat icon clicked - evento será propagado para LeadCard');
+              // NÃO usar stopPropagation() aqui - deixar o evento subir para LeadCard
+              // Apenas preventDefault para evitar comportamentos padrão do navegador
               e.preventDefault();
-              console.log('[LeadCardContent] 💬 Chat icon clicked');
-              // O evento será capturado pelo LeadCard
             }}
           >
             <MessageCircle className="h-4 w-4 text-blue-600" />

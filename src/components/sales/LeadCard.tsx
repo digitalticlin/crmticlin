@@ -54,22 +54,30 @@ export const LeadCard = memo(({
   const isLost = isWonLostView && lead.columnId === lostStageId;
   
   const handleCardClick = (e: React.MouseEvent) => {
-    console.log('[LeadCard] 🖱️ CLIQUE DETECTADO:', { 
-      leadId: lead.id, 
+    const target = e.target as Element;
+    const chatIconArea = target.closest('.chat-icon-area');
+
+    console.log('[LeadCard] 🖱️ CLIQUE DETECTADO:', {
+      leadId: lead.id,
       leadName: lead.name,
       isSelectionMode,
       hasOnOpenChat: !!onOpenChat,
-      targetClass: (e.target as Element).className,
-      isChatIconArea: (e.target as Element).closest('.chat-icon-area') !== null
+      targetClass: target.className,
+      targetTagName: target.tagName,
+      targetContent: target.textContent,
+      chatIconArea: !!chatIconArea,
+      chatIconAreaElement: chatIconArea?.className
     });
-    
+
     // Se clicou no ícone de chat, abrir chat
-    if ((e.target as Element).closest('.chat-icon-area') && onOpenChat) {
-      console.log('[LeadCard] 💬 ✅ ABRINDO CHAT VIA ÍCONE para:', lead.name);
+    if (chatIconArea && onOpenChat) {
+      console.log('[LeadCard] 💬 ✅ ÁREA DE CHAT DETECTADA - ABRINDO CHAT para:', lead.name);
       e.preventDefault();
       e.stopPropagation();
       onOpenChat();
       return;
+    } else if (chatIconArea && !onOpenChat) {
+      console.log('[LeadCard] 💬 ❌ ÁREA DE CHAT DETECTADA mas onOpenChat não existe!');
     }
     
     // Se estiver em modo seleção

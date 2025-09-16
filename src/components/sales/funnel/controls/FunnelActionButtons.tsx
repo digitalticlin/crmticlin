@@ -8,19 +8,24 @@ import { RealClientDetails } from "@/components/clients/RealClientDetails";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useCreateClientMutation } from "@/hooks/clients/mutations";
 import { ClientData } from "@/hooks/clients/types";
-import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
-
 interface FunnelActionButtonsProps {
   isAdmin: boolean;
+  selectedFunnel?: any;
+  stages?: any[];
+  onRefreshLeads?: () => void;
 }
 
-export const FunnelActionButtons = ({ isAdmin }: FunnelActionButtonsProps) => {
+export const FunnelActionButtons = ({
+  isAdmin,
+  selectedFunnel,
+  stages = [],
+  onRefreshLeads
+}: FunnelActionButtonsProps) => {
   const [isTagModalOpen, setIsTagModalOpen] = useState(false);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [isFunnelConfigOpen, setIsFunnelConfigOpen] = useState(false);
-  
+
   const { companyId } = useCompanyData();
-  const { selectedFunnel, stages, refetchLeads } = useSalesFunnelDirect();
   const createClientMutation = useCreateClientMutation(companyId);
 
   const handleCreateLead = async (data: Partial<ClientData>) => {
@@ -37,7 +42,7 @@ export const FunnelActionButtons = ({ isAdmin }: FunnelActionButtonsProps) => {
       } as any);
       
       setIsLeadModalOpen(false);
-      refetchLeads();
+      onRefreshLeads?.();
     } catch (error) {
       console.error("Erro ao criar lead:", error);
     }
@@ -45,7 +50,7 @@ export const FunnelActionButtons = ({ isAdmin }: FunnelActionButtonsProps) => {
 
   const handleTagsChange = async () => {
     // Refresh tags or perform any necessary action after tag changes
-    refetchLeads();
+    onRefreshLeads?.();
   };
 
   return (
@@ -104,6 +109,7 @@ export const FunnelActionButtons = ({ isAdmin }: FunnelActionButtonsProps) => {
       <FunnelConfigModal
         isOpen={isFunnelConfigOpen}
         onClose={() => setIsFunnelConfigOpen(false)}
+        selectedFunnelId={selectedFunnel?.id}
       />
     </>
   );
