@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent, DragOverEvent } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent, DragOverEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import './dnd-kanban.css';
 
@@ -31,6 +31,17 @@ export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number>();
+
+  // 🚀 CONFIGURAR SENSORES ULTRA-RESPONSIVOS PARA DRAG INSTANTÂNEO
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 1, // Mínima distância para máxima responsividade
+        delay: 0,     // Zero delay para resposta instantânea
+        tolerance: 0  // Zero tolerância para ativação imediata
+      },
+    })
+  );
 
   // Auto-scroll horizontal durante drag
   const performScroll = useCallback(() => {
@@ -114,6 +125,7 @@ export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
 
   return (
     <DndContext
+      sensors={sensors}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragOver={onDragOver}
@@ -151,7 +163,15 @@ export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
         )}
       </div>
       
-      <DragOverlay dropAnimation={{ duration: 500, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
+      <DragOverlay
+        dropAnimation={{
+          duration: 150,
+          easing: 'ease-out'
+        }}
+        style={{
+          cursor: 'grabbing'
+        }}
+      >
         {dragOverlay}
       </DragOverlay>
     </DndContext>

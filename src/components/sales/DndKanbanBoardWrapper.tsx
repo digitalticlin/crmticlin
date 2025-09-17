@@ -205,13 +205,13 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
     const activeId = active.id as string;
-    
+
     console.log('[DndKanbanBoardWrapper] 🔄 DRAG START:', { activeId });
-    
+
     // 🚀 Marcar que está fazendo drag para evitar invalidações
     document.body.setAttribute('data-dragging', 'true');
     markOptimisticChange?.(true);
-    
+
     // Encontrar o lead sendo arrastado
     let foundLead: KanbanLead | null = null;
     for (const column of columns) {
@@ -221,65 +221,68 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
         break;
       }
     }
-    
-    console.log('[DndKanbanBoardWrapper] ✅ DRAG INICIADO:', { 
+
+    console.log('[DndKanbanBoardWrapper] ✅ DRAG INICIADO:', {
       leadId: activeId,
-      leadName: foundLead?.name 
+      leadName: foundLead?.name
     });
-    
+
     setActiveId(activeId);
     setDraggedLead(foundLead);
-  }, [columns]);
+
+    // 🚀 UPDATE OTIMISTA IMEDIATO: Ocultar da coluna original durante drag
+    if (foundLead) {
+      const optimisticColumns = columns.map(col => ({
+        ...col,
+        leads: col.leads.filter(lead => lead.id !== activeId) // Remover completamente durante drag
+      }));
+      onColumnsChange(optimisticColumns);
+    }
+  }, [columns, onColumnsChange, markOptimisticChange]);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const { active, over } = event;
-    
-    if (!over || active.id === over.id) return;
-    
-    // Encontrar colunas de origem e destino
-    const activeColumnId = columns.find(col => 
-      col.leads.some(lead => lead.id === active.id)
-    )?.id;
-    
-    const overColumnId = typeof over.id === 'string' && over.id.startsWith('column-') 
-      ? over.id.replace('column-', '') 
+
+    if (!over || active.id === over.id || !draggedLead) return;
+
+    // Determinar coluna de destino
+    const overColumnId = typeof over.id === 'string' && over.id.startsWith('column-')
+      ? over.id.replace('column-', '')
       : columns.find(col => col.leads.some(lead => lead.id === over.id))?.id;
-    
-    if (!activeColumnId || !overColumnId || activeColumnId === overColumnId) return;
-    
-    console.log('[DndKanbanBoardWrapper] 🔄 MOVENDO ENTRE COLUNAS:', {
+
+    if (!overColumnId) return;
+
+    console.log('[DndKanbanBoardWrapper] 🔄 PREVIEW MOVIMENTO:', {
       activeId: active.id,
-      fromColumn: activeColumnId,
       toColumn: overColumnId
     });
-    
-    // Atualizar visualmente (otimistic update)
+
+    // 🚀 PREVIEW SIMPLES: Mostrar apenas na coluna destino (origem já foi removida)
     const newColumns = columns.map(column => {
-      if (column.id === activeColumnId) {
+      if (column.id === overColumnId) {
+        // Remover qualquer preview anterior e adicionar novo
+        const filteredLeads = column.leads.filter(lead => lead.id !== active.id);
+
+        return {
+          ...column,
+          leads: [...filteredLeads, {
+            ...draggedLead,
+            columnId: overColumnId,
+            kanban_stage_id: overColumnId,
+            isPreview: true
+          }]
+        };
+      } else {
+        // Garantir que não há duplicatas em outras colunas
         return {
           ...column,
           leads: column.leads.filter(lead => lead.id !== active.id)
         };
-      } else if (column.id === overColumnId) {
-        const movingLead = columns.find(col => col.id === activeColumnId)
-          ?.leads.find(lead => lead.id === active.id);
-        
-        if (movingLead) {
-          return {
-            ...column,
-            leads: [...column.leads, { 
-              ...movingLead, 
-              columnId: overColumnId,
-              kanban_stage_id: overColumnId // IMPORTANTE: atualizar também kanban_stage_id
-            }]
-          };
-        }
       }
-      return column;
     });
-    
+
     onColumnsChange(newColumns);
-  }, [columns, onColumnsChange]);
+  }, [columns, onColumnsChange, draggedLead]);
 
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -288,13 +291,13 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
     setActiveId(null);
     setDraggedLead(null);
     
-    // 🚀 IMPORTANTE: Manter marcação de dragging por mais 3 segundos
-    // para evitar conflitos com subscriptions
+    // 🚀 IMPORTANTE: Manter marcação de dragging por 1 segundo apenas
+    // para máxima responsividade
     setTimeout(() => {
       document.body.removeAttribute('data-dragging');
       markOptimisticChange?.(false);
       console.log('[DndKanbanBoardWrapper] 🔓 Drag lock removido - subscriptions podem reativar');
-    }, 3000);
+    }, 1000);
     
     if (!over) {
       console.log('[DndKanbanBoardWrapper] ❌ DROP CANCELADO - Sem área de destino');
@@ -424,44 +427,47 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
       return;
     }
     
-    // Movimento entre colunas - atualizar UI otimisticamente
+    // 🚀 CONFIRMAÇÃO FINAL LIMPA - garantir que não há duplicatas
     const newColumns = columns.map(column => {
-      if (column.id === sourceColumnId) {
-        // Remover da coluna origem
-        return {
-          ...column,
-          leads: column.leads.filter(l => l.id !== active.id)
-        };
-      } else if (column.id === targetColumnId) {
-        // Adicionar na coluna destino com TODOS os campos atualizados
-        const updatedLead = { 
-          ...sourceLead, 
+      // Primeiro, remover o lead de TODAS as colunas
+      const cleanedLeads = column.leads.filter(l => l.id !== active.id);
+
+      // Depois, adicionar apenas na coluna destino
+      if (column.id === targetColumnId) {
+        const updatedLead = {
+          ...sourceLead,
           columnId: targetColumnId,
-          kanban_stage_id: targetColumnId // IMPORTANTE: atualizar também kanban_stage_id
+          kanban_stage_id: targetColumnId,
+          isDragging: false,
+          isPreview: false,
+          isSaving: true
         };
-        
+
         // Determinar posição de inserção
-        let insertIndex = column.leads.length; // Por padrão, adiciona no final
-        
-        // Se droppou em cima de outro lead, inserir na posição dele
+        let insertIndex = cleanedLeads.length;
         if (over.id !== `column-${targetColumnId}`) {
-          const overIndex = column.leads.findIndex(l => l.id === over.id);
+          const overIndex = cleanedLeads.findIndex(l => l.id === over.id);
           if (overIndex !== -1) {
             insertIndex = overIndex;
           }
         }
-        
-        const newLeads = [...column.leads];
+
+        const newLeads = [...cleanedLeads];
         newLeads.splice(insertIndex, 0, updatedLead);
-        
+
         return {
           ...column,
           leads: newLeads
         };
       }
-      return column;
+
+      return {
+        ...column,
+        leads: cleanedLeads
+      };
     });
-    
+
+    // Aplicar mudança final
     onColumnsChange(newColumns);
     
     // Persistir mudança no Supabase
@@ -530,11 +536,16 @@ export const DndKanbanBoardWrapper: React.FC<DndKanbanBoardWrapperProps> = ({
         }
       }));
 
-      // 🚀 APÓS SUCESSO: Garantir que o estado local persista
-      // Forçar re-render das colunas para garantir que a mudança seja vista
-      setTimeout(() => {
-        onColumnsChange([...newColumns]); // Clone para forçar re-render
-      }, 100);
+      // 🚀 CONFIRMAR SUCESSO: Limpar indicadores de salvamento imediatamente
+      const confirmedColumns = newColumns.map(column => ({
+        ...column,
+        leads: column.leads.map(lead =>
+          lead.id === active.id
+            ? { ...lead, isSaving: false }
+            : lead
+        )
+      }));
+      onColumnsChange(confirmedColumns);
       
       console.log('[DndKanbanBoardWrapper] ✅ Mudança entre etapas - estado local + persistência silenciosa');
       

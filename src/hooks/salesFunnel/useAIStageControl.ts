@@ -11,10 +11,12 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { toast } from 'sonner';
 
 export const useAIStageControl = () => {
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
   const [isLoading, setIsLoading] = useState(false);
 
   const toggleAI = async (stageId: string, newEnabled: boolean) => {
@@ -91,6 +93,7 @@ export const useAIStageControl = () => {
 
   return {
     toggleAI,
-    isLoading
+    isLoading,
+    canToggleAI: !!user?.id && isAdmin
   };
 };

@@ -10,6 +10,8 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import { AdminGuard } from './components/auth/AdminGuard';
 import { PortalErrorBoundary } from './components/error/PortalErrorBoundary';
 import { AppLayout } from './components/layout/AppLayout';
+import './styles/safari-fixes.css'; // Safari/WebKit fixes para transparências
+import { applySafariFixesIfNeeded } from './utils/safari-detector'; // Auto-detect Safari
 
 // Lazy loading para todas as páginas
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -195,6 +197,10 @@ function App() {
     if (typeof window !== 'undefined') {
       window.supabase = supabase;
       console.log('[App] ✅ Supabase exposto globalmente para debug');
+
+      // Aplicar fixes do Safari se necessário
+      applySafariFixesIfNeeded();
+      console.log('[App] ✅ Safari fixes aplicados se necessário');
       
              // 🚀 FUNÇÃO DE DEBUG GLOBAL MELHORADA
        (window as any).debugAuth = async () => {

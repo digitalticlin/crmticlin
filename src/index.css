@@ -69,10 +69,10 @@ body {
   color: hsl(var(--foreground));
 }
 
-/* Glassmorphism utilities */
+/* Glassmorphism utilities com fallback para Safari */
 @layer utilities {
   .shadow-glass {
-    box-shadow: 
+    box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.1),
       0 0 0 1px rgba(255, 255, 255, 0.05),
       inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -88,11 +88,90 @@ body {
   }
 
   .glass-bg {
-  background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1);
   }
 
   .glass-bg-dark {
     background: rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Safari/WebKit specific fixes */
+@supports (-webkit-backdrop-filter: none) or (backdrop-filter: none) {
+  .backdrop-blur-sm,
+  .backdrop-blur,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur-3xl {
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+}
+
+/* Fallback para Safari quando backdrop-filter falha */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .backdrop-blur-sm,
+  .backdrop-blur,
+  .backdrop-blur-md,
+  .backdrop-blur-lg {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  .bg-white\/10 {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  .bg-white\/20 {
+    background-color: rgba(255, 255, 255, 0.92) !important;
+  }
+
+  .bg-white\/30 {
+    background-color: rgba(255, 255, 255, 0.93) !important;
+  }
+
+  .bg-white\/40 {
+    background-color: rgba(255, 255, 255, 0.94) !important;
+  }
+
+  .bg-white\/50 {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+  }
+}
+
+/* Safari-specific fixes for common issues */
+@media not all and (min-resolution:.001dpcm) {
+  @media {
+    /* Target Safari only */
+    .backdrop-blur-md,
+    .backdrop-blur-lg,
+    .backdrop-blur-sm {
+      background-color: rgba(255, 255, 255, 0.98);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      backdrop-filter: saturate(180%) blur(20px);
+    }
+
+    /* Fix para containers transparentes no Safari */
+    [class*="bg-white/"] {
+      background-color: rgba(255, 255, 255, 0.95);
+    }
+
+    [class*="bg-black/"] {
+      background-color: rgba(0, 0, 0, 0.95);
+    }
+  }
+}
+
+/* iOS Safari specific */
+@supports (-webkit-touch-callout: none) {
+  .backdrop-blur-sm,
+  .backdrop-blur,
+  .backdrop-blur-md,
+  .backdrop-blur-lg {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    background-color: rgba(255, 255, 255, 0.9);
   }
 }
 

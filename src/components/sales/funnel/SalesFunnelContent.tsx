@@ -379,12 +379,12 @@ export function SalesFunnelContent() {
       console.log('[SalesFunnelContent] ✅ Lead movido com sucesso');
       toast.success("Lead movido com sucesso!");
 
-      // Limpar marcações após 2 segundos
+      // Limpar marcações após 1 segundo para máxima responsividade
       setTimeout(() => {
         document.body.removeAttribute('data-dragging');
         setHasOptimisticChanges(false);
         resumeRealtime();
-      }, 2000);
+      }, 1000);
 
     } catch (error) {
       console.error('[SalesFunnelContent] ❌ Erro crítico ao mover lead:', error);
