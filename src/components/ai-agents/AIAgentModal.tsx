@@ -72,25 +72,23 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
 
   // Initialize or reset state when modal opens/closes or agent changes
   useEffect(() => {
+    console.log('🔍 MODAL useEffect triggered:', { isOpen, agentId: agent?.id, agentName: agent?.name });
+
     if (isOpen && agent) {
+      console.log('🟢 MODAL - Abrindo modal para agente existente:', agent.id);
       setWorkingAgent(agent);
       setAllowTabNavigation(true); // Permitir navegação para agente existente
-      
-      // CORREÇÃO: Só carregar dados se promptData estiver vazio para evitar sobrescrever edições
-      const isPromptDataEmpty = !promptData.agent_function && !promptData.agent_objective && 
-                               !promptData.communication_style && !promptData.company_info;
-      
-      if (isPromptDataEmpty) {
-        console.log('🔄 Modal aberto - promptData vazio, carregando do banco');
-        loadPromptData(agent.id);
-      } else {
-        console.log('🔄 Modal aberto - promptData já preenchido, mantendo dados atuais');
-      }
-      
+
+      // CORREÇÃO CRÍTICA: SEMPRE carregar dados atualizados do banco
+      // para garantir que os dados salvos sejam exibidos
+      console.log('🔄 MODAL - Iniciando carregamento de dados atualizados do banco');
+      loadPromptData(agent.id);
+
       // Reset estados de mudanças ao carregar
       setHasUnsavedChanges(false);
       setHasBasicFormChanges(false);
     } else if (isOpen && !agent) {
+      console.log('🟡 MODAL - Abrindo modal para novo agente');
       // Reset state for new agent
       setWorkingAgent(null);
       setAllowTabNavigation(true); // Permitir navegação livre para novo agente
@@ -98,12 +96,11 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       setHasUnsavedChanges(false);
       setHasBasicFormChanges(false);
     } else if (!isOpen) {
-      // Reset everything when modal closes - MAS NÃO resetar promptData
-      // pois será recarregado automaticamente na próxima abertura
+      console.log('🔴 MODAL - Fechando modal');
+      // Reset everything when modal closes
       setActiveTab("basic");
       setWorkingAgent(null);
       setAllowTabNavigation(false);
-      // resetPromptData(); // REMOVIDO - causava reset desnecessário
       setHasUnsavedChanges(false);
       setHasBasicFormChanges(false);
     }
@@ -131,7 +128,8 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   const loadPromptData = async (agentId: string) => {
     console.log('\n=== CARREGAMENTO DE DADOS DO PROMPT ===');
     console.log('📎 Carregando dados para agente ID:', agentId);
-    
+    console.log('🕐 Timestamp do carregamento:', new Date().toLocaleTimeString());
+
     try {
       const existingPrompt = await getPromptByAgentId(agentId);
       console.log('📊 Prompt encontrado:', existingPrompt ? 'SIM' : 'NÃO');
@@ -161,12 +159,12 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           client_objections: Array.isArray(existingPrompt.client_objections) ? existingPrompt.client_objections : [],
           flow: Array.isArray(existingPrompt.flow) ? existingPrompt.flow : []
         };
-        
-        console.log('📝 Dados formatados para setPromptData:', {
-          agent_function: newPromptData.agent_function ? `PREENCHIDO (${newPromptData.agent_function.length} chars)` : 'VAZIO',
-          agent_objective: newPromptData.agent_objective ? `PREENCHIDO (${newPromptData.agent_objective.length} chars)` : 'VAZIO',
-          communication_style: newPromptData.communication_style ? `PREENCHIDO (${newPromptData.communication_style.length} chars)` : 'VAZIO',
-          company_info: newPromptData.company_info ? `PREENCHIDO (${newPromptData.company_info.length} chars)` : 'VAZIO'
+
+        console.log('📝 MODAL - Dados formatados para setPromptData (CARREGAMENTO):', {
+          agent_function: newPromptData.agent_function ? `CARREGADO (${newPromptData.agent_function.length} chars)` : 'VAZIO',
+          agent_objective: newPromptData.agent_objective ? `CARREGADO (${newPromptData.agent_objective.length} chars)` : 'VAZIO',
+          communication_style: newPromptData.communication_style ? `CARREGADO (${newPromptData.communication_style.length} chars)` : 'VAZIO',
+          company_info: newPromptData.company_info ? `CARREGADO (${newPromptData.company_info.length} chars)` : 'VAZIO'
         });
         
         unstable_batchedUpdates(() => {
@@ -174,7 +172,20 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           // NÃO marcar como hasUnsavedChanges pois é carregamento inicial
           setHasUnsavedChanges(false);
         });
-        
+
+        // VERIFICAÇÃO CRÍTICA: Usar callback para verificar estado após atualização
+        setTimeout(() => {
+          // Usar uma função para capturar o estado mais recente
+          setPromptData(currentData => {
+            console.log('🔍 MODAL - Verificação pós-setPromptData (callback):', {
+              agent_function_atual: currentData.agent_function ? `APLICADO (${currentData.agent_function.length} chars)` : 'VAZIO',
+              agent_objective_atual: currentData.agent_objective ? `APLICADO (${currentData.agent_objective.length} chars)` : 'VAZIO',
+              communication_style_atual: currentData.communication_style ? `APLICADO (${currentData.communication_style.length} chars)` : 'VAZIO'
+            });
+            return currentData; // Não modificar, apenas verificar
+          });
+        }, 100);
+
         // Estado foi atualizado com sucesso
         console.log('✅ Dados do prompt carregados e mapeados com sucesso - sem marcar como alteração');
       } else {
@@ -210,9 +221,9 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   };
 
   const handlePromptDataChange = (
-    field: keyof typeof promptData, 
-    value: any, 
-    exampleField?: string, 
+    field: keyof typeof promptData,
+    value: any,
+    exampleField?: string,
     exampleValue?: any,
     isInternalLoad: boolean = false
   ) => {
@@ -220,39 +231,39 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
     unstable_batchedUpdates(() => {
       if (exampleField && exampleValue !== undefined) {
         // Atualizar ambos os campos atomicamente para evitar race conditions
-        console.log('🔄 Atualizando campo duplo:', { field, value, exampleField, exampleValue, isInternalLoad });
-        setPromptData(prev => ({ 
-          ...prev, 
+        console.log('🔄 MODAL - Atualizando campo duplo:', { field, value, exampleField, exampleValue, isInternalLoad });
+        setPromptData(prev => ({
+          ...prev,
           [field]: value,
           [exampleField]: exampleValue
         }));
       } else {
         // Atualização de campo único
-        console.log('🔄 Atualizando campo único:', { field, value, isInternalLoad });
-        console.log('📊 Estado ANTES do update:', { 
-          campo: field, 
-          valorAnterior: promptData[field] ? `PREENCHIDO (${promptData[field].length} chars)` : 'VAZIO',
-          novoValor: value ? `PREENCHIDO (${value.length} chars)` : 'VAZIO'
+        console.log('🔄 MODAL - Atualizando campo único:', { field, value, isInternalLoad });
+        console.log('📊 MODAL - Estado ANTES do update:', {
+          campo: field,
+          valorAnterior: promptData[field] ? (typeof promptData[field] === 'string' ? `PREENCHIDO (${promptData[field].length} chars)` : `PREENCHIDO (${JSON.stringify(promptData[field]).length} chars)`) : 'VAZIO',
+          novoValor: value ? (typeof value === 'string' ? `PREENCHIDO (${value.length} chars)` : `PREENCHIDO (${JSON.stringify(value).length} chars)`) : 'VAZIO'
         });
-        
+
         setPromptData(prev => {
           const newState = { ...prev, [field]: value };
-          console.log('📝 Novo estado calculado:', { 
+          console.log('📝 MODAL - Novo estado calculado:', {
             campo: field,
-            novoValor: newState[field] ? `PREENCHIDO (${newState[field].length} chars)` : 'VAZIO'
+            novoValor: newState[field] ? (typeof newState[field] === 'string' ? `PREENCHIDO (${newState[field].length} chars)` : `PREENCHIDO (${JSON.stringify(newState[field]).length} chars)`) : 'VAZIO'
           });
           return newState;
         });
-        
+
         // Estado será verificado via useEffect quando promptData mudar
       }
-      
+
       // Só marcar como não salvo se for uma mudança real do usuário, não carregamento interno
       if (!isInternalLoad) {
-        console.log('💾 Marcando como alteração não salva (mudança do usuário)');
+        console.log('💾 MODAL - Marcando como alteração não salva (mudança do usuário)');
         setHasUnsavedChanges(true);
       } else {
-        console.log('📂 Carregamento interno - não marcar como alteração não salva');
+        console.log('📂 MODAL - Carregamento interno - não marcar como alteração não salva');
       }
     });
   };
@@ -310,10 +321,29 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
   };
 
   const handleSave = async (saveContext?: { fromTab?: string; skipRedirect?: boolean }, freshPromptData?: typeof promptData) => {
-    // Usar dados frescos se fornecidos, caso contrário usar o estado atual
-    const dataToSave = freshPromptData || promptData;
-    console.log('\n=== SALVAMENTO INICIADO ===');
-    console.log('🚀 handleSave do modal principal - DIAGNÓSTICO COMPLETO');
+    return new Promise<void>((resolve, reject) => {
+      // Capturar o estado mais recente usando setState callback
+      setPromptData(currentPromptData => {
+        // Usar dados frescos se fornecidos, caso contrário usar o estado mais recente
+        const dataToSave = freshPromptData || currentPromptData;
+
+        console.log('🔍 MODAL - Dados que serão salvos (estado mais recente):', {
+          agent_function: dataToSave.agent_function ? `FRESCOS (${dataToSave.agent_function.length} chars)` : 'VAZIO',
+          agent_objective: dataToSave.agent_objective ? `FRESCOS (${dataToSave.agent_objective.length} chars)` : 'VAZIO',
+          communication_style: dataToSave.communication_style ? `FRESCOS (${dataToSave.communication_style.length} chars)` : 'VAZIO'
+        });
+
+        // Executar salvamento assíncrono
+        performSave(dataToSave, saveContext).then(resolve).catch(reject);
+
+        return currentPromptData; // Não modificar o estado
+      });
+    });
+  };
+
+  const performSave = async (dataToSave: typeof promptData, saveContext?: { fromTab?: string; skipRedirect?: boolean }) => {
+    console.log('\n=== SALVAMENTO INICIADO (performSave) ===');
+    console.log('🚀 performSave do modal principal - DIAGNÓSTICO COMPLETO');
     console.log('🔧 Contexto do salvamento:', saveContext);
     console.log('\n📊 ESTADO ATUAL:');
     console.log('  - agent (prop recebida):', agent ? { id: agent.id, name: agent.name } : null);
@@ -437,7 +467,9 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       // Preparar dados do prompt para salvamento
       console.log('🔍 ESTADO DO PROMPT DATA NO MOMENTO DO SALVAMENTO:');
       console.log('  - agent_function atual:', dataToSave.agent_function ? `PREENCHIDO (${dataToSave.agent_function.length} chars)` : 'VAZIO');
-      console.log('  - usando dados frescos:', freshPromptData ? 'SIM' : 'NÃO');
+      console.log('  - agent_objective atual:', dataToSave.agent_objective ? `PREENCHIDO (${dataToSave.agent_objective.length} chars)` : 'VAZIO');
+      console.log('  - communication_style atual:', dataToSave.communication_style ? `PREENCHIDO (${dataToSave.communication_style.length} chars)` : 'VAZIO');
+      console.log('  - usando dados frescos:', 'SIM (sempre usa estado mais recente)');
       
       const promptDataToSave = {
         agent_id: finalTargetAgent.id,
@@ -482,13 +514,17 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       if (existingPrompt) {
         // Atualizar prompt existente
         console.log('🔄 Atualizando prompt existente:', existingPrompt.id);
-        const success = await updatePrompt({ agent_id: existingPrompt.agent_id, ...promptDataToSave });
-        console.log('💾 Resultado da atualização:', success);
-        
-        if (success) {
+        const updatedAgent = await updatePrompt({ agent_id: existingPrompt.agent_id, ...promptDataToSave });
+        console.log('💾 Resultado da atualização:', updatedAgent);
+
+        if (updatedAgent) {
           toast.success('Configuração do agente salva com sucesso');
           setHasUnsavedChanges(false);
-          onSave(); // Notificar parent component
+
+          // Só chamar onSave se não há contexto específico de salvamento ou se especificamente solicitado
+          if (!saveContext || !saveContext.skipRedirect) {
+            onSave(); // Notificar parent component
+          }
           console.log('✅ SALVAMENTO CONCLUÍDO COM SUCESSO (UPDATE)');
         } else {
           throw new Error('Falha na atualização do prompt');
@@ -496,13 +532,17 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
       } else {
         // Criar novo prompt
         console.log('➕ Criando novo prompt');
-        const newPrompt = await createPrompt({ id: agent.id, ...agent } as AIAgent);
+        const newPrompt = await createPrompt(finalTargetAgent);
         console.log('💾 Resultado da criação:', newPrompt);
         
         if (newPrompt) {
           toast.success('Configuração do agente salva com sucesso');
           setHasUnsavedChanges(false);
-          onSave(); // Notificar parent component
+
+          // Só chamar onSave se não há contexto específico de salvamento ou se especificamente solicitado
+          if (!saveContext || !saveContext.skipRedirect) {
+            onSave(); // Notificar parent component
+          }
           console.log('✅ SALVAMENTO CONCLUÍDO COM SUCESSO (CREATE)');
         } else {
           throw new Error('Falha na criação do prompt');

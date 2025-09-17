@@ -152,8 +152,18 @@ export default function AIAgents() {
     setEditingAgent(null);
   };
 
+  const [isRefreshingAfterSave, setIsRefreshingAfterSave] = useState(false);
+
   const handleModalSave = async () => {
+    // Prevenir múltiplas chamadas simultâneas
+    if (isRefreshingAfterSave) {
+      console.log('⚠️ Refresh já em andamento, ignorando chamada duplicada');
+      return;
+    }
+
     console.log('📱 Modal save triggered - forçando refresh da lista');
+    setIsRefreshingAfterSave(true);
+
     try {
       // Pequeno delay para garantir que a transação do banco terminou
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -163,6 +173,8 @@ export default function AIAgents() {
       console.log('✅ Lista de agentes e configurações atualizadas após save do modal');
     } catch (error) {
       console.error('❌ Erro ao atualizar lista:', error);
+    } finally {
+      setIsRefreshingAfterSave(false);
     }
     // Modal NÃO fecha automaticamente - usuário controla quando fechar
   };
