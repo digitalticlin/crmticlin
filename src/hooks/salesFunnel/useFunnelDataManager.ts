@@ -14,7 +14,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { KanbanLead, KanbanColumn } from '@/types/kanban';
-// import { useSalesFunnelCoordinator } from '@/components/sales/core/SalesFunnelCoordinator'; // Removido para evitar dependência circular
+import { SalesFunnelCoordinatorReturn } from '@/components/sales/core/SalesFunnelCoordinator';
 import { funnelLeadsQueryKeys } from './leads/useFunnelLeads';
 
 interface FunnelDataOptions {
@@ -22,6 +22,7 @@ interface FunnelDataOptions {
   enabled?: boolean;
   pageSize?: number;
   realtime?: boolean;
+  coordinator?: SalesFunnelCoordinatorReturn; // Opcional para evitar dependência circular
 }
 
 interface FunnelDataReturn {
@@ -56,10 +57,10 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
     funnelId,
     enabled = true,
     pageSize = 30,
-    realtime = true
+    realtime = true,
+    coordinator
   } = options;
 
-  // const coordinator = useSalesFunnelCoordinator(); // Removido para evitar dependência circular
   const realtimeSubscription = useRef<any>(null);
   const stageLoadingState = useRef<Map<string, { page: number; hasMore: boolean }>>(new Map());
 
@@ -79,16 +80,36 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
 
       console.log('[FunnelDataManager] 📊 Carregando dados do funil:', funnelId);
 
-      // Carregar etapas
+      // Carregar etapas - VERIFICANDO TABELA CORRETA
+      console.log('[FunnelDataManager] 🔍 Tentando carregar stages da tabela kanban_stages...');
+
       const { data: stages, error: stagesError } = await supabase
         .from('kanban_stages')
         .select('*')
         .eq('funnel_id', funnelId)
+        .neq('is_won', true) // Excluir etapa GANHO da aba principal
+        .neq('is_lost', true) // Excluir etapa PERDIDO da aba principal
         .order('order_position');
 
-      if (stagesError) throw stagesError;
+      console.log('[FunnelDataManager] 📋 Resultado stages:', {
+        stages: stages?.length || 0,
+        error: stagesError,
+        funnelId,
+        firstStage: stages?.[0]
+      });
+
+      if (stagesError) {
+        console.error('[FunnelDataManager] ❌ Erro ao buscar stages:', stagesError);
+        throw stagesError;
+      }
+
+      if (!stages || stages.length === 0) {
+        console.warn('[FunnelDataManager] ⚠️ Nenhuma stage encontrada para o funil:', funnelId);
+      }
 
       // Carregar leads iniciais (primeira página de cada etapa)
+      console.log('[FunnelDataManager] 🔍 Tentando carregar leads...');
+
       const { data: leads, error: leadsError } = await supabase
         .from('leads')
         .select(`
@@ -103,10 +124,21 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
           )
         `)
         .eq('funnel_id', funnelId)
+        .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
         .order('created_at', { ascending: false })
-        .limit(pageSize * stages.length); // Carregar primeira página de cada etapa
+        .limit(pageSize * Math.max(stages?.length || 1, 1)); // Garantir pelo menos 1
 
-      if (leadsError) throw leadsError;
+      console.log('[FunnelDataManager] 📋 Resultado leads:', {
+        leads: leads?.length || 0,
+        error: leadsError,
+        funnelId,
+        firstLead: leads?.[0]
+      });
+
+      if (leadsError) {
+        console.error('[FunnelDataManager] ❌ Erro ao buscar leads:', leadsError);
+        throw leadsError;
+      }
 
       console.log('[FunnelDataManager] ✅ Dados carregados:', {
         stages: stages.length,
@@ -158,6 +190,7 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
           )
         `)
         .eq('funnel_id', funnelId)
+        .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
         .order('created_at', { ascending: false })
         .range(pageParam * pageSize, (pageParam + 1) * pageSize - 1);
 
@@ -187,15 +220,25 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
       return acc;
     }, {} as Record<string, KanbanLead[]>);
 
-    // Criar colunas organizadas
-    const newColumns: KanbanColumn[] = stages.map(stage => ({
-      id: stage.id,
-      title: stage.name,
-      color: stage.color || '#6B7280',
-      ai_enabled: stage.ai_enabled,
-      leads: leadsByStage[stage.id] || [],
-      order_position: stage.order_position
-    }));
+    // Criar colunas organizadas - CORRIGIR MAPEAMENTO
+    const newColumns: KanbanColumn[] = stages.map(stage => {
+      // Verificar os campos reais que vêm do banco
+      console.log('[FunnelDataManager] 🔍 Stage do banco:', {
+        id: stage.id,
+        name: stage.name,
+        title: stage.title,
+        allFields: Object.keys(stage)
+      });
+
+      return {
+        id: stage.id,
+        title: stage.title || stage.name || 'Sem nome', // Usar title OU name
+        color: stage.color || '#6B7280',
+        ai_enabled: stage.ai_enabled,
+        leads: leadsByStage[stage.id] || [],
+        order_position: stage.order_position
+      };
+    });
 
     setColumns(newColumns);
     setAllLeads(leads);
@@ -231,16 +274,38 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
         table: 'leads',
         filter: `funnel_id=eq.${funnelId}`
       }, (payload) => {
-        console.log('[FunnelDataManager] 📡 Atualização realtime:', payload);
+        console.log('[FunnelDataManager] 📡 Atualização realtime leads:', payload);
 
-        // coordinator.emit({ // Removido para evitar dependência circular
-        //   type: 'realtime:update',
-        //   payload,
-        //   priority: 'high',
-        //   source: 'FunnelDataManager'
-        // });
+        if (coordinator) {
+          coordinator.emit({
+            type: 'realtime:update',
+            payload,
+            priority: 'high',
+            source: 'FunnelDataManager'
+          });
+        }
 
         // Refrescar dados quando há mudanças
+        refreshData();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'kanban_stages',
+        filter: `funnel_id=eq.${funnelId}`
+      }, (payload) => {
+        console.log('[FunnelDataManager] 📡 Atualização realtime stages:', payload);
+
+        if (coordinator) {
+          coordinator.emit({
+            type: 'realtime:update',
+            payload,
+            priority: 'high',
+            source: 'FunnelDataManager'
+          });
+        }
+
+        // Refrescar dados quando há mudanças em stages
         refreshData();
       })
       .subscribe();
@@ -252,21 +317,66 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
     };
   }, [realtime, funnelId, enabled, refreshData]);
 
+  // Escutar eventos do coordinator para atualizações otimistas
+  useEffect(() => {
+    if (!coordinator) return;
+
+    const handleCoordinatorEvent = (event: any) => {
+      console.log('[FunnelDataManager] 📡 Evento coordinator recebido:', event);
+
+      if (event.type === 'realtime:update' && event.payload?.table === 'kanban_stages') {
+        console.log('[FunnelDataManager] 🔄 Atualização otimista de stage:', event.payload);
+
+        // Atualizar coluna específica sem refetch completo
+        const { new: newStage } = event.payload;
+        if (newStage && newStage.id) {
+          console.log('[FunnelDataManager] ✅ Aplicando update otimista:', {
+            stageId: newStage.id,
+            oldValue: columns.find(c => c.id === newStage.id)?.ai_enabled,
+            newValue: newStage.ai_enabled
+          });
+
+          setColumns(prevColumns =>
+            prevColumns.map(col =>
+              col.id === newStage.id
+                ? {
+                    ...col,
+                    ai_enabled: newStage.ai_enabled,
+                    title: newStage.title || newStage.name || col.title
+                  }
+                : col
+            )
+          );
+        }
+      }
+    };
+
+    // Usar sistema de subscription do coordinator
+    const unsubscribe = coordinator.subscribe('realtime:update', handleCoordinatorEvent);
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [coordinator, columns]);
+
   // Carregar mais dados (scroll infinito geral)
   const loadMore = useCallback(() => {
     if (hasNextPage && !isLoadingMore) {
       console.log('[FunnelDataManager] 📜 Carregando mais dados...');
 
-      // coordinator.emit({ // Removido para evitar dependência circular
-      //   type: 'scroll:load-more',
-      //   payload: { type: 'general' },
-      //   priority: 'normal',
-      //   source: 'FunnelDataManager'
-      // });
+      if (coordinator) {
+        coordinator.emit({
+          type: 'scroll:load-more',
+          payload: { type: 'general' },
+          priority: 'normal',
+          source: 'FunnelDataManager'
+        });
+      }
 
       fetchNextPage();
     }
-  }, [hasNextPage, isLoadingMore, fetchNextPage]);
+  }, [hasNextPage, isLoadingMore, fetchNextPage, coordinator]);
 
   // Carregar mais dados para etapa específica
   const loadMoreForStage = useCallback(async (stageId: string) => {
@@ -291,6 +401,7 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
           )
         `)
         .eq('kanban_stage_id', stageId)
+        .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
         .order('created_at', { ascending: false })
         .range(stageState.page * pageSize, (stageState.page + 1) * pageSize - 1);
 

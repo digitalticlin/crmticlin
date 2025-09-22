@@ -45,17 +45,41 @@ export const KanbanBoard = ({
 
   // Validar colunas uma vez com memoização
   const validatedColumns = useMemo(() => {
+    console.log('[KanbanBoard] 🔍 Recebendo colunas:', {
+      columns,
+      isArray: Array.isArray(columns),
+      length: columns?.length,
+      firstColumn: columns?.[0]
+    });
+
     if (!Array.isArray(columns)) {
       console.error('[KanbanBoard] ❌ Colunas não são array:', typeof columns);
       return [];
     }
-    
-    const filtered = columns.filter(col => 
-      col && 
-      typeof col.id === 'string' && 
-      typeof col.title === 'string' &&
-      Array.isArray(col.leads)
-    );
+
+    const filtered = columns.filter(col => {
+      const isValid = col &&
+        typeof col.id === 'string' &&
+        typeof col.title === 'string' &&
+        Array.isArray(col.leads);
+
+      if (!isValid) {
+        console.warn('[KanbanBoard] ⚠️ Coluna inválida:', {
+          col,
+          hasId: col?.id,
+          hasTitle: col?.title,
+          hasLeads: Array.isArray(col?.leads)
+        });
+      }
+
+      return isValid;
+    });
+
+    console.log('[KanbanBoard] ✅ Colunas validadas:', {
+      original: columns.length,
+      filtered: filtered.length,
+      filteredColumns: filtered
+    });
 
     return filtered;
   }, [columns]);

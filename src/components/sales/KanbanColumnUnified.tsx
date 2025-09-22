@@ -146,17 +146,34 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
   }, [isLoadingMore, hasMoreLeads, coordinator, column.id, column.leads.length, visibleCount]);
 
   // Handler para toggle AI
-  const handleAIToggle = useCallback((enabled: boolean) => {
+  const handleAIToggle = useCallback(async (enabled: boolean) => {
     if (!isWonLostStage) {
       console.log('[KanbanColumnUnified] 🎛️ Toggle AI:', {
         columnId: column.id,
         columnTitle: column.title,
+        currentEnabled: column.ai_enabled,
         newEnabled: enabled
       });
 
-      toggleAI(column.id, column.ai_enabled === true);
+      const success = await toggleAI(column.id, enabled);
+      console.log('[KanbanColumnUnified] ✅ Toggle AI resultado:', { success });
+
+      // Se sucesso, notificar coordinator para atualizar dados
+      if (success) {
+        coordinator.emit({
+          type: 'realtime:update',
+          payload: {
+            table: 'kanban_stages',
+            eventType: 'UPDATE',
+            new: { ...column, ai_enabled: enabled },
+            old: { ...column }
+          },
+          priority: 'high',
+          source: 'KanbanColumnUnified'
+        });
+      }
     }
-  }, [isWonLostStage, column.id, column.title, column.ai_enabled, toggleAI]);
+  }, [isWonLostStage, column, toggleAI, coordinator]);
 
   // IDs dos leads para SortableContext
   const leadIds = visibleLeads.map(lead => lead.id);

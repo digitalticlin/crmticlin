@@ -88,10 +88,16 @@ export const ColumnHeader = ({
       isWonLostStage,
       isLoading: isTogglingAI
     });
-    
+
     if (!isWonLostStage && !isTogglingAI) {
       const success = await toggleAI(column.id, enabled);
       console.log('[ColumnHeader] ✅ Toggle AI RESULTADO:', { success });
+
+      // Se a atualização foi bem-sucedida, atualizar o estado local
+      if (success) {
+        onUpdate('ai_enabled', enabled);
+        console.log('[ColumnHeader] 🔄 Estado local atualizado:', { ai_enabled: enabled });
+      }
     } else {
       console.log('[ColumnHeader] ❌ Toggle AI BLOQUEADO:', { isWonLostStage, isTogglingAI });
     }

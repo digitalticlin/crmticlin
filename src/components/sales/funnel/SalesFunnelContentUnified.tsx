@@ -17,15 +17,16 @@ import { useAccessControl } from "@/hooks/useAccessControl";
 import { useStageManagement } from "@/hooks/salesFunnel/useStageManagement";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useEnsureDefaultStages } from "@/hooks/salesFunnel/useEnsureDefaultStages";
 
 // Componentes
 import { KanbanBoard } from "../KanbanBoard";
 import { FunnelLoadingState } from "./FunnelLoadingState";
 import { FunnelEmptyState } from "./FunnelEmptyState";
-import { ModernFunnelControlBarUnified } from "./ModernFunnelControlBarUnified";
-import { TagManagementModal } from "./modals/TagManagementModal";
-import { FunnelConfigModal } from "./modals/FunnelConfigModal";
-import { WonLostFilters } from "./WonLostFilters";
+import { ModernFunnelControlBarUnifiedV2 } from "./ModernFunnelControlBarUnifiedV2";
+// Modais removidos - agora gerenciados pelo ModernFunnelControlBarUnifiedV2
+// import { TagManagementModal } from "./modals/TagManagementModal";
+// import { FunnelConfigModal } from "./modals/FunnelConfigModal";
 import { WonLostBoard } from "./WonLostBoard";
 import { RealClientDetails } from "@/components/clients/RealClientDetails";
 import { MassSelectionToolbar } from "../mass-selection/MassSelectionToolbar";
@@ -51,16 +52,19 @@ export function SalesFunnelContentUnified() {
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
 
-  // Estados para filtros
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedUser, setSelectedUser] = useState("");
+  // Estados para filtros - REMOVIDOS (agora no hook coordenador)
+  // Os filtros são gerenciados pelo useFiltersCoordinator dentro do ModernFunnelControlBarUnifiedV2
 
-  // Estados para modais
-  const [activeModal, setActiveModal] = useState<"tags" | "config" | "massDelete" | "massMove" | "massTag" | "massAssign" | null>(null);
+  // Estados para modais de seleção em massa
+  const [activeModal, setActiveModal] = useState<"massDelete" | "massMove" | "massTag" | "massAssign" | null>(null);
+
+  // Estado da visualização - será gerenciado pelo hook coordenador
   const [currentView, setCurrentView] = useState<"board" | "won-lost">("board");
 
   console.log('[SalesFunnelContentUnified] 🚀 Inicializando Sales Funnel UNIFICADO');
+
+  // Garantir que existam etapas padrão no funil
+  useEnsureDefaultStages(selectedFunnel?.id);
 
   // 🎯 HOOK UNIFICADO PRINCIPAL - Substitui 8+ hooks antigos
   const funnel = useSalesFunnelUnified({
@@ -116,28 +120,22 @@ export function SalesFunnelContentUnified() {
     gcTime: 600000
   });
 
-  // Aplicar filtros quando mudam
-  useEffect(() => {
+  // Handler para mudanças de filtros vindos da barra de controle
+  const handleFiltersChange = useCallback((filters: any) => {
     if (!funnel) return;
 
-    const hasFilters = searchTerm || selectedTags.length > 0 || (selectedUser && selectedUser !== "all");
-
-    if (hasFilters) {
-      console.log('[SalesFunnelContentUnified] 🔍 Aplicando filtros:', {
-        searchTerm,
-        selectedTags: selectedTags.length,
-        selectedUser: selectedUser !== "all" ? selectedUser : undefined
-      });
+    if (filters.hasActiveFilters) {
+      console.log('[SalesFunnelContentUnified] 🔍 Aplicando filtros coordenados:', filters);
 
       funnel.applyFilters({
-        searchTerm: searchTerm || undefined,
-        tags: selectedTags.length > 0 ? selectedTags : undefined,
-        assignedUser: (selectedUser && selectedUser !== "all") ? selectedUser : undefined
+        searchTerm: filters.searchTerm || undefined,
+        tags: filters.selectedTags?.length > 0 ? filters.selectedTags : undefined,
+        assignedUser: (filters.selectedUser && filters.selectedUser !== "all") ? filters.selectedUser : undefined
       });
     } else {
       funnel.clearFilters();
     }
-  }, [searchTerm, selectedTags, selectedUser]); // Removido 'funnel' das dependências para evitar loop
+  }, [funnel]);
 
   // Selecionar primeiro funil automaticamente
   useEffect(() => {
@@ -206,13 +204,7 @@ export function SalesFunnelContentUnified() {
     }
   }, [funnel.refreshData]); // Dependência mais específica
 
-  // Handler para limpar filtros (CORRIGINDO VIOLATION DAS RULES OF HOOKS)
-  const handleClearFilters = useCallback(() => {
-    setSearchTerm("");
-    setSelectedTags([]);
-    setSelectedUser("");
-    funnel.clearFilters();
-  }, [funnel.clearFilters]);
+  // Handler removido - agora gerenciado pelo useFiltersCoordinator
 
   // Loading states
   if (accessLoading || funnelLoading) {
@@ -228,42 +220,58 @@ export function SalesFunnelContentUnified() {
   }
 
   // 🔍 Verificação de segurança - DEPOIS de todos os hooks
-  if (!funnel || !funnel.massSelection) {
+  // Garantir que o funnel está inicializado com dados mínimos
+  if (!funnel) {
     console.log('[SalesFunnelContentUnified] ⏳ Aguardando inicialização do hook...');
     return <FunnelLoadingState />;
   }
 
+  // Se não tem massSelection, criar um objeto vazio seguro
+  const safeMassSelection = funnel.massSelection || {
+    isSelectionMode: false,
+    selectedCount: 0,
+    clearSelection: () => {},
+    getSelectedLeadsData: () => [],
+    selectLead: () => {},
+    unselectLead: () => {},
+    toggleLead: () => {},
+    selectAll: () => {},
+    selectStage: () => {},
+    enterSelectionMode: () => {},
+    exitSelectionMode: () => {},
+    getStageSelectionState: () => 'none' as const,
+    isLeadSelected: () => false,
+    canSelect: () => false,
+    canDragWithSelection: () => false,
+    selectedLeads: new Set<string>()
+  };
+
   return (
     <div className="h-full w-full flex flex-col">
-      {/* Control Bar */}
-      <ModernFunnelControlBarUnified
+      {/* Control Bar V2 - Com hooks coordenadores isolados */}
+      <ModernFunnelControlBarUnifiedV2
         funnels={funnels}
         selectedFunnel={selectedFunnel}
         onFunnelSelect={setSelectedFunnel}
         onRefresh={refetchFunnels}
-        onOpenTagModal={() => setActiveModal("tags")}
-        onOpenConfigModal={() => setActiveModal("config")}
+        onRefreshLeads={funnel.refreshData}
+        stages={funnel.columns}
+        massSelection={safeMassSelection}
+        allLeads={funnel.allLeads || []}
+        onFiltersChange={handleFiltersChange}
         currentView={currentView}
         onViewChange={setCurrentView}
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        selectedTags={selectedTags}
-        onTagsChange={setSelectedTags}
-        selectedUser={selectedUser}
-        onUserChange={setSelectedUser}
-        hasActiveFilters={funnel.hasActiveFilters}
-        onClearFilters={handleClearFilters}
       />
 
       {/* Mass Selection Toolbar */}
-      {funnel.massSelection.isSelectionMode && (
+      {safeMassSelection.isSelectionMode && (
         <MassSelectionToolbar
-          selectedCount={funnel.massSelection.selectedCount}
+          selectedCount={safeMassSelection.selectedCount}
           onDelete={() => setActiveModal("massDelete")}
           onMove={() => setActiveModal("massMove")}
           onTag={() => setActiveModal("massTag")}
           onAssignUser={() => setActiveModal("massAssign")}
-          onClearSelection={funnel.massSelection.clearSelection}
+          onClearSelection={safeMassSelection.clearSelection}
         />
       )}
 
@@ -280,50 +288,32 @@ export function SalesFunnelContentUnified() {
                 onOpenLeadDetail={handleOpenLeadDetail}
                 onOpenChat={handleOpenChat}
                 onMoveToWonLost={handleMoveToWonLost}
-                massSelection={funnel.massSelection}
+                massSelection={safeMassSelection}
                 funnelId={selectedFunnel.id}
                 hasActiveFilters={funnel.hasActiveFilters}
               />
             </>
           )
         ) : (
-          <>
-            <WonLostFilters
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              selectedTags={selectedTags}
-              onTagsChange={setSelectedTags}
-            />
-            <WonLostBoard
+          <WonLostBoard
               funnelId={selectedFunnel.id}
               onOpenLeadDetail={handleOpenLeadDetail}
               onOpenChat={handleOpenChat}
               onReturnToFunnel={handleReturnToFunnel}
-              searchTerm={searchTerm}
-              selectedTags={selectedTags}
+              searchTerm={""}
+              selectedTags={[]}
             />
-          </>
         )}
       </div>
 
-      {/* Modals */}
-      <TagManagementModal
-        isOpen={activeModal === "tags"}
-        onClose={() => setActiveModal(null)}
-      />
-
-      <FunnelConfigModal
-        isOpen={activeModal === "config"}
-        onClose={() => setActiveModal(null)}
-        funnelId={selectedFunnel?.id}
-      />
+      {/* Modais de Tags e Config agora são gerenciados pelo ModernFunnelControlBarUnifiedV2 */}
 
       {/* Mass Action Modals */}
-      {funnel?.massSelection && typeof funnel.massSelection === 'object' && (
+      {safeMassSelection && (
         <MassActionWrapper
-          massSelection={funnel.massSelection}
+          massSelection={safeMassSelection}
           onSuccess={() => {
-            funnel.massSelection?.clearSelection();
+            safeMassSelection.clearSelection();
             funnel.refreshData();
           }}
         >
@@ -331,9 +321,9 @@ export function SalesFunnelContentUnified() {
             <MassDeleteModal
               isOpen={activeModal === "massDelete"}
               onClose={() => setActiveModal(null)}
-              selectedLeads={funnel.massSelection?.getSelectedLeadsData?.(funnel.allLeads) || []}
+              selectedLeads={safeMassSelection.getSelectedLeadsData(funnel.allLeads) || []}
               onSuccess={() => {
-                funnel.massSelection?.clearSelection();
+                safeMassSelection.clearSelection();
                 funnel.refreshData();
                 setActiveModal(null);
               }}
@@ -342,9 +332,9 @@ export function SalesFunnelContentUnified() {
             <MassMoveModal
               isOpen={activeModal === "massMove"}
               onClose={() => setActiveModal(null)}
-              selectedLeads={funnel.massSelection?.getSelectedLeadsData?.(funnel.allLeads) || []}
+              selectedLeads={safeMassSelection.getSelectedLeadsData(funnel.allLeads) || []}
               onSuccess={() => {
-                funnel.massSelection?.clearSelection();
+                safeMassSelection.clearSelection();
                 funnel.refreshData();
                 setActiveModal(null);
               }}
@@ -353,9 +343,9 @@ export function SalesFunnelContentUnified() {
             <MassTagModal
               isOpen={activeModal === "massTag"}
               onClose={() => setActiveModal(null)}
-              selectedLeads={funnel.massSelection?.getSelectedLeadsData?.(funnel.allLeads) || []}
+              selectedLeads={safeMassSelection.getSelectedLeadsData(funnel.allLeads) || []}
               onSuccess={() => {
-                funnel.massSelection?.clearSelection();
+                safeMassSelection.clearSelection();
                 funnel.refreshData();
                 setActiveModal(null);
               }}
@@ -364,9 +354,9 @@ export function SalesFunnelContentUnified() {
             <MassAssignUserModal
               isOpen={activeModal === "massAssign"}
               onClose={() => setActiveModal(null)}
-              selectedLeads={funnel.massSelection?.getSelectedLeadsData?.(funnel.allLeads) || []}
+              selectedLeads={safeMassSelection.getSelectedLeadsData(funnel.allLeads) || []}
               onSuccess={() => {
-                funnel.massSelection?.clearSelection();
+                safeMassSelection.clearSelection();
                 funnel.refreshData();
                 setActiveModal(null);
               }}

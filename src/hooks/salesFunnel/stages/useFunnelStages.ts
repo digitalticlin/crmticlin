@@ -76,6 +76,8 @@ export function useFunnelStages({
             .from('kanban_stages')
             .select('*')
             .eq('funnel_id', funnelId)
+            .neq('is_won', true) // Excluir etapa GANHO da aba principal
+            .neq('is_lost', true) // Excluir etapa PERDIDO da aba principal
             .order('order_position', { ascending: true });
 
           if (directError) {

@@ -84,13 +84,13 @@ export function useFunnelLeads({
         if (pageParam === 0) {
           // PRIMEIRA PÁGINA: Buscar 15 leads de cada etapa para distribuição equilibrada
 
-          // Primeiro, buscar todas as etapas do funil
+          // Primeiro, buscar todas as etapas do funil (excluir GANHO e PERDIDO)
           const { data: stages } = await supabase
             .from('kanban_stages')
             .select('id')
             .eq('funnel_id', funnelId)
-            .eq('is_won', false)
-            .eq('is_lost', false);
+            .neq('is_won', true)  // Excluir etapa GANHO da aba principal
+            .neq('is_lost', true); // Excluir etapa PERDIDO da aba principal
 
           if (stages && stages.length > 0) {
             // Buscar 15 leads de cada etapa em paralelo
@@ -111,6 +111,7 @@ export function useFunnelLeads({
                 .eq('funnel_id', funnelId)
                 .eq('created_by_user_id', user.id)
                 .eq('kanban_stage_id', stage.id)
+                .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
                 .in('conversation_status', ['active', 'closed', null])
                 .order('updated_at', { ascending: false })
                 .limit(15)
@@ -147,6 +148,7 @@ export function useFunnelLeads({
               `, { count: 'exact' })
               .eq('funnel_id', funnelId)
               .eq('created_by_user_id', user.id)
+              .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
               .in('conversation_status', ['active', 'closed', null])
               .order('updated_at', { ascending: false })
               .limit(50);
@@ -173,6 +175,7 @@ export function useFunnelLeads({
             `, { count: 'exact' })
             .eq('funnel_id', funnelId)
             .eq('created_by_user_id', user.id)
+            .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
             .in('conversation_status', ['active', 'closed', null])
             .order('updated_at', { ascending: false })
             .range(pageParam * pageSize, (pageParam + 1) * pageSize - 1);

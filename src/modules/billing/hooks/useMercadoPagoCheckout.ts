@@ -10,21 +10,31 @@ export const useMercadoPagoCheckout = () => {
     setLoading(true);
 
     try {
+      // Se for plano gratuito/trial, ativar diretamente no frontend
+      if (plan.is_trial || plan.id === 'free_200') {
+        console.log('[MercadoPago Checkout] Ativando trial gratuito diretamente...');
+
+        const success = await MercadoPagoService.activateFreeTrial(plan);
+
+        if (success) {
+          toast.success('Trial gratuito ativado com sucesso! Você tem 200 mensagens por 30 dias.');
+          // Recarregar página para atualizar dados
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+          return true;
+        } else {
+          toast.error('Erro ao ativar trial gratuito. Tente novamente.');
+          return false;
+        }
+      }
+
+      // Para planos pagos, usar a Edge Function
       const result = await MercadoPagoService.createCheckoutSession(plan);
 
       if (!result) {
         toast.error('Erro ao criar sessão de pagamento');
         return false;
-      }
-
-      // Se for trial gratuito
-      if (result === 'TRIAL_ACTIVATED') {
-        toast.success('Trial gratuito ativado com sucesso! Você tem 200 mensagens por 30 dias.');
-        // Recarregar página para atualizar dados
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
-        return true;
       }
 
       // Redirecionar para checkout do Mercado Pago

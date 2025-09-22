@@ -11,17 +11,16 @@ import { toast } from "sonner";
 interface CreateFunnelModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateFunnel: (name: string, description?: string) => Promise<void>;
+  onCreateFunnel: (name: string) => Promise<void>;
 }
 
 export const CreateFunnelModal = ({ isOpen, onClose, onCreateFunnel }: CreateFunnelModalProps) => {
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim()) {
       toast.error("Nome do funil é obrigatório");
       return;
@@ -29,9 +28,8 @@ export const CreateFunnelModal = ({ isOpen, onClose, onCreateFunnel }: CreateFun
 
     setLoading(true);
     try {
-      await onCreateFunnel(name.trim(), description.trim() || undefined);
+      await onCreateFunnel(name.trim());
       setName("");
-      setDescription("");
       onClose();
       toast.success("Funil criado com sucesso!");
     } catch (error) {
@@ -50,7 +48,6 @@ export const CreateFunnelModal = ({ isOpen, onClose, onCreateFunnel }: CreateFun
             <Zap className="w-8 h-8 text-ticlin-dark" />
           </div>
           <DialogTitle className="text-2xl font-bold text-gray-800">Criar Novo Funil</DialogTitle>
-          <p className="text-gray-600">Configure seu novo funil de vendas</p>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -64,21 +61,8 @@ export const CreateFunnelModal = ({ isOpen, onClose, onCreateFunnel }: CreateFun
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Funil de Vendas Principal"
               required
+              autoFocus
               className="bg-white/50 border-white/30 rounded-2xl h-12 text-gray-800 placeholder-gray-500 focus:bg-white/70 focus:border-ticlin/50 transition-all duration-300"
-            />
-          </div>
-          
-          <div className="space-y-3">
-            <Label htmlFor="funnel-description" className="text-gray-700 font-medium">
-              Descrição (opcional)
-            </Label>
-            <Textarea
-              id="funnel-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descreva o propósito deste funil..."
-              rows={3}
-              className="bg-white/50 border-white/30 rounded-2xl text-gray-800 placeholder-gray-500 focus:bg-white/70 focus:border-ticlin/50 transition-all duration-300 resize-none"
             />
           </div>
 

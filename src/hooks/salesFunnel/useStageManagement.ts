@@ -115,11 +115,13 @@ export function useStageManagement() {
     }
 
     try {
-      // Buscar a próxima posição
+      // Buscar a próxima posição (excluir GANHO e PERDIDO)
       const { data: stages, error: stagesError } = await supabase
         .from("kanban_stages")
         .select("order_position")
         .eq("funnel_id", funnelId)
+        .neq('is_won', true)  // Excluir etapa GANHO da aba principal
+        .neq('is_lost', true) // Excluir etapa PERDIDO da aba principal
         .order("order_position", { ascending: false })
         .limit(1);
 
@@ -256,22 +258,26 @@ export function useStageManagement() {
         return leadData.kanban_stage_id;
       }
 
-      // Buscar a primeira etapa do funil
+      // Buscar a primeira etapa do funil (excluir GANHO e PERDIDO)
       const { data: firstStage } = await supabase
         .from("kanban_stages")
         .select("id")
         .eq("funnel_id", funnelId)
         .eq("title", "Entrada de Leads")
+        .neq('is_won', true)  // Excluir etapa GANHO da aba principal
+        .neq('is_lost', true) // Excluir etapa PERDIDO da aba principal
         .single();
 
       let stageId = firstStage?.id;
 
-      // Se não encontrar "Entrada de Leads", usar a primeira etapa por posição
+      // Se não encontrar "Entrada de Leads", usar a primeira etapa por posição (excluir GANHO e PERDIDO)
       if (!stageId) {
         const { data: stages } = await supabase
           .from("kanban_stages")
           .select("id")
           .eq("funnel_id", funnelId)
+          .neq('is_won', true)  // Excluir etapa GANHO da aba principal
+          .neq('is_lost', true) // Excluir etapa PERDIDO da aba principal
           .order("order_position")
           .limit(1);
 

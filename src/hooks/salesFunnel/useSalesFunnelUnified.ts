@@ -112,7 +112,8 @@ export const useSalesFunnelUnified = (options: FunnelOptions): SalesFunnelUnifie
     funnelId,
     enabled: !!funnelId,
     pageSize,
-    realtime: enableRealtime
+    realtime: enableRealtime,
+    coordinator // Passar coordinator para o dataManager
   });
 
   // Verificar se há filtros ativos
@@ -323,9 +324,23 @@ export const useSalesFunnelUnified = (options: FunnelOptions): SalesFunnelUnifie
     clearFilters,
 
     // Ações de colunas
-    updateColumns: () => {
-      // Implementar se necessário
-      console.log('[SalesFunnelUnified] updateColumns chamado');
+    updateColumns: (newColumns: KanbanColumn[]) => {
+      console.log('[SalesFunnelUnified] 🔄 Atualizando colunas:', newColumns.length);
+
+      // Atualizar o estado do dataManager diretamente
+      // Como dataManager não expõe setColumns, vamos usar refreshData
+      // ou emitir um evento para o coordinator
+      if (coordinator) {
+        coordinator.emit({
+          type: 'dnd:end',
+          payload: { columns: newColumns },
+          priority: 'high',
+          source: 'SalesFunnelUnified'
+        });
+      }
+
+      // Forçar refresh dos dados para garantir sincronização
+      dataManager.refreshData();
     },
 
     // Ações de otimização

@@ -3,6 +3,50 @@ import { MessagePlan } from '../types/billing';
 
 export class MercadoPagoService {
   /**
+   * Ativa trial gratuito diretamente no banco de dados
+   */
+  static async activateFreeTrial(plan: MessagePlan): Promise<boolean> {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        console.error('[MercadoPago] Usuário não autenticado');
+        return false;
+      }
+
+      console.log('[MercadoPago] Ativando trial gratuito para usuário:', user.user.id);
+
+      // Inserir nova assinatura de trial
+      const { data, error } = await supabase
+        .from('plan_subscriptions')
+        .insert({
+          user_id: user.user.id,
+          plan_type: plan.id,
+          plan_name: plan.name,
+          status: 'active',
+          message_limit: plan.message_limit,
+          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 dias
+          is_trial: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[MercadoPago] Erro ao ativar trial:', error);
+        return false;
+      }
+
+      console.log('[MercadoPago] Trial ativado com sucesso:', data);
+      return true;
+
+    } catch (error) {
+      console.error('[MercadoPago] Erro ao ativar trial gratuito:', error);
+      return false;
+    }
+  }
+
+  /**
    * Cria sessão de checkout para plano de mensagens
    */
   static async createCheckoutSession(plan: MessagePlan): Promise<string | null> {

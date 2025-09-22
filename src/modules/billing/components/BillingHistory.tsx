@@ -16,7 +16,6 @@ import {
   Eye,
   AlertTriangle,
   Settings,
-  CreditCard,
   Edit
 } from 'lucide-react';
 import { useBillingData } from '../hooks/useBillingData';
