@@ -44,11 +44,8 @@ export function useFunnelStages({
     queryKey: funnelStagesQueryKeys.byFunnel(funnelId || ''),
     queryFn: async () => {
       if (!funnelId || !user?.id) {
-        console.log('[useFunnelStages] ❌ Sem funil ou usuário');
         return [];
       }
-
-      console.log('[useFunnelStages] 🔍 Buscando etapas para funil:', funnelId);
 
       try {
         // Buscar via funil para contornar possíveis problemas de RLS
@@ -74,8 +71,6 @@ export function useFunnelStages({
           .single();
 
         if (funnelError) {
-          console.error('[useFunnelStages] ❌ Erro ao buscar via funil:', funnelError);
-
           // Fallback: tentar buscar direto
           const { data: directStages, error: directError } = await supabase
             .from('kanban_stages')
@@ -84,11 +79,9 @@ export function useFunnelStages({
             .order('order_position', { ascending: true });
 
           if (directError) {
-            console.error('[useFunnelStages] ❌ Erro no fallback direto:', directError);
             throw directError;
           }
 
-          console.log('[useFunnelStages] ✅ Etapas via fallback:', directStages?.length || 0);
           return directStages || [];
         }
 
@@ -99,16 +92,14 @@ export function useFunnelStages({
           (a.order_position || 0) - (b.order_position || 0)
         );
 
-        console.log('[useFunnelStages] ✅ Etapas encontradas:', {
-          total: sortedStages.length,
-          etapas: sortedStages.map(s => ({
-            id: s.id,
-            title: s.title,
-            order: s.order_position,
-            is_won: s.is_won,
-            is_lost: s.is_lost
-          }))
-        });
+        // Log condicional apenas em desenvolvimento e quando necessário
+        if (process.env.NODE_ENV === 'development' && sortedStages.length > 0) {
+          console.log('[useFunnelStages] ✅ Etapas carregadas:', {
+            total: sortedStages.length,
+            hasWon: sortedStages.some(s => s.is_won),
+            hasLost: sortedStages.some(s => s.is_lost)
+          });
+        }
 
         return sortedStages;
       } catch (error) {
@@ -134,13 +125,7 @@ export function useFunnelStages({
   // Etapas principais (não ganho nem perdido)
   const mainStages = stages.filter(s => !s.is_won && !s.is_lost);
 
-  console.log('[useFunnelStages] 📊 Etapas processadas:', {
-    total: stages.length,
-    main: mainStages.length,
-    wonStageId: wonStage?.id,
-    lostStageId: lostStage?.id,
-    firstStageId: firstStage?.id
-  });
+  // Log removido - evitar loops no render
 
   return {
     // Dados

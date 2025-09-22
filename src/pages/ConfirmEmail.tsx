@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { BackgroundGradient } from "@/components/ui/BackgroundGradient";
 import { supabase } from "@/integrations/supabase/client";
+import { activateFreeTrial } from "@/services/billing";
+import { toast } from "sonner";
 
 export default function ConfirmEmail() {
   const { token } = useParams();
+  const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
 
@@ -29,8 +32,51 @@ export default function ConfirmEmail() {
         
         if (session) {
           // Se o usuário já está autenticado, a confirmação foi bem-sucedida
-          setStatus("success");
-          setMessage("Seu e-mail foi confirmado com sucesso!");
+          console.log('[ConfirmEmail] Usuário autenticado após confirmação');
+
+          // Verificar se há plano pendente
+          const pendingPlan = localStorage.getItem('pending_plan');
+
+          if (pendingPlan === 'free_200') {
+            // Ativar trial gratuito
+            console.log('[ConfirmEmail] Ativando trial gratuito...');
+            setMessage("E-mail confirmado! Ativando seu trial gratuito...");
+
+            const trialActivated = await activateFreeTrial();
+            if (trialActivated) {
+              localStorage.removeItem('pending_plan');
+              toast.success('Trial de 30 dias ativado com sucesso!');
+
+              setTimeout(() => {
+                navigate('/dashboard', { replace: true });
+              }, 2000);
+            } else {
+              setStatus("success");
+              setMessage("E-mail confirmado! Redirecionando para o dashboard...");
+              setTimeout(() => {
+                navigate('/dashboard', { replace: true });
+              }, 2000);
+            }
+
+          } else if (pendingPlan && pendingPlan !== 'free_200') {
+            // Redirecionar para checkout de plano pago
+            console.log('[ConfirmEmail] Redirecionando para checkout:', pendingPlan);
+            setMessage("E-mail confirmado! Redirecionando para pagamento...");
+            localStorage.removeItem('pending_plan');
+
+            setTimeout(() => {
+              navigate(`/checkout?plan=${pendingPlan}`, { replace: true });
+            }, 2000);
+
+          } else {
+            // Sem plano pendente - ir para dashboard
+            setStatus("success");
+            setMessage("Seu e-mail foi confirmado com sucesso!");
+
+            setTimeout(() => {
+              navigate('/dashboard', { replace: true });
+            }, 3000);
+          }
         } else {
           // O Supabase deve ter direcionado o usuário para esta página,
           // mas o processo de confirmação não foi concluído por algum motivo

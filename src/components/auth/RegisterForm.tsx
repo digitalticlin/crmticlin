@@ -2,10 +2,11 @@
 import { useState, ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowRight, CheckCircle, Crown, Star, Zap } from "lucide-react";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -21,8 +22,44 @@ import { PasswordFields } from "./register/PasswordFields";
 
 export default function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [searchParams] = useSearchParams();
   const { signUp } = useAuth();
-  
+
+  const planFromUrl = searchParams.get('plan');
+
+  const getPlanInfo = (planId: string | null) => {
+    switch(planId) {
+      case 'free_200':
+        return {
+          name: 'Teste Grátis',
+          badge: 'bg-gradient-to-r from-green-500 to-green-600',
+          icon: Zap,
+          messages: '200 mensagens por 30 dias',
+          color: 'text-green-700'
+        };
+      case 'pro_5k':
+        return {
+          name: 'Plano Pro',
+          badge: 'bg-gradient-to-r from-purple-500 to-purple-600',
+          icon: Star,
+          messages: '5.000 mensagens/mês',
+          color: 'text-purple-700'
+        };
+      case 'ultra_15k':
+        return {
+          name: 'Plano Ultra',
+          badge: 'bg-gradient-to-r from-yellow-500 to-yellow-600',
+          icon: Crown,
+          messages: '15.000 mensagens/mês',
+          color: 'text-yellow-700'
+        };
+      default:
+        return null;
+    }
+  };
+
+  const planInfo = getPlanInfo(planFromUrl);
+
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -59,7 +96,8 @@ export default function RegisterForm() {
         username: data.username,
         document_id: data.documentId,
         whatsapp: data.whatsapp,
-        role: "admin" // Definindo explicitamente o papel como admin
+        role: "admin", // Definindo explicitamente o papel como admin
+        selected_plan: planFromUrl // Adicionar plano escolhido
       };
       
       console.log('[RegisterForm] Dados do usuário:', userData);
@@ -86,13 +124,26 @@ export default function RegisterForm() {
 
   return (
     <div className="auth-card-scale w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
+      {/* Badge do Plano Escolhido */}
+      {planInfo && (
+        <div className="text-center">
+          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-white text-sm font-semibold ${planInfo.badge}`}>
+            <planInfo.icon className="h-4 w-4" />
+            {planInfo.name}
+          </div>
+          <p className={`text-xs mt-2 font-medium ${planInfo.color}`}>
+            {planInfo.messages}
+          </p>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="space-y-4 text-center animate-scale-in">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
           Criar nova conta
         </h1>
         <p className="text-sm text-gray-700 font-medium">
-          Preencha os campos abaixo para criar sua conta
+          {planInfo ? `Você escolheu o ${planInfo.name}. ` : ''}Preencha os campos abaixo para criar sua conta
         </p>
       </div>
 

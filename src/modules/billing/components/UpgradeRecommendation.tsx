@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TrendingUp, Lightbulb, ArrowRight, Clock, Zap, Crown } from 'lucide-react';
 import { useMessageUsage } from '../hooks/useMessageUsage';
-import { useStripeCheckout } from '../hooks/useStripeCheckout';
+import { useMercadoPagoCheckout } from '../hooks/useMercadoPagoCheckout';
 import { messagePlans, getPlanByType } from '../data/messagePlans';
 
 export const UpgradeRecommendation = () => {
   const { usage, limitCheck, loading } = useMessageUsage();
-  const { createCheckoutSession, loading: checkoutLoading } = useStripeCheckout();
+  const { createCheckoutSession, loading: checkoutLoading } = useMercadoPagoCheckout();
 
   if (loading || !usage || !limitCheck) {
     return null;

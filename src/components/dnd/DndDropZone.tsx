@@ -21,7 +21,11 @@ export const DndDropZone: React.FC<DndDropZoneProps> = ({
     active
   } = useDroppable({
     id,
-    disabled
+    disabled,
+    data: {
+      type: 'column',
+      accepts: ['lead']
+    }
   });
 
   const isDragActive = active !== null;

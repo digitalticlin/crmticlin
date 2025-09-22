@@ -2,7 +2,9 @@ import React, { useCallback, useMemo, useRef } from "react";
 import { MassSelectionToolbar } from "./MassSelectionToolbar";
 import { MassActionWrapper } from "./MassActionWrapper";
 import { PerformanceMonitor } from "./PerformanceMonitor";
-import { useMassSelection, MassSelectionReturn } from "@/hooks/useMassSelection";
+import { MassSelectionCoordinatedReturn as MassSelectionReturn } from "@/hooks/useMassSelectionCoordinated";
+import { useSalesFunnelCoordinator } from "@/components/sales/core/SalesFunnelCoordinator";
+import { useMassSelectionCoordinated } from "@/hooks/useMassSelectionCoordinated";
 import { KanbanLead } from "@/types/kanban";
 
 interface ProductionMassSelectionWrapperProps {
@@ -34,7 +36,8 @@ export const ProductionMassSelectionWrapper = ({
   children,
   performanceMonitoring = false
 }: ProductionMassSelectionWrapperProps) => {
-  const massSelection = useMassSelection();
+  const coordinator = useSalesFunnelCoordinator();
+  const massSelection = useMassSelectionCoordinated(coordinator);
   
   // 🚀 PRODUÇÃO: Throttling para operações custosas
   const throttledCallbacks = useRef({

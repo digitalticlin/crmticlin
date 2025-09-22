@@ -149,16 +149,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (data.user && !data.session) {
         // Email confirmation required
         console.log('[Auth] Confirmação de email necessária');
-        toast.success('Conta criada! Redirecionando para instruções de confirmação...');
-        // Redirect to email confirmation instructions page
+        toast.success('Conta criada! Verifique seu email para confirmar.');
+
+        // Salvar plano escolhido no localStorage para após confirmação
+        if (userData?.selected_plan) {
+          localStorage.setItem('pending_plan', userData.selected_plan);
+        }
+
         setTimeout(() => {
           navigate('/confirm-email', { replace: true });
         }, 2000);
       } else if (data.session) {
         // User is automatically logged in
         console.log('[Auth] Usuário logado automaticamente após registro');
-        toast.success('Conta criada e login realizado com sucesso!');
-        // Redirect will happen via onAuthStateChange
+        const selectedPlan = userData?.selected_plan;
+
+        if (selectedPlan === 'free_200') {
+          // Ativar trial automaticamente
+          console.log('[Auth] Ativando trial gratuito...');
+          toast.success('Conta criada! Ativando trial de 30 dias...');
+
+          // Navegar para dashboard - o trial será ativado via RPC
+          setTimeout(() => {
+            navigate('/dashboard', { replace: true });
+          }, 2000);
+
+        } else if (selectedPlan && selectedPlan !== 'free_200') {
+          // Redirecionar para checkout
+          console.log('[Auth] Redirecionando para checkout:', selectedPlan);
+          toast.success('Conta criada! Redirecionando para pagamento...');
+
+          setTimeout(() => {
+            navigate(`/checkout?plan=${selectedPlan}`, { replace: true });
+          }, 2000);
+
+        } else {
+          // Sem plano selecionado - vai direto pro dashboard
+          toast.success('Conta criada com sucesso!');
+          // Redirect will happen via onAuthStateChange
+        }
       }
       
     } catch (error: any) {

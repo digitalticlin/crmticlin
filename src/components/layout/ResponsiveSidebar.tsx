@@ -95,9 +95,7 @@ export default function ResponsiveSidebar() {
       icon: CreditCard,
       label: "Planos",
       href: "/plans",
-      comingSoon: true,
-      badgeIcon: Wrench,
-      disabledReason: 'Revisando planos e faturamento. Em breve disponível.',
+      comingSoon: false,
       requiredPermission: null // Todos podem acessar
     },
     {

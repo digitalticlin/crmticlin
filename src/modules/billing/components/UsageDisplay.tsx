@@ -64,7 +64,7 @@ export const UsageDisplay = () => {
                 Mensagens Utilizadas
               </span>
               <span className="text-sm text-muted-foreground">
-                {limitCheck.current_usage.toLocaleString()} de {limitCheck.plan_limit.toLocaleString()}
+                {(limitCheck?.current_usage || 0).toLocaleString()} de {(limitCheck?.plan_limit || 0).toLocaleString()}
               </span>
             </div>
             <Progress 
@@ -73,7 +73,7 @@ export const UsageDisplay = () => {
             />
             <div className="flex justify-between mt-1 text-xs text-muted-foreground">
               <span>{limitCheck.percentage_used.toFixed(1)}% utilizado</span>
-              <span>{limitCheck.remaining.toLocaleString()} restantes</span>
+              <span>{(limitCheck?.remaining || 0).toLocaleString()} restantes</span>
             </div>
           </div>
 
@@ -85,10 +85,10 @@ export const UsageDisplay = () => {
                 <span className="text-sm font-medium">Enviadas</span>
               </div>
               <p className="text-2xl font-bold text-green-500">
-                {usage.messages_sent_count.toLocaleString()}
+                {(usage?.messages_sent_count || 0).toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground">
-                {((usage.messages_sent_count / limitCheck.current_usage) * 100).toFixed(0)}% do total
+                {(((usage?.messages_sent_count || 0) / (limitCheck?.current_usage || 1)) * 100).toFixed(0)}% do total
               </p>
             </div>
             
@@ -98,7 +98,7 @@ export const UsageDisplay = () => {
                 <span className="text-sm font-medium">Recebidas</span>
               </div>
               <p className="text-2xl font-bold text-blue-500">
-                {usage.messages_received_count.toLocaleString()}
+                {(usage?.messages_received_count || 0).toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground">
                 {((usage.messages_received_count / limitCheck.current_usage) * 100).toFixed(0)}% do total
@@ -111,7 +111,7 @@ export const UsageDisplay = () => {
                 <span className="text-sm font-medium">Média Diária</span>
               </div>
               <p className="text-2xl font-bold text-purple-500">
-                {dailyAverage.toLocaleString()}
+                {(dailyAverage || 0).toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground">
                 mensagens/dia
@@ -140,7 +140,7 @@ export const UsageDisplay = () => {
                 <span className="text-sm font-medium">Projeção de Uso Elevado</span>
               </div>
               <p className="text-xs text-orange-600/80 dark:text-orange-400/80 mt-1">
-                No ritmo atual, você pode usar {projectedMonthly.toLocaleString()} mensagens este mês
+                No ritmo atual, você pode usar {(projectedMonthly || 0).toLocaleString()} mensagens este mês
               </p>
             </div>
           )}

@@ -22,6 +22,10 @@ interface WhatsAppContactsListProps {
   onSearch?: (query: string) => Promise<void>;
 }
 
+interface FilterState {
+  type: 'all' | 'unread';
+}
+
 export const WhatsAppContactsList = React.memo(({
   contacts,
   selectedContact,
@@ -36,7 +40,8 @@ export const WhatsAppContactsList = React.memo(({
   onSearch
 }: WhatsAppContactsListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeFilter, setActiveFilter] = useState<'all' | 'unread'>('all');
+  const [isSearching, setIsSearching] = useState(false);
 
   // Funções para fechar e excluir conversas
   const handleDeleteConversation = useCallback(async (contactId: string) => {
@@ -176,14 +181,16 @@ export const WhatsAppContactsList = React.memo(({
             <Input
               placeholder="Buscar conversas..."
               value={searchQuery}
-              onChange={(e) => {
+              onChange={async (e) => {
                 const q = e.target.value;
                 console.log('[WhatsAppContactsList] Search query changed:', q);
                 setSearchQuery(q);
+                setIsSearching(true);
                 if (onSearch) {
                   console.log('[WhatsAppContactsList] Calling onSearch with query:', q);
-                  onSearch(q);
+                  await onSearch(q);
                 }
+                setIsSearching(false);
               }}
               className="pl-10 pr-10 bg-white/20 border-white/30 text-gray-800 placeholder:text-gray-600 h-9"
             />
@@ -191,7 +198,12 @@ export const WhatsAppContactsList = React.memo(({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={clearSearch}
+                onClick={async () => {
+                  clearSearch();
+                  if (onSearch) {
+                    await onSearch('');
+                  }
+                }}
                 className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0 text-gray-600 hover:text-gray-800"
               >
                 ×
@@ -248,11 +260,11 @@ export const WhatsAppContactsList = React.memo(({
       </div>
 
       {/* Loading indicator fixo */}
-      {isLoading && contacts.length === 0 && (
+      {(isLoading || isSearching) && contacts.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-sm">
           <div className="flex items-center space-x-2 text-gray-800">
             <RefreshCw className="h-5 w-5 animate-spin" />
-            <span>Carregando conversas...</span>
+            <span>{isSearching ? 'Buscando...' : 'Carregando conversas...'}</span>
           </div>
         </div>
       )}

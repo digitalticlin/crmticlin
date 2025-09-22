@@ -192,6 +192,69 @@ serve(async (req)=>{
     });
     // ✅ CLIENTE SUPABASE COM SERVICE ROLE (BYPASS RLS)
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // 🎯 NOVA VERIFICAÇÃO: LIMITE DE MENSAGENS AI
+    console.log('[AI Messaging Service] 🔍 Verificando limite de mensagens AI...');
+
+    const { data: usageCheck, error: usageError } = await supabase.rpc(
+      'check_and_increment_ai_usage',
+      {
+        p_user_id: createdByUserId,
+        p_increment: false // Primeiro só verifica
+      }
+    );
+
+    if (usageError) {
+      console.error('[AI Messaging Service] ❌ Erro ao verificar uso:', usageError);
+    } else if (!usageCheck.allowed) {
+      console.error('[AI Messaging Service] ❌ Limite de mensagens atingido:', usageCheck);
+
+      // Retornar erro específico baseado no motivo
+      if (usageCheck.reason === 'PLATFORM_BLOCKED') {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Plataforma bloqueada por inadimplência',
+          code: 'PLATFORM_BLOCKED',
+          blocked_since: usageCheck.blocked_since,
+          message: 'Regularize seu pagamento para continuar usando o sistema'
+        }), {
+          status: 402, // Payment Required
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } else if (usageCheck.reason === 'LIMIT_EXCEEDED') {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Limite de mensagens AI atingido',
+          code: 'LIMIT_EXCEEDED',
+          usage: {
+            used: usageCheck.used,
+            limit: usageCheck.limit,
+            percentage: usageCheck.percentage
+          },
+          message: 'Faça upgrade do seu plano para enviar mais mensagens'
+        }), {
+          status: 429, // Too Many Requests
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } else if (usageCheck.reason === 'NO_ACTIVE_PLAN') {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Nenhum plano ativo encontrado',
+          code: 'NO_ACTIVE_PLAN',
+          message: 'Contrate um plano para usar mensagens AI'
+        }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    console.log('[AI Messaging Service] ✅ Limite verificado:', {
+      used: usageCheck?.used,
+      limit: usageCheck?.limit,
+      percentage: usageCheck?.percentage,
+      plan_type: usageCheck?.is_trial ? 'trial' : 'paid'
+    });
     // ✅ VALIDAÇÃO DE SEGURANÇA: Verificar se instância pertence ao usuário
     const { data: instanceData, error: instanceError } = await supabase.from('whatsapp_instances').select('id, vps_instance_id, instance_name, connection_status, created_by_user_id').eq('id', instanceId).eq('created_by_user_id', createdByUserId).single();
     if (instanceError || !instanceData) {
@@ -392,6 +455,27 @@ serve(async (req)=>{
         }
       });
     }
+    // 🎯 INCREMENTAR CONTADOR DE USO
+    console.log('[AI Messaging Service] 📊 Incrementando contador de uso...');
+
+    const { data: incrementResult, error: incrementError } = await supabase.rpc(
+      'check_and_increment_ai_usage',
+      {
+        p_user_id: createdByUserId,
+        p_increment: true
+      }
+    );
+
+    if (incrementError) {
+      console.error('[AI Messaging Service] ⚠️ Erro ao incrementar uso:', incrementError);
+    } else {
+      console.log('[AI Messaging Service] ✅ Uso incrementado com sucesso:', {
+        used: incrementResult?.used,
+        limit: incrementResult?.limit,
+        remaining: incrementResult?.remaining
+      });
+    }
+
     console.log('[AI Messaging Service] ✅ Mensagem enviada com sucesso pela VPS:', {
       success: vpsData.success,
       messageId: vpsData.messageId || 'N/A',

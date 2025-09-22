@@ -34,7 +34,7 @@ const PlansTabContent = ({ currentPlan }: PlansTabContentProps) => {
         <div className="flex flex-wrap justify-center gap-4">
           <Badge className="bg-green-100 text-green-700 px-3 py-1">
             <Shield className="h-4 w-4 mr-1" />
-            7 dias grátis
+            30 dias grátis
           </Badge>
           <Badge className="bg-blue-100 text-blue-700 px-3 py-1">
             <Clock className="h-4 w-4 mr-1" />
@@ -98,22 +98,28 @@ const PlansTabContent = ({ currentPlan }: PlansTabContentProps) => {
                 
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Usuários</td>
-                  <td className="text-center py-3 px-2">2</td>
-                  <td className="text-center py-3 px-2">
-                    <span className="text-green-600 font-semibold">Ilimitados</span>
-                  </td>
-                  <td className="text-center py-3 px-2">
-                    <span className="text-green-600 font-semibold">Ilimitados</span>
-                  </td>
+                  {messagePlans.map(plan => (
+                    <td key={plan.id} className="text-center py-3 px-2">
+                      {plan.max_users === -1 ? (
+                        <span className="text-green-600 font-semibold">Ilimitados</span>
+                      ) : (
+                        <span className="font-bold">{plan.max_users}</span>
+                      )}
+                    </td>
+                  ))}
                 </tr>
-                
+
                 <tr className="border-b">
                   <td className="py-3 px-2 font-medium">Números WhatsApp</td>
-                  <td className="text-center py-3 px-2">1</td>
-                  <td className="text-center py-3 px-2">3</td>
-                  <td className="text-center py-3 px-2">
-                    <span className="text-green-600 font-semibold">Ilimitados</span>
-                  </td>
+                  {messagePlans.map(plan => (
+                    <td key={plan.id} className="text-center py-3 px-2">
+                      {plan.max_whatsapp_numbers === -1 ? (
+                        <span className="text-green-600 font-semibold">Ilimitados</span>
+                      ) : (
+                        <span className="font-bold">{plan.max_whatsapp_numbers}</span>
+                      )}
+                    </td>
+                  ))}
                 </tr>
                 
                 <tr>
@@ -148,30 +154,44 @@ const PlansTabContent = ({ currentPlan }: PlansTabContentProps) => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
+              <h4 className="font-semibold mb-2">🆓 Como funciona o trial de 30 dias?</h4>
+              <p className="text-sm text-muted-foreground">
+                Teste grátis por 30 dias com 200 mensagens IA. Sem cartão de crédito. Apenas uma vez por usuário.
+              </p>
+            </div>
+
+            <div>
               <h4 className="font-semibold mb-2">💳 Posso mudar de plano a qualquer momento?</h4>
               <p className="text-sm text-muted-foreground">
                 Sim! Faça upgrade ou downgrade instantaneamente. Mudanças são aplicadas imediatamente com cobrança proporcional.
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-2">🚫 O que acontece se exceder o limite?</h4>
               <p className="text-sm text-muted-foreground">
                 Suas mensagens são pausadas temporariamente. Você recebe avisos aos 75% e 90% do limite para fazer upgrade.
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-2">📊 As mensagens acumulam?</h4>
               <p className="text-sm text-muted-foreground">
                 Não, o limite renova todo mês. Cada ciclo você recebe seu limite completo novamente.
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-2">🔒 Posso cancelar quando quiser?</h4>
               <p className="text-sm text-muted-foreground">
                 Sim! Cancele a qualquer momento. Sem multas ou taxas. Você mantém acesso até o fim do período pago.
+              </p>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-2">💰 Qual meio de pagamento vocês aceitam?</h4>
+              <p className="text-sm text-muted-foreground">
+                Cartão de crédito, PIX e boleto bancário. Processamento seguro via Mercado Pago.
               </p>
             </div>
           </div>

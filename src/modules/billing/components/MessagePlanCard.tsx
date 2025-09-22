@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, ArrowRight, Crown, Zap, Star } from 'lucide-react';
-import { useStripeCheckout } from '../hooks/useStripeCheckout';
+import { useMercadoPagoCheckout } from '../hooks/useMercadoPagoCheckout';
 
 interface MessagePlanCardProps {
   plan: MessagePlan;
@@ -13,10 +13,11 @@ interface MessagePlanCardProps {
 }
 
 export const MessagePlanCard = ({ plan, currentPlan, isPopular }: MessagePlanCardProps) => {
-  const { loading, createCheckoutSession } = useStripeCheckout();
+  const { loading, createCheckoutSession } = useMercadoPagoCheckout();
   const isCurrentPlan = currentPlan === plan.id;
-  const isUltra = plan.id === 'messages_15k';
-  const isProfessional = plan.id === 'messages_5k';
+  const isUltra = plan.id === 'ultra_15k';
+  const isProfessional = plan.id === 'pro_5k';
+  const isFree = plan.id === 'free_200';
 
   const handleSelectPlan = () => {
     if (!isCurrentPlan) {

@@ -20,6 +20,7 @@ import { useChatFilters } from '@/hooks/shared/filters';
 // Hooks isolados NOVOS (React Query)
 import { useWhatsAppInstances } from './useWhatsAppInstances';
 import { useWhatsAppContacts } from './useWhatsAppContactsInfinite'; // SCROLL INFINITO VERSION
+import { useWhatsAppContactsSearch } from './useWhatsAppContactsSearch'; // HOOK ISOLADO DE BUSCA
 import { useWhatsAppMessages } from './chat/useWhatsAppMessages'; // REACT QUERY VERSION
 import { useContactsRealtime } from './realtime/useContactsRealtime'; // REAL-TIME ISOLADO PARA CONTATOS
 import { useMessagesRealtime } from './realtime/useMessagesRealtime'; // REAL-TIME ISOLADO PARA MENSAGENS
@@ -97,12 +98,28 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
   // Estado compartilhado mínimo
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'unread'>('all');
   
   // Hooks isolados COM REACT QUERY
   const instances = useWhatsAppInstances();
-  const contacts = useWhatsAppContacts({ 
-    activeInstanceId: instances.activeInstance?.id 
+
+  // Usar hook normal quando não há busca
+  const normalContacts = useWhatsAppContacts({
+    activeInstanceId: instances.activeInstance?.id
   });
+
+  // Usar hook de busca quando há filtros
+  const searchContacts = useWhatsAppContactsSearch({
+    activeInstanceId: instances.activeInstance?.id,
+    searchTerm: searchQuery,
+    filterType: filterType,
+    enabled: !!searchQuery || filterType !== 'all'
+  });
+
+  // Escolher qual hook usar baseado nos filtros
+  const hasFilters = !!searchQuery || filterType !== 'all';
+  const contacts = hasFilters ? searchContacts : normalContacts;
   
   // Adapter para compatibilidade
   const adaptedActiveInstance = useMemo(() => {
@@ -440,7 +457,10 @@ export const useWhatsAppChat = (): UseWhatsAppChatReturn => {
     totalContactsAvailable: contacts.totalContactsAvailable,
     loadMoreContacts: contacts.loadMoreContacts,
     refreshContacts: contacts.refreshContacts,
-    searchContacts: contacts.searchContacts,
+    searchContacts: async (query: string) => {
+      console.log('[WhatsApp Chat] 🔍 Definindo query de busca:', query);
+      setSearchQuery(query);
+    },
     
     // Mensagens via React Query
     messages: messages.messages,

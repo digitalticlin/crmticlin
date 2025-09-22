@@ -30,16 +30,7 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
     ? `${displayName.substring(0, 25)}...` 
     : displayName;
 
-  console.log('[LeadCardHeader] Debug profile pic & unread messages:', {
-    leadName: lead.name,
-    profile_pic_url: lead.profile_pic_url,
-    avatar: lead.avatar,
-    finalAvatarSrc: lead.profile_pic_url || '/avatar-lead.png',
-    unreadCount: lead.unreadCount,
-    unread_count: lead.unread_count,
-    finalUnreadCount: unreadCount,
-    hasUnreadMessages
-  });
+  // Logs removidos - evitar loops no render
 
   return (
     <div className="flex items-center gap-2 mb-2">

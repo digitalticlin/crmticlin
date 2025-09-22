@@ -75,18 +75,14 @@ export function useFunnelLeads({
     queryKey: funnelLeadsQueryKeys.byFunnel(funnelId || '', user?.id || ''),
     queryFn: async ({ pageParam = 0 }) => {
       if (!funnelId || !user?.id) {
-        console.log('[useFunnelLeads] ❌ Sem funil ou usuário');
         return { leads: [], nextPage: null, totalCount: 0 };
       }
-
-      console.log('[useFunnelLeads] 🔍 Buscando leads COM TAGS - página:', pageParam);
 
       try {
         let data, error, count;
 
         if (pageParam === 0) {
           // PRIMEIRA PÁGINA: Buscar 15 leads de cada etapa para distribuição equilibrada
-          console.log('[useFunnelLeads] 🎯 Primeira página - distribuindo 15 leads por etapa');
 
           // Primeiro, buscar todas as etapas do funil
           const { data: stages } = await supabase
@@ -127,14 +123,13 @@ export function useFunnelLeads({
             error = results.find(result => result.error)?.error || null;
             count = data.length;
 
-            console.log('[useFunnelLeads] ✅ Leads distribuídos por etapa:', {
-              etapas: stages.length,
-              totalLeads: data.length,
-              distribuicao: results.map((result, index) => ({
-                stageId: stages[index].id,
-                leads: result.data?.length || 0
-              }))
-            });
+            // Log condicional para debugging apenas quando necessário
+            if (process.env.NODE_ENV === 'development' && data.length > 0) {
+              console.log('[useFunnelLeads] ✅ Leads distribuídos:', {
+                etapas: stages.length,
+                totalLeads: data.length
+              });
+            }
           } else {
             // Fallback se não encontrar etapas
             const result = await supabase
@@ -162,7 +157,6 @@ export function useFunnelLeads({
           }
         } else {
           // PÁGINAS SEGUINTES: Scroll infinito normal com 20 leads
-          console.log('[useFunnelLeads] 📜 Scroll infinito - página:', pageParam);
 
           const result = await supabase
             .from('leads')
@@ -199,21 +193,7 @@ export function useFunnelLeads({
           ? (data?.length || 0) > 0 && totalCount > data?.length
           : ((pageParam + 1) * pageSize) < totalCount;
 
-        console.log('[useFunnelLeads] 📊 Detalhes da página:', {
-          pageParam,
-          pageSize,
-          leadsRetornados: data?.length || 0,
-          totalCount,
-          hasMore,
-          isPrimeiraPagina: pageParam === 0
-        });
-
-        console.log('[useFunnelLeads] ✅ Leads encontrados:', {
-          página: pageParam,
-          leads: data?.length || 0,
-          total: totalCount,
-          hasMore
-        });
+        // Log removido - evitar loops no render
 
         // Formatar leads com tags processadas
         const formattedLeads: KanbanLead[] = (data as LeadWithTags[] || []).map(lead => {
@@ -229,10 +209,7 @@ export function useFunnelLeads({
             return null;
           }).filter((tag): tag is KanbanTag => tag !== null) || [];
 
-          // Log para debug de tags
-          if (tags.length > 0) {
-            console.log(`[useFunnelLeads] 📌 Lead "${lead.name}" tem ${tags.length} tags:`, tags.map(t => t.name));
-          }
+          // Tags já processadas
 
           return {
             id: lead.id,
@@ -265,12 +242,7 @@ export function useFunnelLeads({
           };
         });
 
-        console.log('[useFunnelLeads] ✅ Leads formatados com tags:', {
-          página: pageParam,
-          total: formattedLeads.length,
-          comTags: formattedLeads.filter(l => l.tags && l.tags.length > 0).length,
-          semTags: formattedLeads.filter(l => !l.tags || l.tags.length === 0).length
-        });
+        // Log removido - evitar loops no render
 
         return {
           leads: formattedLeads,
@@ -283,7 +255,7 @@ export function useFunnelLeads({
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: !!funnelId && !!user?.id && enabled,
+    enabled: Boolean(funnelId && user?.id && enabled),
     staleTime: 0, // Sempre considerar dados como stale para garantir atualização
     gcTime: 5 * 60 * 1000, // 5 minutos
     refetchOnWindowFocus: true, // ✅ HABILITADO - refetch ao focar para resolver problema inicial

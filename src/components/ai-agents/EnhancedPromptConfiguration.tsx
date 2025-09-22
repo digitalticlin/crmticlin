@@ -306,8 +306,8 @@ export const EnhancedPromptConfiguration = ({
         valorNovo: freshPromptData[fieldKey] ? `PREENCHIDO (${Array.isArray(freshPromptData[fieldKey]) ? freshPromptData[fieldKey].length : freshPromptData[fieldKey].length} items/chars)` : 'VAZIO'
       });
       
-      // Skip saving for now to avoid type errors
-      console.log('✅ EnhancedPrompt - Dados seriam persistidos:', freshPromptData);
+      // Chamar função de salvamento do modal principal
+      await onSave({ fromTab: 'prompt', skipRedirect: true });
       console.log('✅ EnhancedPrompt - Dados persistidos no banco com sucesso');
       
       // Se foi configuração de funil, recarregar status

@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { KanbanLead } from '@/types/kanban';
 import { funnelLeadsQueryKeys } from './useFunnelLeads';
+import { funnelLeadsFilteredQueryKeys } from './useFunnelLeadsFiltered';
 
 interface UseLeadsRealtimeParams {
   funnelId: string | null;
@@ -49,20 +50,17 @@ export function useLeadsRealtime({
 
   // Função para pausar real-time (usada durante drag)
   const pauseRealtime = useCallback(() => {
-    console.log('[useLeadsRealtime] ⏸️ Pausando real-time');
     isPausedRef.current = true;
   }, []);
 
   // Função para retomar real-time
   const resumeRealtime = useCallback(() => {
-    console.log('[useLeadsRealtime] ▶️ Retomando real-time');
     isPausedRef.current = false;
   }, []);
 
   // Função para atualizar lead no cache com debounce
   const debouncedUpdateLead = useCallback((leadId: string, leadData: any) => {
     if (isDragging()) {
-      console.log('[useLeadsRealtime] 🚫 Ignorando update durante drag');
       return;
     }
 
@@ -74,25 +72,14 @@ export function useLeadsRealtime({
 
     const timer = setTimeout(() => {
       if (!isDragging()) {
-        console.log('[useLeadsRealtime] 🔄 Atualizando lead:', leadId);
-
-        queryClient.setQueryData(
-          funnelLeadsQueryKeys.byFunnel(funnelId || '', user?.id || ''),
-          (oldData: KanbanLead[] | undefined) => {
-            if (!oldData) return oldData;
-
-            return oldData.map(lead =>
-              lead.id === leadId
-                ? {
-                    ...lead,
-                    ...leadData,
-                    // Manter tags existentes se não vieram no update
-                    tags: leadData.tags || lead.tags
-                  }
-                : lead
-            );
+        // ✅ INVALIDAÇÃO INTELIGENTE: Invalidar qualquer cache que contenha 'leads'
+        // Isso pega AMBOS os hooks sem criar dependências
+        queryClient.invalidateQueries({
+          predicate: (query) => {
+            const key = query.queryKey[0] as string;
+            return key && (key.includes('salesfunnel-leads') || key.includes('salesfunnel-leads-filtered'));
           }
-        );
+        });
       }
       debounceTimers.current.delete(key);
     }, 300); // 300ms de debounce
@@ -103,11 +90,8 @@ export function useLeadsRealtime({
   // Função para adicionar novo lead
   const addNewLeadToCache = useCallback(async (leadData: any) => {
     if (isDragging()) {
-      console.log('[useLeadsRealtime] 🚫 Ignorando novo lead durante drag');
       return;
     }
-
-    console.log('[useLeadsRealtime] ➕ Novo lead detectado:', leadData.name);
 
     try {
       // Buscar as tags do lead recém-criado
@@ -152,21 +136,13 @@ export function useLeadsRealtime({
         tags: leadWithTags.lead_tags?.map((lt: any) => lt.tags).filter(Boolean) || []
       };
 
-      // Adicionar ao cache
-      queryClient.setQueryData(
-        funnelLeadsQueryKeys.byFunnel(funnelId || '', user?.id || ''),
-        (oldData: KanbanLead[] | undefined) => {
-          if (!oldData) return [formattedLead];
-
-          // Verificar se já existe (evitar duplicatas)
-          const exists = oldData.some(lead => lead.id === formattedLead.id);
-          if (exists) return oldData;
-
-          // Adicionar no início (novos leads aparecem primeiro)
-          console.log('[useLeadsRealtime] ✅ Novo lead adicionado ao cache');
-          return [formattedLead, ...oldData];
+      // ✅ INVALIDAÇÃO INTELIGENTE: Novo lead afeta ambos os caches
+      queryClient.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0] as string;
+          return key && (key.includes('salesfunnel-leads') || key.includes('salesfunnel-leads-filtered'));
         }
-      );
+      });
 
       // Callback opcional
       if (onNewLead) {
@@ -181,11 +157,8 @@ export function useLeadsRealtime({
   // Configurar real-time
   useEffect(() => {
     if (!funnelId || !user?.id || !enabled) {
-      console.log('[useLeadsRealtime] ❌ Condições não atendidas');
       return;
     }
-
-    console.log('[useLeadsRealtime] 🚀 Configurando real-time para funil:', funnelId);
 
     // Limpar canal anterior
     if (channelRef.current) {
@@ -210,7 +183,6 @@ export function useLeadsRealtime({
 
           // Verificar se é do usuário atual (segurança)
           if (leadData.created_by_user_id === user.id) {
-            console.log('[useLeadsRealtime] 📨 Novo lead INSERT:', leadData.name);
             addNewLeadToCache(leadData);
           }
         }
@@ -228,8 +200,6 @@ export function useLeadsRealtime({
 
           // Verificar se é do usuário atual (segurança)
           if (leadData.created_by_user_id === user.id) {
-            console.log('[useLeadsRealtime] 🔄 Lead UPDATE:', leadData.name);
-
             // Só atualizar dados, NÃO mover ao topo
             debouncedUpdateLead(leadData.id, {
               name: leadData.name,
@@ -263,7 +233,6 @@ export function useLeadsRealtime({
         },
         (payload) => {
           const leadData = payload.old;
-          console.log('[useLeadsRealtime] 🗑️ Lead DELETE:', leadData.id);
 
           queryClient.setQueryData(
             funnelLeadsQueryKeys.byFunnel(funnelId, user.id),
@@ -274,9 +243,7 @@ export function useLeadsRealtime({
           );
         }
       )
-      .subscribe((status) => {
-        console.log('[useLeadsRealtime] 📡 Status:', status);
-      });
+      .subscribe();
 
     channelRef.current = channel;
 

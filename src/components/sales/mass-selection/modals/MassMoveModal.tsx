@@ -33,11 +33,7 @@ export const MassMoveModal = ({
   selectedLeads,
   onSuccess
 }: MassMoveModalProps) => {
-  console.log('[MassMoveModal] 📦 Props recebidas:', {
-    isOpen,
-    selectedLeads: selectedLeads?.length || 0,
-    leadsData: selectedLeads?.map(l => ({ id: l.id, name: l.name })) || []
-  });
+  // Log removido - evitar loops no render
   const [isMoving, setIsMoving] = useState(false);
   const [funnels, setFunnels] = useState<FunnelOption[]>([]);
   const [stages, setStages] = useState<StageOption[]>([]);
@@ -98,11 +94,12 @@ export const MassMoveModal = ({
   }, [selectedFunnel]);
 
   const handleMove = async () => {
-    console.log('[MassMoveModal] 🚀 Iniciando movimentação:', {
+    console.log('[MassMoveModal] 🚀 INICIANDO MOVIMENTAÇÃO EM MASSA:', {
       selectedStage,
       selectedFunnel,
       selectedCount,
-      leadIds: selectedLeads.map(l => l.id)
+      leadIds: selectedLeads.map(l => l.id),
+      timestamp: new Date().toISOString()
     });
     
     if (!selectedStage || !selectedFunnel || selectedCount === 0) {
@@ -140,28 +137,54 @@ export const MassMoveModal = ({
       if (result.success) {
         const selectedStageName = stages.find(s => s.id === selectedStage)?.title;
         const selectedFunnelName = funnels.find(f => f.id === selectedFunnel)?.name;
-        
+
         if (result.totalProcessed === selectedCount) {
           // Sucesso total
+          console.log('[MassMoveModal] ✅✅ MOVIMENTAÇÃO EM MASSA CONFIRMADA:', {
+            totalMovidos: result.totalProcessed,
+            destino: `${selectedStageName} - ${selectedFunnelName}`,
+            leadIds: leadIds,
+            timestamp: new Date().toISOString()
+          });
+
           toast.success(
             `${result.totalProcessed} lead${result.totalProcessed > 1 ? 's' : ''} movido${result.totalProcessed > 1 ? 's' : ''} para "${selectedStageName}" em "${selectedFunnelName}"!`
           );
         } else {
           // Sucesso parcial
+          console.log('[MassMoveModal] ⚠️ MOVIMENTAÇÃO PARCIAL:', {
+            processados: result.totalProcessed,
+            total: selectedCount,
+            destino: `${selectedStageName} - ${selectedFunnelName}`,
+            timestamp: new Date().toISOString()
+          });
+
           toast.success(result.message, {
             description: `${result.totalProcessed} de ${selectedCount} leads foram movidos com sucesso.`
           });
         }
-        
+
+        console.log('[MassMoveModal] 🏁 PROCESSO FINALIZADO COM SUCESSO');
+
         onSuccess();
         onClose();
       } else {
+        console.error('[MassMoveModal] ❌ ERRO NA MOVIMENTAÇÃO EM MASSA:', {
+          erro: result.message,
+          leadIds: leadIds,
+          timestamp: new Date().toISOString()
+        });
+
         toast.error(result.message);
       }
     } catch (error) {
-      console.error('Erro ao mover leads:', error);
+      console.error('[MassMoveModal] 🔴 ERRO INESPERADO:', error, {
+        leadIds: selectedLeads.map(l => l.id),
+        timestamp: new Date().toISOString()
+      });
       toast.error('Erro inesperado ao mover leads');
     } finally {
+      console.log('[MassMoveModal] 🆓 LIMPANDO ESTADO DA MODAL');
       setIsMoving(false);
       setShowProgress(false);
       setBatchProgress(null);

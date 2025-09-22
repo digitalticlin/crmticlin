@@ -106,21 +106,15 @@ serve(async (req)=>{
       });
     }
     const body = await req.text();
-    console.log('[Webhook] 📨 Recebendo webhook:', {
-      method: req.method,
-      contentLength: body.length,
-      timestamp: new Date().toISOString()
-    });
+    // Log removido - recebimento webhook
     // Verificação de signature (TEMPORARIAMENTE FLEXÍVEL)
     const signature = req.headers.get('x-webhook-signature');
-    console.log('[Webhook] 🔑 Signature recebida:', !!signature);
+    // Log removido - signature
     if (webhookSecret && signature) {
       const isValid = verifyWebhookSignature(body, signature, webhookSecret);
       if (!isValid) {
         console.error('[Webhook] ❌ Signature inválida - MAS CONTINUANDO TEMPORARIAMENTE');
       }
-    } else {
-      console.log('[Webhook] ⚠️ Sem verificação de signature - MODO DESENVOLVIMENTO');
     }
     const webhookData = JSON.parse(body);
     const sanitizedData = sanitizeInput(webhookData);
@@ -132,48 +126,8 @@ serve(async (req)=>{
       sanitizedData.mediabase64 || sanitizedData.mediaData || sanitizedData.base64Data || sanitizedData.media || sanitizedData.buffer || sanitizedData.content || sanitizedData.data?.buffer || sanitizedData.data?.base64 || sanitizedData.message?.media || sanitizedData.data?.mediaData),
       timestamp: new Date().toISOString()
     });
-    // 🚨 DEBUG: Log completo dos dados recebidos
-    console.log('[Webhook] 📋 PAYLOAD COMPLETO VPS:', {
-      allKeys: Object.keys(sanitizedData),
-      messageType: sanitizedData.messageType,
-      mediaBase64_exists: !!sanitizedData.mediaBase64,
-      mediabase64_exists: !!sanitizedData.mediabase64,
-      mediaData_exists: !!sanitizedData.mediaData,
-      base64Data_exists: !!sanitizedData.base64Data,
-      media_exists: !!sanitizedData.media,
-      buffer_exists: !!sanitizedData.buffer,
-      content_exists: !!sanitizedData.content,
-      data_buffer_exists: !!sanitizedData.data?.buffer,
-      data_base64_exists: !!sanitizedData.data?.base64,
-      message_media_exists: !!sanitizedData.message?.media,
-      data_mediaData_exists: !!sanitizedData.data?.mediaData,
-      payload_size: JSON.stringify(sanitizedData).length
-    });
-    // 🚨 INVESTIGAÇÃO DETALHADA: Onde está a mídia?
-    if (sanitizedData.messageType !== 'text') {
-      console.log('[Webhook] 🔍 INVESTIGAÇÃO DE MÍDIA DETALHADA:', {
-        messageType: sanitizedData.messageType,
-        topLevelKeys: Object.keys(sanitizedData).slice(0, 10),
-        // Verificar campos diretos
-        directMedia: {
-          mediaBase64: sanitizedData.mediaBase64 ? 'EXISTS' : null,
-          mediabase64: sanitizedData.mediabase64 ? 'EXISTS' : null,
-          mediaData: sanitizedData.mediaData ? 'EXISTS' : undefined,
-          base64Data: sanitizedData.base64Data ? 'EXISTS' : null,
-          media: sanitizedData.media ? 'EXISTS' : undefined,
-          buffer: sanitizedData.buffer ? 'EXISTS' : null,
-          content: sanitizedData.content ? 'EXISTS' : null
-        },
-        // Verificar campos aninhados
-        nestedMedia: {
-          data_keys: sanitizedData.data ? Object.keys(sanitizedData.data).slice(0, 10) : null,
-          data_buffer: sanitizedData.data?.buffer ? 'EXISTS' : null,
-          data_base64: sanitizedData.data?.base64 ? 'EXISTS' : null,
-          message_keys: sanitizedData.message ? Object.keys(sanitizedData.message).slice(0, 10) : null,
-          message_media: sanitizedData.message?.media ? 'EXISTS' : undefined
-        }
-      });
-    }
+    // Debug removido - payload completo
+    // Debug removido - investigação mídia
     // Process different webhook events
     let result;
     switch(sanitizedData.event){
@@ -330,13 +284,16 @@ async function processMessage(supabase, data) {
     };
   } else {
     // Formato direto da VPS
+
+    // Debug removido - estrutura mediaData
+
     messageData = {
       instanceId: data.instanceId,
       from: data.from,
       fromMe: data.fromMe,
       externalMessageId: data.data?.messageId || data.messageId || data.id || data.external_message_id,
       message: {
-        text: (data.messageType && data.messageType !== 'text') 
+        text: (data.messageType && data.messageType !== 'text')
           ? getMediaDisplayName(data.messageType) // 🔧 CORREÇÃO: Para mídia, sempre usar emoji
           : (data.message?.text || data.text || data.caption || '')
       },
@@ -344,24 +301,29 @@ async function processMessage(supabase, data) {
       mediaUrl: data.mediaUrl,
       // ❌ REMOVIDO: contactName - usar apenas telefone formatado
       profile_pic_url: data.profilePicUrl || data.profile_pic_url || data.data?.profile_pic_url || data.senderProfilePicUrl || null,
-      // 🚀 DADOS DE MÍDIA EXTRAÍDOS - CORREÇÃO APLICADA
+      // 🚀 CORREÇÃO: Verificar todos os possíveis campos dentro de data.data.mediaData
       mediaData: {
         base64Data: data.mediaBase64 || // raiz
-        data.data?.mediaBase64 || 
-        data.mediabase64 || 
-        data.base64Data || 
-        data.mediaData?.base64Data || 
-        data.data?.mediaData?.base64Data || 
-        (typeof data.data?.mediaData === 'string' ? data.data.mediaData : null) || // 🔧 CORREÇÃO: mediaData pode ser string Base64 direta
-        (typeof data.mediaData === 'string' ? data.mediaData : null) || // 🔧 CORREÇÃO: mediaData pode ser string Base64 direta
-        data.media?.base64 || 
-        data.buffer || 
-        data.content || 
-        data.data?.buffer || 
-        data.data?.base64 || 
+        data.data?.mediaBase64 ||
+        data.mediabase64 ||
+        data.base64Data ||
+        data.mediaData?.base64Data ||
+        data.data?.mediaData?.base64Data || // objeto.base64Data
+        data.data?.mediaData?.base64 || // objeto.base64
+        data.data?.mediaData?.data || // objeto.data
+        data.data?.mediaData?.buffer || // objeto.buffer
+        data.data?.mediaData?.content || // objeto.content
+        (typeof data.data?.mediaData === 'string' ? data.data.mediaData : null) || // string direta
+        (typeof data.mediaData === 'string' ? data.mediaData : null) || // string direta
+        data.media?.base64 ||
+        data.buffer ||
+        data.content ||
+        data.data?.buffer ||
+        data.data?.base64 ||
         data.message?.media?.buffer,
         fileName: data.fileName || data.mediaData?.fileName || data.data?.mediaData?.fileName,
         mediaType: data.messageType || data.mediaData?.mediaType || data.data?.mediaData?.mediaType,
+        mimeType: data.data?.mediaData?.mimeType || data.data?.mediaData?.mimetype || null, // 🎯 ADD mimeType
         caption: data.caption || data.mediaData?.caption || data.data?.mediaData?.caption,
         externalMessageId: data.data?.messageId || data.messageId || data.id || data.external_message_id
       }
@@ -405,6 +367,20 @@ async function processMessage(supabase, data) {
   // Limpar telefone
   const cleanPhone = messageData.from.replace('@s.whatsapp.net', '').replace('@c.us', '');
 
+  // 🎯 Determinar MIME type baseado no messageType se não vier explicitamente
+  function getMimeType(messageType: string): string {
+    switch (messageType) {
+      case 'image': return 'image/jpeg';
+      case 'video': return 'video/mp4';
+      case 'audio': return 'audio/mpeg';
+      case 'document': return 'application/pdf';
+      case 'sticker': return 'image/webp';
+      case 'voice': return 'audio/ogg';
+      case 'ptt': return 'audio/ogg';
+      default: return 'application/octet-stream';
+    }
+  }
+
   // 🔍 DEBUG DETALHADO: Log dos parâmetros exatos que serão enviados para a RPC
   const rpcParams = {
     p_vps_instance_id: messageData.instanceId,  // 🎯 USAR NOME DA INSTÂNCIA
@@ -412,30 +388,25 @@ async function processMessage(supabase, data) {
     p_message_text: messageData.message.text || '',
     p_from_me: Boolean(messageData.fromMe),
     p_media_type: messageData.messageType === 'sticker' ? 'image' : messageData.messageType === 'unknown' ? 'text' : messageData.messageType || 'text',
-    p_media_url: messageData.mediaData?.media_url || null, // 🎯 URL real da mídia
+    p_media_url: null, // 🎯 SEMPRE NULL - será preenchido pela edge de upload
     p_external_message_id: messageData.externalMessageId || null,
-    p_contact_name: null,
+    p_contact_name: null, // ❌ SEMPRE NULL - forçar uso do telefone formatado
     p_profile_pic_url: messageData.profile_pic_url || null, // 📸 PROFILE PIC URL
-    p_base64_data: messageData.mediaData?.base64Data || null, // 🎯 Base64 real
-    p_mime_type: messageData.mediaData?.mimeType || null,     // 🎯 MIME type
+    p_base64_data: messageData.mediaData?.base64Data || null, // 🎯 Base64 real para upload
+    p_mime_type: messageData.mediaData?.mimeType || messageData.mediaData?.mimetype || getMimeType(messageData.messageType) || null, // 🎯 MIME type com fallback
     p_file_name: messageData.mediaData?.fileName || null,      // 🎯 Nome do arquivo
     p_whatsapp_number_id: instanceData?.id || null,  // 🆔 UUID da instância WhatsApp
     p_source_edge: 'webhook_whatsapp_web'  // 🏷️ Identificar a Edge
   };
 
-  console.log('[Webhook] 🔍 DEBUG RPC PARAMS:', {
-    p_vps_instance_id: rpcParams.p_vps_instance_id,
-    p_phone: rpcParams.p_phone,
-    p_message_text: rpcParams.p_message_text?.substring(0, 100) + (rpcParams.p_message_text?.length > 100 ? '...' : ''),
-    p_from_me: rpcParams.p_from_me,
-    p_media_type: rpcParams.p_media_type,
-    p_external_message_id: rpcParams.p_external_message_id,
-    p_whatsapp_number_id: rpcParams.p_whatsapp_number_id,
-    p_source_edge: rpcParams.p_source_edge,
-    instanceData_found: !!instanceData,
-    instance_name: instanceData?.instance_name,
-    cleanPhone_length: cleanPhone?.length
-  });
+  // Log simplificado para produção
+  if (rpcParams.p_media_type !== 'text') {
+    console.log('[Webhook] 📤 Mídia processada:', {
+      tipo: rpcParams.p_media_type,
+      tamanho: rpcParams.p_base64_data?.length || 0,
+      mimeType: rpcParams.p_mime_type
+    });
+  }
 
   console.log('[Webhook] 🚀 Chamando RPC save_received_message_webhook...');
 
@@ -451,7 +422,9 @@ async function processMessage(supabase, data) {
     resultType: typeof result,
     resultKeys: result ? Object.keys(result) : null,
     resultSuccess: result?.success,
-    resultError: result?.error
+    resultError: result?.error,
+    media_processing: result?.media_processing, // 🎯 VERIFICAR SE RETORNOU TRUE
+    full_result: result // 🔍 DEBUG: Ver resultado completo
   });
 
   if (error) {
@@ -481,12 +454,41 @@ async function processMessage(supabase, data) {
   }
 
   console.log('[Webhook] ✅ Mensagem salva:', messageId);
-  // Upload de mídia iniciado
+
+  // 🚀 UPLOAD ASSÍNCRONO PARA ESCALABILIDADE
   const hadMediaData = !!(messageData.mediaData?.base64Data && messageData.messageType !== 'text');
   if (hadMediaData) {
-    console.log('[Webhook] 📤 Upload iniciado:', messageId);
+    console.log('[Webhook] 📤 Iniciando upload assíncrono (fire-and-forget):', result.message_id);
 
-    // ✅ Limpeza imediata da mídia da memória
+    // 🚀 FIRE-AND-FORGET: Não bloquear a resposta
+    fetch(`${supabaseUrl}/functions/v1/webhook_storage_upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message_id: result.message_id,  // 🎯 ID CORRETO DA RPC
+        file_path: `webhook/${instanceData?.id}/${result.message_id}.${messageData.mediaData?.mimeType?.split('/')[1] || 'jpg'}`,
+        base64_data: messageData.mediaData.base64Data,
+        content_type: messageData.mediaData.mimeType
+      })
+    })
+    .then(response => response.json())
+    .then(uploadResult => {
+      console.log('[Webhook] 📊 Upload resultado:', uploadResult);
+      if (uploadResult.success) {
+        console.log('[Webhook] ✅ Upload concluído com sucesso!');
+      } else {
+        console.error('[Webhook] ❌ Erro no upload:', uploadResult);
+      }
+    })
+    .catch(uploadError => {
+      console.error('[Webhook] ❌ Erro na chamada de upload:', uploadError);
+    });
+
+    console.log('[Webhook] 🚀 Upload disparado em background - retornando imediatamente');
+
+    // ✅ Limpeza da mídia da memória IMEDIATAMENTE
     messageData.mediaData.base64Data = null;
     messageData.mediaData = null;
   } else {

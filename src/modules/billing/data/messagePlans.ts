@@ -3,22 +3,25 @@ import { MessagePlan } from '../types/billing';
 
 export const messagePlans: MessagePlan[] = [
   {
-    id: 'messages_1k',
-    name: 'Básico',
-    price: 99.00,
-    message_limit: 1000,
-    description: 'Perfeito para começar a automatizar seu WhatsApp',
+    id: 'free_200',
+    name: 'Gratuito',
+    price: 0.00,
+    message_limit: 200,
+    description: 'Teste grátis por 30 dias (apenas uma vez por usuário)',
     features: [
-      '1.000 mensagens de IA/mês',
+      '200 mensagens de IA/mês',
       'Agentes de IA ilimitados',
       'Suporte pelo WhatsApp',
-      '2 usuários',
+      'Apenas administrador',
       '1 número WhatsApp'
     ],
-    stripe_price_id: 'price_1k_messages'
+    stripe_price_id: 'free_trial',
+    is_trial: true,
+    max_users: 1,
+    max_whatsapp_numbers: 1
   },
   {
-    id: 'messages_5k',
+    id: 'pro_5k',
     name: 'Profissional',
     price: 399.00,
     message_limit: 5000,
@@ -27,25 +30,29 @@ export const messagePlans: MessagePlan[] = [
       '5.000 mensagens de IA/mês',
       'Agentes de IA ilimitados',
       'Suporte pelo WhatsApp',
-      'Usuários ilimitados',
+      '2 membros operacionais',
       'Até 3 números WhatsApp'
     ],
-    stripe_price_id: 'price_5k_messages'
+    stripe_price_id: 'mp_pro_5k',
+    max_users: 2,
+    max_whatsapp_numbers: 3
   },
   {
-    id: 'messages_15k',
+    id: 'ultra_15k',
     name: 'Ultra',
-    price: 699.00,
+    price: 799.00,
     message_limit: 15000,
     description: 'Para operações de alto volume',
     features: [
       '15.000 mensagens de IA/mês',
       'Agentes de IA ilimitados',
       'Suporte pelo WhatsApp',
-      'Usuários ilimitados',
+      'Membros operacionais ilimitados',
       'Números WhatsApp ilimitados'
     ],
-    stripe_price_id: 'price_15k_messages'
+    stripe_price_id: 'mp_ultra_15k',
+    max_users: -1, // -1 = ilimitado
+    max_whatsapp_numbers: -1 // -1 = ilimitado
   }
 ];
 

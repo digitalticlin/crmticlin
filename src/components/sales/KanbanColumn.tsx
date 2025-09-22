@@ -21,12 +21,12 @@ import { useStageLeadCount } from "@/hooks/salesFunnel/stages/useStageLeadCount"
 const useInfiniteScroll = (totalItems: number, initialCount: number = 25) => {
   const [visibleCount, setVisibleCount] = useState(initialCount);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const hasMore = totalItems > visibleCount;
-  
+
   const loadMore = useCallback(() => {
     if (isLoading || !hasMore) return;
-    
+
     setIsLoading(true);
     setTimeout(() => {
       setVisibleCount(prev => Math.min(prev + 25, totalItems));
@@ -38,15 +38,19 @@ const useInfiniteScroll = (totalItems: number, initialCount: number = 25) => {
     const element = e.currentTarget;
     const { scrollTop, scrollHeight, clientHeight } = element;
     const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
-    
+
     if (scrollPercentage > 0.8 && hasMore && !isLoading) {
       loadMore();
     }
   }, [hasMore, isLoading, loadMore]);
 
+  // ✅ CORREÇÃO: Resetar visibleCount quando totalItems mudar (filtros aplicados)
   useEffect(() => {
-    setVisibleCount(initialCount);
-  }, [totalItems, initialCount]);
+    // Se totalItems diminuiu significativamente (filtros aplicados), resetar
+    if (totalItems < visibleCount || totalItems === 0) {
+      setVisibleCount(Math.min(initialCount, totalItems));
+    }
+  }, [totalItems, initialCount, visibleCount]);
 
   return {
     visibleCount,
@@ -347,6 +351,13 @@ export function KanbanColumn({
   massSelection,
   funnelId
 }: KanbanColumnProps) {
+
+  // 🔍 DEBUG: Log para verificar se os leads estão chegando filtrados
+  console.log(`[KanbanColumn] 📊 Stage "${column.title}":`, {
+    totalLeads: column.leads?.length || 0,
+    leadsIds: column.leads?.slice(0, 3).map(l => l.id) || [],
+    timestamp: new Date().toISOString().slice(11, 19)
+  });
   
   // Hooks customizados
   const { toggleAI, isLoading: isTogglingAI } = useAIStageControl();
@@ -374,10 +385,31 @@ export function KanbanColumn({
     setAiEnabledUI(aiEnabled);
   }, [aiEnabled]);
   
-  const visibleLeads = useMemo(() => 
-    column.leads.slice(0, visibleCount),
-    [column.leads, visibleCount]
-  );
+  // ✅ CORREÇÃO: Garantir que visibleLeads seja sempre correto
+  const visibleLeads = useMemo(() => {
+    // Se não há leads, retornar array vazio
+    if (!column.leads || column.leads.length === 0) {
+      return [];
+    }
+
+    // Se há menos leads que visibleCount, mostrar todos
+    if (column.leads.length <= visibleCount) {
+      return column.leads;
+    }
+
+    // Caso normal: slice até visibleCount
+    const result = column.leads.slice(0, visibleCount);
+
+    // 🔍 DEBUG: Log dos leads visíveis
+    console.log(`[KanbanColumn] 👁️ Stage "${column.title}" visibleLeads:`, {
+      totalLeads: column.leads.length,
+      visibleCount,
+      showingLeads: result.length,
+      leadNames: result.slice(0, 2).map(l => l.name)
+    });
+
+    return result;
+  }, [column.leads, visibleCount, column.title]);
 
   // Handler para salvar título
   const handleSaveTitle = useCallback(async (newTitle: string) => {

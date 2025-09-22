@@ -1,9 +1,9 @@
 
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
-import { MassSelectionReturn } from "@/hooks/useMassSelection";
+import { MassSelectionCoordinatedReturn } from "@/hooks/useMassSelectionCoordinated";
 import { BoardContentOptimized } from "./kanban/BoardContentOptimized";
 import { DataErrorBoundary } from "./funnel/DataErrorBoundary";
-import { DndKanbanBoardWrapper } from "./DndKanbanBoardWrapper";
+import { KanbanBoardUnified } from "./KanbanBoardUnified";
 import { useMemo, useEffect, useCallback } from "react";
 
 interface KanbanBoardProps {
@@ -18,9 +18,11 @@ interface KanbanBoardProps {
   isWonLostView?: boolean;
   wonStageId?: string;
   lostStageId?: string;
-  massSelection?: MassSelectionReturn;
+  massSelection?: MassSelectionCoordinatedReturn;
   markOptimisticChange?: (value: boolean) => void;
   funnelId?: string | null;
+  // 🔧 CORREÇÃO: Prop para filtros ativos
+  hasActiveFilters?: boolean;
 }
 
 export const KanbanBoard = ({
@@ -37,8 +39,10 @@ export const KanbanBoard = ({
   lostStageId,
   massSelection,
   markOptimisticChange,
-  funnelId
+  funnelId,
+  hasActiveFilters = false
 }: KanbanBoardProps) => {
+
   // Validar colunas uma vez com memoização
   const validatedColumns = useMemo(() => {
     if (!Array.isArray(columns)) {
@@ -82,7 +86,7 @@ export const KanbanBoard = ({
             </div>
           </div>
         ) : (
-          <DndKanbanBoardWrapper
+          <KanbanBoardUnified
             columns={validatedColumns}
             onColumnsChange={onColumnsChange}
             onOpenLeadDetail={onOpenLeadDetail}
@@ -95,9 +99,9 @@ export const KanbanBoard = ({
             wonStageId={wonStageId}
             lostStageId={lostStageId}
             massSelection={massSelection}
-            markOptimisticChange={markOptimisticChange}
             funnelId={funnelId}
             enableDnd={true}
+            hasActiveFilters={hasActiveFilters}
           />
         )}
       </DataErrorBoundary>

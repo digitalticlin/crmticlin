@@ -90,6 +90,12 @@ export class BatchingService {
 
         if (error) throw error;
 
+        console.log('[BatchingService] ✅ PROCESSAMENTO DIRETO CONCLUÍDO:', {
+          totalMovidos: leadIds.length,
+          destino: { stageId: newStageId, funnelId: newFunnelId },
+          timestamp: new Date().toISOString()
+        });
+
         return {
           success: true,
           message: `${leadIds.length} lead${leadIds.length > 1 ? 's' : ''} movido${leadIds.length > 1 ? 's' : ''} com sucesso!`,
@@ -173,6 +179,12 @@ export class BatchingService {
       // Sucesso total
       const successMessage = `${totalProcessed} lead${totalProcessed > 1 ? 's' : ''} movido${totalProcessed > 1 ? 's' : ''} com sucesso!`;
       console.log('[BatchingService] 🎉 Processamento concluído com sucesso:', successMessage);
+      console.log('[BatchingService] ✅✅ PROCESSAMENTO EM LOTES FINALIZADO:', {
+        totalProcessados: totalProcessed,
+        totalLotes: batches.length,
+        destino: { stageId: newStageId, funnelId: newFunnelId },
+        timestamp: new Date().toISOString()
+      });
       return {
         success: true,
         message: successMessage,
@@ -183,6 +195,12 @@ export class BatchingService {
       // Sucesso parcial
       const partialMessage = `${totalProcessed} de ${leadIds.length} leads movidos. ${totalErrors} lote(s) falharam.`;
       console.warn('[BatchingService] ⚠️ Sucesso parcial:', partialMessage);
+      console.log('[BatchingService] ⚠️ PROCESSAMENTO EM LOTES PARCIAL:', {
+        processados: totalProcessed,
+        total: leadIds.length,
+        erros: totalErrors,
+        timestamp: new Date().toISOString()
+      });
       return {
         success: true,
         message: partialMessage,

@@ -22,7 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { AIToggleSwitchEnhanced } from "../ai/AIToggleSwitchEnhanced";
 import { useAIStageControl } from "@/hooks/salesFunnel/useAIStageControl";
-import { MassSelectionReturn } from "@/hooks/useMassSelection";
+import { MassSelectionCoordinatedReturn as MassSelectionReturn } from "@/hooks/useMassSelectionCoordinated";
 import { useStageLeadCount } from "@/hooks/salesFunnel/stages/useStageLeadCount";
 
 interface ColumnHeaderProps {

@@ -4,12 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useMessageUsage } from '../hooks/useMessageUsage';
-import { useStripeCheckout } from '../hooks/useStripeCheckout';
+import { useMercadoPagoCheckout } from '../hooks/useMercadoPagoCheckout';
 import { getPlanByType } from '../data/messagePlans';
 
 export const PlanStatusOverview = () => {
   const { usage, limitCheck, loading } = useMessageUsage();
-  const { openCustomerPortal, loading: checkoutLoading } = useStripeCheckout();
+  const { checkSubscriptionStatus, loading: checkoutLoading } = useMercadoPagoCheckout();
 
   if (loading) {
     return (

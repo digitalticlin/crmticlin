@@ -38,11 +38,18 @@ export const WonLostFilters = ({
   const hasActiveFilters = searchTerm || selectedTags.length > 0 || selectedUser;
 
   const toggleTag = (tagId: string) => {
-    setSelectedTags(
-      selectedTags.includes(tagId)
-        ? selectedTags.filter(id => id !== tagId)
-        : [...selectedTags, tagId]
-    );
+    const newTags = selectedTags.includes(tagId)
+      ? selectedTags.filter(id => id !== tagId)
+      : [...selectedTags, tagId];
+
+    console.log('🏷️ [WonLostFilters] TOGGLE TAG:', {
+      tagId,
+      previousTags: selectedTags,
+      newTags,
+      action: selectedTags.includes(tagId) ? 'REMOVE' : 'ADD'
+    });
+
+    setSelectedTags(newTags);
   };
 
   return (
@@ -53,7 +60,15 @@ export const WonLostFilters = ({
         <Input
           placeholder="Pesquisar"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            console.log('🔍 [WonLostFilters] SEARCH CHANGE:', {
+              previousValue: searchTerm,
+              newValue,
+              length: newValue.length
+            });
+            setSearchTerm(newValue);
+          }}
           className="pl-10 bg-white/20 backdrop-blur-lg border-white/30 rounded-2xl text-gray-700 placeholder-gray-500 focus:bg-white/30 focus:border-ticlin/50 h-9"
         />
       </div>
@@ -121,7 +136,13 @@ export const WonLostFilters = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56 bg-white/90 backdrop-blur-xl border border-white/30 rounded-2xl shadow-glass p-2 z-50">
           <DropdownMenuItem
-            onClick={() => setSelectedUser("")}
+            onClick={() => {
+              console.log('👤 [WonLostFilters] USER FILTER - CLEAR:', {
+                previousUser: selectedUser,
+                newUser: ''
+              });
+              setSelectedUser("");
+            }}
             className={`rounded-xl p-3 cursor-pointer transition-all duration-200 ${
               !selectedUser ? "bg-ticlin/20 text-ticlin-dark" : "hover:bg-white/50"
             }`}
@@ -132,10 +153,16 @@ export const WonLostFilters = ({
           {availableUsers.map((user) => (
             <DropdownMenuItem
               key={user}
-              onClick={() => setSelectedUser(user)}
+              onClick={() => {
+                console.log('👤 [WonLostFilters] USER FILTER - SELECT:', {
+                  previousUser: selectedUser,
+                  newUser: user
+                });
+                setSelectedUser(user);
+              }}
               className={`rounded-xl p-3 cursor-pointer transition-all duration-200 ${
-                selectedUser === user 
-                  ? "bg-ticlin/20 text-ticlin-dark" 
+                selectedUser === user
+                  ? "bg-ticlin/20 text-ticlin-dark"
                   : "hover:bg-white/50"
               }`}
             >

@@ -24,6 +24,7 @@ const WhatsAppWebPage = lazy(() => import('./pages/WhatsAppChat'));
 const AutomationPage = lazy(() => import('./pages/Automation'));
 const AIAgentsPage = lazy(() => import('./pages/AIAgents'));
 const PlansPage = lazy(() => import('./pages/Plans'));
+const Checkout = lazy(() => import('./pages/Checkout'));
 const AcceptInvite = lazy(() => import('./components/invite/AcceptInvite').then(m => ({ default: m.AcceptInvite })));
 const ConfirmEmail = lazy(() => import('./pages/ConfirmEmail'));
 const ConfirmEmailInstructions = lazy(() => import('./pages/ConfirmEmailInstructions'));
@@ -136,15 +137,27 @@ function AppLayoutRoutes() {
           </AdminGuard>
         } 
       />
-      <Route 
-        path="/plans" 
+      <Route
+        path="/plans"
         element={
-          <AppLayout>
+          <ProtectedRoute>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <PlansPage />
+              </Suspense>
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/checkout"
+        element={
+          <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
-              <PlansPage />
+              <Checkout />
             </Suspense>
-          </AppLayout>
-        } 
+          </ProtectedRoute>
+        }
       />
       <Route 
         path="/settings" 

@@ -72,7 +72,7 @@ export const useUserRole = () => {
     checkUserRole();
   }, []);
 
-  console.log('[useUserRole] 📊 Estado atual:', { isAdmin, role, loading });
+  // Logs removidos completamente - evitar loops no render
 
   return { isAdmin, role, loading };
 };

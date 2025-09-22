@@ -3,12 +3,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Info, Clock, XCircle } from 'lucide-react';
 import { useMessageUsage } from '../hooks/useMessageUsage';
-import { useStripeCheckout } from '../hooks/useStripeCheckout';
+import { useMercadoPagoCheckout } from '../hooks/useMercadoPagoCheckout';
 import { messagePlans, getPlanByType } from '../data/messagePlans';
 
 export const AlertBanner = () => {
   const { usage, limitCheck, loading } = useMessageUsage();
-  const { createCheckoutSession } = useStripeCheckout();
+  const { createCheckoutSession } = useMercadoPagoCheckout();
 
   // Se ainda está carregando ou não há dados, não mostrar nada
   if (loading || !usage || !limitCheck) {

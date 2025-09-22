@@ -5,7 +5,7 @@ import { LeadCardTags } from "./lead/LeadCardTags";
 import { LeadCardActions } from "./lead/LeadCardActions";
 import { Check } from "lucide-react";
 import React, { memo, useRef, useState } from "react";
-import { MassSelectionReturn } from "@/hooks/useMassSelection";
+import { MassSelectionCoordinatedReturn } from "@/hooks/useMassSelectionCoordinated";
 
 interface LeadCardProps {
   lead: KanbanLead;
@@ -19,7 +19,7 @@ interface LeadCardProps {
   onMouseLeave?: () => void;
   wonStageId?: string;
   lostStageId?: string;
-  massSelection?: MassSelectionReturn;
+  massSelection?: MassSelectionCoordinatedReturn;
 }
 
 export const LeadCard = memo(({
@@ -57,38 +57,21 @@ export const LeadCard = memo(({
     const target = e.target as Element;
     const chatIconArea = target.closest('.chat-icon-area');
 
-    console.log('[LeadCard] 🖱️ CLIQUE DETECTADO:', {
-      leadId: lead.id,
-      leadName: lead.name,
-      isSelectionMode,
-      hasOnOpenChat: !!onOpenChat,
-      targetClass: target.className,
-      targetTagName: target.tagName,
-      targetContent: target.textContent,
-      chatIconArea: !!chatIconArea,
-      chatIconAreaElement: chatIconArea?.className
-    });
-
     // Se clicou no ícone de chat, abrir chat
     if (chatIconArea && onOpenChat) {
-      console.log('[LeadCard] 💬 ✅ ÁREA DE CHAT DETECTADA - ABRINDO CHAT para:', lead.name);
       e.preventDefault();
       e.stopPropagation();
       onOpenChat();
       return;
-    } else if (chatIconArea && !onOpenChat) {
-      console.log('[LeadCard] 💬 ❌ ÁREA DE CHAT DETECTADA mas onOpenChat não existe!');
     }
-    
+
     // Se estiver em modo seleção
     if (isSelectionMode) {
-      console.log('[LeadCard] ☑️ Modo seleção ativo - toggle lead');
       toggleLead(lead.id);
       return;
     }
-    
+
     // RESTANTE DO CARD: ativar DnD ou onClick padrão
-    console.log('[LeadCard] 🔄 Área de DnD - não interceptar clique');
     // Não prevenir - deixar DnD funcionar
   };
 
@@ -119,18 +102,6 @@ export const LeadCard = memo(({
         isSelectionMode && !isSelected && "cursor-pointer hover:ring-1 hover:ring-blue-300 hover:bg-blue-50/10"
       )}
       onClick={handleCardClick}
-      onMouseDown={(e) => {
-        console.log('[LeadCard] 🖱️ MOUSE DOWN DETECTADO!', { leadId: lead.id, target: (e.target as any).className });
-      }}
-      onMouseUp={(e) => {
-        console.log('[LeadCard] 🖱️ MOUSE UP DETECTADO!', { leadId: lead.id, target: (e.target as any).className });
-      }}
-      onPointerDown={(e) => {
-        console.log('[LeadCard] 👆 POINTER DOWN DETECTADO!', { leadId: lead.id, target: (e.target as any).className });
-      }}
-      onTouchStart={(e) => {
-        console.log('[LeadCard] 👆 TOUCH START DETECTADO!', { leadId: lead.id, target: (e.target as any).className });
-      }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
@@ -184,3 +155,4 @@ export const LeadCard = memo(({
     </div>
   );
 });
+

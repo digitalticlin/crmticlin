@@ -101,29 +101,24 @@ async function uploadMode(body: any) {
 
   console.log(`✅ Upload realizado com sucesso! URL: ${publicUrl}`)
 
-  // 🎯 ATUALIZAR TABELA MESSAGES COM A URL
-  const { error: updateError } = await supabase
+  // 🚀 ATUALIZAR TABELA MESSAGES DE FORMA ASSÍNCRONA
+  supabase
     .from('messages')
     .update({
       media_url: publicUrl
     })
     .eq('id', message_id)
-
-  if (updateError) {
-    console.error('❌ Erro ao atualizar message.media_url:', updateError)
-    return new Response(JSON.stringify({
-      success: false,
-      error: `Upload successful but failed to update message: ${updateError.message}`,
-      url: publicUrl
-    }), {
-      headers: { 'Content-Type': 'application/json' },
-      status: 500
+    .then(({ error: updateError }) => {
+      if (updateError) {
+        console.error('❌ Erro ao atualizar message.media_url:', updateError)
+      } else {
+        console.log(`✅ Message ${message_id} atualizada com URL: ${publicUrl}`)
+      }
     })
-  }
 
-  console.log(`✅ Message ${message_id} atualizada com URL: ${publicUrl}`)
+  console.log(`🚀 Upload concluído - update da URL disparado em background`)
 
-  // 🎉 Resposta de sucesso
+  // 🎉 Resposta imediata de sucesso (não aguarda update)
   return new Response(JSON.stringify({
     success: true,
     path: data.path,
@@ -132,7 +127,7 @@ async function uploadMode(body: any) {
     file_size: fileBuffer.length,
     content_type: content_type,
     uploaded_at: new Date().toISOString(),
-    message_updated: true
+    message_updated: 'async' // Update em background
   }), {
     headers: { 'Content-Type': 'application/json' },
     status: 200

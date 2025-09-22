@@ -84,6 +84,21 @@ export function useAIAgentPrompts() {
       };
 
       console.log('📝 [useAIAgentPrompts] Dados formatados para ai_agents:', formattedData);
+      console.log('🎯 [useAIAgentPrompts] Atualizando agente ID:', data.agent_id);
+
+      // Primeiro vamos verificar se o agente existe
+      const { data: existingAgent, error: checkError } = await supabase
+        .from('ai_agents')
+        .select('*')
+        .eq('id', data.agent_id)
+        .single();
+
+      console.log('🔍 [useAIAgentPrompts] Verificação do agente existente:', { existingAgent, checkError });
+
+      if (checkError) {
+        console.error('❌ [useAIAgentPrompts] Agente não encontrado para update:', checkError);
+        throw new Error(`Agente não encontrado: ${checkError.message}`);
+      }
 
       // Atualizar o agente com os dados de prompt
       const { data: updatedAgent, error } = await supabase
@@ -93,7 +108,22 @@ export function useAIAgentPrompts() {
         .select()
         .single();
 
-      console.log('📊 [useAIAgentPrompts] Resposta do Supabase:', { updatedAgent, error });
+      console.log('📊 [useAIAgentPrompts] Resposta do Supabase UPDATE:', { updatedAgent, error });
+
+      // Se não houve erro, vamos verificar se realmente foi atualizado
+      if (!error && updatedAgent) {
+        const { data: verificationAgent } = await supabase
+          .from('ai_agents')
+          .select('agent_function, agent_objective, communication_style')
+          .eq('id', data.agent_id)
+          .single();
+
+        console.log('✅ [useAIAgentPrompts] Verificação pós-update:', {
+          agent_function: verificationAgent?.agent_function ? `SALVO (${verificationAgent.agent_function.length} chars)` : 'VAZIO',
+          agent_objective: verificationAgent?.agent_objective ? `SALVO (${verificationAgent.agent_objective.length} chars)` : 'VAZIO',
+          communication_style: verificationAgent?.communication_style ? `SALVO (${verificationAgent.communication_style.length} chars)` : 'VAZIO'
+        });
+      }
 
       if (error) {
         console.error('❌ [useAIAgentPrompts] Erro ao atualizar agente:', error);
@@ -135,7 +165,9 @@ export function useAIAgentPrompts() {
   const getAIAgentPrompt = async (agentId: string): Promise<AIAgentPrompt | null> => {
     try {
       console.log('🔍 [useAIAgentPrompts] Buscando prompt do agente:', agentId);
+      console.log('🕐 [useAIAgentPrompts] Timestamp da busca:', new Date().toLocaleTimeString());
 
+      // Forçar consulta fresca do banco (sem cache)
       const { data, error } = await supabase
         .from('ai_agents')
         .select('*')
@@ -152,7 +184,12 @@ export function useAIAgentPrompts() {
         return null;
       }
 
-      console.log('📊 [useAIAgentPrompts] Dados do agente encontrados:', data);
+      console.log('📊 [useAIAgentPrompts] Dados do agente encontrados no GET:', {
+        agent_function: data.agent_function ? `ENCONTRADO (${data.agent_function.length} chars)` : 'VAZIO',
+        agent_objective: data.agent_objective ? `ENCONTRADO (${data.agent_objective.length} chars)` : 'VAZIO',
+        communication_style: data.communication_style ? `ENCONTRADO (${data.communication_style.length} chars)` : 'VAZIO',
+        updated_at: data.updated_at
+      });
 
       const promptData: AIAgentPrompt = {
         id: data.id,

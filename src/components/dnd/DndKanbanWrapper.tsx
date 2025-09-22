@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
-import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent, DragOverEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent, DragOverEvent, PointerSensor, useSensor, useSensors, closestCenter, rectIntersection } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import './dnd-kanban.css';
 
@@ -126,6 +126,7 @@ export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragOver={onDragOver}

@@ -47,6 +47,9 @@ export interface MessagePlan {
   description: string;
   features: string[];
   stripe_price_id: string;
+  is_trial?: boolean;
+  max_users?: number;
+  max_whatsapp_numbers?: number;
 }
 
 export interface UsageLimitCheck {

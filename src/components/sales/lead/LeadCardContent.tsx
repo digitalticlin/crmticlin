@@ -15,16 +15,7 @@ interface LeadCardContentProps {
 export const LeadCardContent = ({ lead, isWonLostView = false, lostStageId }: LeadCardContentProps) => {
   const isLost = lead.columnId === lostStageId;
 
-  // Debug logs para verificar valores
-  console.log('[LeadCardContent] Debug lead data:', {
-    name: lead.name,
-    purchaseValue: lead.purchaseValue,
-    purchase_value: lead.purchase_value,
-    unreadCount: lead.unreadCount,
-    unread_count: lead.unread_count,
-    assignedUser: lead.assignedUser,
-    owner_id: lead.owner_id
-  });
+  // Logs removidos - evitar loops no render
 
   // Determinar valor da negociação (verificar ambos os campos)
   const negotiationValue = lead.purchaseValue !== undefined && lead.purchaseValue !== null 
@@ -43,15 +34,7 @@ export const LeadCardContent = ({ lead, isWonLostView = false, lostStageId }: Le
   // Determinar usuário responsável - priorizando o nome quando disponível
   const responsibleUser = lead.ownerName || lead.assignedUser;
   
-  // Debug logs para verificar valores
-  console.log('[LeadCardContent] Debug lead data:', {
-    name: lead.name,
-    assignedUser: lead.assignedUser,
-    ownerName: lead.ownerName,
-    owner_id: lead.owner_id,
-    created_by_user_id: (lead as any).created_by_user_id,
-    responsibleUser: responsibleUser
-  });
+  // Logs removidos - evitar loops no render
 
   return (
     <>
