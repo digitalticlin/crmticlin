@@ -31,6 +31,7 @@ interface UseWhatsAppContactsManagerReturn {
   loadMore: () => Promise<void>;
   refresh: () => void;
   search: (query: string) => Promise<void>;
+  addSpecificContact: (contact: Contact) => void;
 
   // Filtros
   setFilterType: (type: 'all' | 'unread') => void;
@@ -64,6 +65,7 @@ export const useWhatsAppContactsManager = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'unread'>('all');
   const [isSearching, setIsSearching] = useState(false);
+  const [specificContacts, setSpecificContacts] = useState<Contact[]>([]);
 
   // Query para lista normal de contatos
   const {
@@ -353,18 +355,23 @@ export const useWhatsAppContactsManager = ({
     staleTime: 10000 // 10 segundos para busca
   });
 
-  // Contatos finais (busca ou lista normal)
+  // Contatos finais (busca ou lista normal + específicos)
   const contacts = useMemo(() => {
+    let baseContacts: Contact[] = [];
+
     if (searchQuery.trim()) {
-      return searchData || [];
+      baseContacts = searchData || [];
+    } else if (contactsData?.pages) {
+      baseContacts = contactsData.pages.flatMap(page => page.data);
     }
 
-    if (contactsData?.pages) {
-      return contactsData.pages.flatMap(page => page.data);
-    }
+    // Adicionar contatos específicos (de leads da URL) no topo, evitando duplicatas
+    const specificContactsFiltered = specificContacts.filter(
+      specific => !baseContacts.some(base => base.id === specific.id)
+    );
 
-    return [];
-  }, [searchQuery, searchData, contactsData]);
+    return [...specificContactsFiltered, ...baseContacts];
+  }, [searchQuery, searchData, contactsData, specificContacts]);
 
   // Estatísticas
   const totalAvailable = contactsData?.pages?.[0]?.count || 0;
@@ -413,6 +420,20 @@ export const useWhatsAppContactsManager = ({
     setTimeout(() => setIsSearching(false), 300);
   }, [coordinator, filterType]);
 
+  // Função para adicionar contato específico (ex: da URL do funil)
+  const addSpecificContact = useCallback((contact: Contact) => {
+    console.log('[WhatsApp Contacts Manager] ➕ Adicionando contato específico:', contact.name);
+
+    setSpecificContacts(prev => {
+      // Evitar duplicatas
+      const exists = prev.some(c => c.id === contact.id);
+      if (exists) return prev;
+
+      // Adicionar no topo
+      return [contact, ...prev];
+    });
+  }, []);
+
   // Invalidar cache quando instância muda
   useEffect(() => {
     if (activeInstanceId) {
@@ -434,6 +455,7 @@ export const useWhatsAppContactsManager = ({
     loadMore,
     refresh,
     search,
+    addSpecificContact,
 
     // Filtros
     setFilterType,

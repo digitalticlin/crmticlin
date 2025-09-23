@@ -86,23 +86,50 @@ export const useWhatsAppMessagesManager = ({
       const from = pageParam * MESSAGES_PER_PAGE;
       const to = from + MESSAGES_PER_PAGE - 1;
 
-      const { data, error } = await supabase
-        .from('whatsapp_messages')
+      // FILTRO MULTITENANT: Buscar role do usuário primeiro
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, created_by_user_id')
+        .eq('id', user?.id)
+        .single();
+
+      if (!profile) {
+        throw new Error('Profile não encontrado');
+      }
+
+      // Query base na tabela MESSAGES (correta)
+      let query = supabase
+        .from('messages')
         .select(`
-          id,
-          content,
-          message_type,
-          is_from_me,
-          timestamp,
-          media_url,
-          media_type,
-          chat_id,
-          instance_id,
-          status
-        `)
-        .eq('chat_id', selectedContact.id)
-        .eq('instance_id', activeInstanceId)
-        .order('timestamp', { ascending: false })
+          *,
+          media_cache!left (
+            id,
+            cached_url,
+            file_size,
+            media_type
+          )
+        `, { count: 'exact' })
+        .eq('lead_id', selectedContact.id);
+
+      // MULTITENANT: Aplicar filtro baseado no role
+      if (profile.role === 'admin') {
+        // Admin vê mensagens onde created_by_user_id = seu próprio ID
+        query = query.eq('created_by_user_id', user?.id);
+      } else if (profile.role === 'operational' && profile.created_by_user_id) {
+        // Operacional vê mensagens do admin ao qual pertence
+        query = query.eq('created_by_user_id', profile.created_by_user_id);
+      } else {
+        // Fallback seguro
+        query = query.eq('created_by_user_id', user?.id);
+      }
+
+      // Adicionar filtro de instância apenas se disponível
+      if (activeInstanceId) {
+        query = query.eq('whatsapp_number_id', activeInstanceId);
+      }
+
+      const { data, error } = await query
+        .order('created_at', { ascending: false }) // Mais recentes primeiro
         .range(from, to);
 
       if (error) {
@@ -110,17 +137,27 @@ export const useWhatsAppMessagesManager = ({
         throw error;
       }
 
-      const messages: Message[] = (data || []).map(msg => ({
-        id: msg.id,
-        content: msg.content || '',
-        messageType: msg.message_type || 'text',
-        isFromMe: msg.is_from_me || false,
-        timestamp: msg.timestamp || '',
-        mediaUrl: msg.media_url || null,
-        mediaType: msg.media_type || null,
-        chatId: msg.chat_id || '',
-        instanceId: msg.instance_id || '',
-        status: msg.status || 'sent'
+      const messages: Message[] = (data || []).map(messageData => ({
+        id: messageData.id,
+        text: messageData.text || '',
+        content: messageData.text || '', // Compatibilidade
+        fromMe: messageData.from_me || false,
+        isFromMe: messageData.from_me || false, // Compatibilidade
+        timestamp: messageData.created_at || new Date().toISOString(),
+        status: messageData.status || 'sent',
+        mediaType: messageData.media_type || 'text',
+        messageType: messageData.media_type || 'text', // Compatibilidade
+        mediaUrl: messageData.media_url || null,
+        sender: messageData.from_me ? 'user' : 'contact',
+        time: new Date(messageData.created_at || Date.now()).toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        isIncoming: !messageData.from_me,
+        media_cache: messageData.media_cache || null,
+        chatId: messageData.lead_id || '', // Para compatibilidade
+        instanceId: messageData.whatsapp_number_id || '', // Para compatibilidade
+        leadId: messageData.lead_id || ''
       }));
 
       // Reverter ordem para mostrar mais antigas primeiro

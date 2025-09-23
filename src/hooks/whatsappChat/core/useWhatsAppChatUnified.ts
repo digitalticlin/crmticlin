@@ -5,8 +5,8 @@
  * Substitui o hook monolítico useWhatsAppChat.ts
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Contact } from '@/types/chat';
 import { supabase } from '@/integrations/supabase/client';
@@ -70,7 +70,9 @@ export const useWhatsAppChatUnified = (): UseWhatsAppChatUnifiedReturn => {
   console.log('[WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado');
 
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const processedLeadIds = useRef<Set<string>>(new Set());
 
   // Estado do contato selecionado
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -163,11 +165,12 @@ export const useWhatsAppChatUnified = (): UseWhatsAppChatUnifiedReturn => {
     };
   }, [coordinator]);
 
-  // Buscar lead específico da URL se fornecido
+  // Buscar lead específico da URL se fornecido (apenas uma vez)
   useEffect(() => {
-    if (!leadId || !user?.id || selectedContact?.id === leadId) return;
+    if (!leadId || !user?.id || processedLeadIds.current.has(leadId)) return;
 
-    console.log('[WhatsApp Chat Unified] 🔍 Buscando lead específico da URL:', leadId);
+    console.log('[WhatsApp Chat Unified] 🔍 Buscando lead específico da URL (primeira vez):', leadId);
+    processedLeadIds.current.add(leadId);
 
     // Buscar o lead específico no banco
     const fetchSpecificLead = async () => {
@@ -262,7 +265,19 @@ export const useWhatsAppChatUnified = (): UseWhatsAppChatUnifiedReturn => {
           };
 
           console.log('[WhatsApp Chat Unified] ✅ Lead específico encontrado, selecionando:', contact.name);
+
+          // Adicionar à lista de contatos para aparecer selecionado na UI
+          contactsManager.addSpecificContact(contact);
+
+          // Selecionar o contato
           setSelectedContact(contact);
+
+          // Limpar leadId da URL para permitir troca de contatos
+          const newSearchParams = new URLSearchParams(searchParams);
+          newSearchParams.delete('leadId');
+          setSearchParams(newSearchParams, { replace: true });
+
+          console.log('[WhatsApp Chat Unified] 🧹 LeadId removido da URL - usuário pode trocar de contato');
         }
       } catch (error) {
         console.error('[WhatsApp Chat Unified] ❌ Erro ao buscar lead específico:', error);
@@ -270,7 +285,7 @@ export const useWhatsAppChatUnified = (): UseWhatsAppChatUnifiedReturn => {
     };
 
     fetchSpecificLead();
-  }, [leadId, user?.id, selectedContact?.id]);
+  }, [leadId, user?.id, searchParams, setSearchParams]);
 
   // Callbacks para compatibilidade
   const refreshContacts = useCallback(() => {
