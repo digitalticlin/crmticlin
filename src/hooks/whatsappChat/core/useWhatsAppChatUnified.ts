@@ -5,10 +5,11 @@
  * Substitui o hook monolítico useWhatsAppChat.ts
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Contact } from '@/types/chat';
+import { supabase } from '@/integrations/supabase/client';
 
 // Hooks modulares
 import { useWhatsAppChatCoordinator } from './useWhatsAppChatCoordinator';
@@ -161,6 +162,115 @@ export const useWhatsAppChatUnified = (): UseWhatsAppChatUnifiedReturn => {
       }
     };
   }, [coordinator]);
+
+  // Buscar lead específico da URL se fornecido
+  useEffect(() => {
+    if (!leadId || !user?.id || selectedContact?.id === leadId) return;
+
+    console.log('[WhatsApp Chat Unified] 🔍 Buscando lead específico da URL:', leadId);
+
+    // Buscar o lead específico no banco
+    const fetchSpecificLead = async () => {
+      try {
+        // FILTRO MULTITENANT: Buscar role do usuário primeiro
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, created_by_user_id')
+          .eq('id', user.id)
+          .single();
+
+        if (!profile) return;
+
+        // Query para buscar o lead específico
+        let query = supabase
+          .from('leads')
+          .select(`
+            id,
+            name,
+            phone,
+            email,
+            address,
+            company,
+            document_id,
+            notes,
+            purchase_value,
+            owner_id,
+            last_message,
+            last_message_time,
+            unread_count,
+            created_at,
+            updated_at,
+            whatsapp_number_id,
+            kanban_stage_id,
+            created_by_user_id,
+            profile_pic_url,
+            conversation_status
+          `)
+          .eq('id', leadId)
+          .in('conversation_status', ['active', 'closed']);
+
+        // Aplicar filtro multitenant
+        if (profile.role === 'admin') {
+          query = query.eq('created_by_user_id', user.id);
+        } else if (profile.role === 'operational' && profile.created_by_user_id) {
+          // Buscar instâncias acessíveis para operacional
+          const { data: userWhatsAppNumbers } = await supabase
+            .from('user_whatsapp_numbers')
+            .select('whatsapp_number_id')
+            .eq('profile_id', user.id);
+
+          if (userWhatsAppNumbers && userWhatsAppNumbers.length > 0) {
+            const whatsappIds = userWhatsAppNumbers.map(uwn => uwn.whatsapp_number_id);
+            query = query.in('whatsapp_number_id', whatsappIds);
+          } else {
+            return; // Usuário não tem acesso
+          }
+        }
+
+        const { data: leadData, error } = await query.single();
+
+        if (error) {
+          console.error('[WhatsApp Chat Unified] ❌ Erro ao buscar lead específico:', error);
+          return;
+        }
+
+        if (leadData) {
+          // Converter para formato Contact
+          const contact: Contact = {
+            id: leadData.id,
+            name: leadData.name || null,
+            phone: leadData.phone || '',
+            email: leadData.email,
+            address: leadData.address,
+            company: leadData.company,
+            documentId: leadData.document_id,
+            notes: leadData.notes,
+            purchaseValue: leadData.purchase_value,
+            assignedUser: leadData.owner_id || 'Não atribuído',
+            lastMessage: leadData.last_message,
+            lastMessageTime: leadData.last_message_time,
+            unreadCount: leadData.unread_count && leadData.unread_count > 0 ? leadData.unread_count : undefined,
+            leadId: leadData.id,
+            whatsapp_number_id: leadData.whatsapp_number_id || undefined,
+            stageId: leadData.kanban_stage_id || null,
+            createdAt: leadData.created_at,
+            tags: [],
+            instanceInfo: undefined,
+            avatar: leadData.profile_pic_url || undefined,
+            profilePicture: leadData.profile_pic_url || null,
+            profilePicUrl: leadData.profile_pic_url || undefined
+          };
+
+          console.log('[WhatsApp Chat Unified] ✅ Lead específico encontrado, selecionando:', contact.name);
+          setSelectedContact(contact);
+        }
+      } catch (error) {
+        console.error('[WhatsApp Chat Unified] ❌ Erro ao buscar lead específico:', error);
+      }
+    };
+
+    fetchSpecificLead();
+  }, [leadId, user?.id, selectedContact?.id]);
 
   // Callbacks para compatibilidade
   const refreshContacts = useCallback(() => {
