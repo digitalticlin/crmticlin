@@ -1,18 +1,43 @@
-/* Safari & WebKit Specific Fixes for Sales Funnel */
+/* Safari & WebKit Specific Fixes - TODAS VERSÕES MACOS */
 
-/* IMPORTANTE: Só aplica fixes quando JavaScript detecta Safari */
+/* IMPORTANTE: Aplica fixes para TODOS os Macs (antigos e novos) */
 /* Classes aplicadas via JavaScript para detecção precisa */
+
+/* === GLASSMORPHISM FIXES PARA TODOS OS MACS === */
+body.macos-system .backdrop-blur-sm,
 body.safari-browser .backdrop-blur-sm,
+body.webkit-browser.macos-system .backdrop-blur-sm {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  -webkit-backdrop-filter: blur(4px) saturate(180%);
+  backdrop-filter: blur(4px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+body.macos-system .backdrop-blur,
 body.safari-browser .backdrop-blur,
+body.webkit-browser.macos-system .backdrop-blur {
+  background-color: rgba(255, 255, 255, 0.93) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(180%);
+  backdrop-filter: blur(6px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.macos-system .backdrop-blur-md,
 body.safari-browser .backdrop-blur-md,
-body.safari-browser .backdrop-blur-lg,
-body.webkit-browser.macos-system .backdrop-blur-sm,
-body.webkit-browser.macos-system .backdrop-blur,
-body.webkit-browser.macos-system .backdrop-blur-md,
-body.webkit-browser.macos-system .backdrop-blur-lg {
+body.webkit-browser.macos-system .backdrop-blur-md {
   background-color: rgba(255, 255, 255, 0.95) !important;
-  -webkit-backdrop-filter: blur(10px) saturate(180%);
-  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+  backdrop-filter: blur(8px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+body.macos-system .backdrop-blur-lg,
+body.safari-browser .backdrop-blur-lg,
+body.webkit-browser.macos-system .backdrop-blur-lg {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 /* Fallback APENAS quando backdrop-filter falha completamente NO SAFARI */
@@ -119,19 +144,85 @@ body.safari-browser .backdrop-blur {
   backdrop-filter: blur(6px);
 }
 
-/* Fix para z-index APENAS no Safari */
+/* === MODAIS FIXES PARA TODOS OS MACS === */
+
+/* Fix crítico: Modais fora do viewport em TODOS OS MACS */
+body.macos-system .fixed.left-\[50\%\].top-\[50\%\],
+body.safari-browser .fixed.left-\[50\%\].top-\[50\%\],
+body.macos-backdrop-issues .fixed.left-\[50\%\].top-\[50\%\],
+body.safari-modal-issues .fixed.left-\[50\%\].top-\[50\%\] {
+  /* Forçar compositing layer para melhor renderização */
+  transform: translate(-50%, -50%) translateZ(0) !important;
+  -webkit-transform: translate(-50%, -50%) translateZ(0) !important;
+  will-change: transform;
+
+  /* Garantir z-index alto para modais */
+  z-index: 9999 !important;
+
+  /* Fix para overflow em Macs antigos */
+  max-height: calc(100vh - 40px);
+  max-width: calc(100vw - 40px);
+}
+
+/* Fix específico para DialogContent do Radix UI */
+body.macos-system [data-radix-dialog-content],
+body.safari-browser [data-radix-dialog-content],
+body.macos-backdrop-issues [data-radix-dialog-content] {
+  transform: translate(-50%, -50%) translateZ(0) !important;
+  -webkit-transform: translate(-50%, -50%) translateZ(0) !important;
+  will-change: transform;
+  position: fixed !important;
+  left: 50% !important;
+  top: 50% !important;
+  z-index: 9999 !important;
+}
+
+/* Fix para overlay de modais */
+body.macos-system [data-radix-dialog-overlay],
+body.safari-browser [data-radix-dialog-overlay],
+body.macos-backdrop-issues [data-radix-dialog-overlay] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9998 !important;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+/* === GLASSMORPHISM SHADOWS PARA TODOS OS MACS === */
+body.macos-system .shadow-glass,
 body.safari-browser .shadow-glass,
-body.macos-system.webkit-browser .shadow-glass {
+body.webkit-browser.macos-system .shadow-glass {
   box-shadow:
     0 8px 24px rgba(0, 0, 0, 0.08),
     0 0 0 1px rgba(255, 255, 255, 0.8),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  /* Forçar compositing para melhor performance */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
 }
 
+body.macos-system .shadow-glass-lg,
 body.safari-browser .shadow-glass-lg,
-body.macos-system.webkit-browser .shadow-glass-lg {
+body.webkit-browser.macos-system .shadow-glass-lg {
   box-shadow:
     0 12px 32px rgba(0, 0, 0, 0.1),
     0 0 0 1px rgba(255, 255, 255, 0.85),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  /* Forçar compositing para melhor performance */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+}
+
+/* === PERFORMANCE FIXES PARA MACS ANTIGOS === */
+body.macos-version-9 [class*="backdrop-blur"],
+body.macos-version-10 [class*="backdrop-blur"],
+body.macos-version-11 [class*="backdrop-blur"],
+body.macos-version-12 [class*="backdrop-blur"] {
+  /* Reduzir blur para Macs antigos (melhor performance) */
+  -webkit-backdrop-filter: blur(6px) !important;
+  backdrop-filter: blur(6px) !important;
+  /* Background mais sólido para compensar */
+  background-color: rgba(255, 255, 255, 0.97) !important;
 }

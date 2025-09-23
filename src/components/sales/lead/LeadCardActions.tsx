@@ -101,9 +101,22 @@ export const LeadCardActions = ({
   }
 
   // In funnel view, only show won/lost actions (stage control removed from here)
+  const showWonButton = onMoveToWon && !isInWonStage && !isInLostStage;
+  const showLostButton = onMoveToLost && !isInWonStage && !isInLostStage;
+
+  console.log('[LeadCardActions] 🎮 Condições dos botões:', {
+    showWonButton,
+    showLostButton,
+    isInWonStage,
+    isInLostStage,
+    wonStageId,
+    lostStageId,
+    leadColumnId
+  });
+
   return (
     <div className="lead-actions flex items-center space-x-1" data-no-drag onClick={(e) => e.stopPropagation()}>
-      {onMoveToWon && !isInWonStage && !isInLostStage && (
+      {showWonButton && (
         <button
           data-no-drag
           onClick={(e) => {
@@ -116,8 +129,8 @@ export const LeadCardActions = ({
           <CheckCircle className="h-4 w-4 text-green-600 hover:text-green-700" />
         </button>
       )}
-      {onMoveToLost && !isInWonStage && !isInLostStage && (
-        <button 
+      {showLostButton && (
+        <button
           onClick={(e) => {
             e.stopPropagation();
             handleMoveToLost();
@@ -127,6 +140,11 @@ export const LeadCardActions = ({
         >
           <XCircle className="h-4 w-4 text-red-600 hover:text-red-700" />
         </button>
+      )}
+      {!showWonButton && !showLostButton && (
+        <div className="text-xs text-gray-400 px-2">
+          Sem ações
+        </div>
       )}
     </div>
   );

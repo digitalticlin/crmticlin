@@ -1,10 +1,14 @@
 // Detecta Safari e aplica classes específicas para fixes
 export const applySafariFixesIfNeeded = () => {
-  // Detecta Safari
+  // Detecta Safari com melhor precisão
   const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   const isWebKit = 'WebkitAppearance' in document.documentElement.style;
   const isMacOS = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+  // Detecção abrangente de versões macOS (do mais antigo ao mais novo)
+  const macOSVersion = detectMacOSVersion();
+  const safariVersion = detectSafariVersion();
 
   // Adiciona classes ao body para targeting CSS específico
   if (isSafari || isWebKit) {
@@ -16,6 +20,25 @@ export const applySafariFixesIfNeeded = () => {
 
     if (isMacOS) {
       document.body.classList.add('macos-system');
+
+      // Adiciona classes específicas por versão do macOS
+      if (macOSVersion) {
+        document.body.classList.add(`macos-${macOSVersion.name}`);
+        document.body.classList.add(`macos-version-${macOSVersion.major}`);
+
+        // Casos específicos problemáticos
+        if (macOSVersion.hasKnownBackdropIssues) {
+          document.body.classList.add('macos-backdrop-issues');
+        }
+      }
+
+      // Adiciona classes específicas por versão do Safari
+      if (safariVersion) {
+        document.body.classList.add(`safari-version-${safariVersion.major}`);
+        if (safariVersion.hasKnownModalIssues) {
+          document.body.classList.add('safari-modal-issues');
+        }
+      }
     }
 
     if (isIOS) {
@@ -28,6 +51,8 @@ export const applySafariFixesIfNeeded = () => {
       isWebKit,
       isMacOS,
       isIOS,
+      macOSVersion,
+      safariVersion,
       userAgent: navigator.userAgent,
       platform: navigator.platform
     });
@@ -35,6 +60,62 @@ export const applySafariFixesIfNeeded = () => {
     // Aplica fix específico para backdrop-filter se necessário
     testBackdropFilterSupport();
   }
+};
+
+// Detecta versão específica do macOS
+const detectMacOSVersion = () => {
+  const userAgent = navigator.userAgent;
+
+  // Mapeamento de versões do macOS (do mais antigo ao mais novo)
+  const macOSVersions = [
+    { regex: /Mac OS X 10_9/, name: 'mavericks', major: 9, hasKnownBackdropIssues: true },
+    { regex: /Mac OS X 10_10/, name: 'yosemite', major: 10, hasKnownBackdropIssues: true },
+    { regex: /Mac OS X 10_11/, name: 'el-capitan', major: 11, hasKnownBackdropIssues: true },
+    { regex: /Mac OS X 10_12/, name: 'sierra', major: 12, hasKnownBackdropIssues: true },
+    { regex: /Mac OS X 10_13/, name: 'high-sierra', major: 13, hasKnownBackdropIssues: true },
+    { regex: /Mac OS X 10_14/, name: 'mojave', major: 14, hasKnownBackdropIssues: true },
+    { regex: /Mac OS X 10_15/, name: 'catalina', major: 15, hasKnownBackdropIssues: true },
+    { regex: /Mac OS X 10_16|macOS 11/, name: 'big-sur', major: 16, hasKnownBackdropIssues: true },
+    { regex: /macOS 12/, name: 'monterey', major: 17, hasKnownBackdropIssues: true },
+    { regex: /macOS 13/, name: 'ventura', major: 18, hasKnownBackdropIssues: true },
+    { regex: /macOS 14/, name: 'sonoma', major: 19, hasKnownBackdropIssues: true },
+    { regex: /macOS 15/, name: 'sequoia', major: 20, hasKnownBackdropIssues: true },
+  ];
+
+  for (const version of macOSVersions) {
+    if (version.regex.test(userAgent)) {
+      return version;
+    }
+  }
+
+  // Fallback para versões não identificadas (assumir problemas)
+  if (navigator.platform.toUpperCase().indexOf('MAC') >= 0) {
+    return { name: 'unknown', major: 0, hasKnownBackdropIssues: true };
+  }
+
+  return null;
+};
+
+// Detecta versão específica do Safari
+const detectSafariVersion = () => {
+  const userAgent = navigator.userAgent;
+  const versionMatch = userAgent.match(/Version\/(\d+)\.(\d+)/);
+
+  if (versionMatch) {
+    const major = parseInt(versionMatch[1]);
+    const minor = parseInt(versionMatch[2]);
+
+    // Versões do Safari com problemas conhecidos de modal
+    const hasKnownModalIssues = major >= 14; // Safari 14+ tem problemas com transform + backdrop-filter
+
+    return {
+      major,
+      minor,
+      hasKnownModalIssues
+    };
+  }
+
+  return null;
 };
 
 // Testa suporte real ao backdrop-filter

@@ -7,7 +7,16 @@ interface LeadCardTagsProps {
 }
 
 export const LeadCardTags = ({ tags, maxTags = Infinity }: LeadCardTagsProps) => {
-  if (!tags || tags.length === 0) return null;
+  // DEBUG: Verificar dados das tags
+  console.log('[LeadCardTags] 🏷️ Tags recebidas:', tags);
+
+  if (!tags || tags.length === 0) {
+    return (
+      <div className="text-xs text-gray-400">
+        Sem tags
+      </div>
+    );
+  }
 
   const visibleTags = tags.slice(0, maxTags);
   const hiddenCount = tags.length - maxTags;

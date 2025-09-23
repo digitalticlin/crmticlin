@@ -1,4 +1,7 @@
 
+/* Import Safari/macOS fixes */
+@import './styles/safari-fixes.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

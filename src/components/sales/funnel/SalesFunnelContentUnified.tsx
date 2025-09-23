@@ -208,12 +208,34 @@ export function SalesFunnelContentUnified() {
 
   // Calcular wonStageId e lostStageId das etapas atuais (ANTES dos returns early)
   const wonStageId = useMemo(() => {
+    console.log('[SalesFunnelContentUnified] 🔍 Verificando etapas Won:', {
+      totalColumns: funnel?.columns?.length,
+      columns: funnel?.columns?.map(c => ({
+        id: c.id,
+        title: c.title,
+        is_won: c.is_won
+      }))
+    });
     return funnel?.columns?.find(stage => stage.is_won)?.id;
   }, [funnel?.columns]);
 
   const lostStageId = useMemo(() => {
+    console.log('[SalesFunnelContentUnified] 🔍 Verificando etapas Lost:', {
+      totalColumns: funnel?.columns?.length,
+      columns: funnel?.columns?.map(c => ({
+        id: c.id,
+        title: c.title,
+        is_lost: c.is_lost
+      }))
+    });
     return funnel?.columns?.find(stage => stage.is_lost)?.id;
   }, [funnel?.columns]);
+
+  console.log('[SalesFunnelContentUnified] 🎯 Etapas ganho/perdido calculadas:', {
+    wonStageId,
+    lostStageId,
+    totalColumns: funnel?.columns?.length
+  });
 
   // Loading states
   if (accessLoading || funnelLoading) {

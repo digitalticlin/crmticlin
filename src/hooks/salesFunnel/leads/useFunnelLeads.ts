@@ -212,6 +212,15 @@ export function useFunnelLeads({
             return null;
           }).filter((tag): tag is KanbanTag => tag !== null) || [];
 
+          // DEBUG: Verificar tags processadas
+          if (tags.length > 0) {
+            console.log('[useFunnelLeads] 🏷️ Lead com tags encontrado:', {
+              leadName: lead.name,
+              tagsCount: tags.length,
+              tags
+            });
+          }
+
           // Tags já processadas
 
           return {
