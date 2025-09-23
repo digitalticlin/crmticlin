@@ -206,6 +206,15 @@ export function SalesFunnelContentUnified() {
 
   // Handler removido - agora gerenciado pelo useFiltersCoordinator
 
+  // Calcular wonStageId e lostStageId das etapas atuais (ANTES dos returns early)
+  const wonStageId = useMemo(() => {
+    return funnel?.columns?.find(stage => stage.is_won)?.id;
+  }, [funnel?.columns]);
+
+  const lostStageId = useMemo(() => {
+    return funnel?.columns?.find(stage => stage.is_lost)?.id;
+  }, [funnel?.columns]);
+
   // Loading states
   if (accessLoading || funnelLoading) {
     return <FunnelLoadingState />;
@@ -245,21 +254,6 @@ export function SalesFunnelContentUnified() {
     canDragWithSelection: () => false,
     selectedLeads: new Set<string>()
   };
-
-  // Calcular wonStageId e lostStageId das etapas atuais
-  const wonStageId = useMemo(() => {
-    return funnel.columns.find(stage => stage.is_won)?.id;
-  }, [funnel.columns]);
-
-  const lostStageId = useMemo(() => {
-    return funnel.columns.find(stage => stage.is_lost)?.id;
-  }, [funnel.columns]);
-
-  console.log('[SalesFunnelContentUnified] 🎯 Etapas ganho/perdido:', {
-    wonStageId,
-    lostStageId,
-    totalColumns: funnel.columns.length
-  });
 
   return (
     <div className="h-full w-full flex flex-col">
