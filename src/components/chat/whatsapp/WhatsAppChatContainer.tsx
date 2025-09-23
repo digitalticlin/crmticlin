@@ -1,12 +1,12 @@
 
 import { WhatsAppChatLayout } from "./WhatsAppChatLayout";
-import { useWhatsAppChat } from "@/hooks/whatsapp/useWhatsAppChat";
-import { useSendMessage } from "@/hooks/whatsapp/messaging/useSendMessage";
+import { useWhatsAppChatUnified } from "@/hooks/whatsappChat/core/useWhatsAppChatUnified";
+import { useWhatsAppMessagesManager } from "@/hooks/whatsappChat/messages/useWhatsAppMessagesManager";
 
 export function WhatsAppChatContainer() {
-  console.log('[WhatsAppChatContainer] 🏗️ Componente renderizado - iniciando hooks isolados');
-  
-  // ✅ HOOK PRINCIPAL (sem envio)
+  console.log('[WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados');
+
+  // ✅ HOOK PRINCIPAL UNIFICADO (modular)
   const {
     selectedContact,
     setSelectedContact,
@@ -24,13 +24,14 @@ export function WhatsAppChatContainer() {
     isLoadingMessages,
     isLoadingMoreMessages,
     hasMoreMessages,
-    loadMoreMessages
-  } = useWhatsAppChat();
+    loadMoreMessages,
+    markAsRead
+  } = useWhatsAppChatUnified();
 
-  // ✅ HOOK ISOLADO PARA ENVIO
-  const { sendMessage, isSending: isSendingMessage } = useSendMessage({
+  // ✅ HOOK ISOLADO PARA ENVIO (reutiliza do messages manager)
+  const messagesManager = useWhatsAppMessagesManager({
     selectedContact,
-    activeInstance
+    activeInstanceId: activeInstance?.id
   });
 
   console.log('[WhatsAppChatContainer] 📊 Dados do hook recebidos:', {
@@ -43,15 +44,15 @@ export function WhatsAppChatContainer() {
   });
 
   const onSendMessageWrapper = async (message: string, mediaType?: string, mediaUrl?: string) => {
-    console.log('[WhatsAppChatContainer] ▶️ onSendMessage chamado', {
+    console.log('[WhatsAppChatContainer] ▶️ onSendMessage chamado (hook unificado)', {
       hasContact: !!selectedContact,
       contactId: selectedContact?.id,
       messagePreview: message?.substring(0, 50),
       mediaType,
       hasMediaUrl: !!mediaUrl
     });
-    const result = await sendMessage(message, mediaType, mediaUrl);
-    console.log('[WhatsAppChatContainer] ✅ Resultado de sendMessage:', result);
+    const result = await messagesManager.sendMessage(message, mediaType, mediaUrl);
+    console.log('[WhatsAppChatContainer] ✅ Resultado de sendMessage (modular):', result);
     return result;
   };
 
@@ -70,7 +71,7 @@ export function WhatsAppChatContainer() {
       isLoadingMore={isLoadingMoreMessages}
       hasMoreMessages={hasMoreMessages}
       onLoadMoreMessages={loadMoreMessages}
-      isSending={isSendingMessage}
+      isSending={messagesManager.isSending}
       onRefreshMessages={refreshMessages}
       onRefreshContacts={refreshContacts}
       onSearchContacts={searchContacts}

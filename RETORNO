@@ -1,127 +1,72 @@
-[LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: Object
-SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: Object
-KanbanColumnUnified.tsx:81 [KanbanColumnUnified] 📋 Coluna "Reunião Agendada" (43a24cdf-bb12-4ebd-bf17-f9b05a0d708c): Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: Object
-SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: Object
-KanbanBoardUnified.tsx:87 [KanbanBoardUnified] 🎛️ Estado do componente: Object
-SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: Object
-KanbanColumnUnified.tsx:81 [KanbanColumnUnified] 📋 Coluna "Entrada de Leads" (dcac808a-2595-4d33-9b38-2f04055a4df3): Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: Object
-KanbanColumnUnified.tsx:81 [KanbanColumnUnified] 📋 Coluna "Em atendimento" (dc6693f7-8b03-43cb-a376-eadf1e8466d9): Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: Object
-KanbanColumnUnified.tsx:81 [KanbanColumnUnified] 📋 Coluna "Em negociação" (6e57b62e-4a14-4a8c-b828-6ec2b405b3d0): Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: ObjecthasTagsArray: falselength: undefinedtags: undefined[[Prototype]]: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
-SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: Object
-KanbanColumnUnified.tsx:81 [KanbanColumnUnified] 📋 Coluna "Reunião Agendada" (43a24cdf-bb12-4ebd-bf17-f9b05a0d708c): Object
-LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
-LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
-LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+
+2logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 712e7708-2299-4a00-9128-577c8f113ca4
+useWhatsAppInstances.ts:108 [WhatsApp Instances] 👤 Role do usuário: admin
+useWhatsAppInstances.ts:114 [WhatsApp Instances] 🔑 Aplicando filtro ADMIN
+useWhatsAppInstances.ts:350 [WhatsApp Instances] 📡 Status da subscription: SUBSCRIBED
+useWhatsAppInstances.ts:173 [WhatsApp Instances] ✅ Instâncias carregadas: Object
+WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
+useWhatsAppChatUnified.ts:69 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:81 [WhatsApp Chat Unified] 🎯 Parâmetros: Object
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:53 [WhatsApp Contacts Manager] 🎯 Hook inicializado Object
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppMessagesManager.ts:48 [WhatsApp Messages Manager] 🎯 Hook inicializado Object
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppChatUnified.ts:186 [WhatsApp Chat Unified] 📊 Status atual: Object
+useWhatsAppMessagesManager.ts:48 [WhatsApp Messages Manager] 🎯 Hook inicializado Object
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+WhatsAppChatContainer.tsx:37 [WhatsAppChatContainer] 📊 Dados do hook recebidos: Object
+ContactsList.tsx:60 [ContactsList] Props received: Object
+ContactsList.tsx:141 [ContactsList] Rendering contacts: Object
+ContactsList.tsx:60 [ContactsList] Props received: Object
+ContactsList.tsx:141 [ContactsList] Rendering contacts: Object
+2logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
+2logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 712e7708-2299-4a00-9128-577c8f113ca4
+useWhatsAppContactsManager.ts:87 [WhatsApp Contacts Manager] 📞 Carregando contatos: Object
+rhjgagzstjzynvrakdyj.supabase.co/rest/v1/whatsapp_chats?select=id%2Ccontact_name%2Ccontact_phone%2Cprofile_picture%2Clast_message%2Clast_message_time%2Cunread_count%2Cinstance_id&instance_id=eq.66ae98b4-1c72-49e4-a7e9-ab774db101ec&order=last_message_time.desc&offset=0&limit=20:1  Failed to load resource: the server responded with a status of 404 ()Understand this error
+useWhatsAppContactsManager.ts:121 [WhatsApp Contacts Manager] ❌ Erro ao carregar contatos: Object
+queryFn @ useWhatsAppContactsManager.ts:121Understand this error
+useWhatsAppContactsManager.ts:87 [WhatsApp Contacts Manager] 📞 Carregando contatos: Object
+rhjgagzstjzynvrakdyj.supabase.co/rest/v1/whatsapp_chats?select=id%2Ccontact_name%2Ccontact_phone%2Cprofile_picture%2Clast_message%2Clast_message_time%2Cunread_count%2Cinstance_id&instance_id=eq.66ae98b4-1c72-49e4-a7e9-ab774db101ec&order=last_message_time.desc&offset=0&limit=20:1  Failed to load resource: the server responded with a status of 404 ()Understand this error
+useWhatsAppContactsManager.ts:121 [WhatsApp Contacts Manager] ❌ Erro ao carregar contatos: Object
+queryFn @ useWhatsAppContactsManager.ts:121Understand this error
+useWhatsAppContactsManager.ts:87 [WhatsApp Contacts Manager] 📞 Carregando contatos: Object
+rhjgagzstjzynvrakdyj.supabase.co/rest/v1/whatsapp_chats?select=id%2Ccontact_name%2Ccontact_phone%2Cprofile_picture%2Clast_message%2Clast_message_time%2Cunread_count%2Cinstance_id&instance_id=eq.66ae98b4-1c72-49e4-a7e9-ab774db101ec&order=last_message_time.desc&offset=0&limit=20:1  Failed to load resource: the server responded with a status of 404 ()Understand this error
+useWhatsAppContactsManager.ts:121 [WhatsApp Contacts Manager] ❌ Erro ao carregar contatos: Object
+queryFn @ useWhatsAppContactsManager.ts:121Understand this error
+useWhatsAppContactsManager.ts:87 [WhatsApp Contacts Manager] 📞 Carregando contatos: {instanceId: '66ae98b4-1c72-49e4-a7e9-ab774db101ec', page: 0, filterType: 'all'}
+@supabase_supabase-js.js?v=3aeb0223:3916  GET https://rhjgagzstjzynvrakdyj.supabase.co/rest/v1/whatsapp_chats?select=id%2Ccontact_name%2Ccontact_phone%2Cprofile_picture%2Clast_message%2Clast_message_time%2Cunread_count%2Cinstance_id&instance_id=eq.66ae98b4-1c72-49e4-a7e9-ab774db101ec&order=last_message_time.desc&offset=0&limit=20 404 (Not Found)
+(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:3916
+(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:3937
+fulfilled @ @supabase_supabase-js.js?v=3aeb0223:3889
+Promise.then
+step @ @supabase_supabase-js.js?v=3aeb0223:3902
+(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:3904
+__awaiter6 @ @supabase_supabase-js.js?v=3aeb0223:3886
+(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:3927
+then @ @supabase_supabase-js.js?v=3aeb0223:89Understand this error
+useWhatsAppContactsManager.ts:121 [WhatsApp Contacts Manager] ❌ Erro ao carregar contatos: {code: '42P01', details: null, hint: null, message: 'relation "public.whatsapp_chats" does not exist'}
+queryFn @ useWhatsAppContactsManager.ts:121
+await in queryFn
+fetchPage @ @tanstack_react-query.js?v=3aeb0223:1577
+fetchFn @ @tanstack_react-query.js?v=3aeb0223:1601
+run @ @tanstack_react-query.js?v=3aeb0223:513
+(anonymous) @ @tanstack_react-query.js?v=3aeb0223:538Understand this error
+WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
+useWhatsAppChatUnified.ts:69 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:81 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '712e7708-2299-4a00-9128-577c8f113ca4', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:53 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppMessagesManager.ts:48 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppChatUnified.ts:186 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 0, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 100}
+useWhatsAppMessagesManager.ts:48 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+WhatsAppChatContainer.tsx:37 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 0, messagesCount: 0, selectedContactId: undefined, selectedContactName: undefined, isLoadingContacts: false, …}
+ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 0, searchQuery: '', activeFilter: 'all', selectedContactId: undefined}
+ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 0, searchQuery: '', activeFilter: 'all'}
+ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 0, searchQuery: '', activeFilter: 'all', selectedContactId: undefined}
+ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 0, searchQuery: '', activeFilter: 'all'}
+2logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
+2logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 712e7708-2299-4a00-9128-577c8f113ca4
