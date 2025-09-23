@@ -1,28 +1,34 @@
 /* 🎯 SCROLLBAR MINIMALISTA PARA KANBAN BOARD */
 
-/* Scrollbar horizontal para o board principal */
+/* Scrollbar horizontal para o board principal - BRANCA E VISÍVEL */
 .kanban-horizontal-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.8) rgba(255, 255, 255, 0.2);
 }
 
 .kanban-horizontal-scroll::-webkit-scrollbar {
-  height: 8px;
+  height: 12px; /* Aumentado para ser mais visível */
+  z-index: 9999; /* Garantir que aparece por cima */
 }
 
 .kanban-horizontal-scroll::-webkit-scrollbar-track {
-  background: rgba(243, 244, 246, 0.3);
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .kanban-horizontal-scroll::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.5);
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
 }
 
 .kanban-horizontal-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.8);
+  background: rgba(255, 255, 255, 1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Scrollbar vertical para as colunas */

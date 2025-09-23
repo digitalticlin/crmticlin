@@ -292,7 +292,7 @@ export function SalesFunnelContentUnified() {
 
       {/* Main Content - Viewport responsivo com scroll horizontal */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-x-auto overflow-y-hidden kanban-horizontal-scroll kanban-smooth-scroll">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden kanban-horizontal-scroll kanban-smooth-scroll relative" style={{ zIndex: 1 }}>
           {currentView === "board" ? (
             funnel.isLoading ? (
               <FunnelLoadingState />

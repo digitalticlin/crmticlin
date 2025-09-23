@@ -75,12 +75,12 @@ export const KanbanBoardUnified: React.FC<KanbanBoardUnifiedProps> = ({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draggedLead, setDraggedLead] = useState<KanbanLead | null>(null);
 
-  // Auto-scroll durante drag
+  // Auto-scroll durante drag - velocidade aumentada
   const { isScrolling } = useAutoScroll({
     isActive: !!activeId,
     container: boardContainerRef.current,
     scrollThreshold: 60,
-    scrollSpeed: 12
+    scrollSpeed: 25 // Aumentado de 12 para 25
   });
 
   // Sensores ultra-otimizados para DnD usando configuração centralizada

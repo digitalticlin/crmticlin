@@ -31,6 +31,15 @@ export function MessageItem({
   const hasError = message.status === 'error' || message.status === 'failed';
   const isPending = message.status === 'pending' || message.status === 'sending';
 
+  // 🐛 DEBUG TEMPORÁRIO: Log para verificar source_edge
+  if (message.source_edge) {
+    console.log('[MessageItem] 🤖 DEBUG source_edge:', {
+      messageId: message.id,
+      source_edge: message.source_edge,
+      text: message.text?.substring(0, 30)
+    });
+  }
+
   return (
     <div className={cn(
       "message-item w-full px-4 py-1 transition-all duration-300",
@@ -126,7 +135,16 @@ export function MessageItem({
                 )}>
                   {messageTime}
                 </span>
-                
+
+                {/* 🤖 ÍCONE DE IA para mensagens automáticas */}
+                {message.source_edge === 'ai_messaging_service' && (
+                  <Bot className={cn(
+                    "w-3 h-3",
+                    isFromMe ? "text-green-400" : "text-green-500",
+                    "opacity-80"
+                  )} title="Mensagem enviada pela IA" />
+                )}
+
                 {message.import_source && (
                   <span className={cn(
                     "px-2 py-0.5 rounded-full text-xs",
@@ -136,10 +154,10 @@ export function MessageItem({
                   </span>
                 )}
               </div>
-              
+
               {/* Status da mensagem - apenas ícone */}
               {isFromMe && (
-                <MessageStatus 
+                <MessageStatus
                   status={message.status}
                   className="flex-shrink-0"
                 />
