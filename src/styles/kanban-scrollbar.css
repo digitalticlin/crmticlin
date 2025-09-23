@@ -1,0 +1,86 @@
+/* 🎯 SCROLLBAR MINIMALISTA PARA KANBAN BOARD */
+
+/* Scrollbar horizontal para o board principal */
+.kanban-horizontal-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.kanban-horizontal-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.kanban-horizontal-scroll::-webkit-scrollbar-track {
+  background: rgba(243, 244, 246, 0.3);
+  border-radius: 4px;
+}
+
+.kanban-horizontal-scroll::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.kanban-horizontal-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.8);
+}
+
+/* Scrollbar vertical para as colunas */
+.kanban-column-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+}
+
+.kanban-column-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.kanban-column-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.kanban-column-scroll::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.kanban-column-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
+}
+
+/* Auto-scroll durante drag and drop */
+.kanban-auto-scroll-zone {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 50px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.kanban-auto-scroll-left {
+  left: 0;
+  background: linear-gradient(to right, rgba(59, 130, 246, 0.1), transparent);
+}
+
+.kanban-auto-scroll-right {
+  right: 0;
+  background: linear-gradient(to left, rgba(59, 130, 246, 0.1), transparent);
+}
+
+/* Smooth scroll behavior */
+.kanban-smooth-scroll {
+  scroll-behavior: smooth;
+}
+
+/* Mobile responsivo */
+@media (max-width: 768px) {
+  .kanban-horizontal-scroll::-webkit-scrollbar {
+    height: 12px;
+  }
+
+  .kanban-column-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+}

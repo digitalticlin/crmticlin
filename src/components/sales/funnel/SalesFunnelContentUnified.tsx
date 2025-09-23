@@ -290,37 +290,39 @@ export function SalesFunnelContentUnified() {
         />
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        {currentView === "board" ? (
-          funnel.isLoading ? (
-            <FunnelLoadingState />
+      {/* Main Content - Viewport responsivo com scroll horizontal */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden kanban-horizontal-scroll kanban-smooth-scroll">
+          {currentView === "board" ? (
+            funnel.isLoading ? (
+              <FunnelLoadingState />
+            ) : (
+              <>
+                <KanbanBoard
+                  columns={funnel.columns}
+                  onColumnsChange={funnel.updateColumns}
+                  onOpenLeadDetail={handleOpenLeadDetail}
+                  onOpenChat={handleOpenChat}
+                  onMoveToWonLost={handleMoveToWonLost}
+                  massSelection={safeMassSelection}
+                  funnelId={selectedFunnel.id}
+                  hasActiveFilters={funnel.hasActiveFilters}
+                  wonStageId={wonStageId}
+                  lostStageId={lostStageId}
+                />
+              </>
+            )
           ) : (
-            <>
-              <KanbanBoard
-                columns={funnel.columns}
-                onColumnsChange={funnel.updateColumns}
+            <WonLostBoard
+                funnelId={selectedFunnel.id}
                 onOpenLeadDetail={handleOpenLeadDetail}
                 onOpenChat={handleOpenChat}
-                onMoveToWonLost={handleMoveToWonLost}
-                massSelection={safeMassSelection}
-                funnelId={selectedFunnel.id}
-                hasActiveFilters={funnel.hasActiveFilters}
-                wonStageId={wonStageId}
-                lostStageId={lostStageId}
+                onReturnToFunnel={handleReturnToFunnel}
+                searchTerm={""}
+                selectedTags={[]}
               />
-            </>
-          )
-        ) : (
-          <WonLostBoard
-              funnelId={selectedFunnel.id}
-              onOpenLeadDetail={handleOpenLeadDetail}
-              onOpenChat={handleOpenChat}
-              onReturnToFunnel={handleReturnToFunnel}
-              searchTerm={""}
-              selectedTags={[]}
-            />
-        )}
+          )}
+        </div>
       </div>
 
       {/* Modais de Tags e Config agora são gerenciados pelo ModernFunnelControlBarUnifiedV2 */}

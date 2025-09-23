@@ -72,12 +72,12 @@ export default {
                     200: '#ebee66',
                     300: '#e4e833',
                     400: '#d3d800',
-                    500: '#b6bb00',
-                    600: '#999e00',
-                    700: '#7c8000',
-                    800: '#5f6200',
-                    900: '#424400',
-                    950: '#252600',
+                    500: '#128C7E', // Verde WhatsApp oficial
+                    600: '#0F7A6E', // Verde mais escuro
+                    700: '#0C675D',
+                    800: '#09544B',
+                    900: '#06413A',
+                    950: '#032E28',
                 },
                 // Pulse colors for new gradient system
                 pulse: {

@@ -323,9 +323,10 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
 
   // Classes CSS para coluna
   const columnClasses = cn(
-    // Base styles
+    // Base styles - Altura ajustada ao viewport
     "bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl",
-    "px-1.5 pt-1.5 pb-0 min-w-[300px] w-[300px] flex flex-col h-full",
+    "px-1.5 pt-1.5 pb-0 min-w-[300px] w-[300px] flex flex-col",
+    "h-[calc(100vh-220px)] max-h-[calc(100vh-220px)]", // Altura calculada menos header/toolbar
     "transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg",
 
     // Estados de drop

@@ -7,7 +7,7 @@ import { MessageMediaEnhanced } from '../MessageMediaEnhanced';
 import { MessageMediaDirect } from '../MessageMediaDirect';
 import { MessageStatus } from './MessageStatus';
 import { MessageActions } from './MessageActions';
-import { CheckCircle, Info, AlertCircle } from 'lucide-react';
+import { CheckCircle, Info, AlertCircle, Bot } from 'lucide-react';
 
 interface MessageItemProps {
   message: any;

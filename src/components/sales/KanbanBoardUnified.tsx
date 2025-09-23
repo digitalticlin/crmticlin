@@ -8,7 +8,7 @@
  * Funciona com ou sem DnD, sem conflitos, coordenado centralmente.
  */
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent, PointerSensor, useSensor, useSensors, closestCenter, rectIntersection } from '@dnd-kit/core';
 import { DND_CONFIG } from '@/config/dndConfig';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -22,6 +22,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useAutoScroll } from '@/hooks/dnd/useAutoScroll';
 
 interface KanbanBoardUnifiedProps {
   columns: IKanbanColumn[];
@@ -67,9 +68,20 @@ export const KanbanBoardUnified: React.FC<KanbanBoardUnifiedProps> = ({
   const { user } = useAuth();
   const { role } = useUserRole();
 
+  // Refs
+  const boardContainerRef = useRef<HTMLDivElement>(null);
+
   // Estados do DnD
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draggedLead, setDraggedLead] = useState<KanbanLead | null>(null);
+
+  // Auto-scroll durante drag
+  const { isScrolling } = useAutoScroll({
+    isActive: !!activeId,
+    container: boardContainerRef.current,
+    scrollThreshold: 60,
+    scrollSpeed: 12
+  });
 
   // Sensores ultra-otimizados para DnD usando configuração centralizada
   const sensors = useSensors(
@@ -295,13 +307,13 @@ export const KanbanBoardUnified: React.FC<KanbanBoardUnifiedProps> = ({
   // Se DnD estiver desabilitado, renderizar sem DndContext
   if (!isDndActive) {
     return (
-      <div className={`flex gap-6 min-w-max px-6 py-4 ${className || ''}`}>
+      <div ref={boardContainerRef} className={`flex gap-6 min-w-max px-6 py-4 h-full ${className || ''}`}>
         {renderColumns()}
       </div>
     );
   }
 
-  // Renderizar com DnD ativo - detecção otimizada
+  // Renderizar com DnD ativo - detecção otimizada + auto-scroll
   return (
     <DndContext
       sensors={sensors}
@@ -310,7 +322,7 @@ export const KanbanBoardUnified: React.FC<KanbanBoardUnifiedProps> = ({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className={`flex gap-6 min-w-max px-6 py-4 ${className || ''}`}>
+      <div ref={boardContainerRef} className={`flex gap-6 min-w-max px-6 py-4 h-full ${className || ''}`}>
         {renderColumns()}
       </div>
 

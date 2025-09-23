@@ -103,6 +103,8 @@ export interface Message {
   isOptimistic?: boolean;
   // ✅ FILENAME: Campo para nome do arquivo
   fileName?: string;
+  // ✅ SOURCE EDGE: Identifica qual edge function enviou a mensagem
+  source_edge?: string;
 }
 
 import { KanbanTag } from "./kanban";
