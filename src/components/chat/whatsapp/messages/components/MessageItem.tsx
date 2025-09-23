@@ -17,10 +17,10 @@ interface MessageItemProps {
   className?: string;
 }
 
-export function MessageItem({ 
-  message, 
+export function MessageItem({
+  message,
   isLastMessage,
-  onResend, 
+  onResend,
   onDelete,
   className = ""
 }: MessageItemProps) {
@@ -31,14 +31,9 @@ export function MessageItem({
   const hasError = message.status === 'error' || message.status === 'failed';
   const isPending = message.status === 'pending' || message.status === 'sending';
 
-  // 🐛 DEBUG TEMPORÁRIO: Log SEMPRE para todas as mensagens
-  console.log('[MessageItem] 🔍 DEBUG ALL MESSAGES:', {
-    messageId: message.id,
-    source_edge: message.source_edge,
-    hasSourceEdge: !!message.source_edge,
-    text: message.text?.substring(0, 30),
-    fromMe: message.fromMe
-  });
+  // 🤖 Detectar se é uma mensagem da IA (apenas mensagens enviadas com source_edge)
+  const isAIMessage = isFromMe && message.source_edge === 'ai_messaging_service';
+
 
   return (
     <div className={cn(
@@ -48,9 +43,20 @@ export function MessageItem({
       className
     )}>
       <div className={cn(
-        "flex w-full",
+        "flex w-full items-start gap-2",
         isFromMe ? "justify-end" : "justify-start"
       )}>
+        {/* Espaçador para empurrar o ícone e mensagem para a direita */}
+        {isFromMe && <div className="flex-1" />}
+
+        {/* 🤖 ÍCONE DE IA - Lado esquerdo da mensagem enviada */}
+        {isFromMe && isAIMessage && (
+          <div className="flex items-center justify-center w-6 h-6 bg-green-500 rounded-full flex-shrink-0 mr-2"
+               title="Mensagem enviada pela IA">
+            <Bot className="w-3 h-3 text-white" />
+          </div>
+        )}
+
         {/* 🚀 CORREÇÃO: Balão de conversa estilo WhatsApp */}
         <div className={cn(
           "group relative max-w-[70%] rounded-2xl p-3 shadow-md transition-all duration-300",
@@ -136,17 +142,6 @@ export function MessageItem({
                   {messageTime}
                 </span>
 
-                {/* 🤖 ÍCONE DE IA para mensagens automáticas */}
-                {(message.source_edge === 'ai_messaging_service' || message.text?.includes('Amanda')) && (
-                  <div className="flex items-center gap-1">
-                    <Bot className={cn(
-                      "w-4 h-4",
-                      "text-green-500",
-                      "bg-green-100 rounded-full p-0.5"
-                    )} title="Mensagem enviada pela IA" />
-                    <span className="text-xs text-green-600 font-semibold">IA</span>
-                  </div>
-                )}
 
                 {message.import_source && (
                   <span className={cn(
