@@ -246,6 +246,21 @@ export function SalesFunnelContentUnified() {
     selectedLeads: new Set<string>()
   };
 
+  // Calcular wonStageId e lostStageId das etapas atuais
+  const wonStageId = useMemo(() => {
+    return funnel.columns.find(stage => stage.is_won)?.id;
+  }, [funnel.columns]);
+
+  const lostStageId = useMemo(() => {
+    return funnel.columns.find(stage => stage.is_lost)?.id;
+  }, [funnel.columns]);
+
+  console.log('[SalesFunnelContentUnified] 🎯 Etapas ganho/perdido:', {
+    wonStageId,
+    lostStageId,
+    totalColumns: funnel.columns.length
+  });
+
   return (
     <div className="h-full w-full flex flex-col">
       {/* Control Bar V2 - Com hooks coordenadores isolados */}
@@ -291,6 +306,8 @@ export function SalesFunnelContentUnified() {
                 massSelection={safeMassSelection}
                 funnelId={selectedFunnel.id}
                 hasActiveFilters={funnel.hasActiveFilters}
+                wonStageId={wonStageId}
+                lostStageId={lostStageId}
               />
             </>
           )
