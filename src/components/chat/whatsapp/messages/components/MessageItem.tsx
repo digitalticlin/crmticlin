@@ -31,14 +31,14 @@ export function MessageItem({
   const hasError = message.status === 'error' || message.status === 'failed';
   const isPending = message.status === 'pending' || message.status === 'sending';
 
-  // 🐛 DEBUG TEMPORÁRIO: Log para verificar source_edge
-  if (message.source_edge) {
-    console.log('[MessageItem] 🤖 DEBUG source_edge:', {
-      messageId: message.id,
-      source_edge: message.source_edge,
-      text: message.text?.substring(0, 30)
-    });
-  }
+  // 🐛 DEBUG TEMPORÁRIO: Log SEMPRE para todas as mensagens
+  console.log('[MessageItem] 🔍 DEBUG ALL MESSAGES:', {
+    messageId: message.id,
+    source_edge: message.source_edge,
+    hasSourceEdge: !!message.source_edge,
+    text: message.text?.substring(0, 30),
+    fromMe: message.fromMe
+  });
 
   return (
     <div className={cn(

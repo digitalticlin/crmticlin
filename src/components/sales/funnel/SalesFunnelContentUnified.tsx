@@ -5,7 +5,7 @@
  * sem conflitos, coordenada e otimizada.
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEnsureDefaultStages } from "@/hooks/salesFunnel/useEnsureDefaultStages";
 import { useWonLostStages } from "@/hooks/salesFunnel/stages/useWonLostStages";
+import { useDragScroll } from "@/hooks/dnd/useDragScroll";
 
 // Componentes
 import { KanbanBoard } from "../KanbanBoard";
@@ -47,6 +48,9 @@ export function SalesFunnelContentUnified() {
   const navigate = useNavigate();
   const { userFunnels, canViewAllFunnels, isLoading: accessLoading } = useAccessControl();
   const { addColumn: addStageToDatabase, updateColumn: updateStageInDatabase, deleteColumn: deleteStageFromDatabase } = useStageManagement();
+
+  // Refs
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Estados locais
   const [selectedFunnel, setSelectedFunnel] = useState<any>(null);
@@ -81,6 +85,13 @@ export function SalesFunnelContentUnified() {
   const { wonStageId, lostStageId, isLoading: wonLostLoading } = useWonLostStages({
     funnelId: selectedFunnel?.id,
     enabled: !!selectedFunnel?.id
+  });
+
+  // 🎯 DRAG-TO-SCROLL horizontal
+  const { isDragging } = useDragScroll({
+    container: scrollContainerRef.current,
+    enabled: true,
+    sensitivity: 2
   });
 
   // Memoizar query key para evitar re-renders
@@ -290,9 +301,13 @@ export function SalesFunnelContentUnified() {
         />
       )}
 
-      {/* Main Content - Viewport responsivo com scroll horizontal */}
+      {/* Main Content - Viewport responsivo com scroll horizontal + drag-to-scroll */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-x-auto overflow-y-hidden kanban-horizontal-scroll kanban-smooth-scroll relative" style={{ zIndex: 1 }}>
+        <div
+          ref={scrollContainerRef}
+          className={`flex-1 overflow-x-auto overflow-y-hidden kanban-horizontal-scroll kanban-smooth-scroll relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          style={{ zIndex: 1 }}
+        >
           {currentView === "board" ? (
             funnel.isLoading ? (
               <FunnelLoadingState />

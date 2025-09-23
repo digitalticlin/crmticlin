@@ -89,18 +89,18 @@ const fetchMessages = async (
   userRole?: 'admin' | 'operational',
   createdByUserId?: string
 ) => {
-  console.log('[WhatsApp Messages RQ] 🚀🚀🚀 VERSÃO 2.0 CACHE BUSTER - Buscando mensagens via React Query:', {
+  console.log('[WhatsApp Messages RQ] 🚀🚀🚀 VERSÃO 3.0 DEBUG SOURCE_EDGE - Buscando mensagens via React Query:', {
     userId,
     contactId,
     activeInstanceId,
     userRole,
     createdByUserId,
-    version: 'V2.0_CACHE_BUSTER',
+    version: 'V3.0_DEBUG_SOURCE_EDGE',
     timestamp: new Date().toISOString()
   });
   
   // CACHE BUSTER: Log único para verificar se nova versão está ativa
-  console.warn('🔥 CACHE BUSTER ATIVO - VERSÃO 2.0 DO HOOK MENSAGENS CARREGADA! 🔥');
+  console.warn('🔥 CACHE BUSTER ATIVO - VERSÃO 3.0 DEBUG SOURCE_EDGE CARREGADA! 🔥');
 
   // Query com filtro obrigatório
   let query = supabase
@@ -157,6 +157,29 @@ const fetchMessages = async (
     },
     orderingType: 'CRONOLÓGICA: Mensagens antigas → mensagens recentes'
   });
+
+  // 🐛 DEBUG TEMPORÁRIO: Verificar source_edge nas mensagens carregadas
+  const messagesWithSourceEdge = orderedMessages.filter(msg => msg.source_edge);
+  if (messagesWithSourceEdge.length > 0) {
+    console.log('[WhatsApp Messages RQ] 🤖 Mensagens com source_edge encontradas:',
+      messagesWithSourceEdge.map(msg => ({
+        id: msg.id,
+        source_edge: msg.source_edge,
+        text: msg.text?.substring(0, 30)
+      }))
+    );
+  } else {
+    console.log('[WhatsApp Messages RQ] ⚠️ Nenhuma mensagem com source_edge encontrada');
+    // Log algumas mensagens brutas para debug
+    console.log('[WhatsApp Messages RQ] 🔍 Dados brutos primeiras mensagens:',
+      data?.slice(0, 2).map(raw => ({
+        id: raw.id,
+        text: raw.text?.substring(0, 30),
+        source_edge: raw.source_edge,
+        from_me: raw.from_me
+      }))
+    );
+  }
   
   return {
     messages: orderedMessages,

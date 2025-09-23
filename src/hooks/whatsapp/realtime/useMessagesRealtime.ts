@@ -65,7 +65,8 @@ const convertMessage = (messageData: Record<string, unknown>): Message => {
       minute: '2-digit'
     }),
     isIncoming: !messageData.from_me,
-    media_cache: messageData.media_cache || null
+    media_cache: messageData.media_cache || null,
+    source_edge: messageData.source_edge || undefined
   };
 };
 
