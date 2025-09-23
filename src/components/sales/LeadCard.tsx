@@ -136,21 +136,23 @@ export const LeadCard = memo(({
       <div className="relative z-20">
         <LeadCardContent lead={lead} isWonLostView={isWonLostView} lostStageId={lostStageId} />
         
-        {/* Tags and Actions Footer - altura bem reduzida */}
-        <div className="flex justify-between items-center mt-1 pt-1 border-t border-white/30">
+        {/* Tags and Actions Footer - sempre visível */}
+        <div className="flex justify-between items-center mt-1 pt-1 border-t border-white/30 min-h-[32px]">
           <div className="flex-1 min-w-0 mr-2 max-w-[70%]">
             <LeadCardTags tags={lead.tags || []} maxTags={2} />
           </div>
-          <LeadCardActions
-            leadId={lead.id}
-            leadColumnId={lead.columnId}
-            onMoveToWon={onMoveToWon}
-            onMoveToLost={onMoveToLost}
-            onReturnToFunnel={onReturnToFunnel}
-            wonStageId={wonStageId}
-            lostStageId={lostStageId}
-            isWonLostView={isWonLostView}
-          />
+          <div className="flex items-center">
+            <LeadCardActions
+              leadId={lead.id}
+              leadColumnId={lead.columnId}
+              onMoveToWon={onMoveToWon}
+              onMoveToLost={onMoveToLost}
+              onReturnToFunnel={onReturnToFunnel}
+              wonStageId={wonStageId}
+              lostStageId={lostStageId}
+              isWonLostView={isWonLostView}
+            />
+          </div>
         </div>
       </div>
     </div>

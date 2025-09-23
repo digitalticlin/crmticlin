@@ -25,6 +25,17 @@ export const LeadCardActions = ({
   lostStageId,
   isWonLostView = false
 }: LeadCardActionsProps) => {
+  // DEBUG: Verificar se IDs estão chegando
+  console.log('[LeadCardActions] 🎯 Props recebidas:', {
+    leadId,
+    leadColumnId,
+    wonStageId,
+    lostStageId,
+    hasOnMoveToWon: !!onMoveToWon,
+    hasOnMoveToLost: !!onMoveToLost,
+    isWonLostView
+  });
+
   // Usando callbacks das props - removido contexto
 
   const moveLeadToStage = async (stageId: string, statusText: string) => {
