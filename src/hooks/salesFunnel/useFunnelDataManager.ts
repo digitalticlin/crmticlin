@@ -212,8 +212,62 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
 
     const { stages, leads } = funnelData;
 
-    // Agrupar leads por etapa
-    const leadsByStage = leads.reduce((acc, lead) => {
+    // Processar leads com mapeamento de tags (igual ao useFunnelLeads)
+    const processedLeads: KanbanLead[] = leads.map(lead => {
+      // Extrair e formatar tags
+      const tags = lead.lead_tags?.map((lt: any) => {
+        if (lt.tags) {
+          return {
+            id: lt.tags.id,
+            name: lt.tags.name,
+            color: lt.tags.color
+          };
+        }
+        return null;
+      }).filter((tag: any) => tag !== null) || [];
+
+      // DEBUG: Verificar tags processadas
+      if (tags.length > 0) {
+        console.log('[FunnelDataManager] 🏷️ Lead com tags encontrado:', {
+          leadName: lead.name,
+          tagsCount: tags.length,
+          tags
+        });
+      }
+
+      return {
+        id: lead.id,
+        name: lead.name,
+        phone: lead.phone,
+        email: lead.email,
+        company: lead.company,
+        notes: lead.notes,
+        lastMessage: lead.last_message || 'Sem mensagens',
+        lastMessageTime: lead.last_message_time || new Date().toISOString(),
+        purchaseValue: lead.purchase_value,
+        purchase_value: lead.purchase_value,
+        unreadCount: lead.unread_count || 0,
+        unread_count: lead.unread_count || 0,
+        assignedUser: lead.owner_id,
+        owner_id: lead.owner_id,
+        created_by_user_id: lead.created_by_user_id,
+        columnId: lead.kanban_stage_id || '',
+        kanban_stage_id: lead.kanban_stage_id,
+        funnel_id: lead.funnel_id,
+        whatsapp_number_id: lead.whatsapp_number_id,
+        created_at: lead.created_at,
+        updated_at: lead.updated_at,
+        profile_pic_url: lead.profile_pic_url,
+        conversation_status: lead.conversation_status,
+        tags, // ✅ TAGS PROCESSADAS!
+        avatar: lead.profile_pic_url,
+        last_message: lead.last_message,
+        last_message_time: lead.last_message_time
+      };
+    });
+
+    // Agrupar leads processados por etapa
+    const leadsByStage = processedLeads.reduce((acc, lead) => {
       const stageId = lead.kanban_stage_id;
       if (!acc[stageId]) acc[stageId] = [];
       acc[stageId].push(lead);
@@ -241,11 +295,11 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
     });
 
     setColumns(newColumns);
-    setAllLeads(leads);
+    setAllLeads(processedLeads);
 
     console.log('[FunnelDataManager] 🗂️ Dados organizados em colunas:', {
       colunas: newColumns.length,
-      totalLeads: leads.length,
+      totalLeads: processedLeads.length,
       leadsByStageMap: Object.keys(leadsByStage).map(stageId => ({
         stageId,
         count: leadsByStage[stageId].length

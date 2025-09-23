@@ -149,14 +149,14 @@ export default function ResponsiveSidebar() {
     return (
       <>
         {/* Mobile Header fixo */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center px-4 border-b glass-header">
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center px-4 border-b bg-white/25 backdrop-blur-lg border-white/30">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="mr-3 hover:bg-white/15">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-[280px] glass-sidebar">
+            <SheetContent side="left" className="p-0 w-[280px] bg-white/25 backdrop-blur-lg border-r border-white/30">
               <div className="h-full flex flex-col">
                 <SidebarContent />
               </div>
@@ -173,7 +173,7 @@ export default function ResponsiveSidebar() {
   return (
     <div
       className={cn(
-        "fixed top-0 left-0 bottom-0 z-40 flex-col transition-all duration-300 glass-sidebar hidden md:flex",
+        "fixed top-0 left-0 bottom-0 z-40 flex-col transition-all duration-300 border-r bg-white/25 backdrop-blur-lg border-white/30 hidden md:flex",
         isCollapsed ? "w-[64px]" : "w-[200px]"
       )}
     >

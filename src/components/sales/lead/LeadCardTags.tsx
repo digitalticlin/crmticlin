@@ -6,16 +6,13 @@ interface LeadCardTagsProps {
   maxTags?: number;
 }
 
-export const LeadCardTags = ({ tags, maxTags = Infinity }: LeadCardTagsProps) => {
+export const LeadCardTags = ({ tags, maxTags = 2 }: LeadCardTagsProps) => {
   // DEBUG: Verificar dados das tags
   console.log('[LeadCardTags] 🏷️ Tags recebidas:', tags);
 
+  // Se não há tags, não renderizar nada (não mostrar "sem tags")
   if (!tags || tags.length === 0) {
-    return (
-      <div className="text-xs text-gray-400">
-        Sem tags
-      </div>
-    );
+    return null;
   }
 
   const visibleTags = tags.slice(0, maxTags);
@@ -23,17 +20,22 @@ export const LeadCardTags = ({ tags, maxTags = Infinity }: LeadCardTagsProps) =>
   const showMoreIndicator = hiddenCount > 0;
 
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex items-center gap-1 overflow-hidden">
       {visibleTags.map((tag) => (
-        <TagBadge
-          key={tag.id}
-          tag={tag}
-          size="sm"
-        />
+        <div key={tag.id} className="flex-shrink-0 max-w-[80px]">
+          <TagBadge
+            tag={{
+              ...tag,
+              // Truncar nome da tag se muito longo
+              name: tag.name.length > 10 ? `${tag.name.substring(0, 8)}...` : tag.name
+            }}
+            size="sm"
+          />
+        </div>
       ))}
       {showMoreIndicator && (
-        <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
-          + {hiddenCount}
+        <span className="flex-shrink-0 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded-full font-medium">
+          +{hiddenCount}
         </span>
       )}
     </div>
