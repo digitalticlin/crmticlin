@@ -126,7 +126,7 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
         .eq('funnel_id', funnelId)
         .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
         .order('created_at', { ascending: false })
-        .limit(pageSize * Math.max(stages?.length || 1, 1)); // Garantir pelo menos 1
+        .limit(1000); // Carregar até 1000 leads iniciais - depois usa scroll infinito
 
       console.log('[FunnelDataManager] 📋 Resultado leads:', {
         leads: leads?.length || 0,
