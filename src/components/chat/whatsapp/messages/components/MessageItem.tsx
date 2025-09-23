@@ -137,12 +137,15 @@ export function MessageItem({
                 </span>
 
                 {/* 🤖 ÍCONE DE IA para mensagens automáticas */}
-                {message.source_edge === 'ai_messaging_service' && (
-                  <Bot className={cn(
-                    "w-3 h-3",
-                    isFromMe ? "text-green-400" : "text-green-500",
-                    "opacity-80"
-                  )} title="Mensagem enviada pela IA" />
+                {(message.source_edge === 'ai_messaging_service' || message.text?.includes('Amanda')) && (
+                  <div className="flex items-center gap-1">
+                    <Bot className={cn(
+                      "w-4 h-4",
+                      "text-green-500",
+                      "bg-green-100 rounded-full p-0.5"
+                    )} title="Mensagem enviada pela IA" />
+                    <span className="text-xs text-green-600 font-semibold">IA</span>
+                  </div>
                 )}
 
                 {message.import_source && (

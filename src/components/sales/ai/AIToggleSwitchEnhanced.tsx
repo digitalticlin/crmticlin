@@ -83,9 +83,10 @@ export const AIToggleSwitchEnhanced = ({
   const currentVariant = variantConfig[variant];
 
   return (
-    <div 
+    <div
+      data-no-drag
       className={cn(
-        "flex items-center justify-center rounded-full border backdrop-blur-sm transition-all duration-300",
+        "flex items-center justify-center rounded-full border backdrop-blur-sm transition-all duration-300 ai-toggle",
         currentSize.container,
         currentSize.padding,
         currentVariant.background,

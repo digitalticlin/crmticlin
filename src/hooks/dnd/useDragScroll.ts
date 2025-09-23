@@ -37,7 +37,11 @@ export const useDragScroll = ({
       target.closest('button') ||
       target.closest('input') ||
       target.closest('[role="button"]') ||
+      target.closest('[role="switch"]') || // Switches/toggles
       target.closest('.lead-card') || // Não ativar em cards de leads
+      target.closest('[data-state]') || // Radix UI components
+      target.classList.contains('ai-toggle') || // Toggles AI específicos
+      target.closest('.ai-toggle') ||
       !container ||
       !enabled
     ) {

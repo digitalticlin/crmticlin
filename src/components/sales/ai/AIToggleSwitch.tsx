@@ -24,11 +24,13 @@ export const AIToggleSwitch = ({
   const textSize = size === "sm" ? "text-xs" : "text-sm";
   
   return (
-    <div className={cn(
-      "flex items-center gap-1.5",
-      textSize,
-      className
-    )}>
+    <div
+      data-no-drag
+      className={cn(
+        "flex items-center gap-1.5 ai-toggle",
+        textSize,
+        className
+      )}>
       {showIcon && (
         enabled ? (
           <Bot className={cn(iconSize, "text-green-600")} />
