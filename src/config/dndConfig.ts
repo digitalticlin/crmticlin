@@ -10,9 +10,9 @@ import { PointerSensor } from '@dnd-kit/core';
 // 🚀 CONFIGURAÇÃO DE SENSORES ULTRA-RESPONSIVOS
 export const DND_SENSOR_CONFIG = {
   activationConstraint: {
-    distance: 3,    // Distância mínima reduzida para ativação mais rápida
-    delay: 0,       // SEM DELAY - drag imediato!
-    tolerance: 2    // Tolerância mínima para máxima responsividade
+    distance: 4,    // Distância mínima reduzida - drag mais responsivo
+    delay: 10,      // Delay mínimo - botão de chat protegido por clipPath
+    tolerance: 2    // Tolerância precisa para drag instantâneo
   }
 };
 

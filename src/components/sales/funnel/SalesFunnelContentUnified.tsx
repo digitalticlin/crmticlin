@@ -157,7 +157,7 @@ export function SalesFunnelContentUnified() {
   }, []);
 
   const handleOpenChat = useCallback((lead: KanbanLead) => {
-    navigate(`/whatsapp-chats?leadId=${lead.id}`);
+    navigate(`/whatsapp-chat?leadId=${lead.id}`);
   }, [navigate]);
 
   const handleMoveToWonLost = useCallback(async (lead: KanbanLead, status: "won" | "lost") => {

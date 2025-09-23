@@ -148,7 +148,7 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
     );
   }
 
-  // Renderizar com DnD ativo - z-index otimizado para não bloquear drop
+  // Renderizar com DnD ativo - estrutura simples
   return (
     <div
       ref={setNodeRef}
@@ -159,7 +159,6 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
       className={`${className || ''} ${isDragging ? 'opacity-50' : ''} ${isSorting ? 'transition-transform' : ''} relative`}
       {...attributes}
       {...listeners}
-      onClick={handleCardClick}
     >
       {/* LeadCard renderizado normalmente */}
       <LeadCard
