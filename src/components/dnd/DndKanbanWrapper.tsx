@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
 import { DndContext, DragEndEvent, DragMoveEvent, DragOverlay, DragStartEvent, DragOverEvent, PointerSensor, useSensor, useSensors, closestCenter, rectIntersection } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
+import { DND_CONFIG } from '@/config/dndConfig';
 import './dnd-kanban.css';
 
 interface DndKanbanWrapperProps {
@@ -12,12 +13,8 @@ interface DndKanbanWrapperProps {
   className?: string;
 }
 
-const SCROLL_CONFIG = {
-  triggerZone: 100,        // px da borda para ativar scroll
-  scrollSpeed: 15,         // px por frame
-  smoothness: 0.8,         // suavidade da animação
-  maxScrollSpeed: 25,      // velocidade máxima
-};
+// Usando configuração centralizada
+const SCROLL_CONFIG = DND_CONFIG.scroll;
 
 export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
   children,
@@ -32,16 +29,15 @@ export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number>();
 
-  // 🚀 CONFIGURAR SENSORES ULTRA-RESPONSIVOS PARA DRAG INSTANTÂNEO
+  // 🚀 SENSORES ULTRA-RESPONSIVOS USANDO CONFIGURAÇÃO CENTRALIZADA
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 1, // Mínima distância para máxima responsividade
-        delay: 0,     // Zero delay para resposta instantânea
-        tolerance: 0  // Zero tolerância para ativação imediata
-      },
-    })
+    useSensor(PointerSensor, DND_CONFIG.sensors)
   );
+
+  DND_CONFIG.debug.log('info', 'DndKanbanWrapper configurado', {
+    scrollConfig: SCROLL_CONFIG,
+    sensorConfig: DND_CONFIG.sensors
+  });
 
   // Auto-scroll horizontal durante drag
   const performScroll = useCallback(() => {
@@ -165,10 +161,7 @@ export const DndKanbanWrapper: React.FC<DndKanbanWrapperProps> = ({
       </div>
       
       <DragOverlay
-        dropAnimation={{
-          duration: 150,
-          easing: 'ease-out'
-        }}
+        dropAnimation={DND_CONFIG.animations.dragOverlay}
         style={{
           cursor: 'grabbing'
         }}

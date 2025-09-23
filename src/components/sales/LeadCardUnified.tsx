@@ -8,12 +8,13 @@
  * Funciona com ou sem DnD, sem conflitos entre clique e drag.
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { LeadCard } from './LeadCard';
 import { KanbanLead } from '@/types/kanban';
 import { MassSelectionCoordinatedReturn } from '@/hooks/useMassSelectionCoordinated';
+import { DND_CONFIG } from '@/config/dndConfig';
 
 interface LeadCardUnifiedProps {
   lead: KanbanLead;
@@ -42,11 +43,11 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
   wonStageId,
   lostStageId,
   massSelection,
-  enableDnd = false,
+  enableDnd = true,
   className
 }) => {
   // Verificar se deve usar DnD
-  const shouldUseDnd = enableDnd && massSelection?.canDragWithSelection();
+  const shouldUseDnd = enableDnd && (massSelection?.canDragWithSelection() ?? true);
 
   // Configurar sortable apenas se DnD estiver ativo
   const {
@@ -73,36 +74,59 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
     transition,
   } : {};
 
-  // Handlers de clique que funcionam com ou sem DnD
-  const handleCardClick = () => {
+  // Handlers memoizados para melhor performance
+  const handleCardClick = useCallback(() => {
     if (!isDragging) {
+      DND_CONFIG.debug.log('info', 'Card clicked', { leadId: lead.id, leadName: lead.name });
       onOpenLeadDetail(lead);
     }
-  };
+  }, [isDragging, onOpenLeadDetail, lead]);
 
-  const handleChatClick = () => {
+  const handleChatClick = useCallback(() => {
     if (!isDragging && onOpenChat) {
+      DND_CONFIG.debug.log('info', 'Chat clicked', { leadId: lead.id });
       onOpenChat(lead);
     }
-  };
+  }, [isDragging, onOpenChat, lead]);
 
-  const handleMoveToWon = () => {
+  const handleMoveToWon = useCallback(() => {
     if (!isDragging && onMoveToWonLost) {
+      DND_CONFIG.debug.log('info', 'Move to won', { leadId: lead.id });
       onMoveToWonLost(lead, "won");
     }
-  };
+  }, [isDragging, onMoveToWonLost, lead]);
 
-  const handleMoveToLost = () => {
+  const handleMoveToLost = useCallback(() => {
     if (!isDragging && onMoveToWonLost) {
+      DND_CONFIG.debug.log('info', 'Move to lost', { leadId: lead.id });
       onMoveToWonLost(lead, "lost");
     }
-  };
+  }, [isDragging, onMoveToWonLost, lead]);
 
-  const handleReturnToFunnel = () => {
+  const handleReturnToFunnel = useCallback(() => {
     if (!isDragging && onReturnToFunnel) {
+      DND_CONFIG.debug.log('info', 'Return to funnel', { leadId: lead.id });
       onReturnToFunnel(lead);
     }
-  };
+  }, [isDragging, onReturnToFunnel, lead]);
+
+  // Handler inteligente para detectar cliques em áreas bloqueadas
+  const handleDragAreaClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+
+    // Verificar se clicou em área que deve bloquear drag
+    if (!DND_CONFIG.canStartDrag(target)) {
+      DND_CONFIG.debug.log('debug', 'Drag bloqueado - área protegida', {
+        target: target.className,
+        leadId: lead.id
+      });
+      e.stopPropagation();
+      return;
+    }
+
+    // Se chegou aqui, pode processar como clique normal
+    handleCardClick();
+  }, [handleCardClick, lead.id]);
 
   // Se DnD não estiver ativo, renderizar card simples
   if (!shouldUseDnd) {
@@ -124,39 +148,32 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
     );
   }
 
-  // Renderizar com DnD ativo
+  // Renderizar com DnD ativo - z-index otimizado para não bloquear drop
   return (
     <div
       ref={setNodeRef}
-      style={style}
-      className={`${className || ''} ${isDragging ? 'opacity-50 z-50' : ''} ${isSorting ? 'transition-transform' : ''} relative`}
+      style={{
+        ...style,
+        zIndex: isDragging ? DND_CONFIG.zIndex.cardDragging : DND_CONFIG.zIndex.cardNormal
+      }}
+      className={`${className || ''} ${isDragging ? 'opacity-50' : ''} ${isSorting ? 'transition-transform' : ''} relative`}
       {...attributes}
+      {...listeners}
+      onClick={handleCardClick}
     >
-      {/* ÁREA DE DRAG: Handle invisível apenas no topo do card */}
-      <div
-        className="absolute top-0 left-0 w-full h-8 z-30 cursor-move"
-        style={{
-          background: isDragging ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-        }}
-        {...listeners}
-        title="Arraste para mover o lead"
+      {/* LeadCard renderizado normalmente */}
+      <LeadCard
+        lead={lead}
+        onClick={handleCardClick}
+        onOpenChat={handleChatClick}
+        onMoveToWon={handleMoveToWon}
+        onMoveToLost={handleMoveToLost}
+        onReturnToFunnel={handleReturnToFunnel}
+        isWonLostView={isWonLostView}
+        wonStageId={wonStageId}
+        lostStageId={lostStageId}
+        massSelection={massSelection}
       />
-
-      {/* ÁREA DE CLIQUE: LeadCard normal com cliques funcionando */}
-      <div className="relative z-20">
-        <LeadCard
-          lead={lead}
-          onClick={handleCardClick}
-          onOpenChat={handleChatClick}
-          onMoveToWon={handleMoveToWon}
-          onMoveToLost={handleMoveToLost}
-          onReturnToFunnel={handleReturnToFunnel}
-          isWonLostView={isWonLostView}
-          wonStageId={wonStageId}
-          lostStageId={lostStageId}
-          massSelection={massSelection}
-        />
-      </div>
 
       {/* Indicador visual de drag */}
       {isDragging && (

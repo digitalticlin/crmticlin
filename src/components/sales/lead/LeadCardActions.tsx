@@ -15,11 +15,11 @@ interface LeadCardActionsProps {
   isWonLostView?: boolean;
 }
 
-export const LeadCardActions = ({ 
+export const LeadCardActions = ({
   leadId,
   leadColumnId,
-  onMoveToWon, 
-  onMoveToLost, 
+  onMoveToWon,
+  onMoveToLost,
   onReturnToFunnel,
   wonStageId,
   lostStageId,
@@ -71,9 +71,10 @@ export const LeadCardActions = ({
   // In won/lost view, only show return to funnel button
   if (isWonLostView) {
     return (
-      <div className="lead-actions flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
+      <div className="lead-actions flex items-center space-x-1" data-no-drag onClick={(e) => e.stopPropagation()}>
         {onReturnToFunnel && (
-          <button 
+          <button
+            data-no-drag
             onClick={(e) => {
               e.stopPropagation();
               onReturnToFunnel();
@@ -90,9 +91,10 @@ export const LeadCardActions = ({
 
   // In funnel view, only show won/lost actions (stage control removed from here)
   return (
-    <div className="lead-actions flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
+    <div className="lead-actions flex items-center space-x-1" data-no-drag onClick={(e) => e.stopPropagation()}>
       {onMoveToWon && !isInWonStage && !isInLostStage && (
-        <button 
+        <button
+          data-no-drag
           onClick={(e) => {
             e.stopPropagation();
             handleMoveToWon();

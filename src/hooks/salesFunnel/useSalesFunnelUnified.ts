@@ -191,8 +191,8 @@ export const useSalesFunnelUnified = (options: FunnelOptions): SalesFunnelUnifie
 
   // Determinar se DnD deve estar ativo
   const isDndActive = useMemo(() => {
-    return enableDnd && coordinator.canExecute('dnd:move') && !coordinator.state.isLoadingMore;
-  }, [enableDnd, coordinator]);
+    return enableDnd; // Simplificado - DnD sempre ativo quando habilitado
+  }, [enableDnd]);
 
   // Aplicar filtros
   const applyFilters = useCallback((filters: FilterOptions) => {

@@ -1,27 +1,127 @@
-{leadsCount: 6, color: '#f59e0b', ai_enabled: false, enableDnd: true, hasActiveFilters: false, …}
-SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: {isProcessingDnD: false, isSelectionMode: false, hasActiveFilters: false, isLoadingMore: false}
-KanbanColumnUnified.tsx:81 [KanbanColumnUnified] 📋 Coluna "Reunião Agendada" (43a24cdf-bb12-4ebd-bf17-f9b05a0d708c): {leadsCount: 1, color: '#06b6d4', ai_enabled: false, enableDnd: true, hasActiveFilters: false, …}
-useAccessControl.ts:86 [useAccessControl] 📊 Todas instâncias encontradas (admin): 5
-useFunnelDataManager.ts:94 [FunnelDataManager] 📋 Resultado stages: {stages: 4, error: null, funnelId: 'c018b005-f15a-4374-a054-d28a1c9596d2', firstStage: {…}}
-useFunnelDataManager.ts:111 [FunnelDataManager] 🔍 Tentando carregar leads...
-useFunnelDataManager.ts:131 [FunnelDataManager] 📋 Resultado leads: {leads: 55, error: null, funnelId: 'c018b005-f15a-4374-a054-d28a1c9596d2', firstLead: {…}}
-useFunnelDataManager.ts:143 [FunnelDataManager] ✅ Dados carregados: {stages: 4, leads: 55, stagesSample: {…}, leadsSample: {…}}
-useFiltersCoordinator.ts:169 [FiltersCoordinator] 🏷️ Tags disponíveis: 0
-useFiltersCoordinator.ts:184 [FiltersCoordinator] 👥 Usuários disponíveis: 0
-ModernFunnelControlBarUnifiedV2.tsx:124 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: {allLeads: 55, availableTags: 0, availableUsers: 0, tags: Array(0), users: Array(0)}
-ModernFunnelControlBarUnifiedV2.tsx:212 [DEBUG] canCreateFunnel = false
-ModernFunnelControlBarUnifiedV2.tsx:213 [DEBUG] isAdmin = false
-ModernFunnelControlBarUnifiedV2.tsx:214 [DEBUG] RENDERIZANDO BOTAO? NAO
-useFiltersCoordinator.ts:169 [FiltersCoordinator] 🏷️ Tags disponíveis: 0
-useFiltersCoordinator.ts:184 [FiltersCoordinator] 👥 Usuários disponíveis: 0
-ModernFunnelControlBarUnifiedV2.tsx:124 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: {allLeads: 55, availableTags: 0, availableUsers: 0, tags: Array(0), users: Array(0)}
-ModernFunnelControlBarUnifiedV2.tsx:212 [DEBUG] canCreateFunnel = false
-ModernFunnelControlBarUnifiedV2.tsx:213 [DEBUG] isAdmin = false
-ModernFunnelControlBarUnifiedV2.tsx:214 [DEBUG] RENDERIZANDO BOTAO? NAO
-useFiltersCoordinator.ts:169 [FiltersCoordinator] 🏷️ Tags disponíveis: 0
-useFiltersCoordinator.ts:184 [FiltersCoordinator] 👥 Usuários disponíveis: 0
-ModernFunnelControlBarUnifiedV2.tsx:124 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: {allLeads: 55, availableTags: 0, availableUsers: 0, tags: Array(0), users: Array(0)}
-ModernFunnelControlBarUnifiedV2.tsx:212 [DEBUG] canCreateFunnel = false
-ModernFunnelControlBarUnifiedV2.tsx:213 [DEBUG] isAdmin = false
-ModernFunnelControlBarUnifiedV2.tsx:214 [DEBUG] RENDERIZANDO BOTAO? NAO
-ModernFunnelControlBarUnifiedV2.tsx:198 [DEBUG] DROPDOWN FUNIL ABRIU: true
+[LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: Object
+SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: Object
+KanbanColumnUnified.tsx:81 [KanbanColumnUnified] 📋 Coluna "Reunião Agendada" (43a24cdf-bb12-4ebd-bf17-f9b05a0d708c): Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+useUserRole.ts:53 [useUserRole] ✅ Role real encontrada: Object
+SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: Object
+KanbanBoardUnified.tsx:87 [KanbanBoardUnified] 🎛️ Estado do componente: Object
+SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: Object
+KanbanColumnUnified.tsx:81 [KanbanColumnUnified] 📋 Coluna "Entrada de Leads" (dcac808a-2595-4d33-9b38-2f04055a4df3): Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: Object
+KanbanColumnUnified.tsx:81 [KanbanColumnUnified] 📋 Coluna "Em atendimento" (dc6693f7-8b03-43cb-a376-eadf1e8466d9): Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: Object
+KanbanColumnUnified.tsx:81 [KanbanColumnUnified] 📋 Coluna "Em negociação" (6e57b62e-4a14-4a8c-b828-6ec2b405b3d0): Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: ObjecthasTagsArray: falselength: undefinedtags: undefined[[Prototype]]: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object
+SalesFunnelCoordinator.ts:180 [Coordinator] 🎛️ Estado atual: Object
+KanbanColumnUnified.tsx:81 [KanbanColumnUnified] 📋 Coluna "Reunião Agendada" (43a24cdf-bb12-4ebd-bf17-f9b05a0d708c): Object
+LeadCardTags.tsx:11 [LeadCardTags] DEBUG: Object
+LeadCardTags.tsx:14 [LeadCardTags] Sem tags para exibir
+LeadCardActions.tsx:29 [LeadCardActions] DEBUG: Object

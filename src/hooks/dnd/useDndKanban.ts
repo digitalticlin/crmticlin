@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
+import { DND_CONFIG } from '@/config/dndConfig';
 
 interface KanbanItem {
   id: string;
@@ -36,23 +37,27 @@ export const useDndKanban = ({
   onItemMove,
   onColumnReorder
 }: UseDndKanbanProps): UseDndKanbanReturn => {
-  const [columns, setColumns] = useState<KanbanColumn[]>(initialColumns);
-  
-  // 🔴 REMOVER SINCRONIZAÇÃO QUE CAUSA CONFLITO
-  // O estado deve ser gerenciado APENAS pelo componente pai
-  // Não sincronizar automaticamente para evitar loops e conflitos
-  useEffect(() => {
-    // Só atualizar se estiver vazio (inicialização)
-    if (columns.length === 0 && initialColumns.length > 0) {
-      setColumns(initialColumns);
-    }
-  }, []); // Sem dependências para executar apenas uma vez
+  // ✅ INICIALIZAÇÃO CONTROLADA - Estado gerenciado pelo pai
+  const [columns, setColumns] = useState<KanbanColumn[]>(() => {
+    DND_CONFIG.debug.log('info', 'useDndKanban inicializado', {
+      initialColumnsCount: initialColumns.length,
+      hasOnItemMove: !!onItemMove,
+      hasOnColumnReorder: !!onColumnReorder
+    });
+    return initialColumns;
+  });
 
-  // Encontrar item e sua coluna
+  // Encontrar item e sua coluna - otimizado
   const findItemAndColumn = useCallback((itemId: string, searchColumns: KanbanColumn[] = columns) => {
     for (const column of searchColumns) {
       const itemIndex = column.items.findIndex(item => item.id === itemId);
       if (itemIndex !== -1) {
+        DND_CONFIG.debug.log('debug', 'Item encontrado', {
+          itemId,
+          columnId: column.id,
+          columnTitle: column.title,
+          itemIndex
+        });
         return {
           column,
           item: column.items[itemIndex],
@@ -60,6 +65,7 @@ export const useDndKanban = ({
         };
       }
     }
+    DND_CONFIG.debug.log('warn', 'Item não encontrado', { itemId, availableColumns: searchColumns.length });
     return null;
   }, [columns]);
 

@@ -9,7 +9,8 @@
  */
 
 import React, { useCallback, useState, useEffect } from 'react';
-import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
+import { DndContext, DragEndEvent, DragStartEvent, DragOverEvent, PointerSensor, useSensor, useSensors, closestCenter, rectIntersection } from '@dnd-kit/core';
+import { DND_CONFIG } from '@/config/dndConfig';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { DragOverlay } from '@dnd-kit/core';
 import { KanbanColumn as IKanbanColumn, KanbanLead } from '@/types/kanban';
@@ -70,19 +71,18 @@ export const KanbanBoardUnified: React.FC<KanbanBoardUnifiedProps> = ({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draggedLead, setDraggedLead] = useState<KanbanLead | null>(null);
 
-  // Sensores otimizados para DnD
+  // Sensores ultra-otimizados para DnD usando configuração centralizada
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8, // Pequena distância para evitar ativação acidental
-        delay: 100,   // Pequeno delay para distinguir de cliques
-        tolerance: 5
-      },
-    })
+    useSensor(PointerSensor, DND_CONFIG.sensors)
   );
 
-  // Verificar se DnD deve estar ativo (coordenado)
-  const isDndActive = enableDnd && coordinator.canExecute('dnd:move');
+  DND_CONFIG.debug.log('info', 'Sensores configurados', {
+    sensorConfig: DND_CONFIG.sensors,
+    boardId: funnelId
+  });
+
+  // Verificar se DnD deve estar ativo (simplificado)
+  const isDndActive = enableDnd;
 
   console.log('[KanbanBoardUnified] 🎛️ Estado do componente:', {
     enableDnd,
@@ -105,7 +105,7 @@ export const KanbanBoardUnified: React.FC<KanbanBoardUnifiedProps> = ({
 
     // Verificar se pode iniciar drag
     if (!coordinator.canExecute('dnd:move')) {
-      console.log('[KanbanBoardUnified] ⚠️ Drag bloqueado por coordinator');
+      DND_CONFIG.debug.log('warn', 'Drag bloqueado por coordinator', { activeId });
       return;
     }
 
@@ -130,10 +130,11 @@ export const KanbanBoardUnified: React.FC<KanbanBoardUnifiedProps> = ({
     setActiveId(activeId);
     setDraggedLead(foundLead);
 
-    console.log('[KanbanBoardUnified] 🎯 Drag iniciado:', {
+    DND_CONFIG.debug.log('info', 'Drag iniciado', {
       leadId: activeId,
       leadName: foundLead?.name,
-      canDragWithSelection: massSelection?.canDragWithSelection()
+      canDragWithSelection: massSelection?.canDragWithSelection(),
+      sensorUsed: 'PointerSensor'
     });
   }, [coordinator, columns, massSelection]);
 
@@ -196,7 +197,7 @@ export const KanbanBoardUnified: React.FC<KanbanBoardUnifiedProps> = ({
       return;
     }
 
-    console.log('[KanbanBoardUnified] 🎯 Movimento detectado:', {
+    DND_CONFIG.debug.log('info', 'Movimento detectado', {
       leadId: active.id,
       leadName: sourceLead.name,
       fromColumn: sourceColumnId,
@@ -300,11 +301,11 @@ export const KanbanBoardUnified: React.FC<KanbanBoardUnifiedProps> = ({
     );
   }
 
-  // Renderizar com DnD ativo
+  // Renderizar com DnD ativo - detecção otimizada
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={rectIntersection} // Melhor para áreas grandes
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}

@@ -36,6 +36,7 @@ export const LeadCard = memo(({
   lostStageId,
   massSelection
 }: LeadCardProps) => {
+
   // Se não tiver massSelection via props, usar valores padrão
   const effectiveMassSelection = massSelection || {
     selectedLeads: new Set(),
@@ -135,10 +136,10 @@ export const LeadCard = memo(({
       <div className="relative z-20">
         <LeadCardContent lead={lead} isWonLostView={isWonLostView} lostStageId={lostStageId} />
         
-        {/* Tags and Actions Footer - altura reduzida */}
-        <div className="flex justify-between items-center mt-1.5 pt-1.5 border-t border-white/30">
+        {/* Tags and Actions Footer - altura bem reduzida */}
+        <div className="flex justify-between items-center mt-1 pt-1 border-t border-white/30">
           <div className="flex-1 min-w-0 mr-2 max-w-[70%]">
-            <LeadCardTags tags={lead.tags} maxTags={2} />
+            <LeadCardTags tags={lead.tags || []} maxTags={2} />
           </div>
           <LeadCardActions
             leadId={lead.id}

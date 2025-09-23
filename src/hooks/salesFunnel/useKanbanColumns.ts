@@ -39,7 +39,7 @@ export const useKanbanColumns = (stages: KanbanStage[], leads: any[], funnelId?:
 
     const newColumns: KanbanColumn[] = mainFunnelStages.map(stage => {
       const stageLeads = leads?.filter(lead => lead.columnId === stage.id) || [];
-      
+
       console.log('[useKanbanColumns] 📋 Criando coluna:', {
         stageId: stage.id,
         stageTitle: stage.title,

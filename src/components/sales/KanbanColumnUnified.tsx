@@ -11,6 +11,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { DND_CONFIG } from '@/config/dndConfig';
 import { KanbanColumn as KanbanColumnType, KanbanLead } from '@/types/kanban';
 import { MassSelectionCoordinatedReturn } from '@/hooks/useMassSelectionCoordinated';
 import { useSalesFunnelCoordinator } from './core/SalesFunnelCoordinator';
@@ -52,7 +53,7 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
   lostStageId,
   massSelection,
   funnelId,
-  enableDnd = false,
+  enableDnd = true,
   hasActiveFilters = false,
   className
 }) => {
@@ -63,7 +64,7 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
   const [visibleCount, setVisibleCount] = useState(LEADS_PER_PAGE);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Configurar drop zone se DnD ativo
+  // Configurar drop zone se DnD ativo - com maior prioridade
   const {
     isOver,
     setNodeRef,
@@ -74,11 +75,13 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
     data: {
       type: 'column',
       accepts: ['lead'],
-      columnId: column.id
+      columnId: column.id,
+      priority: 'high' // Maior prioridade na detecção
     }
   });
 
-  console.log(`[KanbanColumnUnified] 📋 Coluna "${column.title}" (${column.id}):`, {
+  DND_CONFIG.debug.log('info', `Coluna "${column.title}" renderizada`, {
+    columnId: column.id,
     leadsCount: column.leads?.length || 0,
     color: column.color,
     ai_enabled: column.ai_enabled,
@@ -121,7 +124,7 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
   const loadMoreLeads = useCallback(async () => {
     if (isLoadingMore || !hasMoreLeads) return;
 
-    console.log('[KanbanColumnUnified] 📜 Carregando mais leads da coluna:', column.id);
+    DND_CONFIG.debug.log('info', 'Carregando mais leads da coluna', { columnId: column.id, currentCount: visibleCount });
 
     setIsLoadingMore(true);
 
@@ -139,9 +142,10 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
     setVisibleCount(prev => Math.min(prev + LEADS_PER_PAGE, column.leads.length));
     setIsLoadingMore(false);
 
-    console.log('[KanbanColumnUnified] ✅ Mais leads carregados:', {
+    DND_CONFIG.debug.log('info', 'Mais leads carregados com sucesso', {
       novosVisíveis: Math.min(visibleCount + LEADS_PER_PAGE, column.leads.length),
-      total: column.leads.length
+      total: column.leads.length,
+      columnId: column.id
     });
   }, [isLoadingMore, hasMoreLeads, coordinator, column.id, column.leads.length, visibleCount]);
 
@@ -241,10 +245,10 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
     </div>
   );
 
-  // Renderizar lista de leads
+  // Renderizar lista de leads com área de drop otimizada
   const renderLeadsList = () => (
     <div
-      className="flex-1 rounded-xl px-0.5 pt-1 pb-0 kanban-column-scrollbar overflow-y-auto overflow-x-hidden"
+      className="flex-1 rounded-xl px-0.5 pt-1 pb-0 kanban-column-scrollbar overflow-y-auto overflow-x-hidden relative"
       style={{
         minHeight: "400px",
         maxHeight: "calc(100svh - 190px)",
@@ -290,6 +294,30 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
           </div>
         </div>
       )}
+
+      {/* Área de drop extra no final - sempre visível quando há cards */}
+      {enableDnd && visibleLeads.length > 0 && (
+        <div
+          className={cn(
+            "min-h-[80px] mx-2 mb-2 rounded-lg border-2 border-dashed transition-all duration-200",
+            isOver && active ?
+              "border-blue-400 bg-blue-50/30" :
+              "border-transparent hover:border-gray-300/50"
+          )}
+          style={{
+            minHeight: isOver && active ? "120px" : "80px",
+            transition: "all 0.2s ease"
+          }}
+        >
+          {isOver && active && (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-blue-500 text-sm font-medium animate-pulse">
+                Solte aqui para adicionar
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -319,6 +347,9 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
         className={columnClasses}
         data-column-id={column.id}
         data-drop-active={enableDnd && isOver}
+        style={{
+          position: 'relative'
+        }}
       >
         <div className="flex flex-col h-full">
           {renderHeader()}
@@ -331,9 +362,9 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
 
           {renderLeadsList()}
 
-          {/* Overlay visual para drop */}
+          {/* Overlay visual para feedback de drop - sem bloquear cliques */}
           {enableDnd && isOver && active && (
-            <div className="absolute inset-0 pointer-events-none rounded-2xl">
+            <div className="absolute inset-0 pointer-events-none rounded-2xl bg-blue-50/20 border-2 border-dashed border-blue-400/70" style={{ zIndex: 5 }}>
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                 <div className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg shadow-lg animate-pulse">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
