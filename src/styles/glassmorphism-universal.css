@@ -1,0 +1,198 @@
+/* ========================================
+   GLASSMORPHISM UNIVERSAL
+   Funciona em TODOS os navegadores
+   Chrome, Firefox, Safari, Edge
+======================================== */
+
+/* === CLASSES UNIVERSAIS BASE === */
+
+.glass-base {
+  /* Forçar compositing layer (crítico para Safari) */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+
+  /* Base universal para todos navegadores */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* === GLASSMORPHISM NÍVEIS === */
+
+/* Glass Nível 1 - MUITO transparente (igual ao original) */
+.glass-light {
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+/* Glass Nível 2 - Transparente médio */
+.glass-medium {
+  background: rgba(255, 255, 255, 0.40);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+/* Glass Nível 3 - Menos transparente */
+.glass-strong {
+  background: rgba(255, 255, 255, 0.50);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* === COMBINAÇÕES PRÁTICAS === */
+
+/* Cards e Containers - MANTÉM TRANSPARÊNCIA ORIGINAL */
+.glass-card {
+  background: rgba(255, 255, 255, 0.35);  /* IGUAL AO ORIGINAL */
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* Modais - MANTÉM TRANSPARÊNCIA ORIGINAL */
+.glass-modal {
+  background: rgba(255, 255, 255, 0.35);  /* IGUAL AO ORIGINAL */
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 24px;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Headers e Navigation */
+.glass-header {
+  background: rgba(255, 255, 255, 0.35);  /* IGUAL AO ORIGINAL */
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+/* Sidebars */
+.glass-sidebar {
+  background: rgba(255, 255, 255, 0.35);  /* IGUAL AO ORIGINAL */
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-right: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.04);
+}
+
+/* === APLICAR BASE AUTOMATICAMENTE === */
+.glass-light,
+.glass-medium,
+.glass-strong,
+.glass-card,
+.glass-modal,
+.glass-header,
+.glass-sidebar {
+  /* Aplicar base automaticamente */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
+}
+
+/* === FALLBACKS PARA NAVEGADORES ANTIGOS === */
+
+/* Quando backdrop-filter não é suportado */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-light { background: rgba(255, 255, 255, 0.95); }
+  .glass-medium { background: rgba(255, 255, 255, 0.96); }
+  .glass-strong { background: rgba(255, 255, 255, 0.98); }
+  .glass-card { background: rgba(255, 255, 255, 0.96); }
+  .glass-modal { background: rgba(255, 255, 255, 0.98); }
+  .glass-header { background: rgba(255, 255, 255, 0.97); }
+  .glass-sidebar { background: rgba(255, 255, 255, 0.96); }
+}
+
+/* === OTIMIZAÇÕES ESPECÍFICAS === */
+
+/* Safari específico - já detectado via JS */
+body.safari-browser .glass-light,
+body.safari-browser .glass-medium,
+body.safari-browser .glass-strong,
+body.safari-browser .glass-card,
+body.safari-browser .glass-modal,
+body.safari-browser .glass-header,
+body.safari-browser .glass-sidebar {
+  /* Garantir melhor rendering no Safari */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* === FALLBACKS ESPECÍFICOS PARA MACS PROBLEMÁTICOS === */
+
+/* Macs com problemas de backdrop-filter - SÓ ESTES ficam mais sólidos */
+body.macos-backdrop-issues .glass-light,
+body.macos-backdrop-issues .glass-medium,
+body.macos-backdrop-issues .glass-strong,
+body.macos-backdrop-issues .glass-card,
+body.macos-backdrop-issues .glass-modal,
+body.macos-backdrop-issues .glass-header,
+body.macos-backdrop-issues .glass-sidebar {
+  /* FALLBACK: Só para Macs que não conseguem processar */
+  background-color: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(8px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(160%) !important;
+
+  /* Adicionar gradiente sutil para compensar */
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+}
+
+/* Safari específico - Otimizações sem alterar transparência */
+body.safari-browser .glass-light,
+body.safari-browser .glass-medium,
+body.safari-browser .glass-strong,
+body.safari-browser .glass-card,
+body.safari-browser .glass-modal,
+body.safari-browser .glass-header,
+body.safari-browser .glass-sidebar {
+  /* Mantém transparência, só melhora rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Força blur mais forte para compensar */
+  backdrop-filter: blur(16px) saturate(200%);
+  -webkit-backdrop-filter: blur(16px) saturate(200%);
+}
+
+/* === UTILITÁRIOS === */
+
+/* Para elementos que precisam se destacar */
+.glass-elevated {
+  z-index: 10;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Para elementos sticky/fixed */
+.glass-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+}
+
+/* Para overlays */
+.glass-overlay {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}

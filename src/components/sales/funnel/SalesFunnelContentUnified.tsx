@@ -18,6 +18,7 @@ import { useStageManagement } from "@/hooks/salesFunnel/useStageManagement";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEnsureDefaultStages } from "@/hooks/salesFunnel/useEnsureDefaultStages";
+import { useWonLostStages } from "@/hooks/salesFunnel/stages/useWonLostStages";
 
 // Componentes
 import { KanbanBoard } from "../KanbanBoard";
@@ -74,6 +75,12 @@ export function SalesFunnelContentUnified() {
     enableFilters: true,
     enableMassSelection: true,
     pageSize: 30
+  });
+
+  // 🎯 HOOK ESPECÍFICO PARA ETAPAS WON/LOST
+  const { wonStageId, lostStageId, isLoading: wonLostLoading } = useWonLostStages({
+    funnelId: selectedFunnel?.id,
+    enabled: !!selectedFunnel?.id
   });
 
   // Memoizar query key para evitar re-renders
@@ -206,39 +213,16 @@ export function SalesFunnelContentUnified() {
 
   // Handler removido - agora gerenciado pelo useFiltersCoordinator
 
-  // Calcular wonStageId e lostStageId das etapas atuais (ANTES dos returns early)
-  const wonStageId = useMemo(() => {
-    console.log('[SalesFunnelContentUnified] 🔍 Verificando etapas Won:', {
-      totalColumns: funnel?.columns?.length,
-      columns: funnel?.columns?.map(c => ({
-        id: c.id,
-        title: c.title,
-        is_won: c.is_won
-      }))
-    });
-    return funnel?.columns?.find(stage => stage.is_won)?.id;
-  }, [funnel?.columns]);
-
-  const lostStageId = useMemo(() => {
-    console.log('[SalesFunnelContentUnified] 🔍 Verificando etapas Lost:', {
-      totalColumns: funnel?.columns?.length,
-      columns: funnel?.columns?.map(c => ({
-        id: c.id,
-        title: c.title,
-        is_lost: c.is_lost
-      }))
-    });
-    return funnel?.columns?.find(stage => stage.is_lost)?.id;
-  }, [funnel?.columns]);
-
-  console.log('[SalesFunnelContentUnified] 🎯 Etapas ganho/perdido calculadas:', {
+  // DEBUG: Verificar etapas Won/Lost do novo hook
+  console.log('[SalesFunnelContentUnified] 🎯 Etapas Won/Lost do hook específico:', {
     wonStageId,
     lostStageId,
+    wonLostLoading,
     totalColumns: funnel?.columns?.length
   });
 
   // Loading states
-  if (accessLoading || funnelLoading) {
+  if (accessLoading || funnelLoading || wonLostLoading) {
     return <FunnelLoadingState />;
   }
 

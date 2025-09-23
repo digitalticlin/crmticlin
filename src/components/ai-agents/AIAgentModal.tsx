@@ -570,10 +570,10 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
           handleClose();
         }
       }}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-xl">
-        <DialogHeader className="border-b border-white/30 pb-3 bg-white/20 backdrop-blur-sm rounded-t-xl -mx-6 -mt-6 px-6 pt-6">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden glass-modal rounded-xl">
+        <DialogHeader className="border-b border-white/30 pb-3 glass-header rounded-t-xl -mx-6 -mt-6 px-6 pt-6">
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-gray-900">
-            <div className="p-2 bg-white/30 backdrop-blur-sm rounded-lg border border-white/40 shadow-glass">
+            <div className="p-2 glass-light rounded-lg border border-white/40">
               <Bot className="h-5 w-5 text-gray-800" />
             </div>
             {agent ? "Editar Agente de IA" : "Criar Novo Agente de IA"}

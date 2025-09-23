@@ -2,6 +2,9 @@
 /* Import Safari/macOS fixes */
 @import './styles/safari-fixes.css';
 
+/* Import Universal Glassmorphism */
+@import './styles/glassmorphism-universal.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
