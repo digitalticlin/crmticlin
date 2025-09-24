@@ -10,8 +10,8 @@ import { PointerSensor } from '@dnd-kit/core';
 // 🚀 CONFIGURAÇÃO DE SENSORES ULTRA-RESPONSIVOS
 export const DND_SENSOR_CONFIG = {
   activationConstraint: {
-    distance: 4,    // Distância mínima reduzida - drag mais responsivo
-    delay: 10,      // Delay mínimo - botão de chat protegido por clipPath
+    distance: 3,    // Distância mínima reduzida para máxima responsividade
+    delay: 5,       // Delay mínimo (5ms) - botões protegidos por stopPropagation e data-no-drag
     tolerance: 2    // Tolerância precisa para drag instantâneo
   }
 };
@@ -38,11 +38,14 @@ export const DND_SCROLL_CONFIG = {
 
 // 🎯 CONFIGURAÇÃO DE ÁREAS BLOQUEADAS PARA DRAG
 export const DND_BLOCKED_SELECTORS = [
-  '.chat-icon-area',       // Área do ícone de chat
-  '.lead-actions',         // Área de ações do lead
-  'button',                // Todos os botões
-  '.selection-checkbox',   // Checkbox de seleção
-  '[data-no-drag]'        // Elementos marcados explicitamente
+  '.chat-icon-area',          // Área do ícone de chat
+  '.return-to-funnel-area',   // Área do botão de retornar ao funil
+  '.won-button-area',         // Área do botão de ganho
+  '.lost-button-area',        // Área do botão de perda
+  '.lead-actions',            // Área de ações do lead
+  'button',                   // Todos os botões
+  '.selection-checkbox',      // Checkbox de seleção
+  '[data-no-drag]'           // Elementos marcados explicitamente
 ];
 
 // 🎯 CONFIGURAÇÃO DE Z-INDEX PARA CAMADAS
@@ -80,9 +83,9 @@ export const createOptimizedSensors = () => {
   ];
 };
 
-// 📊 CONFIGURAÇÃO DE DEBUG (ativar em desenvolvimento)
+// 📊 CONFIGURAÇÃO DE DEBUG (desabilitado para evitar loops)
 export const DND_DEBUG_CONFIG = {
-  enabled: process.env.NODE_ENV === 'development',
+  enabled: false, // Desabilitado - causava loops de logs
   logLevel: 'info' as 'debug' | 'info' | 'warn' | 'error',
 
   log: (level: string, message: string, data?: any) => {

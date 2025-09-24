@@ -344,6 +344,23 @@ export const useSalesFunnelUnified = (options: FunnelOptions): SalesFunnelUnifie
     },
 
     // Ações de otimização
-    optimizeForSize
+    optimizeForSize,
+
+    // Update otimista para leads (importante para DnD e Won/Lost)
+    updateLeadOptimistic: (leadId: string, updates: Partial<KanbanLead>) => {
+      // Atualizar localmente primeiro para feedback instantâneo
+      if (coordinator) {
+        coordinator.emit({
+          type: 'lead:optimistic-update',
+          payload: { leadId, updates },
+          priority: 'immediate',
+          source: 'SalesFunnelUnified'
+        });
+      }
+
+      // O dataManager deve processar isso internamente
+      // Por enquanto, fazemos refresh após um delay para sincronizar
+      setTimeout(() => dataManager.refreshData(), 500);
+    }
   };
 };

@@ -177,7 +177,7 @@ export const useSalesFunnelCoordinator = () => {
     }
   }, [state]);
 
-  console.log('[Coordinator] 🎛️ Estado atual:', state);
+  // Log removido - causava loops de re-render
 
   return {
     state,

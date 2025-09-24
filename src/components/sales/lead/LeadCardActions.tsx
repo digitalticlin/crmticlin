@@ -25,16 +25,7 @@ export const LeadCardActions = ({
   lostStageId,
   isWonLostView = false
 }: LeadCardActionsProps) => {
-  // DEBUG: Verificar se IDs estão chegando
-  console.log('[LeadCardActions] 🎯 Props recebidas:', {
-    leadId,
-    leadColumnId,
-    wonStageId,
-    lostStageId,
-    hasOnMoveToWon: !!onMoveToWon,
-    hasOnMoveToLost: !!onMoveToLost,
-    isWonLostView
-  });
+  // Props validadas
 
   // Usando callbacks das props - removido contexto
 
@@ -54,7 +45,7 @@ export const LeadCardActions = ({
       // Real-time subscriptions atualizam automaticamente
       // Não precisa de refresh manual
       
-      console.log(`Lead ${leadId} movido para estágio ${stageId}`);
+      // Lead movido com sucesso
     } catch (error) {
       console.error(`Erro ao mover lead para ${statusText}:`, error);
       toast.error(`Erro ao marcar como ${statusText}`);
@@ -82,19 +73,18 @@ export const LeadCardActions = ({
   // In won/lost view, only show return to funnel button
   if (isWonLostView) {
     return (
-      <div className="lead-actions flex items-center space-x-1" data-no-drag onClick={(e) => e.stopPropagation()}>
+      <div className="lead-actions flex items-center space-x-1" data-no-drag>
         {onReturnToFunnel && (
-          <button
+          <div
+            className="return-to-funnel-area p-1.5 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors duration-200 cursor-pointer"
             data-no-drag
             onClick={(e) => {
-              e.stopPropagation();
-              onReturnToFunnel();
+              // Deixar o evento subir para LeadCard detectar
             }}
             title="Retornar ao funil"
-            className="p-1.5 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors duration-200"
           >
             <ArrowLeft className="h-4 w-4 text-blue-600 hover:text-blue-700" />
-          </button>
+          </div>
         )}
       </div>
     );
@@ -104,42 +94,33 @@ export const LeadCardActions = ({
   const showWonButton = onMoveToWon && !isInWonStage && !isInLostStage;
   const showLostButton = onMoveToLost && !isInWonStage && !isInLostStage;
 
-  console.log('[LeadCardActions] 🎮 Condições dos botões:', {
-    showWonButton,
-    showLostButton,
-    isInWonStage,
-    isInLostStage,
-    wonStageId,
-    lostStageId,
-    leadColumnId
-  });
+  // Condições dos botões validadas
 
   return (
-    <div className="lead-actions flex items-center space-x-1" data-no-drag onClick={(e) => e.stopPropagation()}>
+    <div className="lead-actions flex items-center space-x-1" data-no-drag>
       {showWonButton && (
-        <button
+        <div
+          className="won-button-area p-1.5 rounded-full hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors duration-200 cursor-pointer"
           data-no-drag
           onClick={(e) => {
-            e.stopPropagation();
-            handleMoveToWon();
+            // Deixar o evento subir para LeadCard detectar
           }}
           title="Marcar como ganho"
-          className="p-1.5 rounded-full hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors duration-200"
         >
           <CheckCircle className="h-4 w-4 text-green-600 hover:text-green-700" />
-        </button>
+        </div>
       )}
       {showLostButton && (
-        <button
+        <div
+          className="lost-button-area p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors duration-200 cursor-pointer"
+          data-no-drag
           onClick={(e) => {
-            e.stopPropagation();
-            handleMoveToLost();
+            // Deixar o evento subir para LeadCard detectar
           }}
           title="Marcar como perdido"
-          className="p-1.5 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors duration-200"
         >
           <XCircle className="h-4 w-4 text-red-600 hover:text-red-700" />
-        </button>
+        </div>
       )}
       {!showWonButton && !showLostButton && (
         <div className="text-xs text-gray-400 px-2">

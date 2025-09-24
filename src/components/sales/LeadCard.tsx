@@ -10,7 +10,7 @@ import { MassSelectionCoordinatedReturn } from "@/hooks/useMassSelectionCoordina
 interface LeadCardProps {
   lead: KanbanLead;
   onClick: () => void;
-  onOpenChat?: () => void;
+  onOpenChat?: (lead: KanbanLead) => void;
   onMoveToWon?: () => void;
   onMoveToLost?: () => void;
   onReturnToFunnel?: () => void;
@@ -57,12 +57,53 @@ export const LeadCard = memo(({
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as Element;
     const chatIconArea = target.closest('.chat-icon-area');
+    const returnToFunnelArea = target.closest('.return-to-funnel-area');
+    const wonButtonArea = target.closest('.won-button-area');
+    const lostButtonArea = target.closest('.lost-button-area');
+
+    // DEBUG: Verificar qual elemento foi clicado
+    console.log('[LeadCard] 🖱️ CLICK DETECTADO:', {
+      target: target.className,
+      chatIconArea: !!chatIconArea,
+      returnToFunnelArea: !!returnToFunnelArea,
+      wonButtonArea: !!wonButtonArea,
+      lostButtonArea: !!lostButtonArea,
+      hasOnMoveToWon: !!onMoveToWon,
+      hasOnMoveToLost: !!onMoveToLost,
+      targetElement: target.tagName
+    });
 
     // Se clicou no ícone de chat, abrir chat
     if (chatIconArea && onOpenChat) {
       e.preventDefault();
       e.stopPropagation();
-      onOpenChat();
+      onOpenChat(lead);
+      return;
+    }
+
+    // Se clicou no botão de retornar ao funil
+    if (returnToFunnelArea && onReturnToFunnel) {
+      e.preventDefault();
+      e.stopPropagation();
+      onReturnToFunnel();
+      return;
+    }
+
+    // Se clicou no botão de ganho
+    if (wonButtonArea && onMoveToWon) {
+      console.log('[LeadCard] 🏆 EXECUTANDO AÇÃO DE GANHO para lead:', lead.name);
+      e.preventDefault();
+      e.stopPropagation();
+      onMoveToWon();
+      return;
+    }
+
+    // Se clicou no botão de perda
+    if (lostButtonArea && onMoveToLost) {
+      console.log('[LeadCard] 💥 EXECUTANDO AÇÃO DE PERDA para lead:', lead.name);
+      e.preventDefault();
+      e.stopPropagation();
+      onMoveToLost();
       return;
     }
 

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserPermissions } from "./useUserPermissions";
+import { useMemo } from "react";
 
 export interface AccessControl {
   canAccessFunnel: (funnelId: string) => boolean;
@@ -147,7 +148,8 @@ export const useAccessControl = (): AccessControl => {
     return false;
   };
 
-  return {
+  // 🚀 MEMOIZAÇÃO: Evitar recriação de objetos que causam re-renders
+  return useMemo(() => ({
     canAccessFunnel,
     canAccessWhatsApp,
     canManageFunnel,
@@ -157,5 +159,5 @@ export const useAccessControl = (): AccessControl => {
     userFunnels,
     userWhatsApp,
     isLoading,
-  };
+  }), [permissions.role, userFunnels, userWhatsApp, isLoading]);
 };

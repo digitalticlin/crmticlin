@@ -7,9 +7,6 @@ interface LeadCardTagsProps {
 }
 
 export const LeadCardTags = ({ tags, maxTags = 2 }: LeadCardTagsProps) => {
-  // DEBUG: Verificar dados das tags
-  console.log('[LeadCardTags] 🏷️ Tags recebidas:', tags);
-
   // Se não há tags, não renderizar nada (não mostrar "sem tags")
   if (!tags || tags.length === 0) {
     return null;

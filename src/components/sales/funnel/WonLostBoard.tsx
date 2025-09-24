@@ -51,18 +51,36 @@ export const WonLostBoard = ({
     enabled: !!funnelId
   });
 
-  // Buscar leads ganhos e perdidos - Corrigindo query 400
+  // Definir IDs das stages won/lost - DECLARAR PRIMEIRO
+  const wonStageId = useMemo(() => {
+    return stages?.find(s => s.is_won)?.id || 'won-stage';
+  }, [stages]);
+
+  const lostStageId = useMemo(() => {
+    return stages?.find(s => s.is_lost)?.id || 'lost-stage';
+  }, [stages]);
+
+  // Buscar leads ganhos e perdidos por etapas do funil - DEPOIS DOS IDs
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
-    queryKey: ['won-lost-leads', funnelId],
+    queryKey: ['won-lost-leads', funnelId, wonStageId, lostStageId],
     queryFn: async () => {
       console.log('[WonLostBoard] 🔍 Buscando leads won/lost para funil:', funnelId);
+      console.log('[WonLostBoard] 🎯 Etapas Won/Lost:', { wonStageId, lostStageId });
 
-      // Tentar sem tags primeiro para evitar erro
+      // Primeiro, verificar se temos as etapas Won/Lost
+      if (!wonStageId && !lostStageId) {
+        console.log('[WonLostBoard] ⚠️ Nenhuma etapa Won/Lost encontrada');
+        return [];
+      }
+
+      // Buscar leads que estão nas etapas Won ou Lost do funil
+      const stageIds = [wonStageId, lostStageId].filter(Boolean);
+
       const { data: leadsWithoutTags, error: errorWithoutTags } = await supabase
         .from('leads')
         .select('*')
         .eq('funnel_id', funnelId)
-        .or('state.eq.won,state.eq.lost')
+        .in('kanban_stage_id', stageIds)
         .order('updated_at', { ascending: false });
 
       if (errorWithoutTags) {
@@ -71,6 +89,15 @@ export const WonLostBoard = ({
       }
 
       console.log('[WonLostBoard] ✅ Leads encontrados:', leadsWithoutTags?.length || 0);
+      console.log('[WonLostBoard] 🔍 Debug leads encontrados:',
+        leadsWithoutTags?.map(lead => ({
+          id: lead.id,
+          name: lead.name,
+          kanban_stage_id: lead.kanban_stage_id,
+          isInWonStage: lead.kanban_stage_id === wonStageId,
+          isInLostStage: lead.kanban_stage_id === lostStageId
+        }))
+      );
 
       // Transformar para formato KanbanLead
       return (leadsWithoutTags || []).map(lead => ({
@@ -79,7 +106,7 @@ export const WonLostBoard = ({
         phone: lead.phone || '',
         email: lead.email,
         company: lead.company,
-        status: lead.state, // Corrigido: usar 'state' ao invés de 'status'
+        status: lead.status || 'active', // Status padrão
         columnId: lead.kanban_stage_id,
         assignedUser: lead.assigned_user_id,
         purchaseValue: lead.purchase_value || 0,
@@ -89,17 +116,8 @@ export const WonLostBoard = ({
         updated_at: lead.updated_at
       })) as KanbanLead[];
     },
-    enabled: !!funnelId
+    enabled: !!funnelId && (!!wonStageId || !!lostStageId)
   });
-
-  // Definir IDs das stages won/lost - SEMPRE declarados
-  const wonStageId = useMemo(() => {
-    return stages?.find(s => s.is_won)?.id || 'won-stage';
-  }, [stages]);
-
-  const lostStageId = useMemo(() => {
-    return stages?.find(s => s.is_lost)?.id || 'lost-stage';
-  }, [stages]);
 
   // Callback estável para não causar re-renders - SEMPRE declarado
   const handleColumnsChange = useCallback(() => {
@@ -128,11 +146,9 @@ export const WonLostBoard = ({
     const wonLostStages = [wonStage, lostStage];
 
     return wonLostStages.map(stage => {
-      // Buscar leads dessa stage baseado no state
+      // Buscar leads dessa etapa específica
       let stageLeads = leads.filter(lead => {
-        if (stage.is_won) return lead.status === 'won';
-        if (stage.is_lost) return lead.status === 'lost';
-        return false; // Para won/lost, só by status
+        return lead.columnId === stage.id;
       });
 
       // Aplicar filtros de busca

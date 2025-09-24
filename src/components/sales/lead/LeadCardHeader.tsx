@@ -5,6 +5,7 @@ import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { cn } from "@/lib/utils";
 import { MessageCircle, User } from "lucide-react";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
+import { TiclinAvatar } from "@/components/ui/ticlin-avatar";
 
 interface LeadCardHeaderProps {
   lead: KanbanLead;
@@ -34,22 +35,21 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
 
   return (
     <div className="flex items-center gap-2 mb-2">
-      {/* Avatar */}
+      {/* Avatar - Simplificado para evitar loops */}
       <Avatar className="h-8 w-8 flex-shrink-0">
-        <img 
-          src={lead.profile_pic_url && lead.profile_pic_url.trim() !== '' ? lead.profile_pic_url : '/avatar-lead.png'} 
-          alt={displayName}
-          className="h-full w-full object-cover rounded-full"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            console.log('[LeadCardHeader] Avatar load error, switching to default:', target.src);
-            if (!target.src.includes('avatar-lead.png')) {
-              target.src = '/avatar-lead.png';
-            }
-          }}
-        />
-        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
-          <User className="h-4 w-4" />
+        {lead.profile_pic_url && lead.profile_pic_url.trim() !== '' ? (
+          <AvatarImage
+            src={lead.profile_pic_url}
+            alt={displayName}
+            className="h-full w-full object-cover"
+          />
+        ) : null}
+        <AvatarFallback>
+          <img
+            src="/avatar-lead.png"
+            alt="Avatar"
+            className="h-full w-full object-cover rounded-full"
+          />
         </AvatarFallback>
       </Avatar>
 

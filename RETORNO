@@ -1,55 +1,95 @@
-{contactId: '4b47ee59-75e5-4d34-a08d-ca4d1ea602e3', contactName: '+55 (35) 9776-1878', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'b2b04cae-49e0-490c-bc28-2059ce936854', currentStageId: '629f32d0-e154-4afd-83c9-1c3ad6a54683', hasCurrentStage: true, currentStageTitle: 'TESTE DE IA', currentStageColor: '#f59e0b', …}
-WhatsAppMessagesList.tsx:52 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 9, isLoading: false, isLoadingMore: false, hasMoreMessages: false}
-MessageItem.tsx:35 [MessageItem] 🔍 DEBUG ALL MESSAGES: {messageId: '0d4a0fa6-1a0e-4889-937a-f4c12cf55542', source_edge: undefined, hasSourceEdge: false, text: 'ola', fromMe: false}
-MessageItem.tsx:35 [MessageItem] 🔍 DEBUG ALL MESSAGES: {messageId: '1ee32d6c-aa56-4342-ab66-7259a98ac782', source_edge: undefined, hasSourceEdge: false, text: 'Oi! Tudo bem? Sou a Amanda da ', fromMe: true}
-MessageItem.tsx:35 [MessageItem] 🔍 DEBUG ALL MESSAGES: {messageId: '5c0e939a-45db-4ef2-b75a-23143c17fe7a', source_edge: undefined, hasSourceEdge: false, text: 'Para começarmos, você poderia ', fromMe: true}
-MessageItem.tsx:35 [MessageItem] 🔍 DEBUG ALL MESSAGES: {messageId: 'a3a537b7-04bf-483e-9487-3296ca4f68d8', source_edge: undefined, hasSourceEdge: false, text: 'Se precisar de ajuda para cons', fromMe: true}
-MessageItem.tsx:35 [MessageItem] 🔍 DEBUG ALL MESSAGES: {messageId: '5e71af21-9c9a-4674-99c2-c67fb5307fdf', source_edge: undefined, hasSourceEdge: false, text: 'Eu cancelei a cota e nao tenho', fromMe: false}
-MessageItem.tsx:35 [MessageItem] 🔍 DEBUG ALL MESSAGES: {messageId: '973df289-2bd7-421f-a752-d5416713b173', source_edge: undefined, hasSourceEdge: false, text: 'Oi! 😊 Sou a Amanda da Solucio', fromMe: true}
-MessageItem.tsx:35 [MessageItem] 🔍 DEBUG ALL MESSAGES: {messageId: '2cb30fd5-8719-4f91-a8cd-8d01536d93a0', source_edge: undefined, hasSourceEdge: false, text: 'Entendo que você cancelou a co', fromMe: true}
-MessageItem.tsx:35 [MessageItem] 🔍 DEBUG ALL MESSAGES: {messageId: '50d372a4-7f81-4c3e-bdff-889795c07aca', source_edge: undefined, hasSourceEdge: false, text: 'Você pode conseguir o extrato ', fromMe: true}
-MessageItem.tsx:35 [MessageItem] 🔍 DEBUG ALL MESSAGES: {messageId: 'e05fd03a-3622-4927-8711-37089156358d', source_edge: undefined, hasSourceEdge: false, text: 'Se precisar de ajuda com isso,', fromMe: true}
-2WhatsAppMessagesList.tsx:82 [WhatsApp MessagesList] ⚡ PRE-POSITIONED: Posicionando antes do paint
-logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
-logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 9936ae64-b78c-48fe-97e8-bf67623349c6
-WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
-useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
-useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: 'b2b04cae-49e0-490c-bc28-2059ce936854'}
-useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
-useWhatsAppContactsManager.ts:54 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
-useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
-useWhatsAppMessagesManager.ts:48 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'b2b04cae-49e0-490c-bc28-2059ce936854', hasInstance: true}
-useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
-useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 9, hasSelectedContact: true, instanceHealthScore: 100}
-useWhatsAppMessagesManager.ts:48 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'b2b04cae-49e0-490c-bc28-2059ce936854', hasInstance: true}
-useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
-WhatsAppChatContainer.tsx:37 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 20, messagesCount: 9, selectedContactId: 'b2b04cae-49e0-490c-bc28-2059ce936854', selectedContactName: '🙏🏻', isLoadingContacts: false, …}
-ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 20, searchQuery: '', activeFilter: 'all', selectedContactId: 'b2b04cae-49e0-490c-bc28-2059ce936854'}
-ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 20, searchQuery: '', activeFilter: 'all'}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'bea14ff1-8708-46d2-a191-91a938633233', contactName: '+55 (19) 98983-9363', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8e19a097-2f1c-43c8-86c4-c3ff7bdf183e', contactName: 'Paulo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b2b04cae-49e0-490c-bc28-2059ce936854', contactName: '🙏🏻', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f78b4a14-b666-4c2d-8f3f-67988f804f9b', contactName: 'Lu', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a524903b-999e-4a46-896e-f5921b05b8fd', contactName: 'Ð〇ᑌǤᒪᗩᔕ ᑕᗩᔕƬᖇ〇', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '4c756408-7ff3-4747-9aa9-71840cee290e', contactName: 'MÁRCIO TEIXEIRA', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '672ebb16-69d7-41e6-8e50-3d0c59d6825f', contactName: 'Giumar', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1b781b46-102a-46e3-bb6f-72faafb50142', contactName: 'Victor Magalhães', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '59a34c0e-0df0-440d-8444-5a2ad5855e14', contactName: 'Alisson Lemos', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'f26ed2a9-e868-43bb-b939-3e0b7c965475', contactName: 'Inácio Jr Rua', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6526a277-8a27-4889-a017-282e890f0125', contactName: 'Sempre em Frente 😉', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'db461152-9113-4d76-bade-cf37c65002f1', contactName: 'Vinícius Jorge', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '2375bb14-c4f5-4ffa-b738-49ec260f46cb', contactName: 'giovanio costa', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'febdd9f7-b1ed-4d2e-a980-519cf6ab536c', contactName: 'Cartas Contempladas -Toco Consorcios', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '6af8bdd2-e20d-41c0-a14b-1966d4ec9b14', contactName: 'MC Prest', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '935761f9-91f2-4f67-83fa-d5ccab6c69c7', contactName: '+55 (91) 8888-6749', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c8ada5aa-c7b7-4b90-9af1-e0afb3cc205b', contactName: '+55 (67) 9611-8165', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '251e442a-5312-42fa-b0cc-59a15848f2e7', contactName: '+55 (19) 99296-5862', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '2bf90939-cf2b-484d-bb9a-afd71c1a9f5d', contactName: 'Jozy', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '4b47ee59-75e5-4d34-a08d-ca4d1ea602e3', contactName: '+55 (35) 9776-1878', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'b2b04cae-49e0-490c-bc28-2059ce936854', currentStageId: '629f32d0-e154-4afd-83c9-1c3ad6a54683', hasCurrentStage: true, currentStageTitle: 'TESTE DE IA', currentStageColor: '#f59e0b', …}
-logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
-logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 9936ae64-b78c-48fe-97e8-bf67623349c6
-useLeadTags.ts:63 [useLeadTags] ✅ Tags carregadas: {leadTags: 0, availableTags: 3, leadId: 'b2b04cae-49e0-490c-bc28-2059ce936854', userId: '9936ae64-b78c-48fe-97e8-bf67623349c6'}
-useLeadTags.ts:63 [useLeadTags] ✅ Tags carregadas: {leadTags: 0, availableTags: 3, leadId: 'b2b04cae-49e0-490c-bc28-2059ce936854', userId: '9936ae64-b78c-48fe-97e8-bf67623349c6'}
-StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'b2b04cae-49e0-490c-bc28-2059ce936854', currentStageId: '629f32d0-e154-4afd-83c9-1c3ad6a54683', hasCurrentStage: true, currentStageTitle: 'TESTE DE IA', currentStageColor: '#f59e0b', …}
+DataErrorBoundary.tsx:29 [DataErrorBoundary] Kanban Board - Fases 2+3 + Clone Visual: ReferenceError: Avatar is not defined
+    at LeadCardHeader (LeadCardHeader.tsx:38:8)
+    at renderWithHooks (chunk-276SZO74.js?v=3aeb0223:11548:26)
+    at mountIndeterminateComponent (chunk-276SZO74.js?v=3aeb0223:14926:21)
+    at beginWork (chunk-276SZO74.js?v=3aeb0223:15914:22)
+    at beginWork$1 (chunk-276SZO74.js?v=3aeb0223:19753:22)
+    at performUnitOfWork (chunk-276SZO74.js?v=3aeb0223:19198:20)
+    at workLoopSync (chunk-276SZO74.js?v=3aeb0223:19137:13)
+    at renderRootSync (chunk-276SZO74.js?v=3aeb0223:19116:15)
+    at recoverFromConcurrentError (chunk-276SZO74.js?v=3aeb0223:18736:28)
+    at performConcurrentWorkOnRoot (chunk-276SZO74.js?v=3aeb0223:18684:30) Object
+componentDidCatch @ DataErrorBoundary.tsx:29Understand this error
+chunk-276SZO74.js?v=3aeb0223:14032 The above error occurred in the <LeadCardHeader> component:
+
+    at LeadCardHeader (http://localhost:8081/src/components/sales/lead/LeadCardHeader.tsx:26:34)
+    at LeadCardContent (http://localhost:8081/src/components/sales/lead/LeadCardContent.tsx:25:35)
+    at div
+    at div
+    at _c (http://localhost:8081/src/components/sales/LeadCard.tsx:27:52)
+    at div
+    at LeadCardUnified (http://localhost:8081/src/components/sales/LeadCardUnified.tsx:37:39)
+    at SortableContext (http://localhost:8081/node_modules/.vite/deps/@dnd-kit_sortable.js?v=3aeb0223:261:5)
+    at div
+    at div
+    at div
+    at div
+    at KanbanColumnUnified (http://localhost:8081/src/components/sales/KanbanColumnUnified.tsx:43:43)
+    at div
+    at DndContext2 (http://localhost:8081/node_modules/.vite/deps/chunk-P2CQY3NV.js?v=3aeb0223:2521:5)
+    at KanbanBoardUnified (http://localhost:8081/src/components/sales/KanbanBoardUnified.tsx:44:42)
+    at DataErrorBoundary (http://localhost:8081/src/components/sales/funnel/DataErrorBoundary.tsx:244:9)
+    at div
+    at KanbanBoard (http://localhost:8081/src/components/sales/KanbanBoard.tsx:25:31)
+    at div
+    at div
+    at div
+    at SalesFunnelContentUnified (http://localhost:8081/src/components/sales/funnel/SalesFunnelContentUnified.tsx?t=1758728000546:62:22)
+    at SalesFunnelContent
+    at ErrorBoundary (http://localhost:8081/src/components/ErrorBoundary.tsx:296:5)
+    at div
+    at SalesFunnel
+    at Suspense
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8081/src/components/layout/AppLayout.tsx:28:29)
+    at RenderedRoute (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4088:5)
+    at Routes (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8081/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4088:5)
+    at Routes (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4558:5)
+    at SidebarProvider (http://localhost:8081/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8081/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8081/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4501:15)
+    at BrowserRouter (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:5247:5)
+    at PortalErrorBoundary (http://localhost:8081/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8081/node_modules/.vite/deps/@tanstack_react-query.js?v=3aeb0223:2933:3)
+    at App (http://localhost:8081/src/App.tsx?t=1758728000546:985:5)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, DataErrorBoundary.
+logCapturedError @ chunk-276SZO74.js?v=3aeb0223:14032Understand this error
+DataErrorBoundary.tsx:29 [DataErrorBoundary] Kanban Board - Fases 2+3 + Clone Visual: ReferenceError: Avatar is not defined
+    at LeadCardHeader (LeadCardHeader.tsx:38:8)
+    at renderWithHooks (chunk-276SZO74.js?v=3aeb0223:11548:26)
+    at mountIndeterminateComponent (chunk-276SZO74.js?v=3aeb0223:14926:21)
+    at beginWork (chunk-276SZO74.js?v=3aeb0223:15914:22)
+    at beginWork$1 (chunk-276SZO74.js?v=3aeb0223:19753:22)
+    at performUnitOfWork (chunk-276SZO74.js?v=3aeb0223:19198:20)
+    at workLoopSync (chunk-276SZO74.js?v=3aeb0223:19137:13)
+    at renderRootSync (chunk-276SZO74.js?v=3aeb0223:19116:15)
+    at recoverFromConcurrentError (chunk-276SZO74.js?v=3aeb0223:18736:28)
+    at performConcurrentWorkOnRoot (chunk-276SZO74.js?v=3aeb0223:18684:30) Object
+componentDidCatch @ DataErrorBoundary.tsx:29Understand this error
+useFiltersCoordinator.ts:169 [FiltersCoordinator] 🏷️ Tags disponíveis: 2
+useFiltersCoordinator.ts:184 [FiltersCoordinator] 👥 Usuários disponíveis: 1
+ModernFunnelControlBarUnifiedV2.tsx:124 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: Object
+useFiltersCoordinator.ts:169 [FiltersCoordinator] 🏷️ Tags disponíveis: 2
+useFiltersCoordinator.ts:184 [FiltersCoordinator] 👥 Usuários disponíveis: 1
+ModernFunnelControlBarUnifiedV2.tsx:124 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: Object
+useFunnelStages.ts:99 [useFunnelStages] ✅ Etapas carregadas: Object
+useAccessControl.ts:29 [useAccessControl] 🔍 Buscando acessos a funis: Object
+AuthContext.tsx:65 [Auth] 📡 SIGNED_IN digitalticlin@gmail.com
+ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: Object
+ProtectedRoute.tsx:101 [ProtectedRoute] ✅ Usuário autenticado e autorizado
+SalesFunnelContentUnified.tsx:83 [SalesFunnelContentUnified] 🚀 Inicializando Sales Funnel UNIFICADO
+useWonLostStages.ts:97 [useWonLostStages] 🎯 Etapas derivadas: Object
+SalesFunnelContentUnified.tsx:380 [SalesFunnelContentUnified] 🎯 Etapas Won/Lost do hook específico: Object
+useFiltersCoordinator.ts:169 [FiltersCoordinator] 🏷️ Tags disponíveis: 2
+useFiltersCoordinator.ts:184 [FiltersCoordinator] 👥 Usuários disponíveis: 1
+ModernFunnelControlBarUnifiedV2.tsx:124 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: Object
+5sales-funnel:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
+useAccessControl.ts:46 [useAccessControl] 📊 Todos os funis encontrados (admin): 6

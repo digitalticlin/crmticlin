@@ -78,10 +78,10 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
     queryFn: async () => {
       if (!funnelId) return { stages: [], leads: [] };
 
-      console.log('[FunnelDataManager] 📊 Carregando dados do funil:', funnelId);
+      // Carregando dados do funil
 
       // Carregar etapas - VERIFICANDO TABELA CORRETA
-      console.log('[FunnelDataManager] 🔍 Tentando carregar stages da tabela kanban_stages...');
+      // Carregar stages da tabela kanban_stages
 
       const { data: stages, error: stagesError } = await supabase
         .from('kanban_stages')
@@ -91,12 +91,7 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
         .neq('is_lost', true) // Excluir etapa PERDIDO da aba principal
         .order('order_position');
 
-      console.log('[FunnelDataManager] 📋 Resultado stages:', {
-        stages: stages?.length || 0,
-        error: stagesError,
-        funnelId,
-        firstStage: stages?.[0]
-      });
+      // Stages carregadas
 
       if (stagesError) {
         console.error('[FunnelDataManager] ❌ Erro ao buscar stages:', stagesError);
@@ -107,56 +102,40 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
         console.warn('[FunnelDataManager] ⚠️ Nenhuma stage encontrada para o funil:', funnelId);
       }
 
-      // Carregar leads iniciais (primeira página de cada etapa)
-      console.log('[FunnelDataManager] 🔍 Tentando carregar leads...');
+      // Carregar leads iniciais - OTIMIZADO: 15 por etapa
+      // Carregar apenas os primeiros leads de cada etapa para performance
 
-      const { data: leads, error: leadsError } = await supabase
-        .from('leads')
-        .select(`
-          *,
-          lead_tags (
-            tag_id,
-            tags (
-              id,
-              name,
-              color
+      const leadsPromises = stages.map(async (stage: any) => {
+        const { data: stageLeads, error } = await supabase
+          .from('leads')
+          .select(`
+            *,
+            lead_tags (
+              tag_id,
+              tags (
+                id,
+                name,
+                color
+              )
             )
-          )
-        `)
-        .eq('funnel_id', funnelId)
-        .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
-        .order('created_at', { ascending: false })
-        .limit(1000); // Carregar até 1000 leads iniciais - depois usa scroll infinito
+          `)
+          .eq('funnel_id', funnelId)
+          .eq('kanban_stage_id', stage.id)
+          .not('state', 'in', '("won","lost")')
+          .order('created_at', { ascending: false })
+          .limit(15); // OTIMIZADO: Apenas 15 leads por etapa inicialmente
 
-      console.log('[FunnelDataManager] 📋 Resultado leads:', {
-        leads: leads?.length || 0,
-        error: leadsError,
-        funnelId,
-        firstLead: leads?.[0]
+        if (error) {
+          console.error(`Erro ao carregar leads da etapa ${stage.id}:`, error);
+          return [];
+        }
+        return stageLeads || [];
       });
 
-      if (leadsError) {
-        console.error('[FunnelDataManager] ❌ Erro ao buscar leads:', leadsError);
-        throw leadsError;
-      }
+      const leadsArrays = await Promise.all(leadsPromises);
+      const leads = leadsArrays.flat();
 
-      console.log('[FunnelDataManager] ✅ Dados carregados:', {
-        stages: stages.length,
-        leads: leads.length,
-        stagesSample: stages?.[0] ? {
-          id: stages[0].id,
-          name: stages[0].name,
-          color: stages[0].color,
-          ai_enabled: stages[0].ai_enabled,
-          order_position: stages[0].order_position
-        } : null,
-        leadsSample: leads?.[0] ? {
-          id: leads[0].id,
-          name: leads[0].name,
-          kanban_stage_id: leads[0].kanban_stage_id,
-          funnel_id: leads[0].funnel_id
-        } : null
-      });
+      // Dados carregados com sucesso
 
       return { stages, leads };
     },

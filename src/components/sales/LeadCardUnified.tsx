@@ -74,13 +74,45 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
     transition,
   } : {};
 
-  // Handlers memoizados para melhor performance
-  const handleCardClick = useCallback(() => {
-    if (!isDragging) {
-      DND_CONFIG.debug.log('info', 'Card clicked', { leadId: lead.id, leadName: lead.name });
-      onOpenLeadDetail(lead);
+  // Handler que detecta área clicada e delega apropriadamente
+  const handleCardClick = useCallback((e: React.MouseEvent) => {
+    if (isDragging) return;
+
+    const target = e.target as Element;
+    const wonButtonArea = target.closest('.won-button-area');
+    const lostButtonArea = target.closest('.lost-button-area');
+    const returnToFunnelArea = target.closest('.return-to-funnel-area');
+
+    console.log('[LeadCardUnified] 🖱️ CLICK PROCESSADO:', {
+      wonButtonArea: !!wonButtonArea,
+      lostButtonArea: !!lostButtonArea,
+      returnToFunnelArea: !!returnToFunnelArea
+    });
+
+    // Chat removido - será processado pelo LeadCard diretamente
+
+    if (wonButtonArea && onMoveToWonLost) {
+      console.log('[LeadCardUnified] 🏆 Processando won click');
+      onMoveToWonLost(lead, "won");
+      return;
     }
-  }, [isDragging, onOpenLeadDetail, lead]);
+
+    if (lostButtonArea && onMoveToWonLost) {
+      console.log('[LeadCardUnified] 💥 Processando lost click');
+      onMoveToWonLost(lead, "lost");
+      return;
+    }
+
+    if (returnToFunnelArea && onReturnToFunnel) {
+      console.log('[LeadCardUnified] 🔄 Processando return click');
+      onReturnToFunnel(lead);
+      return;
+    }
+
+    // Se não foi nenhum botão específico, abrir detalhes
+    console.log('[LeadCardUnified] 📋 Abrindo detalhes do lead');
+    onOpenLeadDetail(lead);
+  }, [isDragging, onOpenLeadDetail, onMoveToWonLost, onReturnToFunnel, lead]);
 
   const handleChatClick = useCallback(() => {
     if (!isDragging && onOpenChat) {
@@ -91,6 +123,7 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
 
   const handleMoveToWon = useCallback(() => {
     if (!isDragging && onMoveToWonLost) {
+      console.log('[LeadCardUnified] 🏆 handleMoveToWon - delegando para onMoveToWonLost');
       DND_CONFIG.debug.log('info', 'Move to won', { leadId: lead.id });
       onMoveToWonLost(lead, "won");
     }
@@ -98,6 +131,7 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
 
   const handleMoveToLost = useCallback(() => {
     if (!isDragging && onMoveToWonLost) {
+      console.log('[LeadCardUnified] 💥 handleMoveToLost - delegando para onMoveToWonLost');
       DND_CONFIG.debug.log('info', 'Move to lost', { leadId: lead.id });
       onMoveToWonLost(lead, "lost");
     }
@@ -105,6 +139,7 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
 
   const handleReturnToFunnel = useCallback(() => {
     if (!isDragging && onReturnToFunnel) {
+      console.log('[LeadCardUnified] 🔄 handleReturnToFunnel - delegando para onReturnToFunnel');
       DND_CONFIG.debug.log('info', 'Return to funnel', { leadId: lead.id });
       onReturnToFunnel(lead);
     }
@@ -135,10 +170,10 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
         <LeadCard
           lead={lead}
           onClick={handleCardClick}
-          onOpenChat={handleChatClick}
-          onMoveToWon={handleMoveToWon}
-          onMoveToLost={handleMoveToLost}
-          onReturnToFunnel={handleReturnToFunnel}
+          onOpenChat={onOpenChat} // Restaurado - chat funcionava perfeitamente
+          onMoveToWon={handleMoveToWon} // Passar o handler real
+          onMoveToLost={handleMoveToLost} // Passar o handler real
+          onReturnToFunnel={handleReturnToFunnel} // Passar o handler real
           isWonLostView={isWonLostView}
           wonStageId={wonStageId}
           lostStageId={lostStageId}
@@ -159,15 +194,32 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
       className={`${className || ''} ${isDragging ? 'opacity-50' : ''} ${isSorting ? 'transition-transform' : ''} relative`}
       {...attributes}
       {...listeners}
+      onPointerDown={(e) => {
+        // Verificar se clicou em área protegida
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-no-drag]') ||
+            target.closest('.won-button-area') ||
+            target.closest('.lost-button-area') ||
+            target.closest('.chat-icon-area') ||
+            target.closest('.return-to-funnel-area') ||
+            target.closest('.lead-actions')) {
+          e.stopPropagation();
+          return;
+        }
+        // Deixar DnD prosseguir
+        if (listeners?.onPointerDown) {
+          listeners.onPointerDown(e);
+        }
+      }}
     >
       {/* LeadCard renderizado normalmente */}
       <LeadCard
         lead={lead}
         onClick={handleCardClick}
-        onOpenChat={handleChatClick}
-        onMoveToWon={handleMoveToWon}
-        onMoveToLost={handleMoveToLost}
-        onReturnToFunnel={handleReturnToFunnel}
+        onOpenChat={onOpenChat} // Restaurado - chat funcionava perfeitamente
+        onMoveToWon={handleMoveToWon} // Passar o handler real
+        onMoveToLost={handleMoveToLost} // Passar o handler real
+        onReturnToFunnel={handleReturnToFunnel} // Passar o handler real
         isWonLostView={isWonLostView}
         wonStageId={wonStageId}
         lostStageId={lostStageId}
