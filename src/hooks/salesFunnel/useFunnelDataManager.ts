@@ -168,7 +168,7 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
           .eq('created_by_user_id', leadsOwnerId) // 🚀 FILTRO CORRETO POR ROLES
           .eq('kanban_stage_id', stage.id)
           .order('created_at', { ascending: false })
-          .limit(50); // 🚀 FASE 1: Aumentado de 15 → 50 leads por etapa inicialmente
+          .limit(20); // 🎯 CARGA INICIAL: 20 leads por etapa
 
         if (error) {
           console.error(`Erro ao carregar leads da etapa ${stage.id}:`, error);
@@ -320,6 +320,25 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
     setColumns(newColumns);
     setAllLeads(processedLeads);
 
+    // 🚀 INICIALIZAR stageLoadingState para cada etapa
+    newColumns.forEach(column => {
+      // Se stage não tem estado inicializado, criar com página 1 (já carregou 20 leads iniciais)
+      if (!stageLoadingState.current.has(column.id)) {
+        const initialState = {
+          page: 1, // Página 1 porque já carregou os primeiros 20 leads
+          hasMore: column.leads.length >= 20 // Se carregou 20, pode haver mais
+        };
+        stageLoadingState.current.set(column.id, initialState);
+
+        console.log('[FunnelDataManager] 🆕 Estado inicializado para etapa:', {
+          stageId: column.id,
+          title: column.title,
+          leadsCarregados: column.leads.length,
+          initialState
+        });
+      }
+    });
+
     console.log('[FunnelDataManager] 🗂️ Dados organizados em colunas:', {
       colunas: newColumns.length,
       totalLeads: processedLeads.length,
@@ -333,6 +352,11 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
         leadsCount: col.leads.length,
         color: col.color,
         order_position: col.order_position
+      })),
+      stageStates: Array.from(stageLoadingState.current.entries()).map(([stageId, state]) => ({
+        stageId,
+        page: state.page,
+        hasMore: state.hasMore
       }))
     });
   }, [funnelData]);
@@ -457,11 +481,35 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
 
   // Carregar mais dados para etapa específica
   const loadMoreForStage = useCallback(async (stageId: string) => {
+    console.log('[FunnelDataManager] 🎯 INICIANDO loadMoreForStage:', { stageId, funnelId, enabled, role });
+
+    if (!funnelId) {
+      console.error('[FunnelDataManager] ❌ Sem funnelId para carregar mais');
+      return;
+    }
+
+    const leadsOwnerId = await getLeadsOwnerId();
+    if (!leadsOwnerId) {
+      console.error('[FunnelDataManager] ❌ Sem leadsOwnerId para carregar mais:', {
+        role,
+        userId: user?.id,
+        leadsOwnerId
+      });
+      return;
+    }
+
     const stageState = stageLoadingState.current.get(stageId) || { page: 0, hasMore: true };
 
-    if (!stageState.hasMore) return;
+    if (!stageState.hasMore) {
+      console.log('[FunnelDataManager] ⏹️ Não há mais leads para carregar nesta etapa:', stageId);
+      return;
+    }
 
-    console.log('[FunnelDataManager] 📜 🚀 FASE 2: Carregando mais leads do banco para etapa:', stageId);
+    console.log('[FunnelDataManager] 📜 🚀 FASE 2: Carregando mais leads do banco para etapa:', {
+      stageId,
+      page: stageState.page,
+      leadsOwnerId
+    });
 
     try {
       // 🚀 FASE 2: Query otimizada para carregar do banco com filtros de segurança
@@ -480,37 +528,92 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
         `)
         .eq('kanban_stage_id', stageId)
         .eq('funnel_id', funnelId) // 🔒 Filtro adicional de segurança
+        .eq('created_by_user_id', leadsOwnerId) // 🔒 FILTRO MULTITENANT OBRIGATÓRIO
         .order('created_at', { ascending: false })
-        .range(stageState.page * pageSize, (stageState.page + 1) * pageSize - 1);
+        .range(stageState.page * 20, (stageState.page + 1) * 20 - 1);
 
       if (error) throw error;
 
       // Atualizar estado da etapa
       stageLoadingState.current.set(stageId, {
         page: stageState.page + 1,
-        hasMore: moreLeads.length === pageSize
+        hasMore: moreLeads.length === 20
       });
 
-      // Adicionar leads à coluna correspondente
+      // Processar leads com tags (igual ao carregamento inicial)
+      const processedLeads = moreLeads.map(lead => {
+        const tags = lead.lead_tags?.map((lt: any) => {
+          if (lt.tags) {
+            return {
+              id: lt.tags.id,
+              name: lt.tags.name,
+              color: lt.tags.color
+            };
+          }
+          return null;
+        }).filter((tag: any) => tag !== null) || [];
+
+        return {
+          id: lead.id,
+          name: lead.name,
+          phone: lead.phone,
+          email: lead.email,
+          company: lead.company,
+          notes: lead.notes,
+          lastMessage: lead.last_message || 'Sem mensagens',
+          lastMessageTime: lead.last_message_time || new Date().toISOString(),
+          purchaseValue: lead.purchase_value,
+          purchase_value: lead.purchase_value,
+          unreadCount: lead.unread_count || 0,
+          unread_count: lead.unread_count || 0,
+          assignedUser: lead.owner_id,
+          owner_id: lead.owner_id,
+          created_by_user_id: lead.created_by_user_id,
+          columnId: lead.kanban_stage_id || '',
+          kanban_stage_id: lead.kanban_stage_id,
+          funnel_id: lead.funnel_id,
+          whatsapp_number_id: lead.whatsapp_number_id,
+          created_at: lead.created_at,
+          updated_at: lead.updated_at,
+          profile_pic_url: lead.profile_pic_url,
+          conversation_status: lead.conversation_status,
+          tags,
+          avatar: lead.profile_pic_url,
+          last_message: lead.last_message,
+          last_message_time: lead.last_message_time
+        };
+      });
+
+      // Adicionar leads processados à coluna correspondente
       setColumns(prev => prev.map(column => {
         if (column.id === stageId) {
+          const newLeads = [...column.leads, ...processedLeads];
+          console.log('[FunnelDataManager] ✅ Adicionando leads processados:', {
+            stageId,
+            leadsDe: column.leads.length,
+            leadsPara: newLeads.length,
+            novosLeads: processedLeads.length
+          });
           return {
             ...column,
-            leads: [...column.leads, ...moreLeads]
+            leads: newLeads
           };
         }
         return column;
       }));
 
+      // Atualizar allLeads também
+      setAllLeads(prev => [...prev, ...processedLeads]);
+
       console.log('[FunnelDataManager] ✅ Mais leads carregados para etapa:', {
         stageId,
-        novosLeads: moreLeads.length
+        novosLeads: processedLeads.length
       });
 
     } catch (error) {
       console.error('[FunnelDataManager] ❌ Erro ao carregar mais para etapa:', error);
     }
-  }, [pageSize]);
+  }, [funnelId]);
 
   // Obter leads de uma etapa específica
   const getStageLeads = useCallback((stageId: string): KanbanLead[] => {

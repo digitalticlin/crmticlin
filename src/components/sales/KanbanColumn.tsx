@@ -17,44 +17,52 @@ import { toast } from "sonner";
 import { MassSelectionReturn } from "@/hooks/useMassSelection";
 import { useStageLeadCount } from "@/hooks/salesFunnel/stages/useStageLeadCount";
 
-// Hook customizado para gerenciar scroll infinito
-const useInfiniteScroll = (totalItems: number, initialCount: number = 25) => {
-  const [visibleCount, setVisibleCount] = useState(initialCount);
-  const [isLoading, setIsLoading] = useState(false);
+// Hook para scroll infinito real conectado ao banco
+const useInfiniteScrollDatabase = (
+  stageId: string,
+  totalInMemory: number,
+  totalInDatabase: number,
+  onLoadMoreFromDatabase: (stageId: string) => void
+) => {
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const hasMore = totalItems > visibleCount;
+  // Sempre mostrar todos os leads carregados em memória
+  const visibleCount = totalInMemory;
 
-  const loadMore = useCallback(() => {
-    if (isLoading || !hasMore) return;
+  // Há mais leads no banco se o total em memória < total no banco
+  const hasMore = totalInMemory < totalInDatabase;
 
-    setIsLoading(true);
-    setTimeout(() => {
-      setVisibleCount(prev => Math.min(prev + 25, totalItems));
-      setIsLoading(false);
-    }, 300);
-  }, [isLoading, hasMore, totalItems]);
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    setIsLoadingMore(true);
+
+    try {
+      await onLoadMoreFromDatabase(stageId);
+    } catch (error) {
+      console.error('[useInfiniteScrollDatabase] Erro ao carregar mais:', error);
+    } finally {
+      // Aguardar um pouco para a UI atualizar
+      setTimeout(() => {
+        setIsLoadingMore(false);
+      }, 300);
+    }
+  }, [isLoadingMore, hasMore, stageId, onLoadMoreFromDatabase]);
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const element = e.currentTarget;
     const { scrollTop, scrollHeight, clientHeight } = element;
     const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
 
-    if (scrollPercentage > 0.8 && hasMore && !isLoading) {
+    // Trigger quando chegar a 90% do scroll E houver mais leads no banco
+    if (scrollPercentage > 0.9 && hasMore && !isLoadingMore) {
       loadMore();
     }
-  }, [hasMore, isLoading, loadMore]);
-
-  // ✅ CORREÇÃO: Resetar visibleCount quando totalItems mudar (filtros aplicados)
-  useEffect(() => {
-    // Se totalItems diminuiu significativamente (filtros aplicados), resetar
-    if (totalItems < visibleCount || totalItems === 0) {
-      setVisibleCount(Math.min(initialCount, totalItems));
-    }
-  }, [totalItems, initialCount, visibleCount]);
+  }, [hasMore, isLoadingMore, loadMore]);
 
   return {
     visibleCount,
-    isLoading,
+    isLoading: isLoadingMore,
     hasMore,
     loadMore,
     handleScroll
@@ -334,6 +342,7 @@ interface KanbanColumnProps {
   lostStageId?: string;
   massSelection?: MassSelectionReturn;
   funnelId?: string | null;
+  onLoadMoreFromDatabase?: (stageId: string) => void;
 }
 
 export function KanbanColumn({
@@ -349,7 +358,8 @@ export function KanbanColumn({
   wonStageId,
   lostStageId,
   massSelection,
-  funnelId
+  funnelId,
+  onLoadMoreFromDatabase
 }: KanbanColumnProps) {
 
   // 🔍 DEBUG: Log para verificar se os leads estão chegando filtrados
@@ -367,7 +377,12 @@ export function KanbanColumn({
     hasMore,
     loadMore,
     handleScroll
-  } = useInfiniteScroll(column.leads.length);
+  } = useInfiniteScrollDatabase(
+    column.id,
+    column.leads.length, // Total em memória
+    totalCount, // Total no banco (do useStageLeadCount)
+    onLoadMoreFromDatabase || (() => {}) // Fallback se não houver função
+  );
 
   // Memoização de valores computados - ATUALIZADA para incluir controle de IA em "Entrada de Leads"
   const isFixedStage = useMemo(() => 

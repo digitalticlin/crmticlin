@@ -14,6 +14,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 // Query keys isoladas para contagem
 export const stageLeadCountQueryKeys = {
@@ -34,6 +35,7 @@ export function useStageLeadCount({
   enabled = true
 }: UseStageLeadCountParams) {
   const { user } = useAuth();
+  const { role } = useUserRole();
 
   const queryResult = useQuery({
     queryKey: stageLeadCountQueryKeys.byFunnel(funnelId || '', user?.id || ''),
@@ -46,13 +48,30 @@ export function useStageLeadCount({
       console.log('[useStageLeadCount] 🔢 Buscando contagem de leads por etapa');
 
       try {
-        // Query otimizada para contar leads por etapa
+        // 🚀 BUSCAR LEADS OWNER ID (mesma lógica do useFunnelDataManager)
+        let leadsOwnerId: string = user.id; // Default: admin
+
+        if (role === 'operational') {
+          // Buscar quem é o admin do operational
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('created_by_user_id')
+            .eq('id', user.id)
+            .single();
+
+          if (!profileError && profile?.created_by_user_id) {
+            leadsOwnerId = profile.created_by_user_id;
+          }
+        }
+
+        // Query otimizada para contar leads por etapa - USANDO MESMO FILTRO que useFunnelDataManager
         const { data, error } = await supabase
           .from('leads')
           .select('kanban_stage_id')
           .eq('funnel_id', funnelId)
-          .eq('created_by_user_id', user.id)
-          .in('conversation_status', ['active', 'closed', null]);
+          .eq('created_by_user_id', leadsOwnerId); // 🔒 USAR MESMO FILTRO
+          // ✅ REMOVIDO: .in('conversation_status', ['active', 'closed', null])
+          // Para contar 100% dos leads independente do status
 
         if (error) {
           console.error('[useStageLeadCount] ❌ Erro ao contar leads:', error);
@@ -66,7 +85,11 @@ export function useStageLeadCount({
           countByStage[stageId] = (countByStage[stageId] || 0) + 1;
         });
 
-        console.log('[useStageLeadCount] ✅ Contagem por etapa:', countByStage);
+        console.log('[useStageLeadCount] ✅ Contagem por etapa:', {
+          leadsOwnerId,
+          role,
+          countByStage
+        });
 
         return countByStage;
       } catch (error) {

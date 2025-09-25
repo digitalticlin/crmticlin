@@ -23,6 +23,8 @@ interface KanbanBoardProps {
   funnelId?: string | null;
   // 🔧 CORREÇÃO: Prop para filtros ativos
   hasActiveFilters?: boolean;
+  // 🚀 FASE 2: Prop para scroll infinito com banco de dados
+  onLoadMoreFromDatabase?: (stageId: string) => void;
 }
 
 export const KanbanBoard = ({
@@ -40,7 +42,8 @@ export const KanbanBoard = ({
   massSelection,
   markOptimisticChange,
   funnelId,
-  hasActiveFilters = false
+  hasActiveFilters = false,
+  onLoadMoreFromDatabase
 }: KanbanBoardProps) => {
 
   // Validar colunas uma vez com memoização
@@ -126,6 +129,7 @@ export const KanbanBoard = ({
             funnelId={funnelId}
             enableDnd={true}
             hasActiveFilters={hasActiveFilters}
+            onLoadMoreFromDatabase={onLoadMoreFromDatabase}
           />
         )}
       </DataErrorBoundary>

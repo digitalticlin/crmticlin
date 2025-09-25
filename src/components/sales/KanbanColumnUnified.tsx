@@ -18,6 +18,7 @@ import { useSalesFunnelCoordinator } from './core/SalesFunnelCoordinator';
 import { LeadCardUnified } from './LeadCardUnified';
 import { AIToggleSwitchEnhanced } from './ai/AIToggleSwitchEnhanced';
 import { useAIStageControl } from '@/hooks/salesFunnel/useAIStageControl';
+import { useStageLeadCount } from '@/hooks/salesFunnel/stages/useStageLeadCount';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -39,7 +40,7 @@ interface KanbanColumnUnifiedProps {
   className?: string;
 }
 
-const LEADS_PER_PAGE = 30; // 🚀 FASE 3: Aumentado de 20 → 30 para mostrar mais leads por página
+const LEADS_PER_PAGE = 20; // 🎯 PAGINAÇÃO: 20 leads por página
 
 /**
  * Coluna unificada que funciona com ou sem DnD, coordenada centralmente
@@ -62,6 +63,19 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
 }) => {
   const coordinator = useSalesFunnelCoordinator();
   const { toggleAI, isLoading: isTogglingAI, canToggleAI } = useAIStageControl();
+
+  // 🔍 DEBUG: Verificar se prop está chegando
+  console.log('[KanbanColumnUnified] 🔗 Props recebidas:', {
+    columnTitle: column.title,
+    hasOnLoadMoreFromDatabase: !!onLoadMoreFromDatabase,
+    onLoadMoreFromDatabaseType: typeof onLoadMoreFromDatabase
+  });
+
+  // Hook para contar total de leads no banco de dados
+  const { getStageCount } = useStageLeadCount({
+    funnelId,
+    enabled: !!funnelId
+  });
 
   // Estado para paginação local (fallback quando não há infinite scroll)
   const [visibleCount, setVisibleCount] = useState(LEADS_PER_PAGE);
@@ -107,12 +121,25 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
       return column.leads;
     }
 
-    // Caso contrário, usar paginação local
-    return column.leads.slice(0, visibleCount);
-  }, [column.leads, visibleCount, hasActiveFilters]);
+    // 🚀 CORREÇÃO: Se há mais leads no banco, garantir que renderize o suficiente para scroll
+    const totalInDatabase = getStageCount(column.id);
+    const hasMoreInDatabase = column.leads.length < totalInDatabase;
 
-  // Verificar se há mais leads para carregar
-  const hasMoreLeads = !hasActiveFilters && column.leads.length > visibleCount;
+    if (hasMoreInDatabase) {
+      // Renderizar todos os leads em memória para permitir scroll
+      console.log(`[KanbanColumnUnified] 📊 Renderizando todos leads em memória - ${column.title}:`, {
+        leadsEmMemoria: column.leads.length,
+        totalNoBanco: totalInDatabase,
+        visibleCount,
+        renderizarTodos: true
+      });
+      return column.leads;
+    }
+
+    // Se não há mais no banco, usar paginação local normal
+    return column.leads.slice(0, visibleCount);
+  }, [column.leads, visibleCount, hasActiveFilters, getStageCount, column.id, column.title]);
+
 
   // Valor total em negociação
   const totalValue = useMemo(() => {
@@ -125,6 +152,14 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
 
   // 🚀 FASE 2: Handler para carregar mais leads do BANCO
   const loadMoreLeads = useCallback(async () => {
+    console.log(`[KanbanColumnUnified] 🎯 loadMoreLeads CHAMADO - ${column.title}:`, {
+      isLoadingMore,
+      hasMoreLeads,
+      visibleCount,
+      totalInMemory: column.leads.length,
+      willProceed: !isLoadingMore && hasMoreLeads
+    });
+
     if (isLoadingMore || !hasMoreLeads) return;
 
     DND_CONFIG.debug.log('info', '🚀 FASE 2: Carregando mais leads do BANCO para coluna', { columnId: column.id, currentCount: visibleCount });
@@ -142,13 +177,23 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
     try {
       // 🚀 FASE 2: Tentar carregar do banco primeiro, senão fallback para local
       if (onLoadMoreFromDatabase) {
+        console.log('[KanbanColumnUnified] 📊 Chamando onLoadMoreFromDatabase para:', column.id);
         await onLoadMoreFromDatabase(column.id);
-        DND_CONFIG.debug.log('info', '✅ FASE 2: Leads carregados do banco com sucesso', { columnId: column.id });
+        console.log('[KanbanColumnUnified] ✅ Leads carregados do banco com sucesso');
       } else {
         // Fallback: mostrar mais leads locais (comportamento antigo)
+        console.log('[KanbanColumnUnified] ⚠️ onLoadMoreFromDatabase não encontrado - usando fallback local');
         await new Promise(resolve => setTimeout(resolve, 300));
-        setVisibleCount(prev => Math.min(prev + LEADS_PER_PAGE, column.leads.length));
-        DND_CONFIG.debug.log('info', '⚠️ FASE 2: Fallback - mostrando mais leads locais', { columnId: column.id });
+
+        // ✅ CORREÇÃO: Sempre aumentar visibleCount no fallback
+        const newVisibleCount = visibleCount + LEADS_PER_PAGE;
+        setVisibleCount(newVisibleCount);
+
+        console.log('[KanbanColumnUnified] 📈 Fallback: visibleCount aumentado:', {
+          de: visibleCount,
+          para: newVisibleCount,
+          total: column.leads.length
+        });
       }
     } catch (error) {
       console.error('[KanbanColumnUnified] ❌ Erro ao carregar mais leads:', error);
@@ -157,7 +202,59 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
     }
 
     setIsLoadingMore(false);
-  }, [isLoadingMore, hasMoreLeads, coordinator, column.id, visibleCount, onLoadMoreFromDatabase]);
+  }, [isLoadingMore, coordinator, column.id, visibleCount, onLoadMoreFromDatabase]);
+
+  // Verificar se há mais leads para carregar (do banco + memória local)
+  const totalInDatabase = getStageCount(column.id);
+
+  // 🛡️ CORREÇÃO: Se onLoadMoreFromDatabase não existir, usar apenas memória local
+  const hasMoreLeads = !hasActiveFilters && (
+    onLoadMoreFromDatabase
+      ? column.leads.length < totalInDatabase  // Com função: comparar com banco
+      : column.leads.length > visibleCount     // Sem função: comparar com visível
+  );
+
+  console.log(`[KanbanColumnUnified] 📊 Scroll Check - ${column.title}:`, {
+    visibleCount,
+    inMemory: column.leads.length,
+    inDatabase: totalInDatabase,
+    hasMoreLeads,
+    hasActiveFilters
+  });
+
+  // Scroll listener para carregar automaticamente mais leads
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const { scrollTop, scrollHeight, clientHeight } = element;
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+
+    // 🔍 DEBUG: Log de todos os eventos de scroll
+    if (scrollPercentage > 0.8) { // Log apenas quando próximo do final
+      console.log(`[KanbanColumnUnified] 📜 Scroll Debug - ${column.title}:`, {
+        scrollPercentage: Math.round(scrollPercentage * 100) + '%',
+        scrollTop,
+        scrollHeight,
+        clientHeight,
+        hasMoreLeads,
+        isLoadingMore,
+        visibleLeadsCount: visibleLeads.length,
+        totalInMemory: column.leads.length,
+        willTrigger: scrollPercentage > 0.85 && hasMoreLeads && !isLoadingMore
+      });
+    }
+
+    // Quando chegar a 85% do scroll, carregar mais automaticamente
+    if (scrollPercentage > 0.85 && hasMoreLeads && !isLoadingMore) {
+      console.log('[KanbanColumnUnified] 🏃 Scroll 85% atingido - carregando mais leads:', {
+        columnId: column.id,
+        columnTitle: column.title,
+        scrollPercentage: Math.round(scrollPercentage * 100) + '%',
+        hasMoreLeads,
+        isLoadingMore
+      });
+      loadMoreLeads();
+    }
+  }, [hasMoreLeads, isLoadingMore, loadMoreLeads, visibleLeads.length, column]);
 
   // Handler para toggle AI
   const handleAIToggle = useCallback(async (enabled: boolean) => {
@@ -222,7 +319,7 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
             {column.title}
           </h3>
           <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
-            {column.leads.length}
+            {getStageCount(column.id)}
           </span>
         </div>
       </div>
@@ -264,6 +361,7 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
         maxHeight: "calc(100svh - 190px)",
         scrollbarColor: "#ffffff66 transparent"
       }}
+      onScroll={handleScroll}
     >
       {enableDnd ? (
         <SortableContext items={leadIds} strategy={verticalListSortingStrategy}>
@@ -273,23 +371,13 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
         visibleLeads.map((lead, index) => renderLeadCard(lead, index))
       )}
 
-      {/* Botão para carregar mais */}
-      {hasMoreLeads && (
+      {/* Indicador de loading quando carregando automaticamente */}
+      {isLoadingMore && (
         <div className="p-4 text-center">
-          <button
-            onClick={loadMoreLeads}
-            disabled={isLoadingMore}
-            className="px-4 py-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {isLoadingMore ? (
-              <>
-                <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
-                Carregando...
-              </>
-            ) : (
-              `Carregar mais (${column.leads.length - visibleCount} restantes)`
-            )}
-          </button>
+          <div className="flex items-center justify-center text-sm text-gray-500">
+            <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
+            Carregando mais leads...
+          </div>
         </div>
       )}
 
