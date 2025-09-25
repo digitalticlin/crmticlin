@@ -92,7 +92,7 @@ export function SalesFunnelContentUnified() {
     enableRealtime: true,
     enableFilters: true,
     enableMassSelection: true,
-    pageSize: 30
+    pageSize: 50 // 🚀 FASE 1: Aumentado de 30 → 50 para carregar mais leads inicialmente
   });
 
   // 🎯 HOOK ESPECÍFICO PARA ETAPAS WON/LOST
@@ -476,6 +476,7 @@ export function SalesFunnelContentUnified() {
                   hasActiveFilters={funnel.hasActiveFilters}
                   wonStageId={wonStageId}
                   lostStageId={lostStageId}
+                  onLoadMoreFromDatabase={funnel.loadMoreForStage} // 🚀 FASE 2: Conectar scroll infinito real
                 />
               </>
             )

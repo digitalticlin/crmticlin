@@ -40,6 +40,8 @@ interface KanbanBoardUnifiedProps {
   funnelId?: string | null;
   hasActiveFilters?: boolean;
   enableDnd?: boolean;
+  // 🚀 FASE 2: Função para carregar mais leads do banco
+  onLoadMoreFromDatabase?: (stageId: string) => Promise<void>;
   className?: string;
 }
 
@@ -62,6 +64,7 @@ export const KanbanBoardUnified: React.FC<KanbanBoardUnifiedProps> = ({
   funnelId,
   hasActiveFilters = false,
   enableDnd = true,
+  onLoadMoreFromDatabase,
   className
 }) => {
   const coordinator = useSalesFunnelCoordinator();
@@ -300,6 +303,7 @@ export const KanbanBoardUnified: React.FC<KanbanBoardUnifiedProps> = ({
         funnelId={funnelId}
         enableDnd={isDndActive}
         hasActiveFilters={hasActiveFilters}
+        onLoadMoreFromDatabase={onLoadMoreFromDatabase}
       />
     ));
   };

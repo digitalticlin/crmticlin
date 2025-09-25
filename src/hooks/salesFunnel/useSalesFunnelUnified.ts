@@ -96,7 +96,7 @@ export const useSalesFunnelUnified = (options: FunnelOptions): SalesFunnelUnifie
     enableRealtime = true,
     enableFilters = true,
     enableMassSelection = true,
-    pageSize = 30
+    pageSize = 50 // 🚀 FASE 1: Aumentado de 30 → 50 para melhor carregamento
   } = options;
 
   // Hooks especializados coordenados

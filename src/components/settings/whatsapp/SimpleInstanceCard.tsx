@@ -1,14 +1,16 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Smartphone, 
-  Clock, 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Smartphone,
+  Clock,
   CheckCircle,
   AlertTriangle,
   QrCode,
   Loader2,
-  Trash2
+  Trash2,
+  GitBranch
 } from "lucide-react";
 import {
   AlertDialog,
@@ -22,7 +24,17 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { WhatsAppWebInstance } from "@/types/whatsapp";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
+
+interface Funnel {
+  id: string;
+  name: string;
+  color?: string;
+}
 
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
@@ -30,15 +42,22 @@ interface SimpleInstanceCardProps {
   onDelete: (instanceId: string) => void;
 }
 
-export const SimpleInstanceCard = ({ 
-  instance, 
-  onGenerateQR, 
+export const SimpleInstanceCard = ({
+  instance,
+  onGenerateQR,
   onDelete
 }: SimpleInstanceCardProps) => {
+  const { user } = useAuth();
+  const [funnels, setFunnels] = useState<Funnel[]>([]);
+  const [leadsCount, setLeadsCount] = useState(0);
+  const [isLoadingFunnels, setIsLoadingFunnels] = useState(false);
+  const [showFunnelDialog, setShowFunnelDialog] = useState(false);
+  const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
+  const [isUpdatingFunnel, setIsUpdatingFunnel] = useState(false);
 
   const getStatusInfo = () => {
     const status = instance.connection_status?.toLowerCase() || 'unknown';
-    
+
     switch (status) {
       case 'ready':
       case 'connected':
@@ -78,12 +97,92 @@ export const SimpleInstanceCard = ({
   const statusInfo = getStatusInfo();
   const StatusIcon = statusInfo.icon;
   const isConnected = ['ready', 'connected'].includes(instance.connection_status?.toLowerCase() || '');
-  
-  const needsQrCode = !isConnected || 
-    (instance.web_status === 'waiting_qr') || 
+
+  const needsQrCode = !isConnected ||
+    (instance.web_status === 'waiting_qr') ||
     ['waiting_scan', 'qr_ready', 'disconnected'].includes(
       instance.connection_status?.toLowerCase() || 'unknown'
     );
+
+  // Buscar funis do usuário
+  useEffect(() => {
+    const fetchFunnels = async () => {
+      if (!user?.id || !isConnected) return;
+
+      setIsLoadingFunnels(true);
+      try {
+        const { data, error } = await supabase
+          .from('funnels')
+          .select('id, name')
+          .eq('created_by_user_id', user.id)
+          .eq('is_active', true)
+          .order('name');
+
+        if (error) throw error;
+        setFunnels(data || []);
+      } catch (error) {
+        console.error('Erro ao buscar funis:', error);
+      } finally {
+        setIsLoadingFunnels(false);
+      }
+    };
+
+    fetchFunnels();
+  }, [user?.id, isConnected]);
+
+  // Buscar contagem de leads da instância
+  useEffect(() => {
+    const fetchLeadsCount = async () => {
+      if (!instance.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('leads')
+          .select('id')
+          .eq('whatsapp_number_id', instance.id);
+
+        if (error) throw error;
+        setLeadsCount(data?.length || 0);
+      } catch (error) {
+        console.error('Erro ao buscar contagem de leads:', error);
+      }
+    };
+
+    fetchLeadsCount();
+  }, [instance.id]);
+
+  // Função para atualizar funil da instância
+  const handleFunnelChange = async (funnelId: string) => {
+    setIsUpdatingFunnel(true);
+    try {
+      const { error } = await supabase
+        .from('whatsapp_instances')
+        .update({ funnel_id: funnelId })
+        .eq('id', instance.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Funil atualizado!",
+        description: `Todos os contatos foram movidos para a primeira etapa do novo funil.`,
+      });
+
+      // Recarregar página para refletir mudança
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao atualizar funil:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao atualizar funil",
+        description: "Tente novamente em alguns instantes.",
+      });
+    } finally {
+      setIsUpdatingFunnel(false);
+      setShowFunnelDialog(false);
+      setSelectedFunnelId("");
+    }
+  };
+
 
   return (
     <Card className="group relative transition-all duration-300 hover:shadow-glass-lg hover:-translate-y-1
@@ -151,6 +250,50 @@ export const SimpleInstanceCard = ({
         </div>
       </CardContent>
 
+      {/* Funil - Apenas para instâncias conectadas */}
+      {isConnected && funnels.length > 0 && (
+        <div className="px-3 py-1.5 border-t border-white/10 relative z-10">
+          <div className="flex items-center justify-center gap-1.5 mb-1">
+            <GitBranch className="h-3 w-3 text-gray-500" />
+            <span className="text-xs font-medium text-gray-600">Funil Vinculado</span>
+          </div>
+
+          <div className="flex justify-center">
+            <Select
+              value={instance.funnel_id || ""}
+              onValueChange={(funnelId) => {
+                if (funnelId !== instance.funnel_id) {
+                  setSelectedFunnelId(funnelId);
+                  setShowFunnelDialog(true);
+                }
+              }}
+              disabled={isUpdatingFunnel || isLoadingFunnels}
+            >
+              <SelectTrigger className="h-6 text-xs border-white/30 bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors w-[50%]">
+                <SelectValue placeholder="Selecionar..." />
+              </SelectTrigger>
+              <SelectContent className="min-w-[180px]">
+                {funnels.map(funnel => (
+                  <SelectItem key={funnel.id} value={funnel.id} className="text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-400 to-blue-600" />
+                      {funnel.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isUpdatingFunnel && (
+            <div className="text-xs text-blue-600 flex items-center justify-center gap-1 mt-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Atualizando...</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Footer: Botões de ação - padding e gap reduzidos */}
       <div className="p-3 border-t border-white/10 relative z-10 flex-shrink-0">
         <div className="flex gap-1.5 justify-center">
@@ -165,7 +308,7 @@ export const SimpleInstanceCard = ({
               Gerar QR
             </Button>
           )}
-          
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -203,6 +346,31 @@ export const SimpleInstanceCard = ({
           </AlertDialog>
         </div>
       </div>
+
+      {/* Dialog de Confirmação para Mudança de Funil */}
+      <AlertDialog open={showFunnelDialog} onOpenChange={setShowFunnelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterar Funil de Vendas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os contatos deste WhatsApp ({leadsCount} contatos) serão movidos para a primeira etapa do novo funil. Esta ação não pode ser desfeita.
+              <br /><br />
+              Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowFunnelDialog(false);
+              setSelectedFunnelId("");
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleFunnelChange(selectedFunnelId)}>
+              Sim, mover contatos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

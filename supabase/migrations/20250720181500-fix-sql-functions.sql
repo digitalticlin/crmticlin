@@ -88,9 +88,9 @@ BEGIN
 
   -- ETAPA 5: UPSERT do lead (buscar ou criar) com estrutura flexível
   INSERT INTO public.leads (
-    phone, 
-    name, 
-    whatsapp_number_id, 
+    phone,
+    name,
+    whatsapp_number_id,
     created_by_user_id,
     funnel_id,
     kanban_stage_id,

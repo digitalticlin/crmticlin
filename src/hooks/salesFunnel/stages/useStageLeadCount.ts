@@ -52,7 +52,6 @@ export function useStageLeadCount({
           .select('kanban_stage_id')
           .eq('funnel_id', funnelId)
           .eq('created_by_user_id', user.id)
-          .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
           .in('conversation_status', ['active', 'closed', null]);
 
         if (error) {

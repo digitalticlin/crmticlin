@@ -23,6 +23,11 @@ export { QuickStatus } from './components/QuickStatus';
 export { SimplePlansGrid } from './components/SimplePlansGrid';
 export { BillingHistory } from './components/BillingHistory';
 
+// Componentes da nova estrutura
+export { PlansActionCards } from './components/PlansActionCards';
+export { PlansUpgradeHero } from './components/PlansUpgradeHero';
+export { PlansFAQ } from './components/PlansFAQ';
+
 // Serviços
 export { MercadoPagoService } from './services/mercadopagoService';
 

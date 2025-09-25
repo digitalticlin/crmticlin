@@ -3,7 +3,7 @@ import {
   BillingErrorBoundary,
   HeroStatus,
   QuickStatus,
-  SimplePlansGrid,
+  PlansActionCards,
   BillingHistory
 } from "@/modules/billing";
 
@@ -11,19 +11,19 @@ export default function Plans() {
   return (
     <BillingErrorBoundary>
       <div className="w-full space-y-8 relative z-40">
-        {/* Header com status hero */}
+        {/* Header inteligente com status do usuário */}
         <BillingErrorBoundary>
           <HeroStatus />
         </BillingErrorBoundary>
 
-        {/* Quick Status Cards */}
+        {/* Cards de status atual (uso, período, próxima ação) */}
         <BillingErrorBoundary>
           <QuickStatus />
         </BillingErrorBoundary>
 
-        {/* Planos Simplificados */}
+        {/* Ações contextuais baseadas no estado do usuário */}
         <BillingErrorBoundary>
-          <SimplePlansGrid />
+          <PlansActionCards />
         </BillingErrorBoundary>
 
         {/* Histórico e Faturamento Unificado */}

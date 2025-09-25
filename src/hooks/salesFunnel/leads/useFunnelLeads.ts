@@ -17,6 +17,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { KanbanLead, KanbanTag } from '@/types/kanban';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 // Query keys isoladas para leads
 export const funnelLeadsQueryKeys = {
@@ -66,17 +67,87 @@ interface LeadWithTags {
 export function useFunnelLeads({
   funnelId,
   enabled = true,
-  pageSize = 20 // Scroll infinito com 20 leads por vez - mais leve
+  pageSize = 50 // 🚀 FASE 1: Aumentado de 20 → 50 leads por página para melhor UX
 }: UseFunnelLeadsParams) {
   const { user } = useAuth();
+  const { role, loading: roleLoading } = useUserRole();
   const queryClient = useQueryClient();
 
+  console.log('[useFunnelLeads] 🚀 Hook iniciado:', {
+    funnelId,
+    enabled,
+    userId: user?.id,
+    role,
+    roleLoading
+  });
+
+  // 🚀 BUSCAR ADMIN ID PARA OPERATIONAL
+  const getLeadsOwnerId = async (): Promise<string | null> => {
+    console.log('[useFunnelLeads] 🔍 getLeadsOwnerId iniciado:', {
+      userId: user?.id,
+      role: role,
+      roleType: typeof role
+    });
+
+    if (!user?.id) {
+      console.error('[useFunnelLeads] ❌ Usuário não autenticado');
+      return null;
+    }
+
+    if (!role) {
+      console.error('[useFunnelLeads] ❌ Role não definida');
+      return null;
+    }
+
+    if (role === 'admin') {
+      console.log('[useFunnelLeads] ✅ Admin detectado, usando user.id:', user.id);
+      return user.id; // Admin vê seus próprios leads
+    }
+
+    if (role === 'operational') {
+      console.log('[useFunnelLeads] 👤 Operational detectado, buscando admin...');
+
+      // Buscar quem é o admin do operational
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('created_by_user_id')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('[useFunnelLeads] ❌ Erro ao buscar admin do operational:', error);
+        return null;
+      }
+
+      const adminId = profile?.created_by_user_id;
+      console.log('[useFunnelLeads] ✅ Admin do operational encontrado:', adminId);
+      return adminId || null;
+    }
+
+    console.error('[useFunnelLeads] ❌ Role não reconhecida:', role);
+    return null;
+  };
+
   const queryResult = useInfiniteQuery({
-    queryKey: funnelLeadsQueryKeys.byFunnel(funnelId || '', user?.id || ''),
+    queryKey: funnelLeadsQueryKeys.byFunnel(funnelId || '', user?.id || '', role || ''),
     queryFn: async ({ pageParam = 0 }) => {
       if (!funnelId || !user?.id) {
         return { leads: [], nextPage: null, totalCount: 0 };
       }
+
+      // 🚀 OBTER ID DO DONO DOS LEADS (Admin ou Admin do Operational)
+      const leadsOwnerId = await getLeadsOwnerId();
+      if (!leadsOwnerId) {
+        console.error('[useFunnelLeads] Não foi possível determinar dono dos leads');
+        return { leads: [], nextPage: null, totalCount: 0 };
+      }
+
+      console.log('[useFunnelLeads] 🎯 Buscando leads:', {
+        role,
+        userId: user.id,
+        leadsOwnerId,
+        funnelId
+      });
 
       try {
         let data, error, count;
@@ -93,7 +164,7 @@ export function useFunnelLeads({
             .neq('is_lost', true); // Excluir etapa PERDIDO da aba principal
 
           if (stages && stages.length > 0) {
-            // Buscar 15 leads de cada etapa em paralelo
+            // Buscar 30 leads de cada etapa em paralelo
             const stageQueries = stages.map(stage =>
               supabase
                 .from('leads')
@@ -109,12 +180,11 @@ export function useFunnelLeads({
                   )
                 `)
                 .eq('funnel_id', funnelId)
-                .eq('created_by_user_id', user.id)
+                .eq('created_by_user_id', leadsOwnerId) // 🚀 USAR ID CORRETO BASEADO NA ROLE
                 .eq('kanban_stage_id', stage.id)
-                .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
                 .in('conversation_status', ['active', 'closed', null])
                 .order('updated_at', { ascending: false })
-                .limit(15)
+                .limit(30) // 🚀 FASE 1: Aumentado de 15 → 30 leads por etapa na primeira carga
             );
 
             const results = await Promise.all(stageQueries);
@@ -147,8 +217,7 @@ export function useFunnelLeads({
                 )
               `, { count: 'exact' })
               .eq('funnel_id', funnelId)
-              .eq('created_by_user_id', user.id)
-              .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
+              .eq('created_by_user_id', leadsOwnerId) // 🚀 USAR ID CORRETO BASEADO NA ROLE
               .in('conversation_status', ['active', 'closed', null])
               .order('updated_at', { ascending: false })
               .limit(50);
@@ -174,8 +243,7 @@ export function useFunnelLeads({
               )
             `, { count: 'exact' })
             .eq('funnel_id', funnelId)
-            .eq('created_by_user_id', user.id)
-            .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
+            .eq('created_by_user_id', leadsOwnerId) // 🚀 USAR ID CORRETO BASEADO NA ROLE
             .in('conversation_status', ['active', 'closed', null])
             .order('updated_at', { ascending: false })
             .range(pageParam * pageSize, (pageParam + 1) * pageSize - 1);
@@ -267,9 +335,9 @@ export function useFunnelLeads({
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: Boolean(funnelId && user?.id && enabled),
-    staleTime: 0, // Sempre considerar dados como stale para garantir atualização
-    gcTime: 5 * 60 * 1000, // 5 minutos
+    enabled: Boolean(funnelId && user?.id && enabled && !roleLoading && role),
+    staleTime: 30000, // 🚀 FASE 3: 30s de stale para melhor cache
+    gcTime: 10 * 60 * 1000, // 🚀 FASE 3: Aumentado para 10 minutos
     refetchOnWindowFocus: true, // ✅ HABILITADO - refetch ao focar para resolver problema inicial
     refetchOnReconnect: true, // ✅ HABILITADO - refetch ao reconectar
     refetchOnMount: true // ✅ SEMPRE refetch ao montar componente

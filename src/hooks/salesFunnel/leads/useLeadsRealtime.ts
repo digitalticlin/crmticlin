@@ -18,6 +18,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { KanbanLead } from '@/types/kanban';
 import { funnelLeadsQueryKeys } from './useFunnelLeads';
 import { funnelLeadsFilteredQueryKeys } from './useFunnelLeadsFiltered';
@@ -36,9 +37,37 @@ export function useLeadsRealtime({
   onNewLead
 }: UseLeadsRealtimeParams) {
   const { user } = useAuth();
+  const { role } = useUserRole();
   const queryClient = useQueryClient();
   const channelRef = useRef<any>(null);
   const isPausedRef = useRef(false);
+
+  // 🚀 BUSCAR ADMIN ID PARA OPERATIONAL (mesma lógica do useFunnelLeads)
+  const getLeadsOwnerId = useCallback(async (): Promise<string | null> => {
+    if (!user?.id) return null;
+
+    if (role === 'admin') {
+      return user.id; // Admin vê seus próprios leads
+    }
+
+    if (role === 'operational') {
+      // Buscar quem é o admin do operational
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('created_by_user_id')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('[useLeadsRealtime] Erro ao buscar admin do operational:', error);
+        return null;
+      }
+
+      return profile?.created_by_user_id || null; // Retorna ID do admin
+    }
+
+    return null;
+  }, [user?.id, role]);
 
   // Debounce para evitar updates excessivos
   const debounceTimers = useRef<Map<string, NodeJS.Timeout>>(new Map());
@@ -72,17 +101,23 @@ export function useLeadsRealtime({
 
     const timer = setTimeout(() => {
       if (!isDragging()) {
-        // ✅ INVALIDAÇÃO INTELIGENTE: Invalidar qualquer cache que contenha 'leads'
-        // Isso pega AMBOS os hooks sem criar dependências
+        // 🚀 FASE 3: INVALIDAÇÃO SUPER INTELIGENTE - apenas queries específicas do funil
         queryClient.invalidateQueries({
           predicate: (query) => {
-            const key = query.queryKey[0] as string;
-            return key && (key.includes('salesfunnel-leads') || key.includes('salesfunnel-leads-filtered'));
+            const key = query.queryKey;
+            const keyStr = key[0] as string;
+            const funnelInQuery = key.includes(funnelId);
+
+            return keyStr && funnelInQuery && (
+              keyStr.includes('salesfunnel-leads') ||
+              keyStr.includes('salesfunnel-leads-filtered') ||
+              keyStr.includes('funnel-leads-infinite')
+            );
           }
         });
       }
       debounceTimers.current.delete(key);
-    }, 300); // 300ms de debounce
+    }, 150); // 🚀 FASE 3: Reduzido de 300ms → 150ms para sync mais rápida
 
     debounceTimers.current.set(key, timer);
   }, [funnelId, user?.id, queryClient, isDragging]);
@@ -136,11 +171,18 @@ export function useLeadsRealtime({
         tags: leadWithTags.lead_tags?.map((lt: any) => lt.tags).filter(Boolean) || []
       };
 
-      // ✅ INVALIDAÇÃO INTELIGENTE: Novo lead afeta ambos os caches
+      // 🚀 FASE 3: INVALIDAÇÃO OTIMIZADA para novo lead
       queryClient.invalidateQueries({
         predicate: (query) => {
-          const key = query.queryKey[0] as string;
-          return key && (key.includes('salesfunnel-leads') || key.includes('salesfunnel-leads-filtered'));
+          const key = query.queryKey;
+          const keyStr = key[0] as string;
+          const funnelInQuery = key.includes(funnelId);
+
+          return keyStr && funnelInQuery && (
+            keyStr.includes('salesfunnel-leads') ||
+            keyStr.includes('salesfunnel-leads-filtered') ||
+            keyStr.includes('funnel-leads-infinite')
+          );
         }
       });
 
@@ -181,10 +223,17 @@ export function useLeadsRealtime({
         (payload) => {
           const leadData = payload.new;
 
-          // Verificar se é do usuário atual (segurança)
-          if (leadData.created_by_user_id === user.id) {
-            addNewLeadToCache(leadData);
-          }
+          // 🚀 VERIFICAR SE É DO ADMIN CORRETO (segurança multi-tenant)
+          getLeadsOwnerId().then(leadsOwnerId => {
+            if (leadData.created_by_user_id === leadsOwnerId) {
+              addNewLeadToCache(leadData);
+            } else {
+              console.log('[useLeadsRealtime] 🚫 Lead ignorado - não pertence ao admin correto:', {
+                leadCreatedBy: leadData.created_by_user_id,
+                expectedOwnerId: leadsOwnerId
+              });
+            }
+          });
         }
       )
       .on(
@@ -198,10 +247,11 @@ export function useLeadsRealtime({
         (payload) => {
           const leadData = payload.new;
 
-          // Verificar se é do usuário atual (segurança)
-          if (leadData.created_by_user_id === user.id) {
-            // Só atualizar dados, NÃO mover ao topo
-            debouncedUpdateLead(leadData.id, {
+          // 🚀 VERIFICAR SE É DO ADMIN CORRETO (segurança multi-tenant)
+          getLeadsOwnerId().then(leadsOwnerId => {
+            if (leadData.created_by_user_id === leadsOwnerId) {
+              // Só atualizar dados, NÃO mover ao topo
+              debouncedUpdateLead(leadData.id, {
               name: leadData.name,
               phone: leadData.phone,
               email: leadData.email,
@@ -219,8 +269,14 @@ export function useLeadsRealtime({
               kanban_stage_id: leadData.kanban_stage_id,
               updated_at: leadData.updated_at,
               profile_pic_url: leadData.profile_pic_url
-            });
-          }
+              });
+            } else {
+              console.log('[useLeadsRealtime] 🚫 Update ignorado - não pertence ao admin correto:', {
+                leadCreatedBy: leadData.created_by_user_id,
+                expectedOwnerId: leadsOwnerId
+              });
+            }
+          });
         }
       )
       .on(

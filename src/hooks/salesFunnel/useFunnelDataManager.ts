@@ -16,6 +16,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { KanbanLead, KanbanColumn } from '@/types/kanban';
 import { SalesFunnelCoordinatorReturn } from '@/components/sales/core/SalesFunnelCoordinator';
 import { funnelLeadsQueryKeys } from './leads/useFunnelLeads';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface FunnelDataOptions {
   funnelId?: string | null;
@@ -61,6 +63,8 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
     coordinator
   } = options;
 
+  const { user } = useAuth();
+  const { role, loading: roleLoading } = useUserRole();
   const realtimeSubscription = useRef<any>(null);
   const stageLoadingState = useRef<Map<string, { page: number; hasMore: boolean }>>(new Map());
 
@@ -68,15 +72,56 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
   const [allLeads, setAllLeads] = useState<KanbanLead[]>([]);
 
+  // 🚀 BUSCAR ADMIN ID PARA OPERATIONAL (mesma lógica)
+  const getLeadsOwnerId = useCallback(async (): Promise<string | null> => {
+    if (!user?.id) return null;
+
+    if (role === 'admin') {
+      return user.id; // Admin vê seus próprios leads
+    }
+
+    if (role === 'operational') {
+      // Buscar quem é o admin do operational
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('created_by_user_id')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('[useFunnelDataManager] Erro ao buscar admin do operational:', error);
+        return null;
+      }
+
+      return profile?.created_by_user_id || null; // Retorna ID do admin
+    }
+
+    return null;
+  }, [user?.id, role]);
+
   // Query principal para carregar etapas e leads iniciais
   const {
     data: funnelData,
     isLoading,
     refetch: refreshData
   } = useQuery({
-    queryKey: funnelLeadsQueryKeys.byFunnel(funnelId || '', 'unified'),
+    queryKey: funnelLeadsQueryKeys.byFunnel(funnelId || '', user?.id || '', role || ''),
     queryFn: async () => {
       if (!funnelId) return { stages: [], leads: [] };
+
+      // 🚀 OBTER ID DO DONO DOS LEADS
+      const leadsOwnerId = await getLeadsOwnerId();
+      if (!leadsOwnerId) {
+        console.error('[useFunnelDataManager] Não foi possível determinar dono dos leads');
+        return { stages: [], leads: [] };
+      }
+
+      console.log('[useFunnelDataManager] 🎯 Buscando dados:', {
+        funnelId,
+        role,
+        userId: user?.id,
+        leadsOwnerId
+      });
 
       // Carregando dados do funil
 
@@ -120,10 +165,10 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
             )
           `)
           .eq('funnel_id', funnelId)
+          .eq('created_by_user_id', leadsOwnerId) // 🚀 FILTRO CORRETO POR ROLES
           .eq('kanban_stage_id', stage.id)
-          .not('state', 'in', '("won","lost")')
           .order('created_at', { ascending: false })
-          .limit(15); // OTIMIZADO: Apenas 15 leads por etapa inicialmente
+          .limit(50); // 🚀 FASE 1: Aumentado de 15 → 50 leads por etapa inicialmente
 
         if (error) {
           console.error(`Erro ao carregar leads da etapa ${stage.id}:`, error);
@@ -139,9 +184,9 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
 
       return { stages, leads };
     },
-    enabled: enabled && !!funnelId,
-    staleTime: 30000, // Cache por 30 segundos
-    gcTime: 300000 // Manter em cache por 5 minutos
+    enabled: enabled && !!funnelId && !roleLoading && !!role,
+    staleTime: 5000, // ✅ CORREÇÃO: Cache reduzido para 5s - melhor tempo real
+    gcTime: 600000 // 🚀 FASE 3: Manter em cache por 10 minutos
   });
 
   // Query infinita para carregamento sob demanda
@@ -169,7 +214,6 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
           )
         `)
         .eq('funnel_id', funnelId)
-        .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
         .order('created_at', { ascending: false })
         .range(pageParam * pageSize, (pageParam + 1) * pageSize - 1);
 
@@ -417,9 +461,10 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
 
     if (!stageState.hasMore) return;
 
-    console.log('[FunnelDataManager] 📜 Carregando mais para etapa:', stageId);
+    console.log('[FunnelDataManager] 📜 🚀 FASE 2: Carregando mais leads do banco para etapa:', stageId);
 
     try {
+      // 🚀 FASE 2: Query otimizada para carregar do banco com filtros de segurança
       const { data: moreLeads, error } = await supabase
         .from('leads')
         .select(`
@@ -434,7 +479,7 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
           )
         `)
         .eq('kanban_stage_id', stageId)
-        .not('state', 'in', '("won","lost")') // Excluir leads ganhos e perdidos do funil principal
+        .eq('funnel_id', funnelId) // 🔒 Filtro adicional de segurança
         .order('created_at', { ascending: false })
         .range(stageState.page * pageSize, (stageState.page + 1) * pageSize - 1);
 

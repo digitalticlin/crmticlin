@@ -45,7 +45,12 @@ function verifyWebhookSignature(payload, signature, secret) {
   }
 }
 // 📱 Função para gerar nomes descritivos para mídia
-function getMediaDisplayName(mediaType) {
+function getMediaDisplayName(mediaType, mimeType = null) {
+  // Detectar PDF por mime type
+  if (mimeType && mimeType.includes('pdf')) {
+    return '📄 PDF';
+  }
+
   const mediaNames = {
     'image': '📷 Imagem',
     'video': '🎥 Vídeo',
@@ -53,7 +58,8 @@ function getMediaDisplayName(mediaType) {
     'document': '📄 Documento',
     'sticker': '😊 Sticker',
     'voice': '🎤 Áudio',
-    'ptt': '🎤 Áudio'
+    'ptt': '🎤 Áudio',
+    'pdf': '📄 PDF'
   };
   return mediaNames[mediaType?.toLowerCase()] || '📎 Mídia';
 }
@@ -233,6 +239,79 @@ async function processQRUpdate(supabase, data) {
 }
 // 🚀 FUNÇÃO PRINCIPAL REFORMULADA: Usar Storage + PGMQ existentes
 async function processMessage(supabase, data) {
+  // Detectar tipo real de mídia baseado em mime type ou extensão
+  function detectRealMediaType(originalType, mimeType, fileName, hasBase64) {
+    console.log('[Webhook] 🔍 Detectando tipo de mídia:', {
+      originalType,
+      mimeType,
+      fileName,
+      hasBase64: !!hasBase64
+    });
+
+    // Se já tem um tipo válido e não é 'unknown', manter
+    if (originalType && originalType !== 'unknown' && originalType !== 'text') {
+      console.log('[Webhook] ✅ Tipo original válido:', originalType);
+      return originalType;
+    }
+
+    // Detectar por mimeType
+    if (mimeType) {
+      const mimeTypeLower = mimeType.toLowerCase();
+
+      // PDFs
+      if (mimeTypeLower.includes('pdf')) {
+        console.log('[Webhook] 📄 Detectado PDF por mimeType');
+        return 'document';
+      }
+
+      // Imagens
+      if (mimeTypeLower.includes('image')) {
+        console.log('[Webhook] 📷 Detectado imagem por mimeType');
+        return 'image';
+      }
+
+      // Vídeos
+      if (mimeTypeLower.includes('video')) {
+        console.log('[Webhook] 🎥 Detectado vídeo por mimeType');
+        return 'video';
+      }
+
+      // Áudios (incluindo voice notes)
+      if (mimeTypeLower.includes('audio') || mimeTypeLower.includes('ogg')) {
+        console.log('[Webhook] 🎵 Detectado áudio por mimeType');
+        return 'audio';
+      }
+
+      // Documentos genéricos
+      if (mimeTypeLower.includes('application')) {
+        console.log('[Webhook] 📄 Detectado documento por mimeType');
+        return 'document';
+      }
+    }
+
+    // Detectar por extensão do arquivo
+    if (fileName) {
+      const ext = fileName.split('.').pop()?.toLowerCase();
+      console.log('[Webhook] 📁 Verificando extensão:', ext);
+
+      if (ext === 'pdf') return 'document';
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) return 'image';
+      if (['mp4', 'avi', 'mov', 'wmv', 'mkv', 'webm'].includes(ext)) return 'video';
+      if (['mp3', 'wav', 'ogg', 'aac', 'm4a', 'opus'].includes(ext)) return 'audio';
+      if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv'].includes(ext)) return 'document';
+    }
+
+    // Se tem base64 mas não detectou tipo, assumir documento
+    if (hasBase64 && originalType === 'unknown') {
+      console.log('[Webhook] ⚠️ Tipo desconhecido com base64, assumindo documento');
+      return 'document';
+    }
+
+    const finalType = originalType || 'text';
+    console.log('[Webhook] 📊 Tipo final detectado:', finalType);
+    return finalType;
+  }
+
   console.log('[Webhook] 📨 Processando mensagem com infraestrutura existente:', {
     instanceId: data.instanceId,
     hasMessage: !!(data.message || data.data?.messages),
@@ -247,17 +326,30 @@ async function processMessage(supabase, data) {
   if (data.data?.messages?.[0]) {
     // Formato Baileys (evolution API)
     const baileyMsg = data.data.messages[0];
+    // Detectar tipo real da mídia
+    const hasBase64Data = !!(data.mediaBase64 || data.data?.mediaBase64 || data.mediabase64 ||
+                           data.base64Data || data.mediaData?.base64Data || data.data?.mediaData?.base64Data ||
+                           (typeof data.data?.mediaData === 'string' ? data.data.mediaData : null) ||
+                           (typeof data.mediaData === 'string' ? data.mediaData : null));
+
+    const realMediaType = detectRealMediaType(
+      data.messageType,
+      data.mediaData?.mimeType || data.data?.mediaData?.mimeType || data.data?.mediaData?.mimetype,
+      data.fileName || data.mediaData?.fileName || data.data?.mediaData?.fileName,
+      hasBase64Data
+    );
+
     messageData = {
       instanceId: data.instanceId,
       from: baileyMsg.key.remoteJid,
       fromMe: baileyMsg.key.fromMe,
       externalMessageId: baileyMsg.key.id,
       message: {
-        text: (data.messageType && data.messageType !== 'text')
-          ? getMediaDisplayName(data.messageType) // 🔧 CORREÇÃO: Para mídia, sempre usar emoji
+        text: (realMediaType && realMediaType !== 'text')
+          ? getMediaDisplayName(realMediaType, data.mediaData?.mimeType || data.data?.mediaData?.mimeType) // 🔧 CORREÇÃO: Para mídia, sempre usar emoji
           : (baileyMsg.message?.conversation || baileyMsg.message?.extendedTextMessage?.text || data.message?.text || data.text || data.caption || '')
       },
-      messageType: data.messageType === 'sticker' ? 'image' : (data.messageType === 'unknown' ? 'text' : data.messageType) || 'text',
+      messageType: realMediaType === 'sticker' ? 'image' : realMediaType,
       mediaUrl: data.mediaUrl,
       // ❌ REMOVIDO: contactName - usar apenas telefone formatado
       // 🚀 DADOS DE MÍDIA EXTRAÍDOS - CORREÇÃO APLICADA
@@ -287,17 +379,30 @@ async function processMessage(supabase, data) {
 
     // Debug removido - estrutura mediaData
 
+    // Detectar tipo real da mídia
+    const hasBase64Data = !!(data.mediaBase64 || data.data?.mediaBase64 || data.mediabase64 ||
+                           data.base64Data || data.mediaData?.base64Data || data.data?.mediaData?.base64Data ||
+                           (typeof data.data?.mediaData === 'string' ? data.data.mediaData : null) ||
+                           (typeof data.mediaData === 'string' ? data.mediaData : null));
+
+    const realMediaType = detectRealMediaType(
+      data.messageType,
+      data.mediaData?.mimeType || data.data?.mediaData?.mimeType || data.data?.mediaData?.mimetype,
+      data.fileName || data.mediaData?.fileName || data.data?.mediaData?.fileName,
+      hasBase64Data
+    );
+
     messageData = {
       instanceId: data.instanceId,
       from: data.from,
       fromMe: data.fromMe,
       externalMessageId: data.data?.messageId || data.messageId || data.id || data.external_message_id,
       message: {
-        text: (data.messageType && data.messageType !== 'text')
-          ? getMediaDisplayName(data.messageType) // 🔧 CORREÇÃO: Para mídia, sempre usar emoji
+        text: (realMediaType && realMediaType !== 'text')
+          ? getMediaDisplayName(realMediaType, data.mediaData?.mimeType || data.data?.mediaData?.mimeType) // 🔧 CORREÇÃO: Para mídia, sempre usar emoji
           : (data.message?.text || data.text || data.caption || '')
       },
-      messageType: data.messageType === 'sticker' ? 'image' : (data.messageType === 'unknown' ? 'text' : data.messageType) || 'text',
+      messageType: realMediaType === 'sticker' ? 'image' : realMediaType,
       mediaUrl: data.mediaUrl,
       // ❌ REMOVIDO: contactName - usar apenas telefone formatado
       profile_pic_url: data.profilePicUrl || data.profile_pic_url || data.data?.profile_pic_url || data.senderProfilePicUrl || null,
@@ -343,7 +448,7 @@ async function processMessage(supabase, data) {
   // O instanceId da VPS corresponde ao campo 'instance_name' na tabela
   const { data: instanceData, error: instanceError } = await supabase
     .from('whatsapp_instances')
-    .select('id, created_by_user_id, instance_name')
+    .select('id, created_by_user_id, instance_name, funnel_id')
     .eq('instance_name', messageData.instanceId)  // instanceId da VPS = instance_name na tabela
     .single();
   
@@ -358,6 +463,15 @@ async function processMessage(supabase, data) {
     vpsInstanceUuid = '712e7708-2299-4a00-9128-577c8f113ca4';
     console.log('[Webhook] ⚠️ UUID não encontrado para instanceId:', messageData.instanceId, ', usando padrão:', vpsInstanceUuid);
   }
+
+  // 🎯 EXTRAIR FUNNEL_ID DA INSTÂNCIA (se tiver)
+  const instanceFunnelId = instanceData?.funnel_id || null;
+
+  console.log('[Webhook] 🎯 Funil da instância:', {
+    instanceId: messageData.instanceId,
+    funnelId: instanceFunnelId,
+    hasInstanceFunnel: !!instanceFunnelId
+  });
   
   // 💾 Salvando mensagem via RPC
   if (messageData.mediaData?.base64Data) {
@@ -387,7 +501,7 @@ async function processMessage(supabase, data) {
     p_phone: cleanPhone,  // 🧹 TELEFONE LIMPO SEM @s.whatsapp.net
     p_message_text: messageData.message.text || '',
     p_from_me: Boolean(messageData.fromMe),
-    p_media_type: messageData.messageType === 'sticker' ? 'image' : messageData.messageType === 'unknown' ? 'text' : messageData.messageType || 'text',
+    p_media_type: messageData.messageType || 'text',
     p_media_url: null, // 🎯 SEMPRE NULL - será preenchido pela edge de upload
     p_external_message_id: messageData.externalMessageId || null,
     p_contact_name: null, // ❌ SEMPRE NULL - forçar uso do telefone formatado
@@ -396,7 +510,8 @@ async function processMessage(supabase, data) {
     p_mime_type: messageData.mediaData?.mimeType || messageData.mediaData?.mimetype || getMimeType(messageData.messageType) || null, // 🎯 MIME type com fallback
     p_file_name: messageData.mediaData?.fileName || null,      // 🎯 Nome do arquivo
     p_whatsapp_number_id: instanceData?.id || null,  // 🆔 UUID da instância WhatsApp
-    p_source_edge: 'webhook_whatsapp_web'  // 🏷️ Identificar a Edge
+    p_source_edge: 'webhook_whatsapp_web',  // 🏷️ Identificar a Edge
+    p_instance_funnel_id: instanceFunnelId  // 🎯 NOVO: Funil da instância
   };
 
   // Log simplificado para produção

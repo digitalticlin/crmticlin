@@ -34,10 +34,12 @@ interface KanbanColumnUnifiedProps {
   funnelId?: string | null;
   enableDnd?: boolean;
   hasActiveFilters?: boolean;
+  // 🚀 FASE 2: Função para carregar mais leads do banco
+  onLoadMoreFromDatabase?: (stageId: string) => Promise<void>;
   className?: string;
 }
 
-const LEADS_PER_PAGE = 20;
+const LEADS_PER_PAGE = 30; // 🚀 FASE 3: Aumentado de 20 → 30 para mostrar mais leads por página
 
 /**
  * Coluna unificada que funciona com ou sem DnD, coordenada centralmente
@@ -55,6 +57,7 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
   funnelId,
   enableDnd = true,
   hasActiveFilters = false,
+  onLoadMoreFromDatabase,
   className
 }) => {
   const coordinator = useSalesFunnelCoordinator();
@@ -120,11 +123,11 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
     }, 0);
   }, [column.leads]);
 
-  // Handler para carregar mais leads
+  // 🚀 FASE 2: Handler para carregar mais leads do BANCO
   const loadMoreLeads = useCallback(async () => {
     if (isLoadingMore || !hasMoreLeads) return;
 
-    DND_CONFIG.debug.log('info', 'Carregando mais leads da coluna', { columnId: column.id, currentCount: visibleCount });
+    DND_CONFIG.debug.log('info', '🚀 FASE 2: Carregando mais leads do BANCO para coluna', { columnId: column.id, currentCount: visibleCount });
 
     setIsLoadingMore(true);
 
@@ -136,18 +139,25 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
       source: 'KanbanColumn'
     });
 
-    // Simular delay e mostrar mais leads locais
-    await new Promise(resolve => setTimeout(resolve, 300));
+    try {
+      // 🚀 FASE 2: Tentar carregar do banco primeiro, senão fallback para local
+      if (onLoadMoreFromDatabase) {
+        await onLoadMoreFromDatabase(column.id);
+        DND_CONFIG.debug.log('info', '✅ FASE 2: Leads carregados do banco com sucesso', { columnId: column.id });
+      } else {
+        // Fallback: mostrar mais leads locais (comportamento antigo)
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setVisibleCount(prev => Math.min(prev + LEADS_PER_PAGE, column.leads.length));
+        DND_CONFIG.debug.log('info', '⚠️ FASE 2: Fallback - mostrando mais leads locais', { columnId: column.id });
+      }
+    } catch (error) {
+      console.error('[KanbanColumnUnified] ❌ Erro ao carregar mais leads:', error);
+      // Fallback em caso de erro
+      setVisibleCount(prev => Math.min(prev + LEADS_PER_PAGE, column.leads.length));
+    }
 
-    setVisibleCount(prev => Math.min(prev + LEADS_PER_PAGE, column.leads.length));
     setIsLoadingMore(false);
-
-    DND_CONFIG.debug.log('info', 'Mais leads carregados com sucesso', {
-      novosVisíveis: Math.min(visibleCount + LEADS_PER_PAGE, column.leads.length),
-      total: column.leads.length,
-      columnId: column.id
-    });
-  }, [isLoadingMore, hasMoreLeads, coordinator, column.id, column.leads.length, visibleCount]);
+  }, [isLoadingMore, hasMoreLeads, coordinator, column.id, visibleCount, onLoadMoreFromDatabase]);
 
   // Handler para toggle AI
   const handleAIToggle = useCallback(async (enabled: boolean) => {

@@ -1,5 +1,17 @@
-DataErrorBoundary.tsx:29 [DataErrorBoundary] Kanban Board - Fases 2+3 + Clone Visual: ReferenceError: Avatar is not defined
-    at LeadCardHeader (LeadCardHeader.tsx:38:8)
+[Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - LAYOUT REORGANIZADO
+2SimpleInstanceCard.tsx:82 Uncaught ReferenceError: Cannot access 'isConnected' before initialization
+    at SimpleInstanceCard (SimpleInstanceCard.tsx:82:17)
+    at renderWithHooks (chunk-276SZO74.js?v=3aeb0223:11548:26)
+    at mountIndeterminateComponent (chunk-276SZO74.js?v=3aeb0223:14926:21)
+    at beginWork (chunk-276SZO74.js?v=3aeb0223:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-276SZO74.js?v=3aeb0223:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-276SZO74.js?v=3aeb0223:3699:24)
+    at invokeGuardedCallback (chunk-276SZO74.js?v=3aeb0223:3733:39)
+    at beginWork$1 (chunk-276SZO74.js?v=3aeb0223:19765:15)
+    at performUnitOfWork (chunk-276SZO74.js?v=3aeb0223:19198:20)
+    at workLoopSync (chunk-276SZO74.js?v=3aeb0223:19137:13)Understand this error
+2PortalErrorBoundary.tsx:32 [PortalErrorBoundary] Portal error captured: ReferenceError: Cannot access 'isConnected' before initialization
+    at SimpleInstanceCard (SimpleInstanceCard.tsx:82:17)
     at renderWithHooks (chunk-276SZO74.js?v=3aeb0223:11548:26)
     at mountIndeterminateComponent (chunk-276SZO74.js?v=3aeb0223:14926:21)
     at beginWork (chunk-276SZO74.js?v=3aeb0223:15914:22)
@@ -8,62 +20,54 @@ DataErrorBoundary.tsx:29 [DataErrorBoundary] Kanban Board - Fases 2+3 + Clone Vi
     at workLoopSync (chunk-276SZO74.js?v=3aeb0223:19137:13)
     at renderRootSync (chunk-276SZO74.js?v=3aeb0223:19116:15)
     at recoverFromConcurrentError (chunk-276SZO74.js?v=3aeb0223:18736:28)
-    at performConcurrentWorkOnRoot (chunk-276SZO74.js?v=3aeb0223:18684:30) Object
-componentDidCatch @ DataErrorBoundary.tsx:29Understand this error
-chunk-276SZO74.js?v=3aeb0223:14032 The above error occurred in the <LeadCardHeader> component:
+    at performConcurrentWorkOnRoot (chunk-276SZO74.js?v=3aeb0223:18684:30)
+getDerivedStateFromError @ PortalErrorBoundary.tsx:32Understand this error
+chunk-276SZO74.js?v=3aeb0223:14032 The above error occurred in the <SimpleInstanceCard> component:
 
-    at LeadCardHeader (http://localhost:8081/src/components/sales/lead/LeadCardHeader.tsx:26:34)
-    at LeadCardContent (http://localhost:8081/src/components/sales/lead/LeadCardContent.tsx:25:35)
-    at div
-    at div
-    at _c (http://localhost:8081/src/components/sales/LeadCard.tsx:27:52)
-    at div
-    at LeadCardUnified (http://localhost:8081/src/components/sales/LeadCardUnified.tsx:37:39)
-    at SortableContext (http://localhost:8081/node_modules/.vite/deps/@dnd-kit_sortable.js?v=3aeb0223:261:5)
+    at SimpleInstanceCard (http://localhost:8080/src/components/settings/whatsapp/SimpleInstanceCard.tsx?t=1758831481152:32:38)
     at div
     at div
     at div
     at div
-    at KanbanColumnUnified (http://localhost:8081/src/components/sales/KanbanColumnUnified.tsx:43:43)
+    at OptimizedSettingsSection (http://localhost:8080/src/components/settings/whatsapp/OptimizedSettingsSection.tsx?t=1758831481152:34:69)
     at div
-    at DndContext2 (http://localhost:8081/node_modules/.vite/deps/chunk-P2CQY3NV.js?v=3aeb0223:2521:5)
-    at KanbanBoardUnified (http://localhost:8081/src/components/sales/KanbanBoardUnified.tsx:44:42)
-    at DataErrorBoundary (http://localhost:8081/src/components/sales/funnel/DataErrorBoundary.tsx:244:9)
+    at http://localhost:8080/node_modules/.vite/deps/chunk-SGAVZH5V.js?v=3aeb0223:43:13
+    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-GWCB6ZNV.js?v=3aeb0223:24:11)
+    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=3aeb0223:178:13
+    at _c4 (http://localhost:8080/src/components/ui/tabs.tsx:61:61)
     at div
-    at KanbanBoard (http://localhost:8081/src/components/sales/KanbanBoard.tsx:25:31)
+    at http://localhost:8080/node_modules/.vite/deps/chunk-SGAVZH5V.js?v=3aeb0223:43:13
+    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-3RXG37ZK.js?v=3aeb0223:38:15)
+    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=3aeb0223:55:7
     at div
-    at div
-    at div
-    at SalesFunnelContentUnified (http://localhost:8081/src/components/sales/funnel/SalesFunnelContentUnified.tsx?t=1758728000546:62:22)
-    at SalesFunnelContent
-    at ErrorBoundary (http://localhost:8081/src/components/ErrorBoundary.tsx:296:5)
-    at div
-    at SalesFunnel
+    at Settings (http://localhost:8080/src/pages/Settings.tsx?t=1758831481152:32:29)
     at Suspense
     at div
     at div
     at main
     at div
-    at AppLayout (http://localhost:8081/src/components/layout/AppLayout.tsx:28:29)
-    at RenderedRoute (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4088:5)
-    at Routes (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4558:5)
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:28:29)
+    at RoleGuard (http://localhost:8080/src/components/auth/RoleGuard.tsx:395:29)
+    at AdminGuard (http://localhost:8080/src/components/auth/AdminGuard.tsx:519:30)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4558:5)
     at AppLayoutRoutes
-    at http://localhost:8081/src/components/auth/ProtectedRoute.tsx:26:63
-    at RenderedRoute (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4088:5)
-    at Routes (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4558:5)
-    at SidebarProvider (http://localhost:8081/src/contexts/SidebarContext.tsx:33:35)
-    at RoleProvider (http://localhost:8081/src/contexts/RoleContext.tsx:31:32)
-    at AuthProvider (http://localhost:8081/src/contexts/AuthContext.tsx:38:32)
-    at Router (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4501:15)
-    at BrowserRouter (http://localhost:8081/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:5247:5)
-    at PortalErrorBoundary (http://localhost:8081/src/components/error/PortalErrorBoundary.tsx:68:9)
-    at QueryClientProvider (http://localhost:8081/node_modules/.vite/deps/@tanstack_react-query.js?v=3aeb0223:2933:3)
-    at App (http://localhost:8081/src/App.tsx?t=1758728000546:985:5)
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8080/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=3aeb0223:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1758831481152:1066:5)
 
-React will try to recreate this component tree from scratch using the error boundary you provided, DataErrorBoundary.
+React will try to recreate this component tree from scratch using the error boundary you provided, PortalErrorBoundary.
 logCapturedError @ chunk-276SZO74.js?v=3aeb0223:14032Understand this error
-DataErrorBoundary.tsx:29 [DataErrorBoundary] Kanban Board - Fases 2+3 + Clone Visual: ReferenceError: Avatar is not defined
-    at LeadCardHeader (LeadCardHeader.tsx:38:8)
+PortalErrorBoundary.tsx:56 [PortalErrorBoundary] Uncaught error: ReferenceError: Cannot access 'isConnected' before initialization
+    at SimpleInstanceCard (SimpleInstanceCard.tsx:82:17)
     at renderWithHooks (chunk-276SZO74.js?v=3aeb0223:11548:26)
     at mountIndeterminateComponent (chunk-276SZO74.js?v=3aeb0223:14926:21)
     at beginWork (chunk-276SZO74.js?v=3aeb0223:15914:22)
@@ -73,23 +77,64 @@ DataErrorBoundary.tsx:29 [DataErrorBoundary] Kanban Board - Fases 2+3 + Clone Vi
     at renderRootSync (chunk-276SZO74.js?v=3aeb0223:19116:15)
     at recoverFromConcurrentError (chunk-276SZO74.js?v=3aeb0223:18736:28)
     at performConcurrentWorkOnRoot (chunk-276SZO74.js?v=3aeb0223:18684:30) Object
-componentDidCatch @ DataErrorBoundary.tsx:29Understand this error
-useFiltersCoordinator.ts:169 [FiltersCoordinator] 🏷️ Tags disponíveis: 2
-useFiltersCoordinator.ts:184 [FiltersCoordinator] 👥 Usuários disponíveis: 1
-ModernFunnelControlBarUnifiedV2.tsx:124 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: Object
-useFiltersCoordinator.ts:169 [FiltersCoordinator] 🏷️ Tags disponíveis: 2
-useFiltersCoordinator.ts:184 [FiltersCoordinator] 👥 Usuários disponíveis: 1
-ModernFunnelControlBarUnifiedV2.tsx:124 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: Object
-useFunnelStages.ts:99 [useFunnelStages] ✅ Etapas carregadas: Object
-useAccessControl.ts:29 [useAccessControl] 🔍 Buscando acessos a funis: Object
-AuthContext.tsx:65 [Auth] 📡 SIGNED_IN digitalticlin@gmail.com
-ProtectedRoute.tsx:17 [ProtectedRoute] 🛡️ Verificando acesso: Object
-ProtectedRoute.tsx:101 [ProtectedRoute] ✅ Usuário autenticado e autorizado
-SalesFunnelContentUnified.tsx:83 [SalesFunnelContentUnified] 🚀 Inicializando Sales Funnel UNIFICADO
-useWonLostStages.ts:97 [useWonLostStages] 🎯 Etapas derivadas: Object
-SalesFunnelContentUnified.tsx:380 [SalesFunnelContentUnified] 🎯 Etapas Won/Lost do hook específico: Object
-useFiltersCoordinator.ts:169 [FiltersCoordinator] 🏷️ Tags disponíveis: 2
-useFiltersCoordinator.ts:184 [FiltersCoordinator] 👥 Usuários disponíveis: 1
-ModernFunnelControlBarUnifiedV2.tsx:124 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: Object
-5sales-funnel:1 Uncaught (in promise) Error: A listener indicated an asynchronous response by returning true, but the message channel closed before a response was receivedUnderstand this error
-useAccessControl.ts:46 [useAccessControl] 📊 Todos os funis encontrados (admin): 6
+componentDidCatch @ PortalErrorBoundary.tsx:56Understand this error
+chunk-276SZO74.js?v=3aeb0223:14032 The above error occurred in the <SimpleInstanceCard> component:
+
+    at SimpleInstanceCard (http://localhost:8080/src/components/settings/whatsapp/SimpleInstanceCard.tsx?t=1758831481152:32:38)
+    at div
+    at div
+    at div
+    at div
+    at OptimizedSettingsSection (http://localhost:8080/src/components/settings/whatsapp/OptimizedSettingsSection.tsx?t=1758831481152:34:69)
+    at div
+    at http://localhost:8080/node_modules/.vite/deps/chunk-SGAVZH5V.js?v=3aeb0223:43:13
+    at Presence (http://localhost:8080/node_modules/.vite/deps/chunk-GWCB6ZNV.js?v=3aeb0223:24:11)
+    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=3aeb0223:178:13
+    at _c4 (http://localhost:8080/src/components/ui/tabs.tsx:61:61)
+    at div
+    at http://localhost:8080/node_modules/.vite/deps/chunk-SGAVZH5V.js?v=3aeb0223:43:13
+    at Provider (http://localhost:8080/node_modules/.vite/deps/chunk-3RXG37ZK.js?v=3aeb0223:38:15)
+    at http://localhost:8080/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=3aeb0223:55:7
+    at div
+    at Settings (http://localhost:8080/src/pages/Settings.tsx?t=1758831481152:32:29)
+    at Suspense
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:28:29)
+    at RoleGuard (http://localhost:8080/src/components/auth/RoleGuard.tsx:395:29)
+    at AdminGuard (http://localhost:8080/src/components/auth/AdminGuard.tsx:519:30)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8080/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=3aeb0223:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1758831481152:1066:5)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, PortalErrorBoundary.
+logCapturedError @ chunk-276SZO74.js?v=3aeb0223:14032Understand this error
+PortalErrorBoundary.tsx:56 [PortalErrorBoundary] Uncaught error: ReferenceError: Cannot access 'isConnected' before initialization
+    at SimpleInstanceCard (SimpleInstanceCard.tsx:82:17)
+    at renderWithHooks (chunk-276SZO74.js?v=3aeb0223:11548:26)
+    at mountIndeterminateComponent (chunk-276SZO74.js?v=3aeb0223:14926:21)
+    at beginWork (chunk-276SZO74.js?v=3aeb0223:15914:22)
+    at beginWork$1 (chunk-276SZO74.js?v=3aeb0223:19753:22)
+    at performUnitOfWork (chunk-276SZO74.js?v=3aeb0223:19198:20)
+    at workLoopSync (chunk-276SZO74.js?v=3aeb0223:19137:13)
+    at renderRootSync (chunk-276SZO74.js?v=3aeb0223:19116:15)
+    at recoverFromConcurrentError (chunk-276SZO74.js?v=3aeb0223:18736:28)
+    at performConcurrentWorkOnRoot (chunk-276SZO74.js?v=3aeb0223:18684:30) Object
+componentDidCatch @ PortalErrorBoundary.tsx:56Understand this error
+useWhatsAppWebInstances.ts:167 [WhatsApp Web Instances] 🔌 Removendo realtime
+useConnectionStatusSync.ts:144 [ConnectionStatusSync] 🔌 Parando escuta
+useConnectionStatusSync.ts:113 [ConnectionStatusSync] 📡 Status da subscription: CLOSED
+@supabase_supabase-js.js?v=3aeb0223:2628 WebSocket connection to 'wss://rhjgagzstjzynvrakdyj.supabase.co/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoamdhZ3pzdGp6eW52cmFrZHlqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA1MTMxMDAsImV4cCI6MjA2NjA4OTEwMH0._trCzQxDz5wCHs6NlrXRPAJNqfCRQM4s8NhkX5xEn4w&vsn=1.0.0' failed: WebSocket is closed before the connection is established.
