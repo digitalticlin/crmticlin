@@ -98,12 +98,9 @@ export function ModernFunnelControlBarUnifiedV2({
 
   // Notificar mudanças nos filtros - COM DEBOUNCE para evitar loops
   useEffect(() => {
-    if (onFiltersChange && (
-      filters.state.searchTerm ||
-      filters.state.selectedTags.length > 0 ||
-      (filters.state.selectedUser && filters.state.selectedUser !== "all")
-    )) {
+    if (onFiltersChange) {
       const timeoutId = setTimeout(() => {
+        // ✅ CORREÇÃO: Sempre notificar mudanças, mesmo quando filtros estão vazios
         onFiltersChange({
           searchTerm: filters.state.searchTerm,
           selectedTags: filters.state.selectedTags,

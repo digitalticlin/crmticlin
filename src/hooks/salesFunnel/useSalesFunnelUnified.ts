@@ -151,11 +151,40 @@ export const useSalesFunnelUnified = (options: FunnelOptions): SalesFunnelUnifie
 
       // Filtro por tags
       if (activeFilters.tags && activeFilters.tags.length > 0) {
-        filteredLeads = filteredLeads.filter(lead =>
-          lead.lead_tags?.some(leadTag =>
-            activeFilters.tags!.includes(leadTag.tag_id)
-          )
-        );
+        filteredLeads = filteredLeads.filter(lead => {
+          // ✅ CORREÇÃO: usar lead.tags em vez de lead.lead_tags
+          const hasMatchingTag = lead.tags?.some(tag =>
+            activeFilters.tags!.includes(tag.id)
+          );
+
+          if (hasMatchingTag) {
+            console.log('[SalesFunnelUnified] 🏷️ Lead com tag match:', {
+              leadName: lead.name,
+              leadTags: lead.tags?.map(t => t.name),
+              filterTags: activeFilters.tags
+            });
+          }
+
+          return hasMatchingTag;
+        });
+      }
+
+      // Filtro por usuário responsável
+      if (activeFilters.assignedUser && activeFilters.assignedUser !== "all") {
+        filteredLeads = filteredLeads.filter(lead => {
+          const hasUser = lead.assignedUser === activeFilters.assignedUser ||
+                         lead.owner_id === activeFilters.assignedUser;
+
+          if (hasUser) {
+            console.log('[SalesFunnelUnified] 👤 Lead com usuário match:', {
+              leadName: lead.name,
+              leadUser: lead.assignedUser || lead.owner_id,
+              filterUser: activeFilters.assignedUser
+            });
+          }
+
+          return hasUser;
+        });
       }
 
       // Filtro por valor
