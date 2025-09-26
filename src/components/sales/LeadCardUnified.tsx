@@ -47,7 +47,9 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
   className
 }) => {
   // Verificar se deve usar DnD
-  const shouldUseDnd = enableDnd && (massSelection?.canDragWithSelection() ?? true);
+  // Drag desabilitado durante modo de seleção em massa para evitar conflito
+  const isSelectionMode = massSelection?.isSelectionMode || false;
+  const shouldUseDnd = enableDnd && !isSelectionMode;
 
   // Configurar sortable apenas se DnD estiver ativo
   const {
@@ -86,7 +88,9 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
     console.log('[LeadCardUnified] 🖱️ CLICK PROCESSADO:', {
       wonButtonArea: !!wonButtonArea,
       lostButtonArea: !!lostButtonArea,
-      returnToFunnelArea: !!returnToFunnelArea
+      returnToFunnelArea: !!returnToFunnelArea,
+      isSelectionMode: massSelection?.isSelectionMode,
+      canSelect: massSelection?.canSelect?.()
     });
 
     // Chat removido - será processado pelo LeadCard diretamente
@@ -109,10 +113,17 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
       return;
     }
 
+    // 🎯 PRIORIDADE: Se massa selection está ativa, toggle seleção
+    if (massSelection?.canSelect?.() && massSelection?.toggleLead) {
+      console.log('[LeadCardUnified] 🎯 Modo seleção ativo - toggleando lead:', lead.name);
+      massSelection.toggleLead(lead.id);
+      return;
+    }
+
     // Se não foi nenhum botão específico, abrir detalhes
     console.log('[LeadCardUnified] 📋 Abrindo detalhes do lead');
     onOpenLeadDetail(lead);
-  }, [isDragging, onOpenLeadDetail, onMoveToWonLost, onReturnToFunnel, lead]);
+  }, [isDragging, onOpenLeadDetail, onMoveToWonLost, onReturnToFunnel, lead, massSelection]);
 
   const handleChatClick = useCallback(() => {
     if (!isDragging && onOpenChat) {
@@ -193,8 +204,13 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
       }}
       className={`${className || ''} ${isDragging ? 'opacity-50' : ''} ${isSorting ? 'transition-transform' : ''} relative`}
       {...attributes}
-      {...listeners}
+      {...(shouldUseDnd ? listeners : {})}
       onPointerDown={(e) => {
+        // Se DnD não está ativo (modo seleção), não fazer nada
+        if (!shouldUseDnd) {
+          return;
+        }
+
         // Verificar se clicou em área protegida
         const target = e.target as HTMLElement;
         if (target.closest('[data-no-drag]') ||
@@ -202,6 +218,7 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
             target.closest('.lost-button-area') ||
             target.closest('.chat-icon-area') ||
             target.closest('.return-to-funnel-area') ||
+            target.closest('.selection-checkbox') ||
             target.closest('.lead-actions')) {
           e.stopPropagation();
           return;

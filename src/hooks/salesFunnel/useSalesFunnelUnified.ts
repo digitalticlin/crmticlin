@@ -11,7 +11,7 @@
  * É o ÚNICO ponto de entrada para dados do funil.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFunnelDataManager } from './useFunnelDataManager';
 import { useMassSelectionCoordinated } from '@/hooks/useMassSelectionCoordinated';
 import { useSalesFunnelCoordinator } from '@/components/sales/core/SalesFunnelCoordinator';
@@ -134,7 +134,7 @@ export const useSalesFunnelUnified = (options: FunnelOptions): SalesFunnelUnifie
       return dataManager.columns;
     }
 
-    console.log('[SalesFunnelUnified] 🔍 Aplicando filtros:', activeFilters);
+    // console.log('[SalesFunnelUnified] 🔍 Aplicando filtros:', activeFilters);
 
     return dataManager.columns.map(column => {
       let filteredLeads = column.leads;
@@ -157,13 +157,13 @@ export const useSalesFunnelUnified = (options: FunnelOptions): SalesFunnelUnifie
             activeFilters.tags!.includes(tag.id)
           );
 
-          if (hasMatchingTag) {
-            console.log('[SalesFunnelUnified] 🏷️ Lead com tag match:', {
-              leadName: lead.name,
-              leadTags: lead.tags?.map(t => t.name),
-              filterTags: activeFilters.tags
-            });
-          }
+          // if (hasMatchingTag) {
+          //   console.log('[SalesFunnelUnified] 🏷️ Lead com tag match:', {
+          //     leadName: lead.name,
+          //     leadTags: lead.tags?.map(t => t.name),
+          //     filterTags: activeFilters.tags
+          //   });
+          // }
 
           return hasMatchingTag;
         });
@@ -175,13 +175,13 @@ export const useSalesFunnelUnified = (options: FunnelOptions): SalesFunnelUnifie
           const hasUser = lead.assignedUser === activeFilters.assignedUser ||
                          lead.owner_id === activeFilters.assignedUser;
 
-          if (hasUser) {
-            console.log('[SalesFunnelUnified] 👤 Lead com usuário match:', {
-              leadName: lead.name,
-              leadUser: lead.assignedUser || lead.owner_id,
-              filterUser: activeFilters.assignedUser
-            });
-          }
+          // if (hasUser) {
+          //   console.log('[SalesFunnelUnified] 👤 Lead com usuário match:', {
+          //     leadName: lead.name,
+          //     leadUser: lead.assignedUser || lead.owner_id,
+          //     filterUser: activeFilters.assignedUser
+          //   });
+          // }
 
           return hasUser;
         });
@@ -225,7 +225,7 @@ export const useSalesFunnelUnified = (options: FunnelOptions): SalesFunnelUnifie
 
   // Aplicar filtros
   const applyFilters = useCallback((filters: FilterOptions) => {
-    console.log('[SalesFunnelUnified] 📋 Aplicando novos filtros:', filters);
+    // console.log('[SalesFunnelUnified] 📋 Aplicando novos filtros:', filters);
 
     setActiveFilters(filters);
 
@@ -238,20 +238,65 @@ export const useSalesFunnelUnified = (options: FunnelOptions): SalesFunnelUnifie
     });
   }, [coordinator]);
 
-  // Limpar filtros
+  // Throttle para evitar loops infinitos
+  const lastClearTime = useRef<number>(0);
+  const CLEAR_THROTTLE_MS = 1000; // 1 segundo entre clears
+
+  // clearFilters com proteção contra loops e debug
   const clearFilters = useCallback(() => {
-    console.log('[SalesFunnelUnified] 🧹 Limpando filtros');
+    const now = Date.now();
 
-    setActiveFilters({});
+    console.log('[SalesFunnelUnified] 🔍 DEBUG clearFilters chamado:', {
+      stack: new Error().stack?.split('\n')[2], // Linha que chamou
+      activeFilters,
+      lastClearTime: lastClearTime.current,
+      timeSinceLastClear: now - lastClearTime.current
+    });
 
-    // Notificar coordinator
+    // Throttle: só executa se passou tempo suficiente desde o último clear
+    if (now - lastClearTime.current < CLEAR_THROTTLE_MS) {
+      console.log('[SalesFunnelUnified] 🚫 clearFilters throttled - aguardando',
+        CLEAR_THROTTLE_MS - (now - lastClearTime.current), 'ms');
+      return;
+    }
+
+    // Verificar se já está limpo para evitar clear desnecessário
+    const hasFiltersToRemove = Object.keys(activeFilters).some(key => {
+      const value = activeFilters[key as keyof FilterOptions];
+      if (key === 'searchTerm') return !!value;
+      if (key === 'tags') return Array.isArray(value) && value.length > 0;
+      if (key === 'dateRange' || key === 'valueRange') return !!value;
+      if (key === 'assignedUser') return !!value && value !== 'all';
+      return false;
+    });
+
+    if (!hasFiltersToRemove) {
+      console.log('[SalesFunnelUnified] ✅ Filtros já estão limpos - não fazendo nada');
+      return;
+    }
+
+    console.log('[SalesFunnelUnified] 🧹 Limpando filtros:', {
+      before: activeFilters,
+      totalLeadsBefore: filteredLeadsCount
+    });
+
+    lastClearTime.current = now;
+
+    // Limpar filtros forçando objeto vazio novo
+    setActiveFilters({
+      searchTerm: '',
+      tags: [],
+      assignedUser: 'all'
+    });
+
+    // Emit com throttle também
     coordinator.emit({
       type: 'filter:clear',
       payload: {},
-      priority: 'high',
+      priority: 'normal', // Reduzido de 'high' para 'normal'
       source: 'SalesFunnelUnified'
     });
-  }, [coordinator]);
+  }, [activeFilters, coordinator, filteredLeadsCount]);
 
   // Otimizar baseado no tamanho dos dados
   const optimizeForSize = useCallback((leadCount: number) => {
@@ -283,35 +328,35 @@ export const useSalesFunnelUnified = (options: FunnelOptions): SalesFunnelUnifie
     }
   }, [dataManager.totalLeads, optimizeForSize]);
 
-  // Logs de estado para debug (throttled para evitar spam)
-  const [lastLogTime, setLastLogTime] = useState(0);
+  // LOGS TEMPORARIAMENTE DESABILITADOS para reduzir re-renders
+  // const [lastLogTime, setLastLogTime] = useState(0);
 
-  useEffect(() => {
-    const now = Date.now();
-    const THROTTLE_LOGS_MS = 2000; // Log apenas a cada 2 segundos
+  // useEffect(() => {
+  //   const now = Date.now();
+  //   const THROTTLE_LOGS_MS = 2000;
 
-    if (now - lastLogTime > THROTTLE_LOGS_MS) {
-      console.log('[SalesFunnelUnified] 📊 Estado atual:', {
-        funnelId,
-        totalLeads: dataManager.totalLeads,
-        filteredLeads: filteredLeadsCount,
-        hasActiveFilters,
-        isDndActive,
-        isSelectionMode: massSelection.isSelectionMode,
-        optimizationLevel
-      });
-      setLastLogTime(now);
-    }
-  }, [
-    funnelId,
-    dataManager.totalLeads,
-    filteredLeadsCount,
-    hasActiveFilters,
-    isDndActive,
-    massSelection.isSelectionMode,
-    optimizationLevel,
-    lastLogTime
-  ]);
+  //   if (now - lastLogTime > THROTTLE_LOGS_MS) {
+  //     console.log('[SalesFunnelUnified] 📊 Estado atual:', {
+  //       funnelId,
+  //       totalLeads: dataManager.totalLeads,
+  //       filteredLeads: filteredLeadsCount,
+  //       hasActiveFilters,
+  //       isDndActive,
+  //       isSelectionMode: massSelection.isSelectionMode,
+  //       optimizationLevel
+  //     });
+  //     setLastLogTime(now);
+  //   }
+  // }, [
+  //   funnelId,
+  //   dataManager.totalLeads,
+  //   filteredLeadsCount,
+  //   hasActiveFilters,
+  //   isDndActive,
+  //   massSelection.isSelectionMode,
+  //   optimizationLevel,
+  //   lastLogTime
+  // ]);
 
 
   // Calcular estado de loading corretamente

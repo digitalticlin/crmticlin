@@ -99,19 +99,19 @@ export const KanbanBoardUnified: React.FC<KanbanBoardUnifiedProps> = ({
   // Verificar se DnD deve estar ativo (simplificado)
   const isDndActive = enableDnd;
 
-  console.log('[KanbanBoardUnified] 🎛️ Estado do componente:', {
-    enableDnd,
-    isDndActive,
-    columnsReceived: columns.length,
-    columnsDetail: columns.map(col => ({
-      id: col.id,
-      title: col.title,
-      leadsCount: col.leads?.length || 0
-    })),
-    hasActiveFilters,
-    isSelectionMode: massSelection?.isSelectionMode,
-    canDragWithSelection: massSelection?.canDragWithSelection()
-  });
+  // console.log('[KanbanBoardUnified] 🎛️ Estado do componente:', {
+  //   enableDnd,
+  //   isDndActive,
+  //   columnsReceived: columns.length,
+  //   columnsDetail: columns.map(col => ({
+  //     id: col.id,
+  //     title: col.title,
+  //     leadsCount: col.leads?.length || 0
+  //   })),
+  //   hasActiveFilters,
+  //   isSelectionMode: massSelection?.isSelectionMode,
+  //   canDragWithSelection: massSelection?.canDragWithSelection()
+  // });
 
   // Início do drag
   const handleDragStart = useCallback((event: DragStartEvent) => {

@@ -43,18 +43,44 @@ export const useSalesFunnelCoordinator = () => {
   const eventQueue = useRef<FunnelEvent[]>([]);
   const listeners = useRef<Map<EventType, Set<(event: FunnelEvent) => void>>>(new Map());
 
-  // Emit event com organização automática
+  // Throttle para evitar event spam
+  const lastEventTime = useRef<Record<string, number>>({});
+  const EVENT_THROTTLE_MS = 50; // 50ms entre eventos do mesmo tipo
+
+  // Emit event com organização automática e throttling
   const emit = useCallback((event: Omit<FunnelEvent, 'timestamp'>) => {
+    const now = Date.now();
+    const eventKey = `${event.type}:${event.source}`;
+
+    // Throttle: evitar spam do mesmo evento
+    if (lastEventTime.current[eventKey] &&
+        now - lastEventTime.current[eventKey] < EVENT_THROTTLE_MS) {
+      return; // Ignorar evento duplicado
+    }
+
+    lastEventTime.current[eventKey] = now;
+
+    // 🚨 EMERGENCY DOWNGRADE: Forçar priority normal para eventos de filtro
+    let priority = event.priority;
+    if (event.type.includes('filter')) {
+      priority = 'normal';
+      console.log('[Coordinator] 🚨 EMERGENCY: Forçando priority normal para', event.type);
+    }
+
     const fullEvent: FunnelEvent = {
       ...event,
-      timestamp: Date.now()
+      priority,
+      timestamp: now
     };
 
-    console.log(`[Coordinator] 📨 Evento recebido:`, {
-      type: event.type,
-      source: event.source,
-      priority: event.priority
-    });
+    // Log throttlado (apenas eventos relevantes)
+    if (event.priority === 'immediate' || event.type.includes('clear') || event.type.includes('end')) {
+      console.log(`[Coordinator] 📨 Evento recebido:`, {
+        type: event.type,
+        source: event.source,
+        priority: event.priority
+      });
+    }
 
     // Decidir se processar imediatamente ou enfileirar
     if (event.priority === 'immediate') {
@@ -118,26 +144,42 @@ export const useSalesFunnelCoordinator = () => {
     }
   }, []);
 
-  // Processar fila com prioridade
+  // Batch processing para reduzir re-renders
+  const processBatch = useRef<NodeJS.Timeout>();
+
+  // Processar fila com batching e prioridade
   const processQueue = useCallback(() => {
     if (eventQueue.current.length === 0) return;
 
-    // Ordenar por prioridade
-    const priorityOrder = { immediate: 0, high: 1, normal: 2, low: 3 };
-    eventQueue.current.sort((a, b) =>
-      priorityOrder[a.priority] - priorityOrder[b.priority]
-    );
-
-    // Processar próximo evento
-    const nextEvent = eventQueue.current.shift();
-    if (nextEvent) {
-      processEvent(nextEvent);
+    // Cancelar batch anterior se existir
+    if (processBatch.current) {
+      clearTimeout(processBatch.current);
     }
 
-    // Continuar processando se há mais eventos
-    if (eventQueue.current.length > 0) {
-      setTimeout(processQueue, 0);
-    }
+    // Agrupar eventos similares em batch
+    processBatch.current = setTimeout(() => {
+      if (eventQueue.current.length === 0) return;
+
+      // Ordenar por prioridade
+      const priorityOrder = { immediate: 0, high: 1, normal: 2, low: 3 };
+      eventQueue.current.sort((a, b) =>
+        priorityOrder[a.priority] - priorityOrder[b.priority]
+      );
+
+      // Processar batch de eventos (máximo 3 por vez para evitar sobrecarga)
+      const batchSize = Math.min(3, eventQueue.current.length);
+      for (let i = 0; i < batchSize; i++) {
+        const nextEvent = eventQueue.current.shift();
+        if (nextEvent) {
+          processEvent(nextEvent);
+        }
+      }
+
+      // Continuar processando se há mais eventos
+      if (eventQueue.current.length > 0) {
+        processQueue();
+      }
+    }, 10); // 10ms batch delay
   }, [processEvent]);
 
   // Subscribe para eventos específicos

@@ -48,10 +48,13 @@ export const ColumnHeader = ({
   const { toggleAI, isLoading: isTogglingAI } = useAIStageControl();
 
   // Hook para contar total de leads na etapa no banco de dados
-  const { getStageCount } = useStageLeadCount({
+  const { getStageCount, isLoading: isCountLoading } = useStageLeadCount({
     funnelId,
     enabled: !!funnelId
   });
+
+  // Calcular contagem da etapa
+  const stageCount = getStageCount(column.id);
   
   // Usar massSelection via props ou valores padrão
   const effectiveMassSelection = massSelection || {
@@ -133,35 +136,22 @@ export const ColumnHeader = ({
   return (
     <div className="p-4 flex items-center justify-between border-b border-slate-200/15 bg-transparent">
       <div className="flex items-center gap-3 flex-wrap">
-        {/* Checkbox de seleção de etapa - aparece apenas no modo seleção */}
-        {isSelectionMode && hasLeads && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-6 w-6 rounded border-2 transition-all hover:scale-105",
-              stageSelectionState === 'all' 
-                ? "bg-blue-600 border-blue-600 text-white" 
-                : stageSelectionState === 'some'
-                  ? "bg-blue-100 border-blue-600 text-blue-600"
-                  : "bg-white border-gray-400 hover:border-blue-400"
-            )}
-            onClick={handleStageSelection}
-          >
-            {stageSelectionState === 'all' ? (
-              <Check className="h-3 w-3" />
-            ) : stageSelectionState === 'some' ? (
-              <Minus className="h-3 w-3" />
-            ) : null}
-          </Button>
-        )}
-        
         <h3 className="font-semibold font-inter text-lg truncate text-gray-900">{displayTitle}</h3>
+
+        {/* Botão minimalista de seleção de etapa - aparece apenas no modo seleção */}
+        {isSelectionMode && hasLeads && (
+          <button
+            onClick={handleStageSelection}
+            className="text-xs text-blue-600 hover:text-blue-800 transition-colors underline"
+          >
+            selecionar todos
+          </button>
+        )}
         
         <div className="flex items-center gap-2 flex-wrap">
           {/* Contador de leads - total no banco de dados */}
           <span className="bg-gray-100 text-gray-800 font-bold rounded-xl px-3 py-0.5 text-xs border border-gray-300">
-            {getStageCount(column.id)}
+            {isCountLoading ? '...' : stageCount}
           </span>
           
           {/* Valor total da etapa */}

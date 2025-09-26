@@ -5,7 +5,7 @@
  * Estrutura modular sem conflitos
  */
 
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +65,26 @@ export function ModernFunnelControlBarUnifiedV2({
 
   // 🔍 Hook coordenador dos filtros
   const filters = useFiltersCoordinator();
+
+  // 🎛️ Estado local para debounce do campo de busca
+  const [localSearchTerm, setLocalSearchTerm] = useState(filters.state.searchTerm);
+
+  // Debounce para o campo de busca - evita loops infinitos
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (localSearchTerm !== filters.state.searchTerm) {
+        console.log('[ModernFunnelControlBarUnifiedV2] 🔍 Aplicando busca com debounce:', localSearchTerm);
+        filters.setSearchTerm(localSearchTerm);
+      }
+    }, 300); // 300ms de debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [localSearchTerm, filters]);
+
+  // Handler otimizado para mudança na busca
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalSearchTerm(e.target.value);
+  }, []);
 
   // 🏷️ Hook do modal de tags
   const {
@@ -343,8 +363,8 @@ export function ModernFunnelControlBarUnifiedV2({
                 <Input
                   type="text"
                   placeholder="Buscar leads..."
-                  value={filters.state.searchTerm}
-                  onChange={(e) => filters.setSearchTerm(e.target.value)}
+                  value={localSearchTerm}
+                  onChange={handleSearchChange}
                   className="pl-10 bg-white border-gray-200 rounded-xl h-9 text-sm placeholder:text-gray-400 focus:bg-white focus:border-blue-300 transition-all shadow-sm"
                 />
               </div>

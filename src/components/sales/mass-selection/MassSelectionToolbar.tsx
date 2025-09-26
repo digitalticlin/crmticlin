@@ -1,34 +1,55 @@
-import { useState } from "react";
 import { MassSelectionCoordinatedReturn } from "@/hooks/useMassSelectionCoordinated";
 import { Button } from "@/components/ui/button";
+import { KanbanLead } from "@/types/kanban";
 import {
   Trash2,
   Move,
   Tag,
   User,
-  X,
-  CheckSquare,
-  Square
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MassSelectionToolbarProps {
-  selectedCount: number;
-  onDelete: () => void;
-  onMove: () => void;
-  onTag: () => void;
-  onAssignUser: () => void;
-  onClearSelection: () => void;
+  allLeads: KanbanLead[];
+  massSelection: MassSelectionCoordinatedReturn;
+  onDelete: (selectedLeads: KanbanLead[]) => void;
+  onMove: (selectedLeads: KanbanLead[]) => void;
+  onAssignTags: (selectedLeads: KanbanLead[]) => void;
+  onAssignUser: (selectedLeads: KanbanLead[]) => void;
 }
 
 export const MassSelectionToolbar = ({
-  selectedCount,
+  allLeads,
+  massSelection,
   onDelete,
   onMove,
-  onTag,
-  onAssignUser,
-  onClearSelection
+  onAssignTags,
+  onAssignUser
 }: MassSelectionToolbarProps) => {
+  const { selectedCount, isSelectionMode, getSelectedLeadsData, clearSelection } = massSelection;
+
+  if (!isSelectionMode || selectedCount === 0) {
+    return null;
+  }
+
+  const selectedLeads = getSelectedLeadsData(allLeads);
+
+  const handleDelete = () => {
+    onDelete(selectedLeads);
+  };
+
+  const handleMove = () => {
+    onMove(selectedLeads);
+  };
+
+  const handleTag = () => {
+    onAssignTags(selectedLeads);
+  };
+
+  const handleAssignUser = () => {
+    onAssignUser(selectedLeads);
+  };
 
   return (
     <div className={cn(
@@ -52,7 +73,7 @@ export const MassSelectionToolbar = ({
         <Button
           variant="outline"
           size="sm"
-          onClick={onMove}
+          onClick={handleMove}
           className="flex items-center gap-2 bg-white/50 hover:bg-white/70"
         >
           <Move size={16} />
@@ -62,7 +83,7 @@ export const MassSelectionToolbar = ({
         <Button
           variant="outline"
           size="sm"
-          onClick={onTag}
+          onClick={handleTag}
           className="flex items-center gap-2 bg-white/50 hover:bg-white/70"
         >
           <Tag size={16} />
@@ -72,7 +93,7 @@ export const MassSelectionToolbar = ({
         <Button
           variant="outline"
           size="sm"
-          onClick={onAssignUser}
+          onClick={handleAssignUser}
           className="flex items-center gap-2 bg-white/50 hover:bg-white/70"
         >
           <User size={16} />
@@ -82,7 +103,7 @@ export const MassSelectionToolbar = ({
         <Button
           variant="outline"
           size="sm"
-          onClick={onDelete}
+          onClick={handleDelete}
           className="flex items-center gap-2 text-red-600 border-red-200 bg-red-50/50 hover:bg-red-50/70"
         >
           <Trash2 size={16} />
@@ -94,7 +115,7 @@ export const MassSelectionToolbar = ({
       <Button
         variant="ghost"
         size="sm"
-        onClick={onClearSelection}
+        onClick={clearSelection}
         className="p-1 h-auto text-gray-500 hover:text-gray-700"
       >
         <X size={16} />

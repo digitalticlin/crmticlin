@@ -35,7 +35,7 @@ export function useStageLeadCount({
   enabled = true
 }: UseStageLeadCountParams) {
   const { user } = useAuth();
-  const { role } = useUserRole();
+  const { role, loading: roleLoading } = useUserRole();
 
   const queryResult = useQuery({
     queryKey: stageLeadCountQueryKeys.byFunnel(funnelId || '', user?.id || ''),
@@ -97,11 +97,12 @@ export function useStageLeadCount({
         return {};
       }
     },
-    enabled: !!funnelId && !!user?.id && enabled,
+    enabled: !!funnelId && !!user?.id && !roleLoading && enabled,
     staleTime: 60 * 1000, // 1 minuto - atualiza mais frequentemente que dados dos leads
     gcTime: 5 * 60 * 1000, // 5 minutos
     refetchOnWindowFocus: false,
-    refetchOnReconnect: false
+    refetchOnReconnect: false,
+    retry: 1 // Tentar apenas 1 vez em caso de erro
   });
 
   // Função para obter contagem de uma etapa específica
@@ -112,7 +113,7 @@ export function useStageLeadCount({
   return {
     countByStage: queryResult.data || {},
     getStageCount,
-    isLoading: queryResult.isLoading,
+    isLoading: queryResult.isLoading || roleLoading,
     error: queryResult.error,
     refetch: queryResult.refetch
   };

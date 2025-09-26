@@ -185,7 +185,7 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
       return { stages, leads };
     },
     enabled: enabled && !!funnelId && !roleLoading && !!role,
-    staleTime: 5000, // ✅ CORREÇÃO: Cache reduzido para 5s - melhor tempo real
+    staleTime: 30000, // 30s - Balance entre tempo real e performance
     gcTime: 600000 // 🚀 FASE 3: Manter em cache por 10 minutos
   });
 
@@ -361,11 +361,31 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
     });
   }, [funnelData]);
 
+  // Debounce para refresh real-time (evitar cascata de updates)
+  const refreshDebounceTimer = useRef<NodeJS.Timeout>();
+  const refreshDataRef = useRef(refreshData);
+
+  // Manter ref atualizada
+  useEffect(() => {
+    refreshDataRef.current = refreshData;
+  }, [refreshData]);
+
   // Configurar realtime quando habilitado
   useEffect(() => {
     if (!realtime || !funnelId || !enabled) return;
 
     console.log('[FunnelDataManager] 🔴 Configurando realtime para funil:', funnelId);
+
+    // Função debounced estável que usa ref
+    const debouncedRefresh = () => {
+      if (refreshDebounceTimer.current) {
+        clearTimeout(refreshDebounceTimer.current);
+      }
+      refreshDebounceTimer.current = setTimeout(() => {
+        console.log('[FunnelDataManager] 🔄 Refresh debounced executado');
+        refreshDataRef.current();
+      }, 1000);
+    };
 
     realtimeSubscription.current = supabase
       .channel(`funnel-${funnelId}`)
@@ -386,8 +406,8 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
           });
         }
 
-        // Refrescar dados quando há mudanças
-        refreshData();
+        // Refrescar dados com debounce
+        debouncedRefresh();
       })
       .on('postgres_changes', {
         event: '*',
@@ -406,8 +426,8 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
           });
         }
 
-        // Refrescar dados quando há mudanças em stages
-        refreshData();
+        // Refrescar dados com debounce
+        debouncedRefresh();
       })
       .subscribe();
 
@@ -415,8 +435,11 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
       if (realtimeSubscription.current) {
         realtimeSubscription.current.unsubscribe();
       }
+      if (refreshDebounceTimer.current) {
+        clearTimeout(refreshDebounceTimer.current);
+      }
     };
-  }, [realtime, funnelId, enabled, refreshData]);
+  }, [realtime, funnelId, enabled, coordinator]);
 
   // Escutar eventos do coordinator para atualizações otimistas
   useEffect(() => {

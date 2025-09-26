@@ -80,7 +80,7 @@ export function SalesFunnelContentUnified() {
   // Estado da visualização - será gerenciado pelo hook coordenador
   const [currentView, setCurrentView] = useState<"board" | "won-lost">("board");
 
-  console.log('[SalesFunnelContentUnified] 🚀 Inicializando Sales Funnel UNIFICADO');
+  // console.log('[SalesFunnelContentUnified] 🚀 Inicializando Sales Funnel UNIFICADO');
 
   // Garantir que existam etapas padrão no funil
   useEnsureDefaultStages(selectedFunnel?.id);
@@ -156,9 +156,39 @@ export function SalesFunnelContentUnified() {
     gcTime: 600000
   });
 
+  // 🚨 EMERGENCY THROTTLING - Refs para quebrar loop infinito
+  const lastFiltersRef = useRef<any>(null);
+  const lastRenderTime = useRef<number>(0);
+  const renderThrottleMs = 2000; // 2 segundos entre re-renders
+
   // Handler para mudanças de filtros vindos da barra de controle
   const handleFiltersChange = useCallback((filters: any) => {
+    const now = Date.now();
+
+    // 🛡️ EMERGENCY THROTTLE: Bloquear se muito recente
+    if (now - lastRenderTime.current < renderThrottleMs) {
+      console.log('[SalesFunnelContentUnified] 🚨 EMERGENCY THROTTLE: Bloqueando render por',
+        renderThrottleMs - (now - lastRenderTime.current), 'ms');
+      return;
+    }
+
+    lastRenderTime.current = now;
     if (!funnel) return;
+
+    // 🛡️ GUARD: Evitar loop se filtros são iguais ao último processado
+    const filtersKey = JSON.stringify({
+      hasActiveFilters: filters.hasActiveFilters,
+      searchTerm: filters.searchTerm,
+      selectedTags: filters.selectedTags,
+      selectedUser: filters.selectedUser
+    });
+
+    if (lastFiltersRef.current === filtersKey) {
+      console.log('[SalesFunnelContentUnified] 🛡️ GUARD: Filtros idênticos - ignorando para evitar loop');
+      return;
+    }
+
+    lastFiltersRef.current = filtersKey;
 
     if (filters.hasActiveFilters) {
       console.log('[SalesFunnelContentUnified] 🔍 Aplicando filtros coordenados:', filters);
@@ -168,9 +198,13 @@ export function SalesFunnelContentUnified() {
         tags: filters.selectedTags?.length > 0 ? filters.selectedTags : undefined,
         assignedUser: (filters.selectedUser && filters.selectedUser !== "all") ? filters.selectedUser : undefined
       });
-    } else {
-      funnel.clearFilters();
     }
+    // 🚨 EMERGÊNCIA: clearFilters automático DESABILITADO para quebrar loop infinito
+    // else if (funnel.hasActiveFilters) {
+    //   console.log('[SalesFunnelContentUnified] 🧹 Limpando filtros (tinha filtros ativos) - COM GUARD');
+    //   // Só limpar se realmente há filtros ativos
+    //   funnel.clearFilters();
+    // }
   }, [funnel]);
 
   // Selecionar primeiro funil automaticamente
@@ -444,12 +478,12 @@ export function SalesFunnelContentUnified() {
       {/* Mass Selection Toolbar */}
       {safeMassSelection.isSelectionMode && (
         <MassSelectionToolbar
-          selectedCount={safeMassSelection.selectedCount}
+          allLeads={funnel.allLeads}
+          massSelection={funnel.massSelection}
           onDelete={() => setActiveModal("massDelete")}
           onMove={() => setActiveModal("massMove")}
-          onTag={() => setActiveModal("massTag")}
+          onAssignTags={() => setActiveModal("massTag")}
           onAssignUser={() => setActiveModal("massAssign")}
-          onClearSelection={safeMassSelection.clearSelection}
         />
       )}
 

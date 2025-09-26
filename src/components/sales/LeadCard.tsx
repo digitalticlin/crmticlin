@@ -22,7 +22,7 @@ interface LeadCardProps {
   massSelection?: MassSelectionCoordinatedReturn;
 }
 
-export const LeadCard = memo(({
+export const LeadCard = (({
   lead,
   onClick,
   onOpenChat,
@@ -47,6 +47,8 @@ export const LeadCard = memo(({
 
   const { selectedLeads, isSelectionMode, toggleLead, isLeadSelected } = effectiveMassSelection;
   const isSelected = isLeadSelected ? isLeadSelected(lead.id) : selectedLeads.has(lead.id);
+
+  console.log(`[LeadCard RENDER] ${lead.id}: isSelected=${isSelected}, isSelectionMode=${isSelectionMode}`);
   
   // Removido sistema de detecção - DndDraggableCard cuida disso
   
@@ -109,12 +111,16 @@ export const LeadCard = memo(({
 
     // Se estiver em modo seleção
     if (isSelectionMode) {
+      e.preventDefault();
+      e.stopPropagation();
       toggleLead(lead.id);
       return;
     }
 
-    // RESTANTE DO CARD: ativar DnD ou onClick padrão
-    // Não prevenir - deixar DnD funcionar
+    // RESTANTE DO CARD: onClick padrão (abrir detalhes)
+    if (onClick) {
+      onClick();
+    }
   };
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
@@ -137,11 +143,11 @@ export const LeadCard = memo(({
         isWon && "border-l-[4px] border-l-green-500 bg-green-50/20",
         isLost && "border-l-[4px] border-l-red-500 bg-red-50/20",
         
-        // Estado selecionado - borda azul destacada e background mais visível
-        isSelected && "ring-2 ring-blue-500 border-blue-400 bg-blue-100/30 shadow-blue-200",
-        
+        // Estado selecionado - borda ticlin destacada e background visível
+        isSelected && "ring-2 ring-ticlin border-ticlin bg-ticlin/20 shadow-lg",
+
         // Modo seleção ativo - cursor de seleção
-        isSelectionMode && !isSelected && "cursor-pointer hover:ring-1 hover:ring-blue-300 hover:bg-blue-50/10"
+        isSelectionMode && !isSelected && "cursor-pointer hover:ring-1 hover:ring-ticlin/60 hover:bg-ticlin/5"
       )}
       onClick={handleCardClick}
       onMouseEnter={onMouseEnter}
@@ -161,9 +167,9 @@ export const LeadCard = memo(({
           <div className={cn(
             "w-6 h-6 rounded-full border-2 bg-white shadow-lg cursor-pointer transition-all duration-200",
             "flex items-center justify-center",
-            isSelected 
-              ? "bg-blue-500 border-blue-500 text-white" 
-              : "border-gray-300 hover:border-blue-400"
+            isSelected
+              ? "bg-ticlin border-ticlin text-black"
+              : "border-gray-300 hover:border-ticlin"
           )}>
             {isSelected && <Check size={14} />}
           </div>

@@ -45,7 +45,7 @@ const LEADS_PER_PAGE = 20; // 🎯 PAGINAÇÃO: 20 leads por página
 /**
  * Coluna unificada que funciona com ou sem DnD, coordenada centralmente
  */
-export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
+const KanbanColumnUnifiedComponent: React.FC<KanbanColumnUnifiedProps> = ({
   column,
   onOpenLeadDetail,
   onOpenChat,
@@ -65,17 +65,18 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
   const { toggleAI, isLoading: isTogglingAI, canToggleAI } = useAIStageControl();
 
   // 🔍 DEBUG: Verificar se prop está chegando
-  console.log('[KanbanColumnUnified] 🔗 Props recebidas:', {
-    columnTitle: column.title,
-    hasOnLoadMoreFromDatabase: !!onLoadMoreFromDatabase,
-    onLoadMoreFromDatabaseType: typeof onLoadMoreFromDatabase
-  });
+  // console.log('[KanbanColumnUnified] 🔗 Props recebidas:', {
+  //   columnTitle: column.title,
+  //   hasOnLoadMoreFromDatabase: !!onLoadMoreFromDatabase,
+  //   onLoadMoreFromDatabaseType: typeof onLoadMoreFromDatabase
+  // });
 
   // Hook para contar total de leads no banco de dados
-  const { getStageCount } = useStageLeadCount({
+  const { getStageCount, isLoading: isCountLoading } = useStageLeadCount({
     funnelId,
     enabled: !!funnelId
   });
+
 
   // Estado para paginação local (fallback quando não há infinite scroll)
   const [visibleCount, setVisibleCount] = useState(LEADS_PER_PAGE);
@@ -93,7 +94,7 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
       type: 'column',
       accepts: ['lead'],
       columnId: column.id,
-      priority: 'high' // Maior prioridade na detecção
+      priority: 'normal' // Reduzido para evitar loops
     }
   });
 
@@ -127,18 +128,12 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
 
     if (hasMoreInDatabase) {
       // Renderizar todos os leads em memória para permitir scroll
-      console.log(`[KanbanColumnUnified] 📊 Renderizando todos leads em memória - ${column.title}:`, {
-        leadsEmMemoria: column.leads.length,
-        totalNoBanco: totalInDatabase,
-        visibleCount,
-        renderizarTodos: true
-      });
       return column.leads;
     }
 
     // Se não há mais no banco, usar paginação local normal
     return column.leads.slice(0, visibleCount);
-  }, [column.leads, visibleCount, hasActiveFilters, getStageCount, column.id, column.title]);
+  }, [column.leads, visibleCount, hasActiveFilters, column.id]);
 
 
   // Valor total em negociação
@@ -214,13 +209,13 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
       : column.leads.length > visibleCount     // Sem função: comparar com visível
   );
 
-  console.log(`[KanbanColumnUnified] 📊 Scroll Check - ${column.title}:`, {
-    visibleCount,
-    inMemory: column.leads.length,
-    inDatabase: totalInDatabase,
-    hasMoreLeads,
-    hasActiveFilters
-  });
+  // console.log(`[KanbanColumnUnified] 📊 Scroll Check - ${column.title}:`, {
+  //   visibleCount,
+  //   inMemory: column.leads.length,
+  //   inDatabase: totalInDatabase,
+  //   hasMoreLeads,
+  //   hasActiveFilters
+  // });
 
   // Scroll listener para carregar automaticamente mais leads
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
@@ -279,7 +274,7 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
             new: { ...column, ai_enabled: enabled },
             old: { ...column }
           },
-          priority: 'high',
+          priority: 'normal',
           source: 'KanbanColumnUnified'
         });
       }
@@ -307,38 +302,107 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
     />
   );
 
-  // Renderizar header da coluna
-  const renderHeader = () => (
-    <div className="flex items-center justify-between mb-4 px-1">
-      <div className="flex flex-col gap-1 flex-1">
-        <div className="flex items-center gap-2">
-          <h3
-            className="text-sm font-medium text-gray-900 truncate"
-            style={{ color: column.color }}
-          >
-            {column.title}
-          </h3>
-          <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
-            {getStageCount(column.id)}
-          </span>
-        </div>
-      </div>
+  // Handlers memoizados para evitar re-renders
+  const handleStageSelection = useCallback(() => {
+    if (column.leads.length > 0 && massSelection?.selectStage) {
+      massSelection.selectStage(column.leads);
+    }
+  }, [column.leads, massSelection?.selectStage]);
 
-      {/* Toggle de IA - Não mostrar para etapas GANHO e PERDIDO */}
-      {!isWonLostStage && (
-        <AIToggleSwitchEnhanced
-          enabled={column.ai_enabled === true}
-          onToggle={handleAIToggle}
-          isLoading={isTogglingAI}
-          disabled={!canToggleAI}
-          size="sm"
-          variant="compact"
-          showLabel={true}
-          className="flex-shrink-0"
-        />
-      )}
-    </div>
-  );
+  const handleSelectAllFromStage = useCallback(() => {
+    if (funnelId && massSelection?.selectAllFromStage) {
+      massSelection.selectAllFromStage(column.id, funnelId);
+    }
+  }, [funnelId, column.id, massSelection?.selectAllFromStage]);
+
+  // Renderizar header da coluna com seleção em massa (memoizado)
+  const renderHeader = useMemo(() => {
+    const isSelectionMode = massSelection?.isSelectionMode || false;
+    const hasLeads = column.leads.length > 0;
+    const stageSelectionState = isSelectionMode ? massSelection?.getStageSelectionState?.(column.leads) : 'none';
+
+    return (
+      <div className="mb-4 px-1">
+        {/* Primeira linha: Título e Toggle IA */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 flex-1">
+            <h3
+              className="text-sm font-medium text-gray-900 truncate"
+              style={{ color: column.color }}
+            >
+              {column.title}
+            </h3>
+            <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+              {isCountLoading ? '...' : getStageCount(column.id)}
+            </span>
+          </div>
+
+          {/* Toggle de IA - Não mostrar para etapas GANHO e PERDIDO */}
+          {!isWonLostStage && (
+            <AIToggleSwitchEnhanced
+              enabled={column.ai_enabled === true}
+              onToggle={handleAIToggle}
+              isLoading={isTogglingAI}
+              disabled={!canToggleAI}
+              size="sm"
+              variant="compact"
+              showLabel={true}
+              className="flex-shrink-0"
+            />
+          )}
+        </div>
+
+        {/* Botões de seleção em massa (só aparecem no modo seleção) */}
+        {isSelectionMode && hasLeads && (
+          <div className="flex items-center gap-2">
+            {/* Checkbox de seleção de etapa */}
+            <button
+              className={cn(
+                "h-7 w-7 rounded border-2 transition-all hover:scale-105 flex items-center justify-center flex-shrink-0",
+                stageSelectionState === 'all'
+                  ? "bg-blue-600 border-blue-600 text-white"
+                  : stageSelectionState === 'some'
+                    ? "bg-blue-100 border-blue-600 text-blue-600"
+                    : "bg-white border-gray-400 hover:border-blue-400"
+              )}
+              onClick={handleStageSelection}
+              title="Selecionar leads visíveis da etapa"
+            >
+              {stageSelectionState === 'all' ? (
+                <span className="text-sm font-bold">✓</span>
+              ) : stageSelectionState === 'some' ? (
+                <span className="text-sm font-bold">−</span>
+              ) : null}
+            </button>
+
+            {/* Botão para selecionar TODOS os leads da etapa no banco */}
+            {funnelId && (
+              <button
+                className="flex-1 h-7 px-3 text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded transition-all"
+                onClick={handleSelectAllFromStage}
+                title="Selecionar todos os leads desta etapa (incluindo os não carregados)"
+              >
+                Selecionar todos ({getStageCount(column.id)})
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }, [
+    column.id,
+    column.title,
+    column.ai_enabled,
+    column.leads.length,
+    massSelection?.isSelectionMode,
+    funnelId,
+    isWonLostStage,
+    isTogglingAI,
+    canToggleAI,
+    isCountLoading,
+    getStageCount(column.id)
+    // Removidas funções instáveis: selectStage, selectAllFromStage, getStageSelectionState, handleAIToggle
+  ]);
 
   // Renderizar valor em negociação
   const renderValue = () => (
@@ -451,7 +515,7 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
         }}
       >
         <div className="flex flex-col h-full">
-          {renderHeader()}
+          {renderHeader}
 
           {/* Color bar */}
           <div
@@ -479,4 +543,41 @@ export const KanbanColumnUnified: React.FC<KanbanColumnUnifiedProps> = ({
     </div>
   );
 };
+
+// 🚨 EMERGENCY REACT.MEMO - Para quebrar loop infinito de re-renders
+export const KanbanColumnUnified = React.memo(KanbanColumnUnifiedComponent, (prevProps, nextProps) => {
+  // Custom comparison para evitar re-renders desnecessários
+  const prev = prevProps;
+  const next = nextProps;
+
+  // Se as props básicas mudaram, re-render
+  if (prev.column.id !== next.column.id ||
+      prev.column.title !== next.column.title ||
+      prev.isWonLostView !== next.isWonLostView ||
+      prev.enableDnd !== next.enableDnd ||
+      prev.hasActiveFilters !== next.hasActiveFilters) {
+    return false; // Re-render
+  }
+
+  // Se número de leads mudou, re-render
+  if (prev.column.leads.length !== next.column.leads.length) {
+    return false; // Re-render
+  }
+
+  // Se leads específicos mudaram (shallow comparison)
+  const prevLeadIds = prev.column.leads.map(l => l.id).join(',');
+  const nextLeadIds = next.column.leads.map(l => l.id).join(',');
+  if (prevLeadIds !== nextLeadIds) {
+    return false; // Re-render
+  }
+
+  // Se massSelection mudou de modo
+  if (prev.massSelection?.isSelectionMode !== next.massSelection?.isSelectionMode) {
+    return false; // Re-render
+  }
+
+  // Caso contrário, manter props anteriores (não re-render)
+  console.log('[KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para', prev.column.title);
+  return true; // NÃO re-render
+});
 

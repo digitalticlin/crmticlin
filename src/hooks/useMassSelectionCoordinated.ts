@@ -7,6 +7,8 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import { KanbanLead } from "@/types/kanban";
 import { SalesFunnelCoordinatorReturn } from "@/components/sales/core/SalesFunnelCoordinator";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface MassSelectionCoordinatedReturn {
   selectedLeads: Set<string>;
@@ -17,6 +19,7 @@ export interface MassSelectionCoordinatedReturn {
   toggleLead: (leadId: string) => void;
   selectAll: (leads: KanbanLead[]) => void;
   selectStage: (stageLeads: KanbanLead[]) => void;
+  selectAllFromStage: (stageId: string, funnelId: string) => Promise<void>;
   clearSelection: () => void;
   enterSelectionMode: () => void;
   exitSelectionMode: () => void;
@@ -46,8 +49,10 @@ export const useMassSelectionCoordinated = (coordinator: SalesFunnelCoordinatorR
   }, [coordinator]);
 
   const canDragWithSelection = useCallback(() => {
-    return selectedLeads.size <= 5 && coordinator.canExecute('dnd:move');
-  }, [selectedLeads.size, coordinator]);
+    // Durante modo de seleção em massa, drag deve estar desabilitado
+    // para evitar conflito entre clique para selecionar e drag
+    return false;
+  }, []);
 
   const isLeadSelected = useCallback((leadId: string) => {
     return selectedLeads.has(leadId);
@@ -74,12 +79,13 @@ export const useMassSelectionCoordinated = (coordinator: SalesFunnelCoordinatorR
       });
     }
 
-    coordinator.emit({
-      type: 'selection:lead-selected',
-      payload: { leadId },
-      priority: 'normal',
-      source: 'MassSelection'
-    });
+    // Evento removido para evitar loop de re-renders
+    // coordinator.emit({
+    //   type: 'selection:lead-selected',
+    //   payload: { leadId },
+    //   priority: 'normal',
+    //   source: 'MassSelection'
+    // });
   }, [isSelectionMode, coordinator]);
 
   const unselectLead = useCallback((leadId: string) => {
@@ -158,6 +164,46 @@ export const useMassSelectionCoordinated = (coordinator: SalesFunnelCoordinatorR
     });
   }, [selectedLeads]);
 
+  const selectAllFromStage = useCallback(async (stageId: string, funnelId: string) => {
+    try {
+      const { data: allStageLeads, error } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('kanban_stage_id', stageId)
+        .eq('funnel_id', funnelId);
+
+      if (error) throw error;
+
+      if (!allStageLeads || allStageLeads.length === 0) {
+        toast.info('Nenhum lead encontrado nesta etapa');
+        return;
+      }
+
+      const leadIds = allStageLeads.map(lead => lead.id);
+
+      setSelectedLeads(prev => {
+        const newSet = new Set(prev);
+        leadIds.forEach(id => newSet.add(id));
+        return newSet;
+      });
+
+      setIsSelectionMode(true);
+      stageSelectionCache.current.clear();
+
+      toast.success(`${leadIds.length} leads selecionados da etapa`);
+
+      coordinator.emit({
+        type: 'selection:stage-selected',
+        payload: { stageId, count: leadIds.length },
+        priority: 'normal',
+        source: 'MassSelection'
+      });
+    } catch (error) {
+      console.error('[useMassSelectionCoordinated] Erro ao selecionar todos da etapa:', error);
+      toast.error('Erro ao selecionar leads da etapa');
+    }
+  }, [coordinator]);
+
   const getStageSelectionState = useCallback((stageLeads: KanbanLead[]) => {
     if (stageLeads.length === 0) return 'none';
 
@@ -200,6 +246,7 @@ export const useMassSelectionCoordinated = (coordinator: SalesFunnelCoordinatorR
     toggleLead,
     selectAll,
     selectStage,
+    selectAllFromStage,
     clearSelection,
     enterSelectionMode,
     exitSelectionMode,
@@ -217,6 +264,7 @@ export const useMassSelectionCoordinated = (coordinator: SalesFunnelCoordinatorR
     toggleLead,
     selectAll,
     selectStage,
+    selectAllFromStage,
     clearSelection,
     enterSelectionMode,
     exitSelectionMode,

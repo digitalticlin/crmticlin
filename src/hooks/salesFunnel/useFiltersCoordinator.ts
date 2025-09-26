@@ -48,14 +48,14 @@ export function useFiltersCoordinator(): UseFiltersCoordinatorReturn {
     isFiltering: false
   });
 
-  // Verificar se há filtros ativos
+  // Verificar se há filtros ativos - otimizado para evitar recálculos desnecessários
   const hasActiveFilters = useMemo(() => {
     return !!(
       state.searchTerm ||
       state.selectedTags.length > 0 ||
       (state.selectedUser && state.selectedUser !== "all")
     );
-  }, [state.searchTerm, state.selectedTags, state.selectedUser]);
+  }, [state.searchTerm, state.selectedTags.length, state.selectedUser]); // Usar length em vez da array completa
 
   // Atualizar estado de filtragem
   useEffect(() => {
@@ -109,7 +109,7 @@ export function useFiltersCoordinator(): UseFiltersCoordinatorReturn {
     });
   }, []);
 
-  // Filtrar leads
+  // Filtrar leads - otimizado para evitar recálculos desnecessários
   const getFilteredLeads = useCallback((leads: KanbanLead[]): KanbanLead[] => {
     if (!hasActiveFilters) return leads;
 
@@ -140,18 +140,21 @@ export function useFiltersCoordinator(): UseFiltersCoordinatorReturn {
       );
     }
 
-    console.log('[FiltersCoordinator] 📊 Leads filtrados:', filtered.length, 'de', leads.length);
+    // Log apenas quando há mudança significativa no resultado
+    if (filtered.length !== leads.length) {
+      console.log('[FiltersCoordinator] 📊 Leads filtrados:', filtered.length, 'de', leads.length);
+    }
     return filtered;
-  }, [hasActiveFilters, state.searchTerm, state.selectedTags, state.selectedUser]);
+  }, [hasActiveFilters, state.searchTerm, state.selectedTags.length, state.selectedTags, state.selectedUser]); // Otimizado dependencies
 
-  // Contar filtros ativos
+  // Contar filtros ativos - otimizado
   const getActiveFiltersCount = useCallback(() => {
     let count = 0;
     if (state.searchTerm) count++;
     if (state.selectedTags.length > 0) count += state.selectedTags.length;
     if (state.selectedUser && state.selectedUser !== "all") count++;
     return count;
-  }, [state.searchTerm, state.selectedTags, state.selectedUser]);
+  }, [state.searchTerm, state.selectedTags.length, state.selectedUser]); // Otimizado dependencies
 
   // Extrair tags disponíveis
   const getAvailableTags = useCallback((leads: KanbanLead[]) => {
@@ -166,7 +169,7 @@ export function useFiltersCoordinator(): UseFiltersCoordinatorReturn {
     });
 
     const tags = Array.from(tagsMap.values());
-    console.log('[FiltersCoordinator] 🏷️ Tags disponíveis:', tags.length);
+    // console.log('[FiltersCoordinator] 🏷️ Tags disponíveis:', tags.length);
     return tags;
   }, []);
 
@@ -181,7 +184,7 @@ export function useFiltersCoordinator(): UseFiltersCoordinatorReturn {
     });
 
     const users = Array.from(usersSet);
-    console.log('[FiltersCoordinator] 👥 Usuários disponíveis:', users.length);
+    // console.log('[FiltersCoordinator] 👥 Usuários disponíveis:', users.length);
     return users;
   }, []);
 
