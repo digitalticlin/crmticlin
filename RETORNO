@@ -1,13 +1,72 @@
-[KanbanColumnUnified] 🔗 Props recebidas: {columnTitle: 'Em negociação', hasOnLoadMoreFromDatabase: true, onLoadMoreFromDatabaseType: 'function'}
-KanbanColumnUnified.tsx:194 [KanbanColumnUnified] 📊 Scroll Check - Em negociação: {visibleCount: 20, inMemory: 20, inDatabase: 24, hasMoreLeads: true, hasActiveFilters: false}
-KanbanColumnUnified.tsx:68 [KanbanColumnUnified] 🔗 Props recebidas: {columnTitle: 'Em análise de venda', hasOnLoadMoreFromDatabase: true, onLoadMoreFromDatabaseType: 'function'}
-KanbanColumnUnified.tsx:194 [KanbanColumnUnified] 📊 Scroll Check - Em análise de venda: {visibleCount: 20, inMemory: 20, inDatabase: 9, hasMoreLeads: false, hasActiveFilters: false}
-KanbanColumnUnified.tsx:68 [KanbanColumnUnified] 🔗 Props recebidas: {columnTitle: 'Cliente fechado', hasOnLoadMoreFromDatabase: true, onLoadMoreFromDatabaseType: 'function'}
-KanbanColumnUnified.tsx:194 [KanbanColumnUnified] 📊 Scroll Check - Cliente fechado: {visibleCount: 20, inMemory: 16, inDatabase: 7, hasMoreLeads: false, hasActiveFilters: false}
-KanbanColumnUnified.tsx:68 [KanbanColumnUnified] 🔗 Props recebidas: {columnTitle: 'Follow Up', hasOnLoadMoreFromDatabase: true, onLoadMoreFromDatabaseType: 'function'}
-KanbanColumnUnified.tsx:194 [KanbanColumnUnified] 📊 Scroll Check - Follow Up: {visibleCount: 20, inMemory: 20, inDatabase: 498, hasMoreLeads: true, hasActiveFilters: false}
-KanbanColumnUnified.tsx:68 [KanbanColumnUnified] 🔗 Props recebidas: {columnTitle: 'TESTE DE IA', hasOnLoadMoreFromDatabase: true, onLoadMoreFromDatabaseType: 'function'}
-KanbanColumnUnified.tsx:194 [KanbanColumnUnified] 📊 Scroll Check - TESTE DE IA: {visibleCount: 20, inMemory: 5, inDatabase: 3, hasMoreLeads: false, hasActiveFilters: false}
-useFiltersCoordinator.ts:169 [FiltersCoordinator] 🏷️ Tags disponíveis: 2
-useFiltersCoordinator.ts:184 [FiltersCoordinator] 👥 Usuários disponíveis: 1
-ModernFunnelControlBarUnifiedV2.tsx:124 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: {allLeads: 275, availableTags: 2, availableUsers: 1, tags: Array(2), users: Array(1)}
+ErrorBoundary.tsx:29 [ErrorBoundary] Erro capturado: TypeError: Cannot destructure property 'selectedLeads' of 'massSelection' as it is undefined.
+    at MassSelectionToolbar (MassSelectionToolbar.tsx:35:5)
+    at renderWithHooks (chunk-276SZO74.js?v=3aeb0223:11548:26)
+    at mountIndeterminateComponent (chunk-276SZO74.js?v=3aeb0223:14926:21)
+    at beginWork (chunk-276SZO74.js?v=3aeb0223:15914:22)
+    at beginWork$1 (chunk-276SZO74.js?v=3aeb0223:19753:22)
+    at performUnitOfWork (chunk-276SZO74.js?v=3aeb0223:19198:20)
+    at workLoopSync (chunk-276SZO74.js?v=3aeb0223:19137:13)
+    at renderRootSync (chunk-276SZO74.js?v=3aeb0223:19116:15)
+    at recoverFromConcurrentError (chunk-276SZO74.js?v=3aeb0223:18736:28)
+    at performSyncWorkOnRoot (chunk-276SZO74.js?v=3aeb0223:18879:28)
+getDerivedStateFromError @ ErrorBoundary.tsx:29
+update.payload @ chunk-276SZO74.js?v=3aeb0223:14063
+getStateFromUpdate @ chunk-276SZO74.js?v=3aeb0223:11089
+processUpdateQueue @ chunk-276SZO74.js?v=3aeb0223:11191
+updateClassInstance @ chunk-276SZO74.js?v=3aeb0223:13928
+updateClassComponent @ chunk-276SZO74.js?v=3aeb0223:14662
+beginWork @ chunk-276SZO74.js?v=3aeb0223:15930
+beginWork$1 @ chunk-276SZO74.js?v=3aeb0223:19753
+performUnitOfWork @ chunk-276SZO74.js?v=3aeb0223:19198
+workLoopSync @ chunk-276SZO74.js?v=3aeb0223:19137
+renderRootSync @ chunk-276SZO74.js?v=3aeb0223:19116
+recoverFromConcurrentError @ chunk-276SZO74.js?v=3aeb0223:18736
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=3aeb0223:18879
+flushSyncCallbacks @ chunk-276SZO74.js?v=3aeb0223:9119
+(anonymous) @ chunk-276SZO74.js?v=3aeb0223:18627Understand this error
+chunk-276SZO74.js?v=3aeb0223:14032 The above error occurred in the <MassSelectionToolbar> component:
+
+    at MassSelectionToolbar (http://localhost:8080/src/components/sales/mass-selection/MassSelectionToolbar.tsx:24:40)
+    at div
+    at SalesFunnelContentUnified (http://localhost:8080/src/components/sales/funnel/SalesFunnelContentUnified.tsx?t=1758843826518:62:22)
+    at SalesFunnelContent
+    at ErrorBoundary (http://localhost:8080/src/components/ErrorBoundary.tsx:296:5)
+    at div
+    at SalesFunnel
+    at Suspense
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:28:29)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8080/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3aeb0223:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=3aeb0223:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1758843826518:1066:5)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary.
+logCapturedError @ chunk-276SZO74.js?v=3aeb0223:14032
+callback @ chunk-276SZO74.js?v=3aeb0223:14078
+callCallback @ chunk-276SZO74.js?v=3aeb0223:11248
+commitUpdateQueue @ chunk-276SZO74.js?v=3aeb0223:11265
+commitLayoutEffectOnFiber @ chunk-276SZO74.js?v=3aeb0223:17075
+commitLayoutMountEffects_complete @ chunk-276SZO74.js?v=3aeb0223:17980
+commitLayoutEffects_begin @ chunk-276SZO74.js?v=3aeb0223:17969
+commitLayoutEffects_begin @ chunk-276SZO74.js?v=3aeb0223:17950
+commitLayoutEffects @ chunk-276SZO74.js?v=3aeb0223:17920
+commitRootImpl @ chunk-276SZO74.js?v=3aeb0223:19353
+commitRoot @ chunk-276SZO74.js?v=3aeb0223:19277
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=3aeb0223:18895
+flushSyncCallbacks @ chunk-276SZO74.js?v=3aeb0223:9119
+(anonymous) @ chunk-276SZO74.js?v=3aeb0223:18627Understand this error
+ErrorBoundary.tsx:42 [ErrorBoundary] Detalhes do erro: {error: "Cannot destructure property 'selectedLeads' of 'massSelection' as it is undefined.", stack: "TypeError: Cannot destructure property 'selectedLe….vite/deps/chunk-276SZO74.js?v=3aeb0223:18879:28)", componentStack: '\n    at MassSelectionToolbar (http://localhost:808…ocalhost:8080/src/App.tsx?t=1758843826518:1066:5)'}
