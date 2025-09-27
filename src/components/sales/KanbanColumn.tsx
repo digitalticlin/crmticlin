@@ -189,25 +189,16 @@ const ColumnHeader = ({
     <div className="mb-4 px-1">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-1">
-          {/* Checkbox de seleção da etapa - só aparece no modo seleção */}
           {massSelection?.isSelectionMode && (
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={handleStageSelection}
-              className="p-0 h-auto hover:bg-transparent"
+              className="text-xs text-gray-600 hover:text-gray-900 transition-colors mr-1"
               title="Selecionar/Deselecionar todos os leads desta etapa"
             >
-              {stageSelectionState === 'all' ? (
-                <CheckSquare className="h-4 w-4 text-blue-500" />
-              ) : stageSelectionState === 'some' ? (
-                <Minus className="h-4 w-4 text-blue-400" />
-              ) : (
-                <Square className="h-4 w-4 text-gray-400 hover:text-blue-400" />
-              )}
-            </Button>
+              {stageSelectionState === 'all' ? 'Desmarcar todos' : 'Selecionar todos'}
+            </button>
           )}
-          
+
           {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
           {titleEditor.isEditing ? (
             <Input

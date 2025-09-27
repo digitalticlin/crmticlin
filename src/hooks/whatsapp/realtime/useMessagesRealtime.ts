@@ -169,14 +169,20 @@ export const useMessagesRealtime = ({
 
   // Setup real-time ISOLADO para mensagens
   const setupMessagesRealtime = useCallback(() => {
-    if (!user?.id || !selectedContact || isPaused || setupInProgress.current) {
+    if (!user?.id || !selectedContact || isPaused) {
       console.log('[Messages Realtime] ❌ Setup cancelado (ISOLADO):', {
         hasUser: !!user?.id,
         hasContact: !!selectedContact,
-        isPaused,
-        setupInProgress: setupInProgress.current
+        isPaused
       });
       setIsConnected(false);
+      setupInProgress.current = false;
+      return;
+    }
+
+    // Prevenir setup duplicado
+    if (setupInProgress.current) {
+      console.log('[Messages Realtime] ⏳ Setup já em progresso, aguardando...');
       return;
     }
 
@@ -296,13 +302,16 @@ export const useMessagesRealtime = ({
           setIsConnected(false);
           setupInProgress.current = false;
 
-          // Retry automático limitado
-          if (reconnectAttempts.current < 3) {
+          // Retry automático limitado com exponential backoff
+          if (reconnectAttempts.current < 3 && !isPaused) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 8000);
             setTimeout(() => {
               reconnectAttempts.current++;
               console.log('[Messages Realtime] 🔄 Tentativa de reconexão:', reconnectAttempts.current);
               setupMessagesRealtime();
-            }, 1000 * reconnectAttempts.current);
+            }, delay);
+          } else {
+            console.error('[Messages Realtime] ❌ Limite de tentativas atingido');
           }
         } else if (status === 'CLOSED') {
           setIsConnected(false);
@@ -355,13 +364,21 @@ export const useMessagesRealtime = ({
   // Effect principal - reagir a mudanças de contato selecionado
   useEffect(() => {
     if (user?.id && selectedContact && !isPaused) {
-      setupMessagesRealtime();
+      // Debounce para evitar múltiplos setups
+      const timer = setTimeout(() => {
+        setupMessagesRealtime();
+      }, 100);
+
+      return () => {
+        clearTimeout(timer);
+        cleanup();
+      };
     } else {
       cleanup();
     }
 
     return cleanup;
-  }, [user?.id, selectedContact, isPaused, setupMessagesRealtime, cleanup]);
+  }, [user?.id, selectedContact?.id, isPaused]);
 
   // Effect para mudança no enabled
   useEffect(() => {

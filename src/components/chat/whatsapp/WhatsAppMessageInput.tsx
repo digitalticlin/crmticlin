@@ -213,13 +213,6 @@ export const WhatsAppMessageInput = ({
           </Button>
         </div>
         
-        {/* Indicador de envio */}
-        {isSending && (
-          <div className="flex items-center gap-2 mt-2 text-xs text-green-600/80">
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-            <span>Enviando...</span>
-          </div>
-        )}
       </div>
     </div>
   );

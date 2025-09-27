@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Message } from '@/types/chat';
 import { MessageMediaEnhanced } from '../MessageMediaEnhanced';
 import { MessageMediaDirect } from '../MessageMediaDirect';
+import { MessageStatus } from './MessageStatus';
 
 interface MessageItemEnhancedProps {
   message: Message;
@@ -66,21 +67,19 @@ export const MessageItemEnhanced: React.FC<MessageItemEnhancedProps> = React.mem
           </div>
         )}
         
-        {/* ✅ TIMESTAMP E STATUS */}
+        {/* ✅ TIMESTAMP E STATUS COM ÍCONES */}
         <div
           className={cn(
-            "flex items-center justify-end gap-1 mt-2 text-xs opacity-70",
+            "flex items-center justify-end gap-1.5 mt-2 text-xs",
             isIncoming ? "text-gray-500" : "text-green-100"
           )}
         >
-          <span>{message.time}</span>
-          {!isIncoming && (
-            <div className="flex">
-              {message.status === 'sent' && "✓"}
-              {message.status === 'delivered' && "✓✓"}
-              {message.status === 'read' && <span className="text-blue-300">✓✓</span>}
-              {message.status === 'failed' && <span className="text-red-300">✗</span>}
-            </div>
+          <span className="opacity-70">{message.time}</span>
+          {!isIncoming && message.status && (
+            <MessageStatus
+              status={message.status as any}
+              className="opacity-80"
+            />
           )}
         </div>
         

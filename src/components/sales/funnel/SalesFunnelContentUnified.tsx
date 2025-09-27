@@ -156,23 +156,11 @@ export function SalesFunnelContentUnified() {
     gcTime: 600000
   });
 
-  // 🚨 EMERGENCY THROTTLING - Refs para quebrar loop infinito
+  // Guard para evitar loops infinitos
   const lastFiltersRef = useRef<any>(null);
-  const lastRenderTime = useRef<number>(0);
-  const renderThrottleMs = 2000; // 2 segundos entre re-renders
 
   // Handler para mudanças de filtros vindos da barra de controle
   const handleFiltersChange = useCallback((filters: any) => {
-    const now = Date.now();
-
-    // 🛡️ EMERGENCY THROTTLE: Bloquear se muito recente
-    if (now - lastRenderTime.current < renderThrottleMs) {
-      console.log('[SalesFunnelContentUnified] 🚨 EMERGENCY THROTTLE: Bloqueando render por',
-        renderThrottleMs - (now - lastRenderTime.current), 'ms');
-      return;
-    }
-
-    lastRenderTime.current = now;
     if (!funnel) return;
 
     // 🛡️ GUARD: Evitar loop se filtros são iguais ao último processado

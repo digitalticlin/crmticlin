@@ -352,40 +352,22 @@ const KanbanColumnUnifiedComponent: React.FC<KanbanColumnUnifiedProps> = ({
           )}
         </div>
 
-        {/* Botões de seleção em massa (só aparecem no modo seleção) */}
+        {/* Botão minimalista de seleção em massa */}
         {isSelectionMode && hasLeads && (
-          <div className="flex items-center gap-2">
-            {/* Checkbox de seleção de etapa */}
-            <button
-              className={cn(
-                "h-7 w-7 rounded border-2 transition-all hover:scale-105 flex items-center justify-center flex-shrink-0",
-                stageSelectionState === 'all'
-                  ? "bg-blue-600 border-blue-600 text-white"
-                  : stageSelectionState === 'some'
-                    ? "bg-blue-100 border-blue-600 text-blue-600"
-                    : "bg-white border-gray-400 hover:border-blue-400"
-              )}
-              onClick={handleStageSelection}
-              title="Selecionar leads visíveis da etapa"
-            >
-              {stageSelectionState === 'all' ? (
-                <span className="text-sm font-bold">✓</span>
-              ) : stageSelectionState === 'some' ? (
-                <span className="text-sm font-bold">−</span>
-              ) : null}
-            </button>
-
-            {/* Botão para selecionar TODOS os leads da etapa no banco */}
-            {funnelId && (
-              <button
-                className="flex-1 h-7 px-3 text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded transition-all"
-                onClick={handleSelectAllFromStage}
-                title="Selecionar todos os leads desta etapa (incluindo os não carregados)"
-              >
-                Selecionar todos ({getStageCount(column.id)})
-              </button>
+          <button
+            onClick={handleSelectAllFromStage}
+            className={cn(
+              "text-xs font-medium transition-colors",
+              stageSelectionState === 'all'
+                ? "text-blue-600 hover:text-blue-800"
+                : "text-gray-600 hover:text-gray-900"
             )}
-          </div>
+            title={stageSelectionState === 'all'
+              ? 'Desmarcar todos os leads desta etapa'
+              : 'Selecionar todos os leads desta etapa'}
+          >
+            {stageSelectionState === 'all' ? '✓ Desmarcar todos' : 'Selecionar todos'}
+          </button>
         )}
       </div>
     );
@@ -571,13 +553,17 @@ export const KanbanColumnUnified = React.memo(KanbanColumnUnifiedComponent, (pre
     return false; // Re-render
   }
 
-  // Se massSelection mudou de modo
+  // Se massSelection mudou de modo OU se o número de leads selecionados mudou
   if (prev.massSelection?.isSelectionMode !== next.massSelection?.isSelectionMode) {
     return false; // Re-render
   }
 
+  // 🔥 CRÍTICO: Verificar se o número de leads selecionados mudou
+  if (prev.massSelection?.selectedCount !== next.massSelection?.selectedCount) {
+    return false; // Re-render
+  }
+
   // Caso contrário, manter props anteriores (não re-render)
-  console.log('[KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para', prev.column.title);
   return true; // NÃO re-render
 });
 

@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { whatsappChatContactsQueryKeys, whatsappChatInvalidation } from '../queryKeys';
 import { useWhatsAppChatCoordinator } from '../core/useWhatsAppChatCoordinator';
 import { Contact } from '@/types/chat';
+import { useContactsRealtime } from '@/hooks/whatsapp/realtime/useContactsRealtime';
 
 interface UseWhatsAppContactsManagerParams {
   activeInstanceId?: string | null;
@@ -41,6 +42,10 @@ interface UseWhatsAppContactsManagerReturn {
   // Estados
   isSearching: boolean;
   searchResults: Contact[];
+
+  // Stats de realtime (WebSocket)
+  realtimeConnected: boolean;
+  realtimeTotalEvents: number;
 }
 
 const CONTACTS_PER_PAGE = 20;
@@ -60,6 +65,36 @@ export const useWhatsAppContactsManager = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const coordinator = useWhatsAppChatCoordinator();
+
+  // WebSocket Real-time para contatos (substitui polling)
+  const realtimeContacts = useContactsRealtime({
+    activeInstanceId,
+    onContactUpdate: useCallback(() => {
+      console.log('[WhatsApp Contacts Manager] 🔥 Contato atualizado via WebSocket');
+
+      // Invalidar queries para refetch
+      queryClient.invalidateQueries({
+        queryKey: whatsappChatContactsQueryKeys.base
+      });
+    }, [queryClient]),
+    onMoveContactToTop: useCallback((contactId: string) => {
+      console.log('[WhatsApp Contacts Manager] ⬆️ Movendo contato ao topo:', contactId);
+
+      // Invalidar para reordenar lista
+      queryClient.invalidateQueries({
+        queryKey: whatsappChatContactsQueryKeys.base
+      });
+    }, [queryClient]),
+    onUpdateUnreadCount: useCallback((contactId: string, increment?: boolean) => {
+      console.log('[WhatsApp Contacts Manager] 📧 Contador de não lidas atualizado:', contactId, increment);
+
+      // Invalidar para atualizar contador
+      queryClient.invalidateQueries({
+        queryKey: whatsappChatContactsQueryKeys.base
+      });
+    }, [queryClient]),
+    enabled: !!activeInstanceId && !!user?.id
+  });
 
   // Estados locais
   const [searchQuery, setSearchQuery] = useState('');
@@ -221,7 +256,7 @@ export const useWhatsAppContactsManager = ({
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     enabled: !!activeInstanceId && !!user?.id,
-    staleTime: 30000, // 30 segundos
+    staleTime: 60000,
     refetchOnWindowFocus: false
   });
 
@@ -352,7 +387,7 @@ export const useWhatsAppContactsManager = ({
       }));
     },
     enabled: !!activeInstanceId && !!user?.id && !!searchQuery.trim(),
-    staleTime: 10000 // 10 segundos para busca
+    staleTime: 30000
   });
 
   // Contatos finais (busca ou lista normal + específicos)
@@ -464,6 +499,10 @@ export const useWhatsAppContactsManager = ({
 
     // Estados
     isSearching: isSearching || isLoadingSearch,
-    searchResults: searchData || []
+    searchResults: searchData || [],
+
+    // Stats de realtime
+    realtimeConnected: realtimeContacts.isConnected,
+    realtimeTotalEvents: realtimeContacts.totalEvents
   };
 };

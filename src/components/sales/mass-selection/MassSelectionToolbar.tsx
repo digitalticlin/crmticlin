@@ -29,7 +29,7 @@ export const MassSelectionToolbar = ({
 }: MassSelectionToolbarProps) => {
   const { selectedCount, isSelectionMode, getSelectedLeadsData, clearSelection } = massSelection;
 
-  if (!isSelectionMode || selectedCount === 0) {
+  if (!isSelectionMode) {
     return null;
   }
 

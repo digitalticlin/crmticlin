@@ -83,13 +83,19 @@ export const useContactsRealtime = ({
 
   // Setup real-time ISOLADO para contatos
   const setupContactsRealtime = useCallback(() => {
-    if (!user?.id || isPaused || setupInProgress.current) {
+    if (!user?.id || isPaused) {
       console.log('[Contacts Realtime] ❌ Setup cancelado:', {
         hasUser: !!user?.id,
-        isPaused,
-        setupInProgress: setupInProgress.current
+        isPaused
       });
       setIsConnected(false);
+      setupInProgress.current = false;
+      return;
+    }
+
+    // Prevenir setup duplicado
+    if (setupInProgress.current) {
+      console.log('[Contacts Realtime] ⏳ Setup já em progresso, aguardando...');
       return;
     }
 
@@ -157,13 +163,16 @@ export const useContactsRealtime = ({
           setIsConnected(false);
           setupInProgress.current = false;
 
-          // Retry automático limitado
-          if (reconnectAttempts.current < 3) {
+          // Retry automático limitado com exponential backoff
+          if (reconnectAttempts.current < 3 && !isPaused) {
+            const delay = Math.min(2000 * Math.pow(2, reconnectAttempts.current), 10000);
             setTimeout(() => {
               reconnectAttempts.current++;
               console.log('[Contacts Realtime] 🔄 Tentativa de reconexão:', reconnectAttempts.current);
               setupContactsRealtime();
-            }, 2000 * reconnectAttempts.current);
+            }, delay);
+          } else {
+            console.error('[Contacts Realtime] ❌ Limite de tentativas atingido');
           }
         } else if (status === 'CLOSED') {
           setIsConnected(false);
@@ -213,13 +222,21 @@ export const useContactsRealtime = ({
   // Effect principal - reagir a mudanças de usuário e estado de pausa
   useEffect(() => {
     if (user?.id && !isPaused) {
-      setupContactsRealtime();
+      // Debounce para evitar múltiplos setups
+      const timer = setTimeout(() => {
+        setupContactsRealtime();
+      }, 150);
+
+      return () => {
+        clearTimeout(timer);
+        cleanup();
+      };
     } else {
       cleanup();
     }
 
     return cleanup;
-  }, [user?.id, isPaused, setupContactsRealtime, cleanup]);
+  }, [user?.id, isPaused]);
 
   // Effect para mudança no enabled
   useEffect(() => {

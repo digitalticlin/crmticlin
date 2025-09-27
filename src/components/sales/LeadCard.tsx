@@ -48,7 +48,15 @@ export const LeadCard = (({
   const { selectedLeads, isSelectionMode, toggleLead, isLeadSelected } = effectiveMassSelection;
   const isSelected = isLeadSelected ? isLeadSelected(lead.id) : selectedLeads.has(lead.id);
 
-  console.log(`[LeadCard RENDER] ${lead.id}: isSelected=${isSelected}, isSelectionMode=${isSelectionMode}`);
+  console.log(`[LeadCard] 📊 RENDER ${lead.name}:`, {
+    leadId: lead.id,
+    isSelected,
+    isSelectionMode,
+    hasMassSelection: !!massSelection,
+    hasIsLeadSelected: !!isLeadSelected,
+    selectedLeadsSize: selectedLeads.size,
+    toggleLeadType: typeof toggleLead
+  });
   
   // Removido sistema de detecção - DndDraggableCard cuida disso
   
@@ -111,9 +119,11 @@ export const LeadCard = (({
 
     // Se estiver em modo seleção
     if (isSelectionMode) {
+      console.log('[LeadCard] ✅ MODO SELEÇÃO ATIVO - Chamando toggleLead:', lead.id);
       e.preventDefault();
       e.stopPropagation();
       toggleLead(lead.id);
+      console.log('[LeadCard] ✅ toggleLead EXECUTADO para:', lead.id);
       return;
     }
 
@@ -124,8 +134,11 @@ export const LeadCard = (({
   };
 
   const handleCheckboxClick = (e: React.MouseEvent) => {
+    console.log('[LeadCard] 📦 CHECKBOX CLICADO:', lead.id);
     e.stopPropagation();
+    e.preventDefault();
     toggleLead(lead.id);
+    console.log('[LeadCard] 📦 CHECKBOX toggleLead EXECUTADO');
   };
 
   return (
@@ -137,17 +150,14 @@ export const LeadCard = (({
         
         // Estados normais - hover e transições (não aplicar hover se em modo seleção)
         !isSelectionMode && "transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:border-white/50",
-        isSelectionMode && "transition-all duration-200",
-        
+        isSelectionMode && "transition-all duration-200 cursor-pointer",
+
         // Estados especiais para Won/Lost
         isWon && "border-l-[4px] border-l-green-500 bg-green-50/20",
         isLost && "border-l-[4px] border-l-red-500 bg-red-50/20",
-        
-        // Estado selecionado - borda ticlin destacada e background visível
-        isSelected && "ring-2 ring-ticlin border-ticlin bg-ticlin/20 shadow-lg",
 
-        // Modo seleção ativo - cursor de seleção
-        isSelectionMode && !isSelected && "cursor-pointer hover:ring-1 hover:ring-ticlin/60 hover:bg-ticlin/5"
+        // Estado selecionado - borda ticlin destacada e background visível
+        isSelected && "ring-2 ring-ticlin border-ticlin bg-ticlin/20 shadow-lg"
       )}
       onClick={handleCardClick}
       onMouseEnter={onMouseEnter}

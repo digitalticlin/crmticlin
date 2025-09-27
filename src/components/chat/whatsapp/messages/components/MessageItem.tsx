@@ -85,12 +85,11 @@ export function MessageItem({
             isFromMe ? "bg-ticlin-600/80 text-white" : "bg-yellow-50 text-yellow-800"
           ]
         )}>
-        
+
           {/* Status visual superior */}
-          {(hasError || isPending) && (
+          {hasError && (
             <div className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full bg-white shadow-md border border-gray-200">
-              {hasError && <AlertCircle className="w-3 h-3 text-red-500" />}
-              {isPending && <Info className="w-3 h-3 text-yellow-500 animate-pulse" />}
+              <AlertCircle className="w-3 h-3 text-red-500" />
             </div>
           )}
 

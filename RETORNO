@@ -1,451 +1,120 @@
-[KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Cliente fechado
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Follow Up
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para TESTE DE IA
-useFunnelDataManager.ts:377 [FunnelDataManager] 🔴 Configurando realtime para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
-SalesFunnelContentUnified.tsx:170 [SalesFunnelContentUnified] 🚨 EMERGENCY THROTTLE: Bloqueando render por 255 ms
-useStageLeadCount.ts:88 [useStageLeadCount] ✅ Contagem por etapa: {leadsOwnerId: '9936ae64-b78c-48fe-97e8-bf67623349c6', role: 'admin', countByStage: {…}}
-LeadCard.tsx:244 [LeadCard MEMO] ed9a0d24-9e9c-423a-a0b0-c2e4651b434b: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 2bbe5306-a567-40ef-9d1b-f9ed0d54cab9: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 60248262-db26-4118-a89b-058d38cfceae: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 2189e388-0ddb-4906-a597-7d87029bc76a: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 3cc2fb62-09a3-43b1-9652-5a975158fb98: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 71052c50-583f-42a6-aa14-23c0f39d8be5: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 53fc1622-876d-4d3e-9bec-5970a2a0f8b8: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] efccd0ce-29df-44c8-ab74-30508296c34a: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 1a52628b-863a-497a-be7c-3bf07c25e9f1: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 305184ef-93e0-4c77-9a2a-ce70986c2062: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 36a532cf-d327-4aae-b06a-0cc3d1f21553: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] be015fe2-7395-4a34-bc0f-cc6be84b6e00: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 102f8db0-8a01-403b-a680-9ce058df26bc: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] b5be277d-2a04-4dad-bf04-1c089e86ead8: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] de4c50cd-0cff-487a-91ce-2a465fdc3130: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] f0aaf6e9-9e8a-4a18-b8ea-0710fd8c3835: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 3e88114c-10e1-4785-8e38-2c3321fc9da2: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] cc673aef-de64-41b0-b56d-f927fc34d35a: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] a874aea1-0b09-40d1-a9fb-932b1f54c7f6: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] cd10d2c4-31cb-4997-9c29-d4045528ac90: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] c9783677-4962-4cbd-9fd1-0708479e5c6b: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 9dd98e7f-5ee5-4aaa-95dc-68448920c701: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 1376aa5d-10f2-4578-a9ec-f8fed5c90bd5: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] a8e05f9a-a3d4-4704-ba27-1c27a244d7f6: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 043c79f6-1b74-488a-a93a-746f366a9a8a: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] a9d9a56c-2afa-48c1-ba32-624d7f3a5640: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 5ce76741-f25c-45bb-8b8d-1eaea75eb43f: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 4ba04df3-75a2-4cca-86b1-b2c3a97a43cc: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 2ab0c47b-6112-4e2a-923d-505159a163c5: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] af72dd94-d3cf-4d08-b2fd-ef55c74fe2a5: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] a28d904e-e8d3-4047-8254-e08ae4cb68c5: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 870fa01f-5d96-4217-b3d0-9529e9a1d4b5: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] daeb6999-f68a-4b75-a086-c0dc9ff37c30: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] b9b39175-ca20-4576-b883-330c3e4c22dd: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 1d8015e0-8199-4773-b4f4-33084d853b38: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] c15c1011-2b78-4b1b-bab7-7f83b2710511: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 97e62e1b-4b79-490b-a362-7e1375e06f4f: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 05d65abb-5552-4823-a0ad-63dae0c210e6: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 47441569-7c80-4254-af66-914b02dfa956: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 496df5da-de2d-478c-8dcf-208934012b1c: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] e07730ab-d1e0-4459-a9ae-4180901e63b0: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 7f8c554e-6035-45fc-8a87-734491270f04: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 6a190244-d07a-4e6c-a6af-e26040b7ea6d: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 7be228ee-d1b3-4667-8d69-8e3b72038f67: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] f14ce131-d995-499d-83d3-086130ca4052: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 2ff70026-5b6d-41f0-a416-668d3448d647: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] a6f7d9d8-39f2-464a-8dd8-3e7db2ba528f: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 21891a96-6ec7-49af-b5f7-99e931ab92ee: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 7c90b766-d278-434f-88f9-f3541b4c722a: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 42f5c01e-0182-41cf-bbb4-8a923af716a4: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 692be418-4eb6-4d7c-b018-671cc8a9e481: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] bcbdb342-935f-4342-8563-178249675604: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 694f0f7d-f5f6-4eb0-adc5-a8d09d2ed400: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] f43c1c2d-85f1-472c-8c42-89a515aced85: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 345ef150-ebb5-40f7-b722-fdb9b0f92dcb: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 60104db7-6b76-46da-a16a-a4d14162f42c: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 1da05e4b-f4f4-4308-ace3-32b2263168ff: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 295b3c18-c7c9-4c35-90e0-1a20228ee4d2: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 56f3a6a5-a8c2-4e7f-a355-8dc80a12af25: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 0b0cb9b6-b3d3-4c1a-b0bd-f8d355cb7f74: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] cd37e19a-cc2c-4675-b268-662e490ed881: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] cd6c63f8-9577-49a5-8b4d-2b489ef16020: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 0179b55c-08d5-4e20-bc92-bc388349ab1e: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] c1b00e12-8ba5-4eb9-be4f-1219ff3a23b5: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 5d530fba-5f12-4606-b76a-48d9007bd285: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 646914ae-c8cf-49b4-8319-259dd5039bcb: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] fc64305e-c36d-4a99-97b3-6cc27521de30: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 9454b5e6-e78a-4e11-b5e3-455ca32e60aa: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 562d5e5e-6a79-45e2-be15-cbbcf7d1d21d: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 90bab053-451b-462e-9e70-c3b65f6e6980: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 821caed6-82ce-442f-b289-87acc4529525: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] fbc85bd2-6e0a-4eaa-9b75-c54b4c5e2886: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 122a914f-530f-4a14-82c1-6d4cbf623ed6: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 0b62a4f8-0ee8-4dc2-98f4-cfd2041cbec9: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 6763e368-76e9-4739-8d69-7221fdc53b4b: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] f214f814-d1d6-48cd-bdce-ce8fa54852cf: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 0fb711df-fb57-4d11-93d0-15deb63da25a: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 4942b907-3d2d-42ba-9aaa-7497426b4aa4: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] d1fcf4ef-1a7e-4d1b-9eac-6d83581e5b5f: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] e5d6d470-cf4f-49b4-a51c-8e6ebf55a34c: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 4eecc879-0538-4e8e-b544-dae820adf894: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] c4ff7666-3129-4a02-b9e7-5f248b42b5c6: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] cea8b0dc-25d0-4c61-a12e-4bb264a6e9a2: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] d78c9015-247b-4ca1-b3e6-d46b6b8f4fda: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 43c4ea88-dd60-40d2-b7fd-cfcc9641ec5c: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 4f84f89f-81cb-4856-9d66-8aafb01af920: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] b5c73460-757c-4390-85c3-422b527c8f7e: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] eef20731-6e86-448f-8e6c-109449f267b3: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 840fd939-c3ab-4adb-bd80-bdc8b791e165: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 456503fe-b155-4aea-82e7-d935b6c0a78d: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] cf093971-4b75-49de-bbfd-b03f9d826b6f: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] b987c239-14c3-4b5e-b6cd-4f130199f107: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 42af3aac-d915-4eca-bc3d-668d45efa7f7: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] d629b76c-b66a-46c5-a274-fde2b966577e: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 32793c76-d9e7-4b7c-a02e-80570adcbc42: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] eb989f44-1e3d-4cc1-92b2-70c1e11c1558: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 1d97ad3b-95c4-4b4c-8701-2661b07d4b7c: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] e104b6eb-c72b-49ea-affb-aa3b6f11d2c9: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] ce0e34ee-be0b-4f34-9834-b46b3f9f0065: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 973780d7-d7b9-4d9b-a7e1-3349db15d627: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 8bfb89dd-fa36-44de-b962-6034442a4cc1: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] bba15db6-4b17-4f5b-b91a-549bf9ef96fe: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] e1190176-556a-4847-825a-818dcd0e9d77: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 30c51345-7344-4435-8668-787d17404d9e: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 50907730-12c7-43d9-af0c-1a0efd2bef2a: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] d4e4f4be-75a0-4442-a7d3-18f223824ca2: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 0d9262fb-b619-48d6-a982-124e3c3fc678: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 39623a1f-5167-46fb-b29f-b642cc4d8818: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 7612b786-e614-42d3-be80-2ca55eda6b91: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] b428eb8d-73b6-4dbc-92a5-ef24d04305d7: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] ccf7ef5c-d945-4a97-8b62-93eabffff120: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 9bbc10bd-0091-44eb-979a-ec9daad25432: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 74b6a13a-51d5-4572-9ec8-32c4fcd52707: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 554d2e69-1b2d-4989-9b1b-57aa027e58ae: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 69db5e2b-ce54-4b12-ba90-c9d01712c94a: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] dc1230c3-9280-493f-8624-4a23c35f6f9f: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 0b68cec6-9579-4c7d-baeb-701fde10c285: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 170cdf60-3d4d-4a2b-a2a3-21bf9a15e646: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 9be913a4-ad21-4741-a634-d8c0945aabf5: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] c113d239-2725-47d3-b716-c0675214e9ff: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 8f2b6a4b-e25b-41e8-96d8-7212766e1b0a: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] 08a2ff12-91b5-4cc3-8cbd-92d341906072: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] ce9a23cb-9481-4dcd-ada6-f85c9553444f: ❌ BLOQUEANDO re-render
-LeadCard.tsx:244 [LeadCard MEMO] e5e7bad8-f543-4da1-9124-34b38f7dd0b3: ❌ BLOQUEANDO re-render
-useWonLostStages.ts:97 [useWonLostStages] 🎯 Etapas derivadas: {wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', wonStageTitle: 'GANHO', lostStageTitle: 'PERDIDO'}
-SalesFunnelContentUnified.tsx:414 [SalesFunnelContentUnified] 🎯 Etapas Won/Lost do hook específico: {wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', wonLostLoading: false, totalColumns: 9}
-ModernFunnelControlBarUnifiedV2.tsx:141 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: {allLeads: 124, availableTags: 2, availableUsers: 1, tags: Array(2), users: Array(1)}
-LeadCard.tsx:215 [LeadCard MEMO] ed9a0d24-9e9c-423a-a0b0-c2e4651b434b: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] ed9a0d24-9e9c-423a-a0b0-c2e4651b434b: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 2bbe5306-a567-40ef-9d1b-f9ed0d54cab9: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 2bbe5306-a567-40ef-9d1b-f9ed0d54cab9: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 60248262-db26-4118-a89b-058d38cfceae: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 60248262-db26-4118-a89b-058d38cfceae: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 2189e388-0ddb-4906-a597-7d87029bc76a: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 2189e388-0ddb-4906-a597-7d87029bc76a: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 3cc2fb62-09a3-43b1-9652-5a975158fb98: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 3cc2fb62-09a3-43b1-9652-5a975158fb98: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 71052c50-583f-42a6-aa14-23c0f39d8be5: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 71052c50-583f-42a6-aa14-23c0f39d8be5: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 53fc1622-876d-4d3e-9bec-5970a2a0f8b8: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 53fc1622-876d-4d3e-9bec-5970a2a0f8b8: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] efccd0ce-29df-44c8-ab74-30508296c34a: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] efccd0ce-29df-44c8-ab74-30508296c34a: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 1a52628b-863a-497a-be7c-3bf07c25e9f1: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 1a52628b-863a-497a-be7c-3bf07c25e9f1: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 305184ef-93e0-4c77-9a2a-ce70986c2062: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 305184ef-93e0-4c77-9a2a-ce70986c2062: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 36a532cf-d327-4aae-b06a-0cc3d1f21553: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 36a532cf-d327-4aae-b06a-0cc3d1f21553: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] be015fe2-7395-4a34-bc0f-cc6be84b6e00: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] be015fe2-7395-4a34-bc0f-cc6be84b6e00: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 102f8db0-8a01-403b-a680-9ce058df26bc: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 102f8db0-8a01-403b-a680-9ce058df26bc: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] b5be277d-2a04-4dad-bf04-1c089e86ead8: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] b5be277d-2a04-4dad-bf04-1c089e86ead8: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] de4c50cd-0cff-487a-91ce-2a465fdc3130: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] de4c50cd-0cff-487a-91ce-2a465fdc3130: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] f0aaf6e9-9e8a-4a18-b8ea-0710fd8c3835: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] f0aaf6e9-9e8a-4a18-b8ea-0710fd8c3835: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 3e88114c-10e1-4785-8e38-2c3321fc9da2: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 3e88114c-10e1-4785-8e38-2c3321fc9da2: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] cc673aef-de64-41b0-b56d-f927fc34d35a: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] cc673aef-de64-41b0-b56d-f927fc34d35a: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] a874aea1-0b09-40d1-a9fb-932b1f54c7f6: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] a874aea1-0b09-40d1-a9fb-932b1f54c7f6: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] cd10d2c4-31cb-4997-9c29-d4045528ac90: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] cd10d2c4-31cb-4997-9c29-d4045528ac90: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] c9783677-4962-4cbd-9fd1-0708479e5c6b: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] c9783677-4962-4cbd-9fd1-0708479e5c6b: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 9dd98e7f-5ee5-4aaa-95dc-68448920c701: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 9dd98e7f-5ee5-4aaa-95dc-68448920c701: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 1376aa5d-10f2-4578-a9ec-f8fed5c90bd5: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 1376aa5d-10f2-4578-a9ec-f8fed5c90bd5: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] a8e05f9a-a3d4-4704-ba27-1c27a244d7f6: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] a8e05f9a-a3d4-4704-ba27-1c27a244d7f6: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 043c79f6-1b74-488a-a93a-746f366a9a8a: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 043c79f6-1b74-488a-a93a-746f366a9a8a: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] a9d9a56c-2afa-48c1-ba32-624d7f3a5640: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] a9d9a56c-2afa-48c1-ba32-624d7f3a5640: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 5ce76741-f25c-45bb-8b8d-1eaea75eb43f: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 5ce76741-f25c-45bb-8b8d-1eaea75eb43f: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 4ba04df3-75a2-4cca-86b1-b2c3a97a43cc: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 4ba04df3-75a2-4cca-86b1-b2c3a97a43cc: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 2ab0c47b-6112-4e2a-923d-505159a163c5: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 2ab0c47b-6112-4e2a-923d-505159a163c5: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] af72dd94-d3cf-4d08-b2fd-ef55c74fe2a5: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] af72dd94-d3cf-4d08-b2fd-ef55c74fe2a5: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] a28d904e-e8d3-4047-8254-e08ae4cb68c5: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] a28d904e-e8d3-4047-8254-e08ae4cb68c5: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 870fa01f-5d96-4217-b3d0-9529e9a1d4b5: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 870fa01f-5d96-4217-b3d0-9529e9a1d4b5: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] daeb6999-f68a-4b75-a086-c0dc9ff37c30: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] daeb6999-f68a-4b75-a086-c0dc9ff37c30: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] b9b39175-ca20-4576-b883-330c3e4c22dd: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] b9b39175-ca20-4576-b883-330c3e4c22dd: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 1d8015e0-8199-4773-b4f4-33084d853b38: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 1d8015e0-8199-4773-b4f4-33084d853b38: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] c15c1011-2b78-4b1b-bab7-7f83b2710511: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] c15c1011-2b78-4b1b-bab7-7f83b2710511: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 97e62e1b-4b79-490b-a362-7e1375e06f4f: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 97e62e1b-4b79-490b-a362-7e1375e06f4f: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 05d65abb-5552-4823-a0ad-63dae0c210e6: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 05d65abb-5552-4823-a0ad-63dae0c210e6: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 47441569-7c80-4254-af66-914b02dfa956: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 47441569-7c80-4254-af66-914b02dfa956: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 496df5da-de2d-478c-8dcf-208934012b1c: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 496df5da-de2d-478c-8dcf-208934012b1c: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] e07730ab-d1e0-4459-a9ae-4180901e63b0: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] e07730ab-d1e0-4459-a9ae-4180901e63b0: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 7f8c554e-6035-45fc-8a87-734491270f04: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 7f8c554e-6035-45fc-8a87-734491270f04: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 6a190244-d07a-4e6c-a6af-e26040b7ea6d: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 6a190244-d07a-4e6c-a6af-e26040b7ea6d: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 7be228ee-d1b3-4667-8d69-8e3b72038f67: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 7be228ee-d1b3-4667-8d69-8e3b72038f67: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] f14ce131-d995-499d-83d3-086130ca4052: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] f14ce131-d995-499d-83d3-086130ca4052: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 2ff70026-5b6d-41f0-a416-668d3448d647: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 2ff70026-5b6d-41f0-a416-668d3448d647: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] a6f7d9d8-39f2-464a-8dd8-3e7db2ba528f: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] a6f7d9d8-39f2-464a-8dd8-3e7db2ba528f: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 21891a96-6ec7-49af-b5f7-99e931ab92ee: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 21891a96-6ec7-49af-b5f7-99e931ab92ee: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 7c90b766-d278-434f-88f9-f3541b4c722a: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 7c90b766-d278-434f-88f9-f3541b4c722a: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 42f5c01e-0182-41cf-bbb4-8a923af716a4: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 42f5c01e-0182-41cf-bbb4-8a923af716a4: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 692be418-4eb6-4d7c-b018-671cc8a9e481: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 692be418-4eb6-4d7c-b018-671cc8a9e481: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] bcbdb342-935f-4342-8563-178249675604: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] bcbdb342-935f-4342-8563-178249675604: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 694f0f7d-f5f6-4eb0-adc5-a8d09d2ed400: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 694f0f7d-f5f6-4eb0-adc5-a8d09d2ed400: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] f43c1c2d-85f1-472c-8c42-89a515aced85: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] f43c1c2d-85f1-472c-8c42-89a515aced85: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 345ef150-ebb5-40f7-b722-fdb9b0f92dcb: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 345ef150-ebb5-40f7-b722-fdb9b0f92dcb: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 60104db7-6b76-46da-a16a-a4d14162f42c: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 60104db7-6b76-46da-a16a-a4d14162f42c: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 1da05e4b-f4f4-4308-ace3-32b2263168ff: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 1da05e4b-f4f4-4308-ace3-32b2263168ff: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 295b3c18-c7c9-4c35-90e0-1a20228ee4d2: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 295b3c18-c7c9-4c35-90e0-1a20228ee4d2: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 56f3a6a5-a8c2-4e7f-a355-8dc80a12af25: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 56f3a6a5-a8c2-4e7f-a355-8dc80a12af25: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 0b0cb9b6-b3d3-4c1a-b0bd-f8d355cb7f74: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 0b0cb9b6-b3d3-4c1a-b0bd-f8d355cb7f74: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] cd37e19a-cc2c-4675-b268-662e490ed881: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] cd37e19a-cc2c-4675-b268-662e490ed881: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] cd6c63f8-9577-49a5-8b4d-2b489ef16020: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] cd6c63f8-9577-49a5-8b4d-2b489ef16020: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 0179b55c-08d5-4e20-bc92-bc388349ab1e: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 0179b55c-08d5-4e20-bc92-bc388349ab1e: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] c1b00e12-8ba5-4eb9-be4f-1219ff3a23b5: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] c1b00e12-8ba5-4eb9-be4f-1219ff3a23b5: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 5d530fba-5f12-4606-b76a-48d9007bd285: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 5d530fba-5f12-4606-b76a-48d9007bd285: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 646914ae-c8cf-49b4-8319-259dd5039bcb: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 646914ae-c8cf-49b4-8319-259dd5039bcb: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] fc64305e-c36d-4a99-97b3-6cc27521de30: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] fc64305e-c36d-4a99-97b3-6cc27521de30: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 9454b5e6-e78a-4e11-b5e3-455ca32e60aa: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 9454b5e6-e78a-4e11-b5e3-455ca32e60aa: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 562d5e5e-6a79-45e2-be15-cbbcf7d1d21d: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 562d5e5e-6a79-45e2-be15-cbbcf7d1d21d: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 90bab053-451b-462e-9e70-c3b65f6e6980: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 90bab053-451b-462e-9e70-c3b65f6e6980: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 821caed6-82ce-442f-b289-87acc4529525: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 821caed6-82ce-442f-b289-87acc4529525: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] fbc85bd2-6e0a-4eaa-9b75-c54b4c5e2886: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] fbc85bd2-6e0a-4eaa-9b75-c54b4c5e2886: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 122a914f-530f-4a14-82c1-6d4cbf623ed6: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 122a914f-530f-4a14-82c1-6d4cbf623ed6: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 0b62a4f8-0ee8-4dc2-98f4-cfd2041cbec9: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 0b62a4f8-0ee8-4dc2-98f4-cfd2041cbec9: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 6763e368-76e9-4739-8d69-7221fdc53b4b: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 6763e368-76e9-4739-8d69-7221fdc53b4b: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] f214f814-d1d6-48cd-bdce-ce8fa54852cf: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] f214f814-d1d6-48cd-bdce-ce8fa54852cf: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 0fb711df-fb57-4d11-93d0-15deb63da25a: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 0fb711df-fb57-4d11-93d0-15deb63da25a: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 4942b907-3d2d-42ba-9aaa-7497426b4aa4: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 4942b907-3d2d-42ba-9aaa-7497426b4aa4: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] d1fcf4ef-1a7e-4d1b-9eac-6d83581e5b5f: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] d1fcf4ef-1a7e-4d1b-9eac-6d83581e5b5f: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] e5d6d470-cf4f-49b4-a51c-8e6ebf55a34c: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] e5d6d470-cf4f-49b4-a51c-8e6ebf55a34c: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 4eecc879-0538-4e8e-b544-dae820adf894: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 4eecc879-0538-4e8e-b544-dae820adf894: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] c4ff7666-3129-4a02-b9e7-5f248b42b5c6: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] c4ff7666-3129-4a02-b9e7-5f248b42b5c6: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] cea8b0dc-25d0-4c61-a12e-4bb264a6e9a2: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] cea8b0dc-25d0-4c61-a12e-4bb264a6e9a2: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] d78c9015-247b-4ca1-b3e6-d46b6b8f4fda: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] d78c9015-247b-4ca1-b3e6-d46b6b8f4fda: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 43c4ea88-dd60-40d2-b7fd-cfcc9641ec5c: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 43c4ea88-dd60-40d2-b7fd-cfcc9641ec5c: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 4f84f89f-81cb-4856-9d66-8aafb01af920: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 4f84f89f-81cb-4856-9d66-8aafb01af920: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] b5c73460-757c-4390-85c3-422b527c8f7e: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] b5c73460-757c-4390-85c3-422b527c8f7e: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] eef20731-6e86-448f-8e6c-109449f267b3: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] eef20731-6e86-448f-8e6c-109449f267b3: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 840fd939-c3ab-4adb-bd80-bdc8b791e165: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 840fd939-c3ab-4adb-bd80-bdc8b791e165: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 456503fe-b155-4aea-82e7-d935b6c0a78d: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 456503fe-b155-4aea-82e7-d935b6c0a78d: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] cf093971-4b75-49de-bbfd-b03f9d826b6f: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] cf093971-4b75-49de-bbfd-b03f9d826b6f: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] b987c239-14c3-4b5e-b6cd-4f130199f107: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] b987c239-14c3-4b5e-b6cd-4f130199f107: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 42af3aac-d915-4eca-bc3d-668d45efa7f7: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 42af3aac-d915-4eca-bc3d-668d45efa7f7: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] d629b76c-b66a-46c5-a274-fde2b966577e: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] d629b76c-b66a-46c5-a274-fde2b966577e: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 32793c76-d9e7-4b7c-a02e-80570adcbc42: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 32793c76-d9e7-4b7c-a02e-80570adcbc42: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] eb989f44-1e3d-4cc1-92b2-70c1e11c1558: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] eb989f44-1e3d-4cc1-92b2-70c1e11c1558: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 1d97ad3b-95c4-4b4c-8701-2661b07d4b7c: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 1d97ad3b-95c4-4b4c-8701-2661b07d4b7c: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] e104b6eb-c72b-49ea-affb-aa3b6f11d2c9: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] e104b6eb-c72b-49ea-affb-aa3b6f11d2c9: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] ce0e34ee-be0b-4f34-9834-b46b3f9f0065: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] ce0e34ee-be0b-4f34-9834-b46b3f9f0065: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 973780d7-d7b9-4d9b-a7e1-3349db15d627: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 973780d7-d7b9-4d9b-a7e1-3349db15d627: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 8bfb89dd-fa36-44de-b962-6034442a4cc1: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 8bfb89dd-fa36-44de-b962-6034442a4cc1: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] bba15db6-4b17-4f5b-b91a-549bf9ef96fe: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] bba15db6-4b17-4f5b-b91a-549bf9ef96fe: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] e1190176-556a-4847-825a-818dcd0e9d77: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] e1190176-556a-4847-825a-818dcd0e9d77: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 30c51345-7344-4435-8668-787d17404d9e: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 30c51345-7344-4435-8668-787d17404d9e: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 50907730-12c7-43d9-af0c-1a0efd2bef2a: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 50907730-12c7-43d9-af0c-1a0efd2bef2a: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] d4e4f4be-75a0-4442-a7d3-18f223824ca2: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] d4e4f4be-75a0-4442-a7d3-18f223824ca2: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 0d9262fb-b619-48d6-a982-124e3c3fc678: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 0d9262fb-b619-48d6-a982-124e3c3fc678: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 39623a1f-5167-46fb-b29f-b642cc4d8818: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 39623a1f-5167-46fb-b29f-b642cc4d8818: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 7612b786-e614-42d3-be80-2ca55eda6b91: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 7612b786-e614-42d3-be80-2ca55eda6b91: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] b428eb8d-73b6-4dbc-92a5-ef24d04305d7: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] b428eb8d-73b6-4dbc-92a5-ef24d04305d7: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] ccf7ef5c-d945-4a97-8b62-93eabffff120: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] ccf7ef5c-d945-4a97-8b62-93eabffff120: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 9bbc10bd-0091-44eb-979a-ec9daad25432: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 9bbc10bd-0091-44eb-979a-ec9daad25432: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 74b6a13a-51d5-4572-9ec8-32c4fcd52707: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 74b6a13a-51d5-4572-9ec8-32c4fcd52707: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 554d2e69-1b2d-4989-9b1b-57aa027e58ae: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 554d2e69-1b2d-4989-9b1b-57aa027e58ae: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 69db5e2b-ce54-4b12-ba90-c9d01712c94a: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 69db5e2b-ce54-4b12-ba90-c9d01712c94a: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] dc1230c3-9280-493f-8624-4a23c35f6f9f: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] dc1230c3-9280-493f-8624-4a23c35f6f9f: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 0b68cec6-9579-4c7d-baeb-701fde10c285: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 0b68cec6-9579-4c7d-baeb-701fde10c285: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 170cdf60-3d4d-4a2b-a2a3-21bf9a15e646: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 170cdf60-3d4d-4a2b-a2a3-21bf9a15e646: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 9be913a4-ad21-4741-a634-d8c0945aabf5: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 9be913a4-ad21-4741-a634-d8c0945aabf5: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] c113d239-2725-47d3-b716-c0675214e9ff: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] c113d239-2725-47d3-b716-c0675214e9ff: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 8f2b6a4b-e25b-41e8-96d8-7212766e1b0a: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 8f2b6a4b-e25b-41e8-96d8-7212766e1b0a: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] 08a2ff12-91b5-4cc3-8cbd-92d341906072: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] 08a2ff12-91b5-4cc3-8cbd-92d341906072: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] ce9a23cb-9481-4dcd-ada6-f85c9553444f: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] ce9a23cb-9481-4dcd-ada6-f85c9553444f: isSelected=false, isSelectionMode=true
-LeadCard.tsx:215 [LeadCard MEMO] e5e7bad8-f543-4da1-9124-34b38f7dd0b3: Re-render por mudança no modo seleção
-LeadCard.tsx:51 [LeadCard RENDER] e5e7bad8-f543-4da1-9124-34b38f7dd0b3: isSelected=false, isSelectionMode=true
-useFunnelDataManager.ts:377 [FunnelDataManager] 🔴 Configurando realtime para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
-SalesFunnelContentUnified.tsx:187 [SalesFunnelContentUnified] 🛡️ GUARD: Filtros idênticos - ignorando para evitar loop
-useDragScroll.ts:62 [useDragScroll] 🎯 Iniciando drag-scroll
-useDragScroll.ts:85 [useDragScroll] ✋ Finalizando drag-scroll
-LeadCard.tsx:67 [LeadCard] 🖱️ CLICK DETECTADO: {target: 'text-sm text-muted-foreground line-clamp-1 flex-1 min-w-0', chatIconArea: false, returnToFunnelArea: false, wonButtonArea: false, lostButtonArea: false, …}
-useWonLostStages.ts:97 [useWonLostStages] 🎯 Etapas derivadas: {wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', wonStageTitle: 'GANHO', lostStageTitle: 'PERDIDO'}
-SalesFunnelContentUnified.tsx:414 [SalesFunnelContentUnified] 🎯 Etapas Won/Lost do hook específico: {wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', wonLostLoading: false, totalColumns: 9}
-ModernFunnelControlBarUnifiedV2.tsx:141 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: {allLeads: 124, availableTags: 2, availableUsers: 1, tags: Array(2), users: Array(1)}
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Entrada de Leads
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em atendimento
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em Cálculo
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para DESLIGAR IA
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em negociação
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em análise de venda
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Cliente fechado
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Follow Up
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para TESTE DE IA
-useFunnelDataManager.ts:377 [FunnelDataManager] 🔴 Configurando realtime para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
-SalesFunnelContentUnified.tsx:187 [SalesFunnelContentUnified] 🛡️ GUARD: Filtros idênticos - ignorando para evitar loop
-useDragScroll.ts:62 [useDragScroll] 🎯 Iniciando drag-scroll
-useDragScroll.ts:85 [useDragScroll] ✋ Finalizando drag-scroll
-LeadCard.tsx:67 [LeadCard] 🖱️ CLICK DETECTADO: {target: 'flex items-center gap-2 mb-1.5', chatIconArea: false, returnToFunnelArea: false, wonButtonArea: false, lostButtonArea: false, …}
-useWonLostStages.ts:97 [useWonLostStages] 🎯 Etapas derivadas: {wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', wonStageTitle: 'GANHO', lostStageTitle: 'PERDIDO'}
-SalesFunnelContentUnified.tsx:414 [SalesFunnelContentUnified] 🎯 Etapas Won/Lost do hook específico: {wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', wonLostLoading: false, totalColumns: 9}
-ModernFunnelControlBarUnifiedV2.tsx:141 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: {allLeads: 124, availableTags: 2, availableUsers: 1, tags: Array(2), users: Array(1)}
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Entrada de Leads
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em atendimento
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em Cálculo
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para DESLIGAR IA
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em negociação
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em análise de venda
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Cliente fechado
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Follow Up
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para TESTE DE IA
-useFunnelDataManager.ts:377 [FunnelDataManager] 🔴 Configurando realtime para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
-SalesFunnelContentUnified.tsx:170 [SalesFunnelContentUnified] 🚨 EMERGENCY THROTTLE: Bloqueando render por 666 ms
-useFunnelDataManager.ts:398 [FunnelDataManager] 📡 Atualização realtime leads: {schema: 'public', table: 'leads', commit_timestamp: '2025-09-26T22:51:02.681Z', eventType: 'UPDATE', new: {…}, …}
-SalesFunnelCoordinator.ts:104 [Coordinator] ⚡ Processando evento: realtime:update
-useFunnelDataManager.ts:449 [FunnelDataManager] 📡 Evento coordinator recebido: {type: 'realtime:update', payload: {…}, priority: 'high', source: 'FunnelDataManager', timestamp: 1758927061448}
-useWonLostStages.ts:97 [useWonLostStages] 🎯 Etapas derivadas: {wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', wonStageTitle: 'GANHO', lostStageTitle: 'PERDIDO'}
-SalesFunnelContentUnified.tsx:414 [SalesFunnelContentUnified] 🎯 Etapas Won/Lost do hook específico: {wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', wonLostLoading: false, totalColumns: 9}
-ModernFunnelControlBarUnifiedV2.tsx:141 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: {allLeads: 124, availableTags: 2, availableUsers: 1, tags: Array(2), users: Array(1)}
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Entrada de Leads
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em atendimento
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em Cálculo
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para DESLIGAR IA
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em negociação
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em análise de venda
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Cliente fechado
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Follow Up
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para TESTE DE IA
-useFunnelDataManager.ts:377 [FunnelDataManager] 🔴 Configurando realtime para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
-SalesFunnelContentUnified.tsx:187 [SalesFunnelContentUnified] 🛡️ GUARD: Filtros idênticos - ignorando para evitar loop
-useFunnelDataManager.ts:398 [FunnelDataManager] 📡 Atualização realtime leads: {schema: 'public', table: 'leads', commit_timestamp: '2025-09-26T22:51:04.046Z', eventType: 'UPDATE', new: {…}, …}
-SalesFunnelCoordinator.ts:104 [Coordinator] ⚡ Processando evento: realtime:update
-useFunnelDataManager.ts:449 [FunnelDataManager] 📡 Evento coordinator recebido: {type: 'realtime:update', payload: {…}, priority: 'high', source: 'FunnelDataManager', timestamp: 1758927062642}
-useWonLostStages.ts:97 [useWonLostStages] 🎯 Etapas derivadas: {wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', wonStageTitle: 'GANHO', lostStageTitle: 'PERDIDO'}
-SalesFunnelContentUnified.tsx:414 [SalesFunnelContentUnified] 🎯 Etapas Won/Lost do hook específico: {wonStageId: '0af2ce86-68f2-445a-91ca-4bda93e27145', lostStageId: '8cb6f24c-5d4f-44eb-ad1a-cde16c17aae4', wonLostLoading: false, totalColumns: 9}
-ModernFunnelControlBarUnifiedV2.tsx:141 [ModernFunnelControlBarUnifiedV2] Dados dos filtros: {allLeads: 124, availableTags: 2, availableUsers: 1, tags: Array(2), users: Array(1)}
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Entrada de Leads
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em atendimento
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em Cálculo
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para DESLIGAR IA
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em negociação
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Em análise de venda
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Cliente fechado
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para Follow Up
-KanbanColumnUnified.tsx:580 [KanbanColumnUnified] 🛡️ MEMO: Bloqueando re-render desnecessário para TESTE DE IA
-useFunnelDataManager.ts:377 [FunnelDataManager] 🔴 Configurando realtime para funil: 1b522686-c1be-4b96-93c5-bf79ac197dbf
-SalesFunnelContentUnified.tsx:170 [SalesFunnelContentUnified] 🚨 EMERGENCY THROTTLE: Bloqueando render por 813 ms
+
+logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 9936ae64-b78c-48fe-97e8-bf67623349c6
+whatsapp-chat:1 Access to fetch at 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/send-whatsapp-message' from origin 'http://localhost:8080' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status.Understand this error
+useWhatsAppMessagesManager.ts:234  POST https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/send-whatsapp-message net::ERR_FAILED
+(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:3916
+(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:3937
+fulfilled @ @supabase_supabase-js.js?v=3aeb0223:3889
+Promise.then
+step @ @supabase_supabase-js.js?v=3aeb0223:3902
+(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:3904
+__awaiter6 @ @supabase_supabase-js.js?v=3aeb0223:3886
+(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:3927
+(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:1259
+(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:1379
+(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:1329
+__awaiter @ @supabase_supabase-js.js?v=3aeb0223:1311
+invoke @ @supabase_supabase-js.js?v=3aeb0223:1353
+mutationFn @ useWhatsAppMessagesManager.ts:234
+fn @ @tanstack_react-query.js?v=3aeb0223:1236
+run @ @tanstack_react-query.js?v=3aeb0223:513
+start @ @tanstack_react-query.js?v=3aeb0223:555
+execute @ @tanstack_react-query.js?v=3aeb0223:1272
+await in execute
+mutate @ @tanstack_react-query.js?v=3aeb0223:2691
+(anonymous) @ useWhatsAppMessagesManager.ts:348
+onSendMessageWrapper @ WhatsAppChatContainer.tsx:54
+handleSend @ WhatsAppMessageInput.tsx:45
+callCallback2 @ chunk-276SZO74.js?v=3aeb0223:3674
+invokeGuardedCallbackDev @ chunk-276SZO74.js?v=3aeb0223:3699
+invokeGuardedCallback @ chunk-276SZO74.js?v=3aeb0223:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=3aeb0223:3736
+executeDispatch @ chunk-276SZO74.js?v=3aeb0223:7014
+processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=3aeb0223:7034
+processDispatchQueue @ chunk-276SZO74.js?v=3aeb0223:7043
+dispatchEventsForPlugins @ chunk-276SZO74.js?v=3aeb0223:7051
+(anonymous) @ chunk-276SZO74.js?v=3aeb0223:7174
+batchedUpdates$1 @ chunk-276SZO74.js?v=3aeb0223:18913
+batchedUpdates @ chunk-276SZO74.js?v=3aeb0223:3579
+dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=3aeb0223:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=3aeb0223:5478
+dispatchEvent @ chunk-276SZO74.js?v=3aeb0223:5472
+dispatchDiscreteEvent @ chunk-276SZO74.js?v=3aeb0223:5449Understand this error
+useWhatsAppMessagesManager.ts:245 [WhatsApp Messages Manager] ❌ Erro ao enviar mensagem: FunctionsFetchError: Failed to send a request to the Edge Function
+    at @supabase_supabase-js.js?v=3aeb0223:1388:17
+mutationFn @ useWhatsAppMessagesManager.ts:245
+await in mutationFn
+fn @ @tanstack_react-query.js?v=3aeb0223:1236
+run @ @tanstack_react-query.js?v=3aeb0223:513
+start @ @tanstack_react-query.js?v=3aeb0223:555
+execute @ @tanstack_react-query.js?v=3aeb0223:1272
+await in execute
+mutate @ @tanstack_react-query.js?v=3aeb0223:2691
+(anonymous) @ useWhatsAppMessagesManager.ts:348
+onSendMessageWrapper @ WhatsAppChatContainer.tsx:54
+handleSend @ WhatsAppMessageInput.tsx:45
+callCallback2 @ chunk-276SZO74.js?v=3aeb0223:3674
+invokeGuardedCallbackDev @ chunk-276SZO74.js?v=3aeb0223:3699
+invokeGuardedCallback @ chunk-276SZO74.js?v=3aeb0223:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=3aeb0223:3736
+executeDispatch @ chunk-276SZO74.js?v=3aeb0223:7014
+processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=3aeb0223:7034
+processDispatchQueue @ chunk-276SZO74.js?v=3aeb0223:7043
+dispatchEventsForPlugins @ chunk-276SZO74.js?v=3aeb0223:7051
+(anonymous) @ chunk-276SZO74.js?v=3aeb0223:7174
+batchedUpdates$1 @ chunk-276SZO74.js?v=3aeb0223:18913
+batchedUpdates @ chunk-276SZO74.js?v=3aeb0223:3579
+dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=3aeb0223:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=3aeb0223:5478
+dispatchEvent @ chunk-276SZO74.js?v=3aeb0223:5472
+dispatchDiscreteEvent @ chunk-276SZO74.js?v=3aeb0223:5449Understand this error
+useWhatsAppMessagesManager.ts:272 [WhatsApp Messages Manager] ❌ Falha no envio: FunctionsFetchError: Failed to send a request to the Edge Function
+    at @supabase_supabase-js.js?v=3aeb0223:1388:17
+onError @ useWhatsAppMessagesManager.ts:272
+execute @ @tanstack_react-query.js?v=3aeb0223:1301
+await in execute
+mutate @ @tanstack_react-query.js?v=3aeb0223:2691
+(anonymous) @ useWhatsAppMessagesManager.ts:348
+onSendMessageWrapper @ WhatsAppChatContainer.tsx:54
+handleSend @ WhatsAppMessageInput.tsx:45
+callCallback2 @ chunk-276SZO74.js?v=3aeb0223:3674
+invokeGuardedCallbackDev @ chunk-276SZO74.js?v=3aeb0223:3699
+invokeGuardedCallback @ chunk-276SZO74.js?v=3aeb0223:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=3aeb0223:3736
+executeDispatch @ chunk-276SZO74.js?v=3aeb0223:7014
+processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=3aeb0223:7034
+processDispatchQueue @ chunk-276SZO74.js?v=3aeb0223:7043
+dispatchEventsForPlugins @ chunk-276SZO74.js?v=3aeb0223:7051
+(anonymous) @ chunk-276SZO74.js?v=3aeb0223:7174
+batchedUpdates$1 @ chunk-276SZO74.js?v=3aeb0223:18913
+batchedUpdates @ chunk-276SZO74.js?v=3aeb0223:3579
+dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=3aeb0223:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=3aeb0223:5478
+dispatchEvent @ chunk-276SZO74.js?v=3aeb0223:5472
+dispatchDiscreteEvent @ chunk-276SZO74.js?v=3aeb0223:5449Understand this error
+useWhatsAppMessagesManager.ts:351 [WhatsApp Messages Manager] ❌ Erro no envio: FunctionsFetchError: Failed to send a request to the Edge Function
+    at @supabase_supabase-js.js?v=3aeb0223:1388:17
+(anonymous) @ useWhatsAppMessagesManager.ts:351
+await in (anonymous)
+onSendMessageWrapper @ WhatsAppChatContainer.tsx:54
+handleSend @ WhatsAppMessageInput.tsx:45
+callCallback2 @ chunk-276SZO74.js?v=3aeb0223:3674
+invokeGuardedCallbackDev @ chunk-276SZO74.js?v=3aeb0223:3699
+invokeGuardedCallback @ chunk-276SZO74.js?v=3aeb0223:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=3aeb0223:3736
+executeDispatch @ chunk-276SZO74.js?v=3aeb0223:7014
+processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=3aeb0223:7034
+processDispatchQueue @ chunk-276SZO74.js?v=3aeb0223:7043
+dispatchEventsForPlugins @ chunk-276SZO74.js?v=3aeb0223:7051
+(anonymous) @ chunk-276SZO74.js?v=3aeb0223:7174
+batchedUpdates$1 @ chunk-276SZO74.js?v=3aeb0223:18913
+batchedUpdates @ chunk-276SZO74.js?v=3aeb0223:3579
+dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=3aeb0223:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=3aeb0223:5478
+dispatchEvent @ chunk-276SZO74.js?v=3aeb0223:5472
+dispatchDiscreteEvent @ chunk-276SZO74.js?v=3aeb0223:5449Understand this error
+WhatsAppChatContainer.tsx:55 [WhatsAppChatContainer] ✅ Resultado de sendMessage (modular): false
+WhatsAppMessageInput.tsx:46 [WhatsAppMessageInput] ✅ Resultado do envio (texto): false
+WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: 

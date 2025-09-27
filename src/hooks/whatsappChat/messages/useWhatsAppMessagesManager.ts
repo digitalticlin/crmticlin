@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { whatsappChatMessagesQueryKeys, whatsappChatInvalidation } from '../queryKeys';
 import { useWhatsAppChatCoordinator } from '../core/useWhatsAppChatCoordinator';
 import { Contact, Message } from '@/types/chat';
+import { useMessagesRealtime } from '@/hooks/whatsapp/realtime/useMessagesRealtime';
 
 interface UseWhatsAppMessagesManagerParams {
   selectedContact: Contact | null;
@@ -35,6 +36,10 @@ interface UseWhatsAppMessagesManagerReturn {
   // Estados
   isSending: boolean;
   lastMessage: Message | null;
+
+  // Stats de realtime (WebSocket)
+  realtimeConnected: boolean;
+  realtimeTotalEvents: number;
 }
 
 const MESSAGES_PER_PAGE = 50;
@@ -173,12 +178,126 @@ export const useWhatsAppMessagesManager = ({
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     enabled: !!selectedContact?.id && !!activeInstanceId && !!user?.id,
-    staleTime: 10000, // 10 segundos
-    refetchOnWindowFocus: false,
-    refetchInterval: enableAutoRefresh ? 30000 : false // Auto-refresh a cada 30s
+    staleTime: 30000,
+    refetchOnWindowFocus: false
   });
 
-  // Mutation para envio de mensagens
+  // WebSocket Real-time para mensagens (substitui polling)
+  const realtimeMessages = useMessagesRealtime({
+    selectedContact,
+    activeInstance: activeInstanceId ? {
+      id: activeInstanceId,
+      instance_name: '',
+      connection_status: 'connected'
+    } : null,
+    onNewMessage: useCallback((message: any) => {
+      console.log('[WhatsApp Messages Manager] 🔥 Nova mensagem via WebSocket:', message.id);
+
+      const queryKey = whatsappChatMessagesQueryKeys.infinite(
+        selectedContact?.id || '',
+        activeInstanceId || '',
+        user?.id || ''
+      );
+
+      // ATUALIZAR cache diretamente
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old) return old;
+
+        let messageReplaced = false;
+
+        // Primeiro: tentar SUBSTITUIR mensagem temp (se from_me)
+        const newPages = old.pages.map((page: any) => {
+          const newData = page.data.map((msg: Message) => {
+            // Se for temp e o texto bater, SUBSTITUIR
+            if (msg.id.startsWith('temp-') && msg.text === message.text && message.fromMe) {
+              console.log('[WhatsApp Messages Manager] 🔄 Substituindo mensagem temp:', msg.id, '→', message.id);
+              messageReplaced = true;
+              return message;
+            }
+            return msg;
+          });
+
+          return {
+            ...page,
+            data: newData
+          };
+        });
+
+        // Se substituiu, retornar
+        if (messageReplaced) {
+          return {
+            ...old,
+            pages: newPages
+          };
+        }
+
+        // Segundo: verificar se mensagem real já existe
+        const exists = old.pages.some((page: any) =>
+          page.data.some((msg: Message) => msg.id === message.id)
+        );
+
+        if (exists) {
+          console.log('[WhatsApp Messages Manager] ⚠️ Mensagem já existe, ignorando');
+          return old;
+        }
+
+        // Terceiro: se não substituiu e não existe, adicionar nova mensagem
+        console.log('[WhatsApp Messages Manager] ✅ Nova mensagem via WebSocket:', {
+          id: message.id,
+          fromMe: message.fromMe,
+          text: message.text?.substring(0, 30)
+        });
+
+        const lastPageIndex = newPages.length - 1;
+        newPages[lastPageIndex] = {
+          ...newPages[lastPageIndex],
+          data: [...newPages[lastPageIndex].data, message]
+        };
+
+        return {
+          ...old,
+          pages: newPages
+        };
+      });
+    }, [selectedContact?.id, activeInstanceId, user?.id, queryClient]),
+    onMessageUpdate: useCallback((message: any) => {
+      console.log('[WhatsApp Messages Manager] 🔄 Mensagem atualizada via WebSocket:', message.id, 'Status:', message.status);
+
+      const queryKey = whatsappChatMessagesQueryKeys.infinite(
+        selectedContact?.id || '',
+        activeInstanceId || '',
+        user?.id || ''
+      );
+
+      // ATUALIZAR status diretamente no cache
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old) return old;
+
+        const newPages = old.pages.map((page: any) => ({
+          ...page,
+          data: page.data.map((msg: Message) => {
+            if (msg.id === message.id) {
+              console.log('[WhatsApp Messages Manager] ✅ Atualizando status:', msg.status, '→', message.status);
+              return {
+                ...msg,
+                ...message,
+                status: message.status || msg.status
+              };
+            }
+            return msg;
+          })
+        }));
+
+        return {
+          ...old,
+          pages: newPages
+        };
+      });
+    }, [selectedContact?.id, activeInstanceId, user?.id, queryClient]),
+    enabled: enableAutoRefresh && !!selectedContact?.id && !!activeInstanceId
+  });
+
+  // Mutation para envio de mensagens COM OPTIMISTIC UPDATE
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, mediaType, mediaUrl }: { content: string; mediaType?: string; mediaUrl?: string }) => {
       if (!selectedContact?.id || !activeInstanceId || !user?.id) {
@@ -187,18 +306,20 @@ export const useWhatsAppMessagesManager = ({
 
       console.log('[WhatsApp Messages Manager] 📤 Enviando mensagem:', {
         contactId: selectedContact.id,
+        phone: selectedContact.phone,
         hasMedia: !!mediaUrl,
         contentPreview: content.substring(0, 50)
       });
 
-      // Enviar via API do WhatsApp
-      const { data, error } = await supabase.functions.invoke('send-whatsapp-message', {
+      // Enviar via Edge Function WhatsApp (isolada - RPC direta)
+      const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
         body: {
+          action: 'send_message',
           instanceId: activeInstanceId,
-          chatId: selectedContact.id,
-          content,
-          mediaType,
-          mediaUrl
+          phone: selectedContact.phone,
+          message: content,
+          mediaType: mediaType || 'text',
+          mediaUrl: mediaUrl || null
         }
       });
 
@@ -209,17 +330,83 @@ export const useWhatsAppMessagesManager = ({
 
       return data;
     },
-    onSuccess: (data) => {
-      console.log('[WhatsApp Messages Manager] ✅ Mensagem enviada com sucesso');
+    onMutate: async ({ content, mediaType, mediaUrl }) => {
+      console.log('[WhatsApp Messages Manager] ⚡ OPTIMISTIC UPDATE - Adicionando mensagem temporária');
 
-      // Invalidar queries de mensagens
-      queryClient.invalidateQueries({
-        queryKey: whatsappChatMessagesQueryKeys.byContact(
-          selectedContact?.id || '',
-          activeInstanceId || '',
-          user?.id || ''
-        )
+      // Cancelar queries em andamento
+      const queryKey = whatsappChatMessagesQueryKeys.infinite(
+        selectedContact?.id || '',
+        activeInstanceId || '',
+        user?.id || ''
+      );
+
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot do estado anterior (para rollback)
+      const previousMessages = queryClient.getQueryData(queryKey);
+
+      // Criar mensagem otimista
+      const optimisticMessage: Message = {
+        id: `temp-${Date.now()}`,
+        text: content,
+        content: content,
+        fromMe: true,
+        isFromMe: true,
+        timestamp: new Date().toISOString(),
+        status: 'pending',
+        mediaType: (mediaType || 'text') as any,
+        messageType: (mediaType || 'text') as any,
+        mediaUrl: mediaUrl || null,
+        sender: 'user',
+        time: new Date().toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        isIncoming: false,
+        media_cache: null,
+        chatId: selectedContact?.id || '',
+        instanceId: activeInstanceId || '',
+        leadId: selectedContact?.id || ''
+      };
+
+      // Atualizar cache IMEDIATAMENTE
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old) {
+          return {
+            pages: [{ data: [optimisticMessage], hasMore: false }],
+            pageParams: [0]
+          };
+        }
+
+        // Adicionar mensagem na última página
+        const newPages = [...old.pages];
+        const lastPageIndex = newPages.length - 1;
+        newPages[lastPageIndex] = {
+          ...newPages[lastPageIndex],
+          data: [...newPages[lastPageIndex].data, optimisticMessage]
+        };
+
+        return {
+          ...old,
+          pages: newPages
+        };
       });
+
+      console.log('[WhatsApp Messages Manager] ✅ Mensagem otimista adicionada ao cache');
+
+      return { previousMessages, optimisticMessage };
+    },
+    onSuccess: (data, variables, context) => {
+      console.log('[WhatsApp Messages Manager] ✅ Mensagem enviada com sucesso', {
+        tempId: context?.optimisticMessage?.id,
+        realId: data?.id || data?.message_id
+      });
+
+      // IMPORTANTE: Não fazer nada aqui!
+      // O WebSocket vai detectar o INSERT e fazer a substituição automaticamente
+      // Isso evita duplicação (onSuccess + WebSocket fazendo a mesma coisa)
+
+      console.log('[WhatsApp Messages Manager] ⏳ Aguardando WebSocket substituir mensagem temp');
 
       // Notificar coordinator
       coordinator.emit({
@@ -229,8 +416,18 @@ export const useWhatsAppMessagesManager = ({
         source: 'MessagesManager'
       });
     },
-    onError: (error) => {
-      console.error('[WhatsApp Messages Manager] ❌ Falha no envio:', error);
+    onError: (error, variables, context) => {
+      console.error('[WhatsApp Messages Manager] ❌ Falha no envio - revertendo optimistic update');
+
+      // Rollback: restaurar estado anterior
+      if (context?.previousMessages) {
+        const queryKey = whatsappChatMessagesQueryKeys.infinite(
+          selectedContact?.id || '',
+          activeInstanceId || '',
+          user?.id || ''
+        );
+        queryClient.setQueryData(queryKey, context.previousMessages);
+      }
     }
   });
 
@@ -348,6 +545,10 @@ export const useWhatsAppMessagesManager = ({
 
     // Estados
     isSending: sendMessageMutation.isPending,
-    lastMessage
+    lastMessage,
+
+    // Stats de realtime
+    realtimeConnected: realtimeMessages.isConnected,
+    realtimeTotalEvents: realtimeMessages.totalEvents
   };
 };

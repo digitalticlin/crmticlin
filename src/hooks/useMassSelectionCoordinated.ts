@@ -59,12 +59,20 @@ export const useMassSelectionCoordinated = (coordinator: SalesFunnelCoordinatorR
   }, [selectedLeads]);
 
   const selectLead = useCallback((leadId: string) => {
-    if (!coordinator.canExecute('selection:toggle')) return;
+    if (!coordinator.canExecute('selection:toggle')) {
+      console.log('[useMassSelectionCoordinated] ❌ NÃO PODE EXECUTAR selection:toggle');
+      return;
+    }
 
+    console.log('[useMassSelectionCoordinated] ✅ Adicionando lead ao Set:', leadId);
     setSelectedLeads(prev => {
-      if (prev.has(leadId)) return prev;
+      if (prev.has(leadId)) {
+        console.log('[useMassSelectionCoordinated] ⚠️ Lead já estava selecionado, ignorando');
+        return prev;
+      }
       const newSet = new Set(prev);
       newSet.add(leadId);
+      console.log('[useMassSelectionCoordinated] ✅ Novo Set criado, tamanho:', newSet.size);
       stageSelectionCache.current.clear();
       return newSet;
     });
@@ -89,13 +97,19 @@ export const useMassSelectionCoordinated = (coordinator: SalesFunnelCoordinatorR
   }, [isSelectionMode, coordinator]);
 
   const unselectLead = useCallback((leadId: string) => {
+    console.log('[useMassSelectionCoordinated] 🗑️ Removendo lead do Set:', leadId);
     setSelectedLeads(prev => {
-      if (!prev.has(leadId)) return prev;
+      if (!prev.has(leadId)) {
+        console.log('[useMassSelectionCoordinated] ⚠️ Lead não estava selecionado, ignorando');
+        return prev;
+      }
       const newSet = new Set(prev);
       newSet.delete(leadId);
+      console.log('[useMassSelectionCoordinated] ✅ Lead removido, novo tamanho:', newSet.size);
       stageSelectionCache.current.clear();
 
       if (newSet.size === 0) {
+        console.log('[useMassSelectionCoordinated] 🚫 Set vazio, saindo do modo seleção');
         setIsSelectionMode(false);
       }
       return newSet;
@@ -103,9 +117,17 @@ export const useMassSelectionCoordinated = (coordinator: SalesFunnelCoordinatorR
   }, []);
 
   const toggleLead = useCallback((leadId: string) => {
+    console.log('[useMassSelectionCoordinated] 🔄 toggleLead chamado:', {
+      leadId,
+      isCurrentlySelected: selectedLeads.has(leadId),
+      selectedLeadsSize: selectedLeads.size
+    });
+
     if (selectedLeads.has(leadId)) {
+      console.log('[useMassSelectionCoordinated] ➖ Desmarcando lead:', leadId);
       unselectLead(leadId);
     } else {
+      console.log('[useMassSelectionCoordinated] ➕ Marcando lead:', leadId);
       selectLead(leadId);
     }
   }, [selectedLeads, selectLead, unselectLead]);
@@ -181,28 +203,44 @@ export const useMassSelectionCoordinated = (coordinator: SalesFunnelCoordinatorR
 
       const leadIds = allStageLeads.map(lead => lead.id);
 
+      // Verificar se todos já estão selecionados
+      const allSelected = leadIds.every(id => selectedLeads.has(id));
+
       setSelectedLeads(prev => {
         const newSet = new Set(prev);
-        leadIds.forEach(id => newSet.add(id));
+
+        if (allSelected) {
+          // Se todos estão selecionados, DESMARCAR todos
+          leadIds.forEach(id => newSet.delete(id));
+
+          if (newSet.size === 0) {
+            setIsSelectionMode(false);
+          }
+
+          toast.success(`${leadIds.length} leads desmarcados da etapa`);
+        } else {
+          // Se nem todos estão selecionados, SELECIONAR todos
+          leadIds.forEach(id => newSet.add(id));
+          setIsSelectionMode(true);
+          toast.success(`${leadIds.length} leads selecionados da etapa`);
+        }
+
         return newSet;
       });
 
-      setIsSelectionMode(true);
       stageSelectionCache.current.clear();
 
-      toast.success(`${leadIds.length} leads selecionados da etapa`);
-
       coordinator.emit({
-        type: 'selection:stage-selected',
+        type: allSelected ? 'selection:stage-unselected' : 'selection:stage-selected',
         payload: { stageId, count: leadIds.length },
         priority: 'normal',
         source: 'MassSelection'
       });
     } catch (error) {
       console.error('[useMassSelectionCoordinated] Erro ao selecionar todos da etapa:', error);
-      toast.error('Erro ao selecionar leads da etapa');
+      toast.error('Erro ao processar leads da etapa');
     }
-  }, [coordinator]);
+  }, [coordinator, selectedLeads]);
 
   const getStageSelectionState = useCallback((stageLeads: KanbanLead[]) => {
     if (stageLeads.length === 0) return 'none';
