@@ -15,13 +15,13 @@ import {
   CreditCard
 } from 'lucide-react';
 import { useBillingData } from '../hooks/useBillingData';
-import { useMercadoPagoCheckout } from '../hooks/useMercadoPagoCheckout';
+import { useStripeCheckout } from '../hooks/useStripeCheckout';
 import { messagePlans } from '../data/messagePlans';
 import { useNavigate } from 'react-router-dom';
 
 export const PlansActionCards = () => {
   const billing = useBillingData();
-  const { createCheckoutSession, loading } = useMercadoPagoCheckout();
+  const { createCheckoutSession, loading } = useStripeCheckout();
   const navigate = useNavigate();
 
   // Loading state

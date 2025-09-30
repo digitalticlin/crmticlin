@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import { useMercadoPagoCheckout } from '../hooks/useMercadoPagoCheckout';
 import { messagePlans } from '../data/messagePlans';
 
 export const QuickStatus = () => {
+  const navigate = useNavigate();
   const billing = useBillingData();
   const { createCheckoutSession, loading } = useMercadoPagoCheckout();
 
@@ -69,7 +71,7 @@ export const QuickStatus = () => {
         text: 'Fazer Upgrade',
         icon: TrendingUp,
         variant: 'default' as const,
-        action: () => document.getElementById('plans-section')?.scrollIntoView({ behavior: 'smooth' })
+        action: () => navigate('/plans/upgrade')
       };
     }
 
@@ -82,7 +84,7 @@ export const QuickStatus = () => {
           text: 'Escolher Plano',
           icon: TrendingUp,
           variant: 'default' as const,
-          action: () => document.getElementById('plans-section')?.scrollIntoView({ behavior: 'smooth' })
+          action: () => navigate('/plans/upgrade')
         };
       }
 
@@ -90,7 +92,7 @@ export const QuickStatus = () => {
         text: 'Ver Planos',
         icon: MessageSquare,
         variant: 'outline' as const,
-        action: () => document.getElementById('plans-section')?.scrollIntoView({ behavior: 'smooth' })
+        action: () => navigate('/plans/upgrade')
       };
     }
 
@@ -144,9 +146,6 @@ export const QuickStatus = () => {
               <StatusIcon className="h-5 w-5 text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground">Status</span>
             </div>
-            <Badge className={statusInfo.color}>
-              {statusInfo.label}
-            </Badge>
           </div>
 
           <div className="space-y-1">
@@ -203,30 +202,26 @@ export const QuickStatus = () => {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Próxima Ação</span>
+              <span className="text-sm font-medium text-muted-foreground">Upgrade</span>
             </div>
           </div>
 
           <div className="space-y-3">
+            <p className="text-2xl font-bold">
+              🚀 Faça Upgrade
+            </p>
             <p className="text-sm text-muted-foreground">
-              {isBlocked ? 'Reative sua conta para continuar' :
-               isOverdue ? 'Regularize seu pagamento' :
-               percentage >= 90 ? 'Considere fazer upgrade' :
-               hasActiveTrial && daysLeft <= 3 ? 'Escolha um plano antes que expire' :
-               hasActiveTrial ? 'Explore nossos planos pagos' :
-               !hasActiveTrial && !hasActiveSubscription ? 'Comece seu trial gratuito' :
-               'Tudo funcionando perfeitamente'}
+              Libere mais mensagens e recursos avançados!
             </p>
 
             <Button
               size="sm"
-              variant={nextAction.variant}
               onClick={nextAction.action}
               disabled={loading}
               className="w-full"
             >
               <ActionIcon className="h-4 w-4 mr-2" />
-              {loading ? 'Processando...' : nextAction.text}
+              {loading ? 'Carregando...' : 'Ver Planos'}
             </Button>
           </div>
         </CardContent>

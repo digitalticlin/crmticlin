@@ -91,6 +91,7 @@ export const BILLING_STALE_TIMES = {
   SUBSCRIPTION: 1000 * 60 * 30, // 30 minutos
   TRIAL: 1000 * 60 * 60, // 1 hora
   PAYMENTS: 1000 * 60 * 15, // 15 minutos
+  PAYMENT_HISTORY: 1000 * 60 * 5, // 5 minutos
 } as const;
 
 /**

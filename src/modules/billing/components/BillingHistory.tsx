@@ -15,66 +15,20 @@ import {
   Download,
   Eye,
   AlertTriangle,
-  Settings,
-  Edit
+  Settings
 } from 'lucide-react';
 import { useBillingData } from '../hooks/useBillingData';
+import { usePaymentHistory } from '../hooks/usePaymentHistory';
 
 export const BillingHistory = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const billing = useBillingData();
+  const { history, isLoading: historyLoading } = usePaymentHistory();
 
-  if (billing.isLoading) {
+  // Mostrar loading se qualquer um dos hooks estiver carregando
+  if (billing.isLoading || historyLoading) {
     return <BillingHistorySkeleton />;
   }
-
-  // Mock data para demonstração - em produção viria da API
-  const mockHistory = [
-    {
-      id: '1',
-      date: new Date('2024-01-15'),
-      type: 'payment',
-      status: 'completed',
-      amount: 39900,
-      plan: 'pro_5k',
-      description: 'Plano Profissional - Janeiro 2024',
-      paymentMethod: 'Cartão •••• 4532',
-      invoiceUrl: '#'
-    },
-    {
-      id: '2',
-      date: new Date('2023-12-15'),
-      type: 'payment',
-      status: 'completed',
-      amount: 39900,
-      plan: 'pro_5k',
-      description: 'Plano Profissional - Dezembro 2023',
-      paymentMethod: 'PIX',
-      invoiceUrl: '#'
-    },
-    {
-      id: '3',
-      date: new Date('2023-11-15'),
-      type: 'trial',
-      status: 'completed',
-      amount: 0,
-      plan: 'free_200',
-      description: 'Trial Gratuito Ativado',
-      paymentMethod: 'N/A',
-      invoiceUrl: null
-    },
-    {
-      id: '4',
-      date: new Date('2023-10-20'),
-      type: 'payment',
-      status: 'failed',
-      amount: 39900,
-      plan: 'pro_5k',
-      description: 'Tentativa de Pagamento - Falhou',
-      paymentMethod: 'Cartão •••• 1234',
-      invoiceUrl: null
-    }
-  ];
 
   const getStatusConfig = (status: string, type: string) => {
     if (status === 'completed') {
@@ -125,7 +79,7 @@ export const BillingHistory = () => {
     }).format(amount / 100);
   };
 
-  const visibleHistory = isExpanded ? mockHistory : mockHistory.slice(0, 3);
+  const visibleHistory = isExpanded ? history : history.slice(0, 3);
 
   return (
     <Card className="rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl transition-all duration-500 hover:shadow-3xl hover:bg-white/40 animate-fade-in">
@@ -183,16 +137,10 @@ export const BillingHistory = () => {
                    billing.hasActiveTrial ? 'Trial ativo' : 'Nenhuma assinatura ativa'}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-white/30 backdrop-blur-sm">
-                  {billing.currentPlan === 'pro_5k' ? 'R$ 399/mês' :
-                   billing.currentPlan === 'ultra_15k' ? 'R$ 799/mês' : 'Gratuito'}
-                </Badge>
-                <Button variant="outline" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Gerenciar
-                </Button>
-              </div>
+              <Badge variant="outline" className="bg-white/30 backdrop-blur-sm">
+                {billing.currentPlan === 'pro_5k' ? 'R$ 399/mês' :
+                 billing.currentPlan === 'ultra_15k' ? 'R$ 799/mês' : 'Gratuito'}
+              </Badge>
             </div>
           </div>
         </div>
@@ -204,7 +152,7 @@ export const BillingHistory = () => {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Histórico de Pagamentos</h3>
 
-        {mockHistory.length === 0 ? (
+        {history.length === 0 ? (
           <div className="text-center py-8">
             <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
             <h3 className="font-semibold mb-2">Nenhum histórico ainda</h3>
@@ -283,7 +231,7 @@ export const BillingHistory = () => {
           </div>
         )}
 
-        {!isExpanded && mockHistory.length > 3 && (
+        {!isExpanded && history.length > 3 && (
           <div className="text-center pt-2">
             <Button
               variant="ghost"
@@ -291,15 +239,15 @@ export const BillingHistory = () => {
               onClick={() => setIsExpanded(true)}
               className="text-primary"
             >
-              Ver mais {mockHistory.length - 3} itens
+              Ver mais {history.length - 3} itens
             </Button>
           </div>
         )}
 
-        {isExpanded && mockHistory.length > 3 && (
+        {isExpanded && history.length > 3 && (
           <div className="text-center pt-2 border-t">
             <p className="text-sm text-muted-foreground mb-2">
-              Mostrando todos os {mockHistory.length} itens
+              Mostrando todos os {history.length} itens
             </p>
             <Button
               variant="ghost"

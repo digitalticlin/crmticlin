@@ -152,8 +152,8 @@ async function handleCheckoutCompleted(supabase: any, session: Stripe.Checkout.S
       throw new Error(`Failed to update subscription: ${error.message || JSON.stringify(error)}`);
     }
 
-    // Criar message_usage_tracking
-    await supabase
+    // Atualizar/Criar message_usage_tracking com novo limite de mensagens
+    const { error: trackingError } = await supabase
       .from('message_usage_tracking')
       .upsert({
         user_id: userId,
@@ -164,8 +164,16 @@ async function handleCheckoutCompleted(supabase: any, session: Stripe.Checkout.S
         messages_received_count: 0,
         total_messages_count: 0,
         ai_messages_sent: 0,
-        status: 'active'
+        status: 'active',
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id',
+        ignoreDuplicates: false
       });
+
+    if (trackingError) {
+      logStep("Error updating message_usage_tracking", { error: trackingError.message });
+    }
 
     logStep("Subscription activated", { userId, planType, memberLimit, messageLimit });
   } catch (error) {
@@ -249,19 +257,25 @@ async function handleSubscriptionCanceled(supabase: any, subscription: Stripe.Su
 async function handlePaymentSucceeded(supabase: any, invoice: Stripe.Invoice) {
   logStep("Processing payment succeeded", {
     invoiceId: invoice.id,
-    subscriptionId: invoice.subscription
+    subscriptionId: invoice.subscription,
+    amountPaid: invoice.amount_paid,
+    currency: invoice.currency
   });
 
   if (!invoice.subscription) return;
 
   const { data: subscription } = await supabase
     .from('plan_subscriptions')
-    .select('user_id')
+    .select('user_id, plan_type')
     .eq('stripe_subscription_id', invoice.subscription)
     .single();
 
-  if (!subscription) return;
+  if (!subscription) {
+    logStep("Subscription not found for invoice", { subscriptionId: invoice.subscription });
+    return;
+  }
 
+  // Atualizar plan_subscriptions
   await supabase
     .from('plan_subscriptions')
     .update({
@@ -271,7 +285,41 @@ async function handlePaymentSucceeded(supabase: any, invoice: Stripe.Invoice) {
     })
     .eq('user_id', subscription.user_id);
 
-  logStep("Payment recorded", { userId: subscription.user_id });
+  // 🆕 Criar registro em payment_history
+  const amountInReais = invoice.amount_paid / 100; // Stripe retorna em centavos
+  const { error: paymentError } = await supabase
+    .from('payment_history')
+    .insert({
+      user_id: subscription.user_id,
+      payment_id: invoice.id,
+      payment_method: invoice.payment_intent ? 'credit_card' : 'stripe',
+      status: 'approved',
+      amount: amountInReais,
+      plan_type: subscription.plan_type,
+      gateway: 'stripe',
+      gateway_response: {
+        invoice_id: invoice.id,
+        subscription_id: invoice.subscription,
+        amount_paid: invoice.amount_paid,
+        currency: invoice.currency,
+        receipt_url: invoice.hosted_invoice_url
+      },
+      paid_at: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    });
+
+  if (paymentError) {
+    logStep("ERROR creating payment_history", {
+      error: paymentError.message,
+      details: paymentError
+    });
+  } else {
+    logStep("Payment recorded in payment_history", {
+      userId: subscription.user_id,
+      amount: amountInReais,
+      planType: subscription.plan_type
+    });
+  }
 }
 
 async function handlePaymentFailed(supabase: any, invoice: Stripe.Invoice) {

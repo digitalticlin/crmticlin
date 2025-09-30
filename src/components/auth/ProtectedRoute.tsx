@@ -1,5 +1,5 @@
 
-import React, { ReactNode } from "react";
+import React, { ReactNode, useRef, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -13,21 +13,26 @@ const ProtectedRoute = React.memo(({ children, requiredRole }: ProtectedRoutePro
   const { user, loading: authLoading } = useAuth();
   const { role, loading: roleLoading, isAdmin } = useUserRole();
   const location = useLocation();
+  const lastLogRef = useRef<string>('');
 
-  console.log('[ProtectedRoute] 🛡️ Verificando acesso:', {
-    pathname: location.pathname,
-    hasUser: !!user,
-    authLoading,
-    roleLoading,
-    userRole: role,
-    requiredRole,
-    userEmail: user?.email,
-    timestamp: new Date().toISOString()
-  });
+  // Log apenas quando realmente mudar algo importante
+  useEffect(() => {
+    const currentState = `${location.pathname}-${!!user}-${authLoading}-${roleLoading}-${role}`;
+    if (lastLogRef.current !== currentState) {
+      console.log('[ProtectedRoute] 🛡️ Verificando acesso:', {
+        pathname: location.pathname,
+        hasUser: !!user,
+        authLoading,
+        roleLoading,
+        userRole: role,
+        requiredRole
+      });
+      lastLogRef.current = currentState;
+    }
+  }, [location.pathname, user, authLoading, roleLoading, role, requiredRole]);
 
   // Se ainda estamos carregando, mostrar loading
   if (authLoading || roleLoading) {
-    console.log('[ProtectedRoute] ⏳ Carregando autenticação e roles...');
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div 
@@ -51,7 +56,6 @@ const ProtectedRoute = React.memo(({ children, requiredRole }: ProtectedRoutePro
 
   // Se não há usuário autenticado, redirecionar para login
   if (!user) {
-    console.log('[ProtectedRoute] 🚫 Usuário não autenticado, redirecionando para login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -98,7 +102,6 @@ const ProtectedRoute = React.memo(({ children, requiredRole }: ProtectedRoutePro
   }
 
   // Se há usuário autenticado e tem permissões, renderizar o conteúdo
-  console.log('[ProtectedRoute] ✅ Usuário autenticado e autorizado');
   return <>{children}</>;
 });
 

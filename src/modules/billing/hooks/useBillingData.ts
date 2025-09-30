@@ -164,6 +164,13 @@ export const useBillingData = () => {
     const isBlocked = subscription?.platform_blocked_at !== null;
     const isOverdue = subscription?.payment_overdue_since !== null;
 
+    // 🔒 LÓGICA CORRETA: Usuário pode ativar trial SE:
+    // 1. Nunca ativou trial antes (trial === null OU não existe registro)
+    // 2. E não tem has_used_free_trial = true na subscription
+    // 3. E não tem plano pago ativo atualmente
+    const hasUsedFreeTrial = subscription?.has_used_free_trial === true || trial !== null;
+    const canActivateTrial = !hasUsedFreeTrial && !hasActiveSubscription;
+
     // Determinar plano atual
     const currentPlan = subscription?.plan_type || (hasActiveTrial ? 'free_200' : null);
 
@@ -197,6 +204,7 @@ export const useBillingData = () => {
       isOverdue,
       currentPlan,
       billingStatus,
+      hasUsedFreeTrial, // ✅ Novo campo para rastreamento
 
       // Métricas de uso
       currentUsage,
@@ -205,7 +213,7 @@ export const useBillingData = () => {
       remaining: Math.max(effectiveLimit - currentUsage, 0),
 
       // Flags de estado
-      canActivateTrial: !hasActiveTrial && !hasActiveSubscription && !subscription,
+      canActivateTrial, // ✅ Agora com lógica correta
       needsUpgrade: percentage >= 90 || currentUsage >= effectiveLimit,
       isNearLimit: percentage >= 75,
     };

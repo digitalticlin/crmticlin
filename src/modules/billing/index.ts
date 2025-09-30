@@ -7,6 +7,9 @@
 export { useBillingData, useBillingPermissions } from './hooks/useBillingData';
 export { useMessageUsage } from './hooks/useMessageUsage';
 export { useMercadoPagoCheckout } from './hooks/useMercadoPagoCheckout';
+export { useStripeCheckout } from './hooks/useStripeCheckout';
+export { usePaymentHistory } from './hooks/usePaymentHistory';
+export type { PaymentHistoryItem } from './hooks/usePaymentHistory';
 
 // Componentes principais
 export { BillingErrorBoundary, withBillingErrorBoundary, useBillingErrorHandler } from './components/BillingErrorBoundary';

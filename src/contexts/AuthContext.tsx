@@ -63,12 +63,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('[Auth] 📡', event, session?.user?.email);
-        
+
+        // Ignorar eventos TOKEN_REFRESHED para evitar loops
+        if (event === 'TOKEN_REFRESHED') {
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
         setIsInitialized(true);
-        
+
         // 🎯 CHAVE: Só redirecionar em SIGNED_IN/SIGNED_OUT, nunca em INITIAL_SESSION
         if (event === 'SIGNED_IN' && window.location.pathname.includes('/login')) {
           const from = (location.state as any)?.from?.pathname;
@@ -84,7 +89,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     );
 
     return () => subscription.unsubscribe();
-  }, [navigate, location.state]);
+  }, [navigate]);
 
   const signIn = async (email: string, password: string) => {
     try {
