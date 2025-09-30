@@ -275,6 +275,8 @@ async function handlePaymentSucceeded(supabase: any, invoice: Stripe.Invoice) {
     return;
   }
 
+  logStep("Found subscription for payment", { userId: subscription.user_id, planType: subscription.plan_type });
+
   // Atualizar plan_subscriptions
   await supabase
     .from('plan_subscriptions')
@@ -285,8 +287,11 @@ async function handlePaymentSucceeded(supabase: any, invoice: Stripe.Invoice) {
     })
     .eq('user_id', subscription.user_id);
 
+  logStep("Updated plan_subscriptions with payment dates");
+
   // 🆕 Criar registro em payment_history
   const amountInReais = invoice.amount_paid / 100; // Stripe retorna em centavos
+  logStep("Attempting to create payment_history", { userId: subscription.user_id, amount: amountInReais });
   const { error: paymentError } = await supabase
     .from('payment_history')
     .insert({

@@ -108,11 +108,12 @@ export const QuickStatus = () => {
       };
     }
 
+    // Usuário com plano pago ativo - pode fazer upgrade
     return {
-      text: 'Gerenciar',
-      icon: CreditCard,
+      text: 'Ver Planos',
+      icon: TrendingUp,
       variant: 'outline' as const,
-      action: () => document.getElementById('billing-section')?.scrollIntoView({ behavior: 'smooth' })
+      action: () => navigate('/plans/upgrade')
     };
   };
 

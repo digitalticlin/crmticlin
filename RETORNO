@@ -1,25 +1,25 @@
-[STRIPE-WEBHOOK] Subscription activated - {"userId":"0cea854b-ba27-40f3-afde-47bfd8a39bc8","planType":"ultra_15k","memberLimit":999,"messageLimit":15000}
-[STRIPE-WEBHOOK] Processing checkout completed - {"sessionId":"cs_test_a11YMYPU2Vewku9bJXqqZ4jdKJL9sVUc3fEW9kVJL6M7yAeEPTAM9CEv3U","userId":"0cea854b-ba27-40f3-afde-47bfd8a39bc8","subscriptionId":"sub_1SCupM7ISCuoutHE3CLm867L"}
+[STRIPE-WEBHOOK] Subscription activated - {"userId":"1346c89b-b6f0-47be-8e15-f81aa15b3fb0","planType":"ultra_15k","memberLimit":999,"messageLimit":15000}
 [STRIPE-WEBHOOK] Webhook without signature verification
 [STRIPE-WEBHOOK] Event type - {"type":"checkout.session.completed"}
+[STRIPE-WEBHOOK] Processing checkout completed - {"sessionId":"cs_test_a1q4UB8RrmqBKqsccwwd9ieTwURzk82y6CK0IWQvaziIshDHNcitWj9yoA","userId":"1346c89b-b6f0-47be-8e15-f81aa15b3fb0","subscriptionId":"sub_1SCv7S7ISCuoutHEHAY5D7fp"}
 [STRIPE-WEBHOOK] Webhook received
 Listening on http://localhost:9999/
-booted (time: 68ms)
-[STRIPE-WEBHOOK] Processing subscription updated - {"subscriptionId":"sub_1SCupM7ISCuoutHE3CLm867L","status":"active"}
+booted (time: 113ms)
 [STRIPE-WEBHOOK] Webhook without signature verification
-[STRIPE-WEBHOOK] Event type - {"type":"customer.subscription.updated"}
+[STRIPE-WEBHOOK] Event type - {"type":"customer.subscription.created"}
+[STRIPE-WEBHOOK] Unhandled event type - {"type":"customer.subscription.created"}
+[STRIPE-WEBHOOK] Webhook received
+Listening on http://localhost:9999/
+booted (time: 94ms)
+[STRIPE-WEBHOOK] Processing payment succeeded - {"invoiceId":"in_1SCv7S7ISCuoutHE17nSdhcx","amountPaid":79900,"currency":"brl"}
+[STRIPE-WEBHOOK] Event type - {"type":"invoice.payment_succeeded"}
+[STRIPE-WEBHOOK] Webhook without signature verification
 [STRIPE-WEBHOOK] Webhook received
 Listening on http://localhost:9999/
 booted (time: 64ms)
-[STRIPE-WEBHOOK] Unhandled event type - {"type":"customer.subscription.created"}
 [STRIPE-WEBHOOK] Webhook without signature verification
-[STRIPE-WEBHOOK] Event type - {"type":"customer.subscription.created"}
-[STRIPE-WEBHOOK] Webhook received
-Listening on http://localhost:9999/
-booted (time: 66ms)
-[STRIPE-WEBHOOK] Processing payment succeeded - {"invoiceId":"in_1SCupM7ISCuoutHEBGAKKN9Q","amountPaid":79900,"currency":"brl"}
-[STRIPE-WEBHOOK] Webhook without signature verification
-[STRIPE-WEBHOOK] Event type - {"type":"invoice.payment_succeeded"}
+[STRIPE-WEBHOOK] Event type - {"type":"customer.subscription.updated"}
+[STRIPE-WEBHOOK] Processing subscription updated - {"subscriptionId":"sub_1SCv7S7ISCuoutHEHAY5D7fp","status":"active"}
 [STRIPE-WEBHOOK] Webhook received
 Listening on http://localhost:9999/
 booted (time: 60ms)

@@ -46,16 +46,16 @@ serve(async (req) => {
 
     logStep("Request data", { plan_id, user_id, context });
 
-    // Mapa de planos com Price IDs da Stripe
+    // Mapa de planos com Price IDs da Stripe (PRODUÇÃO)
     const planMap: Record<string, { name: string; price_id: string; message_limit: number }> = {
       'pro_5k': {
         name: 'Plano Profissional',
-        price_id: 'price_1SCp3t7ISCuoutHEgWMN1d9t',
+        price_id: 'price_1SCvWq6JoKp91lVBW7wqZmTg', // PRODUÇÃO
         message_limit: 5000
       },
       'ultra_15k': {
         name: 'Plano Ultra',
-        price_id: 'price_1SCp4E7ISCuoutHEQXz86ghq',
+        price_id: 'price_1SCvYD6JoKp91lVBMhXhXIUw', // PRODUÇÃO
         message_limit: 15000
       }
     };
