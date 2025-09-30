@@ -311,13 +311,16 @@ export const useWhatsAppMessagesManager = ({
         contentPreview: content.substring(0, 50)
       });
 
+      // Se houver mídia sem legenda, enviar com espaço em branco para evitar erro 400
+      const messageContent = content || (mediaUrl ? ' ' : '');
+
       // Enviar via Edge Function WhatsApp (isolada - RPC direta)
       const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
         body: {
           action: 'send_message',
           instanceId: activeInstanceId,
           phone: selectedContact.phone,
-          message: content,
+          message: messageContent,
           mediaType: mediaType || 'text',
           mediaUrl: mediaUrl || null
         }

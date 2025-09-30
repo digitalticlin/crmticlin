@@ -16,9 +16,9 @@ import { registerSchema, RegisterFormValues } from "./register/registerSchema";
 // Import component parts
 import { FullNameField } from "./register/FullNameField";
 import { EmailField } from "./register/EmailField";
-import { UsernameField } from "./register/UsernameField";
 import { ContactInfoFields } from "./register/ContactInfoFields";
 import { PasswordFields } from "./register/PasswordFields";
+import { PlanSelector } from "./register/PlanSelector";
 
 export default function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -26,6 +26,7 @@ export default function RegisterForm() {
   const { signUp } = useAuth();
 
   const planFromUrl = searchParams.get('plan');
+  const [selectedPlan, setSelectedPlan] = useState(planFromUrl || 'free_200');
 
   const getPlanInfo = (planId: string | null) => {
     switch(planId) {
@@ -65,7 +66,6 @@ export default function RegisterForm() {
     defaultValues: {
       fullName: "",
       email: "",
-      username: "",
       documentId: "",
       whatsapp: "",
       password: "",
@@ -77,45 +77,67 @@ export default function RegisterForm() {
   const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
     const email = e.target.value;
     form.setValue("email", email);
-    
-    // Generate username from whatever is typed, but only up to the @ symbol if present
-    const usernameValue = email.includes("@") ? email.split("@")[0] : email;
-    form.setValue("username", usernameValue);
   };
 
   async function onSubmit(data: RegisterFormValues) {
     if (isLoading) return;
-    
+
     setIsLoading(true);
     console.log('[RegisterForm] Iniciando registro para:', data.email);
-    
+
     try {
-      // Preparar os dados do usuário para o Supabase com role definido como admin
       const userData = {
         full_name: data.fullName,
-        username: data.username,
         document_id: data.documentId,
         whatsapp: data.whatsapp,
-        role: "admin", // Definindo explicitamente o papel como admin
-        selected_plan: planFromUrl // Adicionar plano escolhido
+        role: "admin",
+        selected_plan: selectedPlan
       };
-      
+
       console.log('[RegisterForm] Dados do usuário:', userData);
-      
-      // Registrar o usuário usando o AuthContext
-      await signUp(data.email, data.password, userData);
-      
-      // Reset form após sucesso
-      form.reset();
-      
-      console.log('[RegisterForm] Registro concluído com sucesso');
-      
+
+      const result = await signUp(data.email, data.password, userData);
+
+      if (result.requiresPayment && result.userId && result.plan) {
+        console.log('[RegisterForm] Plano pago detectado, criando checkout...');
+
+        const { supabase } = await import('@/integrations/supabase/client');
+
+        // Aguardar um pouco para trigger executar (edge function fará retry)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // ✅ Chamar Stripe checkout
+        const { data: checkoutData, error } = await supabase.functions.invoke('stripe-checkout-plans', {
+          body: {
+            plan_id: result.plan,
+            user_id: result.userId,
+            context: 'register'
+          }
+        });
+
+        if (error) {
+          console.error('[RegisterForm] Erro ao criar checkout:', error);
+          toast.error('Erro ao processar pagamento. Tente novamente.');
+          return;
+        }
+
+        if (checkoutData?.url) {
+          console.log('[RegisterForm] Redirecionando para Stripe...');
+          window.location.href = checkoutData.url;
+        } else {
+          console.error('[RegisterForm] Checkout criado mas sem URL');
+          toast.error('Erro ao criar checkout. Tente novamente.');
+        }
+      } else {
+        form.reset();
+        console.log('[RegisterForm] Registro concluído com sucesso');
+      }
+
     } catch (error: any) {
       console.error('[RegisterForm] Erro no registro:', error);
-      
-      // Toast de erro já é mostrado no AuthContext, mas vamos adicionar feedback visual
-      form.setError("root", { 
-        message: "Erro ao criar conta. Tente novamente." 
+
+      form.setError("root", {
+        message: "Erro ao criar conta. Tente novamente."
       });
     } finally {
       setIsLoading(false);
@@ -124,26 +146,13 @@ export default function RegisterForm() {
 
   return (
     <div className="auth-card-scale w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
-      {/* Badge do Plano Escolhido */}
-      {planInfo && (
-        <div className="text-center">
-          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-white text-sm font-semibold ${planInfo.badge}`}>
-            <planInfo.icon className="h-4 w-4" />
-            {planInfo.name}
-          </div>
-          <p className={`text-xs mt-2 font-medium ${planInfo.color}`}>
-            {planInfo.messages}
-          </p>
-        </div>
-      )}
-
       {/* Header Section */}
       <div className="space-y-4 text-center animate-scale-in">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
           Criar nova conta
         </h1>
         <p className="text-sm text-gray-700 font-medium">
-          {planInfo ? `Você escolheu o ${planInfo.name}. ` : ''}Preencha os campos abaixo para criar sua conta
+          Escolha seu plano e crie sua conta
         </p>
       </div>
 
@@ -151,9 +160,26 @@ export default function RegisterForm() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FullNameField form={form} />
           <EmailField form={form} onEmailChange={handleEmailChange} />
-          <UsernameField form={form} />
           <ContactInfoFields form={form} />
           <PasswordFields form={form} />
+
+          {/* Divisor visual */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-white/50 px-4 py-1 text-gray-600 rounded-full">
+                Escolha seu plano
+              </span>
+            </div>
+          </div>
+
+          {/* Seletor de Planos - ABAIXO DO FORMULÁRIO */}
+          <PlanSelector
+            selectedPlan={selectedPlan}
+            onPlanSelect={setSelectedPlan}
+          />
           
           {/* Mostrar erro geral se existir */}
           {form.formState.errors.root && (

@@ -1,120 +1,1381 @@
+Tentativa de entrega
+checkout.session.completed
+Reenviar
+Status da entrega
+Malsucedida
+Próxima tentativa em 59 minutos
+Data da tentativa
+30 de set. de 2025, 00:04:30
+ID do evento
+Data de origem
+30 de set. de 2025, 00:04:30
+Origem
+Automático
+Versão da API
+2025-08-27.basil
+Descrição
+Uma sessão do Checkout foi concluída
+Resposta
+Código de status do HTTP
+500
+{
+"success": 
+false,
+"error": 
+"[object Object]",
+}
+Solicitação
+{
+"id": 
+"evt_1SCr3P7ISCuoutHEnb50IHv1"
+,
+"object": 
+"event",
+"api_version": 
+"2025-08-27.basil",
+"created": 
+1759190667
+,
+"data": {
+"object": {
+"id": 
+"cs_test_a1PkJI8OkQci06DJGGYXDl2oWLCRG5nNhYaGPoRyO0QRRaaxWuTaEkkXie"
+,
+"object": 
+"checkout.session",
+"adaptive_pricing": {
+"enabled": 
+false,
+},
+"after_expiration": 
+null,
+"allow_promotion_codes": 
+null,
+"amount_subtotal": 
+39900,
+"amount_total": 
+39900,
+"automatic_tax": {
+"enabled": 
+false,
+"liability": 
+null,
+"provider": 
+null,
+"status": 
+null,
+},
+"billing_address_collection": 
+null,
+"branding_settings": {
+"background_color": 
+"#ffffff",
+"border_style": 
+"rounded",
+"button_color": 
+"#0074d4",
+"display_name": 
+"CRM Ticlin TESTE",
+"font_family": 
+"default",
+"icon": 
+null,
+"logo": 
+null,
+},
+"cancel_url": 
+"http://localhost:8080/register?plan=pro_5k&canceled=true",
+"client_reference_id": 
+"6bc9a0dc-bf50-4297-b9bf-ca103f113ecf",
+"client_secret": 
+null,
+"collected_information": {
+"business_name": 
+null,
+"individual_name": 
+null,
+"shipping_details": 
+null,
+},
+"consent": 
+null,
+"consent_collection": 
+null,
+"created": 
+1759190643
+,
+"currency": 
+"brl",
+"currency_conversion": 
+null,
+"custom_fields": [],
+"custom_text": {
+"after_submit": 
+null,
+"shipping_address": 
+null,
+"submit": 
+null,
+"terms_of_service_acceptance": 
+null,
+},
+"customer": 
+"cus_T99M7F1l1XbeIC"
+,
+"customer_creation": 
+"always",
+"customer_details": {
+"address": {
+"city": 
+null,
+"country": 
+"BR",
+"line1": 
+null,
+"line2": 
+null,
+"postal_code": 
+null,
+"state": 
+null,
+},
+"business_name": 
+null,
+"email": 
+"inaciojrdossantos@gmail.com",
+"individual_name": 
+null,
+"name": 
+"Inacio junior dos santos",
+"phone": 
+null,
+"tax_exempt": 
+"none",
+"tax_ids": [],
+},
+"customer_email": 
+null,
+"discounts": [],
+"expires_at": 
+1759277043
+,
+"invoice": 
+"in_1SCr3M7ISCuoutHEQ2A99YTn"
+,
+"invoice_creation": 
+null,
+"livemode": 
+false,
+"locale": 
+null,
+"metadata": {
+"user_id": 
+"6bc9a0dc-bf50-4297-b9bf-ca103f113ecf",
+"context": 
+"register",
+"message_limit": 
+"5000",
+"plan_type": 
+"pro_5k",
+},
+"mode": 
+"subscription",
+"origin_context": 
+null,
+"payment_intent": 
+null,
+"payment_link": 
+null,
+"payment_method_collection": 
+"always",
+"payment_method_configuration_details": 
+null,
+"payment_method_options": {
+"card": {
+"request_three_d_secure": 
+"automatic",
+},
+},
+"payment_method_types": [
+"card",
+],
+"payment_status": 
+"paid",
+"permissions": 
+null,
+"phone_number_collection": {
+"enabled": 
+false,
+},
+"recovered_from": 
+null,
+"saved_payment_method_options": {
+"allow_redisplay_filters": [
+"always",
+],
+"payment_method_remove": 
+"disabled",
+"payment_method_save": 
+null,
+},
+"setup_intent": 
+null,
+"shipping_address_collection": 
+null,
+"shipping_cost": 
+null,
+"shipping_options": [],
+"status": 
+"complete",
+"submit_type": 
+null,
+"subscription": 
+"sub_1SCr3M7ISCuoutHE5d104R6G"
+,
+"success_url": 
+"http://localhost:8080/confirm-email?plan=pro_5k&session_id={CHECKOUT_SESSION_ID}",
+"total_details": {
+"amount_discount": 
+0,
+"amount_shipping": 
+0,
+"amount_tax": 
+0,
+},
+"ui_mode": 
+"hosted",
+"url": 
+null,
+"wallet_options": 
+null,
+},
+},
+"livemode": 
+false,
+"pending_webhooks": 
+1,
+"request": {
+"id": 
+null,
+"idempotency_key": 
+null,
+},
+"type": 
+"checkout.session.completed",
 
-logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 9936ae64-b78c-48fe-97e8-bf67623349c6
-whatsapp-chat:1 Access to fetch at 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/send-whatsapp-message' from origin 'http://localhost:8080' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok status.Understand this error
-useWhatsAppMessagesManager.ts:234  POST https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/send-whatsapp-message net::ERR_FAILED
-(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:3916
-(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:3937
-fulfilled @ @supabase_supabase-js.js?v=3aeb0223:3889
-Promise.then
-step @ @supabase_supabase-js.js?v=3aeb0223:3902
-(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:3904
-__awaiter6 @ @supabase_supabase-js.js?v=3aeb0223:3886
-(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:3927
-(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:1259
-(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:1379
-(anonymous) @ @supabase_supabase-js.js?v=3aeb0223:1329
-__awaiter @ @supabase_supabase-js.js?v=3aeb0223:1311
-invoke @ @supabase_supabase-js.js?v=3aeb0223:1353
-mutationFn @ useWhatsAppMessagesManager.ts:234
-fn @ @tanstack_react-query.js?v=3aeb0223:1236
-run @ @tanstack_react-query.js?v=3aeb0223:513
-start @ @tanstack_react-query.js?v=3aeb0223:555
-execute @ @tanstack_react-query.js?v=3aeb0223:1272
-await in execute
-mutate @ @tanstack_react-query.js?v=3aeb0223:2691
-(anonymous) @ useWhatsAppMessagesManager.ts:348
-onSendMessageWrapper @ WhatsAppChatContainer.tsx:54
-handleSend @ WhatsAppMessageInput.tsx:45
-callCallback2 @ chunk-276SZO74.js?v=3aeb0223:3674
-invokeGuardedCallbackDev @ chunk-276SZO74.js?v=3aeb0223:3699
-invokeGuardedCallback @ chunk-276SZO74.js?v=3aeb0223:3733
-invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=3aeb0223:3736
-executeDispatch @ chunk-276SZO74.js?v=3aeb0223:7014
-processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=3aeb0223:7034
-processDispatchQueue @ chunk-276SZO74.js?v=3aeb0223:7043
-dispatchEventsForPlugins @ chunk-276SZO74.js?v=3aeb0223:7051
-(anonymous) @ chunk-276SZO74.js?v=3aeb0223:7174
-batchedUpdates$1 @ chunk-276SZO74.js?v=3aeb0223:18913
-batchedUpdates @ chunk-276SZO74.js?v=3aeb0223:3579
-dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=3aeb0223:7173
-dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=3aeb0223:5478
-dispatchEvent @ chunk-276SZO74.js?v=3aeb0223:5472
-dispatchDiscreteEvent @ chunk-276SZO74.js?v=3aeb0223:5449Understand this error
-useWhatsAppMessagesManager.ts:245 [WhatsApp Messages Manager] ❌ Erro ao enviar mensagem: FunctionsFetchError: Failed to send a request to the Edge Function
-    at @supabase_supabase-js.js?v=3aeb0223:1388:17
-mutationFn @ useWhatsAppMessagesManager.ts:245
-await in mutationFn
-fn @ @tanstack_react-query.js?v=3aeb0223:1236
-run @ @tanstack_react-query.js?v=3aeb0223:513
-start @ @tanstack_react-query.js?v=3aeb0223:555
-execute @ @tanstack_react-query.js?v=3aeb0223:1272
-await in execute
-mutate @ @tanstack_react-query.js?v=3aeb0223:2691
-(anonymous) @ useWhatsAppMessagesManager.ts:348
-onSendMessageWrapper @ WhatsAppChatContainer.tsx:54
-handleSend @ WhatsAppMessageInput.tsx:45
-callCallback2 @ chunk-276SZO74.js?v=3aeb0223:3674
-invokeGuardedCallbackDev @ chunk-276SZO74.js?v=3aeb0223:3699
-invokeGuardedCallback @ chunk-276SZO74.js?v=3aeb0223:3733
-invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=3aeb0223:3736
-executeDispatch @ chunk-276SZO74.js?v=3aeb0223:7014
-processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=3aeb0223:7034
-processDispatchQueue @ chunk-276SZO74.js?v=3aeb0223:7043
-dispatchEventsForPlugins @ chunk-276SZO74.js?v=3aeb0223:7051
-(anonymous) @ chunk-276SZO74.js?v=3aeb0223:7174
-batchedUpdates$1 @ chunk-276SZO74.js?v=3aeb0223:18913
-batchedUpdates @ chunk-276SZO74.js?v=3aeb0223:3579
-dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=3aeb0223:7173
-dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=3aeb0223:5478
-dispatchEvent @ chunk-276SZO74.js?v=3aeb0223:5472
-dispatchDiscreteEvent @ chunk-276SZO74.js?v=3aeb0223:5449Understand this error
-useWhatsAppMessagesManager.ts:272 [WhatsApp Messages Manager] ❌ Falha no envio: FunctionsFetchError: Failed to send a request to the Edge Function
-    at @supabase_supabase-js.js?v=3aeb0223:1388:17
-onError @ useWhatsAppMessagesManager.ts:272
-execute @ @tanstack_react-query.js?v=3aeb0223:1301
-await in execute
-mutate @ @tanstack_react-query.js?v=3aeb0223:2691
-(anonymous) @ useWhatsAppMessagesManager.ts:348
-onSendMessageWrapper @ WhatsAppChatContainer.tsx:54
-handleSend @ WhatsAppMessageInput.tsx:45
-callCallback2 @ chunk-276SZO74.js?v=3aeb0223:3674
-invokeGuardedCallbackDev @ chunk-276SZO74.js?v=3aeb0223:3699
-invokeGuardedCallback @ chunk-276SZO74.js?v=3aeb0223:3733
-invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=3aeb0223:3736
-executeDispatch @ chunk-276SZO74.js?v=3aeb0223:7014
-processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=3aeb0223:7034
-processDispatchQueue @ chunk-276SZO74.js?v=3aeb0223:7043
-dispatchEventsForPlugins @ chunk-276SZO74.js?v=3aeb0223:7051
-(anonymous) @ chunk-276SZO74.js?v=3aeb0223:7174
-batchedUpdates$1 @ chunk-276SZO74.js?v=3aeb0223:18913
-batchedUpdates @ chunk-276SZO74.js?v=3aeb0223:3579
-dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=3aeb0223:7173
-dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=3aeb0223:5478
-dispatchEvent @ chunk-276SZO74.js?v=3aeb0223:5472
-dispatchDiscreteEvent @ chunk-276SZO74.js?v=3aeb0223:5449Understand this error
-useWhatsAppMessagesManager.ts:351 [WhatsApp Messages Manager] ❌ Erro no envio: FunctionsFetchError: Failed to send a request to the Edge Function
-    at @supabase_supabase-js.js?v=3aeb0223:1388:17
-(anonymous) @ useWhatsAppMessagesManager.ts:351
-await in (anonymous)
-onSendMessageWrapper @ WhatsAppChatContainer.tsx:54
-handleSend @ WhatsAppMessageInput.tsx:45
-callCallback2 @ chunk-276SZO74.js?v=3aeb0223:3674
-invokeGuardedCallbackDev @ chunk-276SZO74.js?v=3aeb0223:3699
-invokeGuardedCallback @ chunk-276SZO74.js?v=3aeb0223:3733
-invokeGuardedCallbackAndCatchFirstError @ chunk-276SZO74.js?v=3aeb0223:3736
-executeDispatch @ chunk-276SZO74.js?v=3aeb0223:7014
-processDispatchQueueItemsInOrder @ chunk-276SZO74.js?v=3aeb0223:7034
-processDispatchQueue @ chunk-276SZO74.js?v=3aeb0223:7043
-dispatchEventsForPlugins @ chunk-276SZO74.js?v=3aeb0223:7051
-(anonymous) @ chunk-276SZO74.js?v=3aeb0223:7174
-batchedUpdates$1 @ chunk-276SZO74.js?v=3aeb0223:18913
-batchedUpdates @ chunk-276SZO74.js?v=3aeb0223:3579
-dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=3aeb0223:7173
-dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=3aeb0223:5478
-dispatchEvent @ chunk-276SZO74.js?v=3aeb0223:5472
-dispatchDiscreteEvent @ chunk-276SZO74.js?v=3aeb0223:5449Understand this error
-WhatsAppChatContainer.tsx:55 [WhatsAppChatContainer] ✅ Resultado de sendMessage (modular): false
-WhatsAppMessageInput.tsx:46 [WhatsAppMessageInput] ✅ Resultado do envio (texto): false
-WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
-useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
-useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: 
+
+Tentativa de entrega
+customer.subscription.updated
+Reenviar
+Status da entrega
+Entregue
+Data da tentativa
+30 de set. de 2025, 00:04:30
+ID do evento
+Data de origem
+30 de set. de 2025, 00:04:30
+Origem
+Automático
+Versão da API
+2025-08-27.basil
+Descrição
+A assinatura de inaciojrdossantos@gmail.com mudou
+Resposta
+Código de status do HTTP
+200
+{
+"received": 
+true,
+}
+Solicitação
+{
+"id": 
+"evt_1SCr3Q7ISCuoutHEeGRa9uvm"
+,
+"object": 
+"event",
+"api_version": 
+"2025-08-27.basil",
+"created": 
+1759190667
+,
+"data": {
+"object": {
+"id": 
+"sub_1SCr3M7ISCuoutHE5d104R6G"
+,
+"object": 
+"subscription",
+"application": 
+null,
+"application_fee_percent": 
+null,
+"automatic_tax": {
+"disabled_reason": 
+null,
+"enabled": 
+false,
+"liability": 
+null,
+},
+"billing_cycle_anchor": 
+1759190664,
+"billing_cycle_anchor_config": 
+null,
+"billing_mode": {
+"flexible": 
+null,
+"type": 
+"classic",
+},
+"billing_thresholds": 
+null,
+"cancel_at": 
+null,
+"cancel_at_period_end": 
+false,
+"canceled_at": 
+null,
+"cancellation_details": {
+"comment": 
+null,
+"feedback": 
+null,
+"reason": 
+null,
+},
+"collection_method": 
+"charge_automatically",
+"created": 
+1759190664
+,
+"currency": 
+"brl",
+"customer": 
+"cus_T99M7F1l1XbeIC"
+,
+"days_until_due": 
+null,
+"default_payment_method": 
+"pm_1SCr3L7ISCuoutHEL2r5sqzX"
+,
+"default_source": 
+null,
+"default_tax_rates": [],
+"description": 
+null,
+"discounts": [],
+"ended_at": 
+null,
+"invoice_settings": {
+"account_tax_ids": 
+null,
+"issuer": {
+"type": 
+"self",
+},
+},
+"items": {
+"object": 
+"list",
+"data": [
+"0": {
+"id": 
+"si_T99MA4SMyDzxkp"
+,
+"object": 
+"subscription_item",
+"billing_thresholds": 
+null,
+"created": 
+1759190664
+,
+"current_period_end": 
+1761782664
+,
+"current_period_start": 
+1759190664
+,
+"discounts": [],
+"metadata": {},
+"plan": {
+"id": 
+"price_1SCp3t7ISCuoutHEgWMN1d9t"
+,
+"object": 
+"plan",
+"active": 
+true,
+"amount": 
+39900,
+"amount_decimal": 
+"39900",
+"billing_scheme": 
+"per_unit",
+"created": 
+1759183009
+,
+"currency": 
+"brl",
+"interval": 
+"month",
+"interval_count": 
+1,
+"livemode": 
+false,
+"metadata": {},
+"meter": 
+null,
+"nickname": 
+null,
+"product": 
+"prod_T97IaVeLgIcKnZ"
+,
+"tiers_mode": 
+null,
+"transform_usage": 
+null,
+"trial_period_days": 
+null,
+"usage_type": 
+"licensed",
+},
+"price": {
+"id": 
+"price_1SCp3t7ISCuoutHEgWMN1d9t"
+,
+"object": 
+"price",
+"active": 
+true,
+"billing_scheme": 
+"per_unit",
+"created": 
+1759183009
+,
+"currency": 
+"brl",
+"custom_unit_amount": 
+null,
+"livemode": 
+false,
+"lookup_key": 
+null,
+"metadata": {},
+"nickname": 
+null,
+"product": 
+"prod_T97IaVeLgIcKnZ"
+,
+"recurring": {
+"interval": 
+"month",
+"interval_count": 
+1,
+"meter": 
+null,
+"trial_period_days": 
+null,
+"usage_type": 
+"licensed",
+},
+"tax_behavior": 
+"unspecified",
+"tiers_mode": 
+null,
+"transform_quantity": 
+null,
+"type": 
+"recurring",
+"unit_amount": 
+39900,
+"unit_amount_decimal": 
+"39900",
+},
+"quantity": 
+1,
+"subscription": 
+"sub_1SCr3M7ISCuoutHE5d104R6G"
+,
+"tax_rates": [],
+},
+],
+"has_more": 
+false,
+"total_count": 
+1,
+"url": 
+"/v1/subscription_items?subscription=sub_1SCr3M7ISCuoutHE5d104R6G",
+},
+"latest_invoice": 
+"in_1SCr3M7ISCuoutHEQ2A99YTn"
+,
+"livemode": 
+false,
+"metadata": {
+"user_id": 
+"6bc9a0dc-bf50-4297-b9bf-ca103f113ecf",
+"message_limit": 
+"5000",
+"plan_type": 
+"pro_5k",
+},
+"next_pending_invoice_item_invoice": 
+null,
+"on_behalf_of": 
+null,
+"pause_collection": 
+null,
+"payment_settings": {
+"payment_method_options": {
+"acss_debit": 
+null,
+"bancontact": 
+null,
+"card": {
+"network": 
+null,
+"request_three_d_secure": 
+"automatic",
+},
+"customer_balance": 
+null,
+"konbini": 
+null,
+"sepa_debit": 
+null,
+"us_bank_account": 
+null,
+},
+"payment_method_types": [
+"card",
+],
+"save_default_payment_method": 
+"off",
+},
+"pending_invoice_item_interval": 
+null,
+"pending_setup_intent": 
+null,
+"pending_update": 
+null,
+"plan": {
+"id": 
+"price_1SCp3t7ISCuoutHEgWMN1d9t"
+,
+"object": 
+"plan",
+"active": 
+true,
+"amount": 
+39900,
+"amount_decimal": 
+"39900",
+"billing_scheme": 
+"per_unit",
+"created": 
+1759183009
+,
+"currency": 
+"brl",
+"interval": 
+"month",
+"interval_count": 
+1,
+"livemode": 
+false,
+"metadata": {},
+"meter": 
+null,
+"nickname": 
+null,
+"product": 
+"prod_T97IaVeLgIcKnZ"
+,
+"tiers_mode": 
+null,
+"transform_usage": 
+null,
+"trial_period_days": 
+null,
+"usage_type": 
+"licensed",
+},
+"quantity": 
+1,
+"schedule": 
+null,
+"start_date": 
+1759190664
+,
+"status": 
+"active",
+"test_clock": 
+null,
+"transfer_data": 
+null,
+"trial_end": 
+null,
+"trial_settings": {
+"end_behavior": {
+"missing_payment_method": 
+"create_invoice",
+},
+},
+"trial_start": 
+null,
+},
+"previous_attributes": {
+"default_payment_method": 
+null,
+"status": 
+"incomplete",
+},
+},
+"livemode": 
+false,
+"pending_webhooks": 
+1,
+"request": {
+"id": 
+null,
+"idempotency_key": 
+"fcf169bc-e242-4a0f-9bd1-522243275812",
+},
+"type": 
+"customer.subscription.updated",
+
+
+
+Tentativa de entrega
+customer.subscription.created
+Reenviar
+Status da entrega
+Entregue
+Data da tentativa
+30 de set. de 2025, 00:04:29
+ID do evento
+Data de origem
+30 de set. de 2025, 00:04:29
+Origem
+Automático
+Versão da API
+2025-08-27.basil
+Descrição
+inaciojrdossantos@gmail.com tentou assinar price_1SCp3t7ISCuoutHEgWMN1d9t
+Resposta
+Código de status do HTTP
+200
+{
+"received": 
+true,
+}
+Solicitação
+{
+"id": 
+"evt_1SCr3Q7ISCuoutHEYcs3MT4s"
+,
+"object": 
+"event",
+"api_version": 
+"2025-08-27.basil",
+"created": 
+1759190665
+,
+"data": {
+"object": {
+"id": 
+"sub_1SCr3M7ISCuoutHE5d104R6G"
+,
+"object": 
+"subscription",
+"application": 
+null,
+"application_fee_percent": 
+null,
+"automatic_tax": {
+"disabled_reason": 
+null,
+"enabled": 
+false,
+"liability": 
+null,
+},
+"billing_cycle_anchor": 
+1759190664,
+"billing_cycle_anchor_config": 
+null,
+"billing_mode": {
+"flexible": 
+null,
+"type": 
+"classic",
+},
+"billing_thresholds": 
+null,
+"cancel_at": 
+null,
+"cancel_at_period_end": 
+false,
+"canceled_at": 
+null,
+"cancellation_details": {
+"comment": 
+null,
+"feedback": 
+null,
+"reason": 
+null,
+},
+"collection_method": 
+"charge_automatically",
+"created": 
+1759190664
+,
+"currency": 
+"brl",
+"customer": 
+"cus_T99M7F1l1XbeIC"
+,
+"days_until_due": 
+null,
+"default_payment_method": 
+null,
+"default_source": 
+null,
+"default_tax_rates": [],
+"description": 
+null,
+"discounts": [],
+"ended_at": 
+null,
+"invoice_settings": {
+"account_tax_ids": 
+null,
+"issuer": {
+"type": 
+"self",
+},
+},
+"items": {
+"object": 
+"list",
+"data": [
+"0": {
+"id": 
+"si_T99MA4SMyDzxkp"
+,
+"object": 
+"subscription_item",
+"billing_thresholds": 
+null,
+"created": 
+1759190664
+,
+"current_period_end": 
+1761782664
+,
+"current_period_start": 
+1759190664
+,
+"discounts": [],
+"metadata": {},
+"plan": {
+"id": 
+"price_1SCp3t7ISCuoutHEgWMN1d9t"
+,
+"object": 
+"plan",
+"active": 
+true,
+"amount": 
+39900,
+"amount_decimal": 
+"39900",
+"billing_scheme": 
+"per_unit",
+"created": 
+1759183009
+,
+"currency": 
+"brl",
+"interval": 
+"month",
+"interval_count": 
+1,
+"livemode": 
+false,
+"metadata": {},
+"meter": 
+null,
+"nickname": 
+null,
+"product": 
+"prod_T97IaVeLgIcKnZ"
+,
+"tiers_mode": 
+null,
+"transform_usage": 
+null,
+"trial_period_days": 
+null,
+"usage_type": 
+"licensed",
+},
+"price": {
+"id": 
+"price_1SCp3t7ISCuoutHEgWMN1d9t"
+,
+"object": 
+"price",
+"active": 
+true,
+"billing_scheme": 
+"per_unit",
+"created": 
+1759183009
+,
+"currency": 
+"brl",
+"custom_unit_amount": 
+null,
+"livemode": 
+false,
+"lookup_key": 
+null,
+"metadata": {},
+"nickname": 
+null,
+"product": 
+"prod_T97IaVeLgIcKnZ"
+,
+"recurring": {
+"interval": 
+"month",
+"interval_count": 
+1,
+"meter": 
+null,
+"trial_period_days": 
+null,
+"usage_type": 
+"licensed",
+},
+"tax_behavior": 
+"unspecified",
+"tiers_mode": 
+null,
+"transform_quantity": 
+null,
+"type": 
+"recurring",
+"unit_amount": 
+39900,
+"unit_amount_decimal": 
+"39900",
+},
+"quantity": 
+1,
+"subscription": 
+"sub_1SCr3M7ISCuoutHE5d104R6G"
+,
+"tax_rates": [],
+},
+],
+"has_more": 
+false,
+"total_count": 
+1,
+"url": 
+"/v1/subscription_items?subscription=sub_1SCr3M7ISCuoutHE5d104R6G",
+},
+"latest_invoice": 
+"in_1SCr3M7ISCuoutHEQ2A99YTn"
+,
+"livemode": 
+false,
+"metadata": {
+"user_id": 
+"6bc9a0dc-bf50-4297-b9bf-ca103f113ecf",
+"message_limit": 
+"5000",
+"plan_type": 
+"pro_5k",
+},
+"next_pending_invoice_item_invoice": 
+null,
+"on_behalf_of": 
+null,
+"pause_collection": 
+null,
+"payment_settings": {
+"payment_method_options": {
+"acss_debit": 
+null,
+"bancontact": 
+null,
+"card": {
+"network": 
+null,
+"request_three_d_secure": 
+"automatic",
+},
+"customer_balance": 
+null,
+"konbini": 
+null,
+"sepa_debit": 
+null,
+"us_bank_account": 
+null,
+},
+"payment_method_types": [
+"card",
+],
+"save_default_payment_method": 
+"off",
+},
+"pending_invoice_item_interval": 
+null,
+"pending_setup_intent": 
+null,
+"pending_update": 
+null,
+"plan": {
+"id": 
+"price_1SCp3t7ISCuoutHEgWMN1d9t"
+,
+"object": 
+"plan",
+"active": 
+true,
+"amount": 
+39900,
+"amount_decimal": 
+"39900",
+"billing_scheme": 
+"per_unit",
+"created": 
+1759183009
+,
+"currency": 
+"brl",
+"interval": 
+"month",
+"interval_count": 
+1,
+"livemode": 
+false,
+"metadata": {},
+"meter": 
+null,
+"nickname": 
+null,
+"product": 
+"prod_T97IaVeLgIcKnZ"
+,
+"tiers_mode": 
+null,
+"transform_usage": 
+null,
+"trial_period_days": 
+null,
+"usage_type": 
+"licensed",
+},
+"quantity": 
+1,
+"schedule": 
+null,
+"start_date": 
+1759190664
+,
+"status": 
+"incomplete",
+"test_clock": 
+null,
+"transfer_data": 
+null,
+"trial_end": 
+null,
+"trial_settings": {
+"end_behavior": {
+"missing_payment_method": 
+"create_invoice",
+},
+},
+"trial_start": 
+null,
+},
+},
+"livemode": 
+false,
+"pending_webhooks": 
+1,
+"request": {
+"id": 
+null,
+"idempotency_key": 
+"fcf169bc-e242-4a0f-9bd1-522243275812",
+},
+"type": 
+"customer.subscription.created",
+
+
+
+Tentativa de entrega
+invoice.payment_succeeded
+Reenviar
+Status da entrega
+Entregue
+Data da tentativa
+30 de set. de 2025, 00:04:29
+ID do evento
+Data de origem
+30 de set. de 2025, 00:04:29
+Origem
+Automático
+Versão da API
+2025-08-27.basil
+Descrição
+A fatura de inaciojrdossantos@gmail.com de BRL 399,00 foi paga
+Resposta
+Código de status do HTTP
+200
+{
+"received": 
+true,
+}
+Solicitação
+{
+"id": 
+"evt_1SCr3Q7ISCuoutHE49EC21AH"
+,
+"object": 
+"event",
+"api_version": 
+"2025-08-27.basil",
+"created": 
+1759190667
+,
+"data": {
+"object": {
+"id": 
+"in_1SCr3M7ISCuoutHEQ2A99YTn"
+,
+"object": 
+"invoice",
+"account_country": 
+"BR",
+"account_name": 
+"CRM Ticlin TESTE",
+"account_tax_ids": 
+null,
+"amount_due": 
+39900,
+"amount_overpaid": 
+0,
+"amount_paid": 
+39900,
+"amount_remaining": 
+0,
+"amount_shipping": 
+0,
+"application": 
+null,
+"attempt_count": 
+1,
+"attempted": 
+true,
+"auto_advance": 
+false,
+"automatic_tax": {
+"disabled_reason": 
+null,
+"enabled": 
+false,
+"liability": 
+null,
+"provider": 
+null,
+"status": 
+null,
+},
+"automatically_finalizes_at": 
+null,
+"billing_reason": 
+"subscription_create",
+"collection_method": 
+"charge_automatically",
+"created": 
+1759190664
+,
+"currency": 
+"brl",
+"custom_fields": 
+null,
+"customer": 
+"cus_T99M7F1l1XbeIC"
+,
+"customer_address": {
+"city": 
+null,
+"country": 
+"BR",
+"line1": 
+null,
+"line2": 
+null,
+"postal_code": 
+null,
+"state": 
+null,
+},
+"customer_email": 
+"inaciojrdossantos@gmail.com",
+"customer_name": 
+"Inacio junior dos santos",
+"customer_phone": 
+null,
+"customer_shipping": 
+null,
+"customer_tax_exempt": 
+"none",
+"customer_tax_ids": [],
+"default_payment_method": 
+null,
+"default_source": 
+null,
+"default_tax_rates": [],
+"description": 
+null,
+"discounts": [],
+"due_date": 
+null,
+"effective_at": 
+1759190664
+,
+"ending_balance": 
+0,
+"footer": 
+null,
+"from_invoice": 
+null,
+"hosted_invoice_url": 
+"https://invoice.stripe.com/i/acct_1SCp2u7ISCuoutHE/test_YWNjdF8xU0NwMnU3SVNDdW91dEhFLF9UOTlNTHcyc3BUOTdoQVhOOEIxS1JORndxT0QzdXBVLDE0OTczMTQ2OA020021o0JKzH?s=ap",
+"invoice_pdf": 
+"https://pay.stripe.com/invoice/acct_1SCp2u7ISCuoutHE/test_YWNjdF8xU0NwMnU3SVNDdW91dEhFLF9UOTlNTHcyc3BUOTdoQVhOOEIxS1JORndxT0QzdXBVLDE0OTczMTQ2OA020021o0JKzH/pdf?s=ap",
+"issuer": {
+"type": 
+"self",
+},
+"last_finalization_error": 
+null,
+"latest_revision": 
+null,
+"lines": {
+"object": 
+"list",
+"data": [
+"0": {
+"id": 
+"il_1SCr3M7ISCuoutHE96Rw8h2p",
+"object": 
+"line_item",
+"amount": 
+39900,
+"currency": 
+"brl",
+"description": 
+"1 × Profissional (at R$ 399.00 / month)",
+"discount_amounts": [],
+"discountable": 
+true,
+"discounts": [],
+"invoice": 
+"in_1SCr3M7ISCuoutHEQ2A99YTn"
+,
+"livemode": 
+false,
+"metadata": {
+"user_id": 
+"6bc9a0dc-bf50-4297-b9bf-ca103f113ecf",
+"message_limit": 
+"5000",
+"plan_type": 
+"pro_5k",
+},
+"parent": {
+"invoice_item_details": 
+null,
+"subscription_item_details": {
+"invoice_item": 
+null,
+"proration": 
+false,
+"proration_details": {
+"credited_items": 
+null,
+},
+"subscription": 
+"sub_1SCr3M7ISCuoutHE5d104R6G"
+,
+"subscription_item": 
+"si_T99MA4SMyDzxkp"
+,
+},
+"type": 
+"subscription_item_details",
+},
+"period": {
+"end": 
+1761782664,
+"start": 
+1759190664,
+},
+"pretax_credit_amounts": [],
+"pricing": {
+"price_details": {
+"price": 
+"price_1SCp3t7ISCuoutHEgWMN1d9t"
+,
+"product": 
+"prod_T97IaVeLgIcKnZ"
+,
+},
+"type": 
+"price_details",
+"unit_amount_decimal": 
+"39900",
+},
+"quantity": 
+1,
+"taxes": [],
+},
+],
+"has_more": 
+false,
+"total_count": 
+1,
+"url": 
+"/v1/invoices/in_1SCr3M7ISCuoutHEQ2A99YTn/lines",
+},
+"livemode": 
+false,
+"metadata": {},
+"next_payment_attempt": 
+null,
+"number": 
+"CPMTVAE3-0001",
+"on_behalf_of": 
+null,
+"parent": {
+"quote_details": 
+null,
+"subscription_details": {
+"metadata": {
+"user_id": 
+"6bc9a0dc-bf50-4297-b9bf-ca103f113ecf",
+"message_limit": 
+"5000",
+"plan_type": 
+"pro_5k",
+},
+"subscription": 
+"sub_1SCr3M7ISCuoutHE5d104R6G"
+,
+},
+"type": 
+"subscription_details",
+},
+"payment_settings": {
+"default_mandate": 
+null,
+"payment_method_options": {
+"acss_debit": 
+null,
+"bancontact": 
+null,
+"card": {
+"request_three_d_secure": 
+"automatic",
+},
+"customer_balance": 
+null,
+"konbini": 
+null,
+"sepa_debit": 
+null,
+"us_bank_account": 
+null,
+},
+"payment_method_types": [
+"card",
+],
+},
+"period_end": 
+1759190664
+,
+"period_start": 
+1759190664
+,
+"post_payment_credit_notes_amount": 
+0,
+"pre_payment_credit_notes_amount": 
+0,
+"receipt_number": 
+null,
+"rendering": 
+null,
+"shipping_cost": 
+null,
+"shipping_details": 
+null,
+"starting_balance": 
+0,
+"statement_descriptor": 
+null,
+"status": 
+"paid",
+"status_transitions": {
+"finalized_at": 
+1759190664
+,
+"marked_uncollectible_at": 
+null,
+"paid_at": 
+1759190666
+,
+"voided_at": 
+null,
+},
+"subtotal": 
+39900,
+"subtotal_excluding_tax": 
+39900,
+"test_clock": 
+null,
+"total": 
+39900,
+"total_discount_amounts": [],
+"total_excluding_tax": 
+39900,
+"total_pretax_credit_amounts": [],
+"total_taxes": [],
+"webhooks_delivered_at": 
+1759190664
+,
+},
+},
+"livemode": 
+false,
+"pending_webhooks": 
+1,
+"request": {
+"id": 
+null,
+"idempotency_key": 
+"fcf169bc-e242-4a0f-9bd1-522243275812",
+},
+"type": 
+"invoice.payment_succeeded",

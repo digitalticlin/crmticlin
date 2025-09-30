@@ -48,6 +48,8 @@ export interface MessagePlan {
   features: string[];
   stripe_price_id: string;
   is_trial?: boolean;
+  is_popular?: boolean;
+  is_enterprise?: boolean;
   max_users?: number;
   max_whatsapp_numbers?: number;
 }

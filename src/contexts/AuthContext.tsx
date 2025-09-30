@@ -10,7 +10,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, userData?: any) => Promise<void>;
+  signUp: (email: string, password: string, userData?: any) => Promise<{ requiresPayment: boolean; userId?: string; plan?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
 }
@@ -121,7 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       console.log('[Auth] Criando conta para:', email);
-      
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -130,7 +130,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           emailRedirectTo: `${window.location.origin}/dashboard`
         }
       });
-      
+
       if (error) {
         console.error('[Auth] Erro no registro:', error);
         if (error.message.includes('User already registered')) {
@@ -144,52 +144,56 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       console.log('[Auth] Registro bem-sucedido:', data);
-      
-      // Check if email confirmation is required
+
+      const selectedPlan = userData?.selected_plan;
+
       if (data.user && !data.session) {
-        // Email confirmation required
         console.log('[Auth] Confirmação de email necessária');
-        toast.success('Conta criada! Verifique seu email para confirmar.');
-
-        // Salvar plano escolhido no localStorage para após confirmação
-        if (userData?.selected_plan) {
-          localStorage.setItem('pending_plan', userData.selected_plan);
-        }
-
-        setTimeout(() => {
-          navigate('/confirm-email', { replace: true });
-        }, 2000);
-      } else if (data.session) {
-        // User is automatically logged in
-        console.log('[Auth] Usuário logado automaticamente após registro');
-        const selectedPlan = userData?.selected_plan;
 
         if (selectedPlan === 'free_200') {
-          // Ativar trial automaticamente
-          console.log('[Auth] Ativando trial gratuito...');
-          toast.success('Conta criada! Ativando trial de 30 dias...');
+          toast.success('Conta criada! Verifique seu email para confirmar e ativar o plano gratuito.');
+          localStorage.setItem('pending_plan', selectedPlan);
 
-          // Navegar para dashboard - o trial será ativado via RPC
           setTimeout(() => {
-            navigate('/dashboard', { replace: true });
+            navigate('/confirm-email', { replace: true });
           }, 2000);
 
-        } else if (selectedPlan && selectedPlan !== 'free_200') {
-          // Redirecionar para checkout
-          console.log('[Auth] Redirecionando para checkout:', selectedPlan);
+        } else if (selectedPlan === 'pro_5k' || selectedPlan === 'ultra_15k') {
+          toast.success('Redirecionando para pagamento...');
+          localStorage.setItem('pending_plan', selectedPlan);
+          localStorage.setItem('pending_user_id', data.user.id);
+
+          return { requiresPayment: true, userId: data.user.id, plan: selectedPlan };
+        } else {
+          toast.success('Conta criada! Verifique seu email para confirmar.');
+          setTimeout(() => {
+            navigate('/confirm-email', { replace: true });
+          }, 2000);
+        }
+
+      } else if (data.session) {
+        console.log('[Auth] Usuário logado automaticamente após registro');
+
+        if (selectedPlan === 'free_200') {
+          console.log('[Auth] Ativando trial gratuito...');
+          toast.success('Conta criada! Ativando plano gratuito...');
+
+          setTimeout(() => {
+            navigate('/confirm-email', { replace: true });
+          }, 2000);
+
+        } else if (selectedPlan === 'pro_5k' || selectedPlan === 'ultra_15k') {
           toast.success('Conta criada! Redirecionando para pagamento...');
 
-          setTimeout(() => {
-            navigate(`/checkout?plan=${selectedPlan}`, { replace: true });
-          }, 2000);
+          return { requiresPayment: true, userId: data.user.id, plan: selectedPlan };
 
         } else {
-          // Sem plano selecionado - vai direto pro dashboard
           toast.success('Conta criada com sucesso!');
-          // Redirect will happen via onAuthStateChange
         }
       }
-      
+
+      return { requiresPayment: false };
+
     } catch (error: any) {
       console.error('Erro no registro:', error);
       throw error;

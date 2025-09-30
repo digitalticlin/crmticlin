@@ -1,10 +1,31 @@
 
 import { Button } from "@/components/ui/button";
-import { Mail } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Mail, CheckCircle, Clock } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import { BackgroundGradient } from "@/components/ui/BackgroundGradient";
+import { useEffect, useState } from "react";
 
 export default function ConfirmEmailInstructions() {
+  const [searchParams] = useSearchParams();
+  const plan = searchParams.get('plan');
+  const paymentStatus = searchParams.get('payment');
+  const [showPaymentMessage, setShowPaymentMessage] = useState(false);
+
+  useEffect(() => {
+    if (paymentStatus) {
+      setShowPaymentMessage(true);
+    }
+  }, [paymentStatus]);
+
+  const getPlanName = (planId: string | null) => {
+    switch(planId) {
+      case 'pro_5k': return 'Profissional (5K)';
+      case 'ultra_15k': return 'Ultra (15K)';
+      case 'free_200': return 'Gratuito';
+      default: return '';
+    }
+  };
+
   return (
     <BackgroundGradient className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-200">
       {/* Main Content */}
@@ -27,10 +48,35 @@ export default function ConfirmEmailInstructions() {
           
           <div className="space-y-4 animate-scale-in">
             <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-              Verifique seu e-mail
+              {paymentStatus === 'success' ? 'Pagamento confirmado!' : 'Verifique seu e-mail'}
             </h1>
+
+            {showPaymentMessage && paymentStatus === 'success' && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 space-y-2">
+                <div className="flex items-center gap-2 justify-center text-green-700">
+                  <CheckCircle className="h-5 w-5" />
+                  <span className="font-semibold">Plano {getPlanName(plan)} ativado!</span>
+                </div>
+                <p className="text-sm text-green-600">
+                  Seu pagamento foi processado com sucesso.
+                </p>
+              </div>
+            )}
+
+            {showPaymentMessage && paymentStatus === 'pending' && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 space-y-2">
+                <div className="flex items-center gap-2 justify-center text-yellow-700">
+                  <Clock className="h-5 w-5" />
+                  <span className="font-semibold">Pagamento pendente</span>
+                </div>
+                <p className="text-sm text-yellow-600">
+                  Seu pagamento está sendo processado. Você receberá um email quando for confirmado.
+                </p>
+              </div>
+            )}
+
             <p className="text-sm text-gray-700 font-medium">
-              Enviamos um e-mail de confirmação para você. Por favor, clique no link no e-mail para ativar sua conta.
+              Enviamos um e-mail de confirmação para você. Por favor, clique no link no e-mail para ativar sua conta e acessar o sistema.
             </p>
           </div>
           

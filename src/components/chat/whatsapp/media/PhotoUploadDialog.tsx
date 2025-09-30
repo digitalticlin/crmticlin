@@ -72,16 +72,21 @@ export const PhotoUploadDialog: React.FC<PhotoUploadDialogProps> = ({
     }
   };
 
-  // Enviar todas as fotos em fila
+  // Enviar todas as fotos em fila (com optimistic update)
   const handleSendAll = async () => {
     if (selectedFiles.length === 0) return;
 
     setIsSending(true);
-    let successCount = 0;
 
-    try {
+    // Fechar modal imediatamente para mostrar mensagens otimistas
+    toast.success(`Enviando ${selectedFiles.length} foto${selectedFiles.length > 1 ? 's' : ''}...`);
+    handleClose();
+
+    // Enviar em background
+    (async () => {
+      let successCount = 0;
+
       for (let i = 0; i < selectedFiles.length; i++) {
-        setCurrentProcessingIndex(i);
         const success = await sendFile(selectedFiles[i], ''); // Sem legenda
         if (success) {
           successCount++;
@@ -92,16 +97,15 @@ export const PhotoUploadDialog: React.FC<PhotoUploadDialogProps> = ({
         }
       }
 
+      // Notificar resultado final após todos os envios
       if (successCount === selectedFiles.length) {
         toast.success(`${successCount} foto${successCount > 1 ? 's' : ''} enviada${successCount > 1 ? 's' : ''} com sucesso!`);
-        handleClose();
+      } else if (successCount > 0) {
+        toast.warning(`${successCount} de ${selectedFiles.length} fotos enviadas com sucesso`);
       } else {
-        toast.warning(`${successCount} de ${selectedFiles.length} fotos enviadas`);
+        toast.error('Erro ao enviar fotos. Tente novamente.');
       }
-    } finally {
-      setIsSending(false);
-      setCurrentProcessingIndex(-1);
-    }
+    })();
   };
 
   // Remover foto específica
