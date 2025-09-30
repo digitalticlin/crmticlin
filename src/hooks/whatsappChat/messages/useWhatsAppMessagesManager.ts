@@ -42,7 +42,7 @@ interface UseWhatsAppMessagesManagerReturn {
   realtimeTotalEvents: number;
 }
 
-const MESSAGES_PER_PAGE = 50;
+const MESSAGES_PER_PAGE = 20; // ✅ CORREÇÃO: 20 mensagens por página para scroll infinito otimizado
 
 export const useWhatsAppMessagesManager = ({
   selectedContact,
@@ -178,8 +178,9 @@ export const useWhatsAppMessagesManager = ({
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     enabled: !!selectedContact?.id && !!activeInstanceId && !!user?.id,
-    staleTime: 30000,
-    refetchOnWindowFocus: false
+    staleTime: 0, // ✅ CORREÇÃO: 0ms para permitir refetch imediato via realtime
+    refetchOnWindowFocus: true, // ✅ CORREÇÃO: Habilitar para sincronizar ao focar
+    initialPageParam: 0
   });
 
   // WebSocket Real-time para mensagens (substitui polling)
@@ -467,10 +468,16 @@ export const useWhatsAppMessagesManager = ({
     }
   });
 
-  // Mensagens finais (todas as páginas unificadas)
+  // ✅ CORREÇÃO: Mensagens finais (todas as páginas unificadas E REORDENADAS)
   const messages = useMemo(() => {
     if (messagesData?.pages) {
-      return messagesData.pages.flatMap(page => page.data);
+      const allMessages = messagesData.pages.flatMap(page => page.data);
+
+      // ✅ CRÍTICO: Reordenar TODAS as mensagens cronologicamente
+      // Motivo: Páginas podem ter sido carregadas fora de ordem
+      return allMessages.sort((a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      );
     }
     return [];
   }, [messagesData]);

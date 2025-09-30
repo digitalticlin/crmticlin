@@ -246,11 +246,11 @@ export const useWhatsAppContacts = ({
     enabled: !!user?.id,
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    staleTime: 3 * 60 * 1000, // 3 minutos - AUMENTADO para evitar loops
-    gcTime: 15 * 60 * 1000, // 15 minutos - AUMENTADO para cache estável
-    refetchOnWindowFocus: false, // DESABILITADO - evita refetch desnecessário
-    refetchOnMount: true, // Apenas na primeira montagem
-    refetchInterval: false, // DESABILITADO - sem polling automático
+    staleTime: 0, // ✅ 0ms - Sempre permite refetch imediato para sincronização realtime 100%
+    gcTime: 15 * 60 * 1000, // 15 minutos - Cache em memória
+    refetchOnWindowFocus: true, // ✅ HABILITADO - Sincroniza ao focar janela (caso perca evento WebSocket)
+    refetchOnMount: true, // ✅ Sempre refetch ao montar
+    refetchInterval: false, // ❌ DESABILITADO - Sincronização via WebSocket, não polling
     retry: 1, // Máximo 1 retry para evitar loops
   });
 

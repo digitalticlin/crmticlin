@@ -36,12 +36,15 @@ export function MessageItem({
 
 
   return (
-    <div className={cn(
-      "message-item w-full px-4 py-1 transition-all duration-300",
-      "animate-in fade-in-0 slide-in-from-bottom-2",
-      isLastMessage && "pb-4",
-      className
-    )}>
+    <div
+      data-message-id={message.id} // ✅ ÂNCORA: Para preservação de scroll
+      className={cn(
+        "message-item w-full px-4 py-1 transition-all duration-300",
+        "animate-in fade-in-0 slide-in-from-bottom-2",
+        isLastMessage && "pb-4",
+        className
+      )}
+    >
       <div className={cn(
         "flex w-full items-start gap-2",
         isFromMe ? "justify-end" : "justify-start"

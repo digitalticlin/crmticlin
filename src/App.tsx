@@ -24,6 +24,7 @@ const SettingsPage = lazy(() => import('./pages/Settings'));
 const WhatsAppWebPage = lazy(() => import('./pages/WhatsAppChat'));
 const AutomationPage = lazy(() => import('./pages/Automation'));
 const AIAgentsPage = lazy(() => import('./pages/AIAgents'));
+const FlowBuilderTestPage = lazy(() => import('./pages/FlowBuilderTest'));
 const PlansPage = lazy(() => import('./pages/Plans'));
 const PlansUpgradePage = lazy(() => import('./pages/PlansUpgrade'));
 const Checkout = lazy(() => import('./pages/Checkout'));
@@ -127,8 +128,8 @@ function AppLayoutRoutes() {
           </AppLayout>
         } 
       />
-      <Route 
-        path="/ai-agents" 
+      <Route
+        path="/ai-agents"
         element={
           <AdminGuard>
             <AppLayout>
@@ -137,7 +138,17 @@ function AppLayoutRoutes() {
               </Suspense>
             </AppLayout>
           </AdminGuard>
-        } 
+        }
+      />
+      <Route
+        path="/flow-builder-test"
+        element={
+          <AdminGuard>
+            <Suspense fallback={<PageLoader />}>
+              <FlowBuilderTestPage />
+            </Suspense>
+          </AdminGuard>
+        }
       />
       <Route
         path="/plans"

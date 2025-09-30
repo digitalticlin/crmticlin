@@ -185,7 +185,7 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
       return { stages, leads };
     },
     enabled: enabled && !!funnelId && !roleLoading && !!role,
-    staleTime: 30000, // 30s - Balance entre tempo real e performance
+    staleTime: 0, // ✅ 0ms - Sempre considerar stale para permitir realtime updates
     gcTime: 600000 // 🚀 FASE 3: Manter em cache por 10 minutos
   });
 
@@ -382,9 +382,9 @@ export const useFunnelDataManager = (options: FunnelDataOptions): FunnelDataRetu
         clearTimeout(refreshDebounceTimer.current);
       }
       refreshDebounceTimer.current = setTimeout(() => {
-        console.log('[FunnelDataManager] 🔄 Refresh debounced executado');
+        console.log('[FunnelDataManager] 🔄 Refresh realtime executado');
         refreshDataRef.current();
-      }, 1000);
+      }, 300); // ✅ 300ms - Balance entre performance e responsividade realtime
     };
 
     realtimeSubscription.current = supabase

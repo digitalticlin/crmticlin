@@ -336,7 +336,7 @@ export function useFunnelLeads({
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     enabled: Boolean(funnelId && user?.id && enabled && !roleLoading && role),
-    staleTime: 30000, // 🚀 FASE 3: 30s de stale para melhor cache
+    staleTime: 0, // ✅ 0ms - Sempre considerar stale para permitir realtime updates
     gcTime: 10 * 60 * 1000, // 🚀 FASE 3: Aumentado para 10 minutos
     refetchOnWindowFocus: true, // ✅ HABILITADO - refetch ao focar para resolver problema inicial
     refetchOnReconnect: true, // ✅ HABILITADO - refetch ao reconectar
