@@ -53,18 +53,43 @@ export const WhatsAppChatArea = ({
   const handleSelectContactForForward = async (targetContact: Contact) => {
     if (!messageToForward || !activeInstance?.id) return;
 
+    // 🔥 CORREÇÃO: Buscar URL correta da mídia (priorizar media_cache)
+    const getMediaUrl = () => {
+      // Se tiver media_cache, priorizar cached_url ou original_url
+      if (messageToForward.media_cache) {
+        const storageUrl = messageToForward.media_cache.cached_url || messageToForward.media_cache.original_url;
+        if (storageUrl) {
+          console.log('[WhatsAppChatArea] 🗄️ Usando URL do media_cache:', storageUrl);
+          return storageUrl;
+        }
+      }
+
+      // Fallback para mediaUrl direto
+      if (messageToForward.mediaUrl) {
+        console.log('[WhatsAppChatArea] 📎 Usando mediaUrl direto:', messageToForward.mediaUrl);
+        return messageToForward.mediaUrl;
+      }
+
+      return null;
+    };
+
+    const finalMediaUrl = getMediaUrl();
+
     console.log('[WhatsAppChatArea] 📤 Encaminhando mensagem:', {
       messageId: messageToForward.id,
       from: selectedContact.id,
       fromPhone: selectedContact.phone,
       to: targetContact.id,
       toPhone: targetContact.phone,
-      hasMedia: messageToForward.mediaType !== 'text'
+      hasMedia: messageToForward.mediaType !== 'text',
+      mediaType: messageToForward.mediaType,
+      mediaUrl: finalMediaUrl,
+      hasMediaCache: !!messageToForward.media_cache
     });
 
     try {
       // 🔥 CORREÇÃO CRÍTICA: Enviar diretamente via edge function para o contato correto
-      const messageContent = messageToForward.text || (messageToForward.mediaUrl ? ' ' : '');
+      const messageContent = messageToForward.text || (finalMediaUrl ? ' ' : '');
 
       const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
         body: {
@@ -73,7 +98,7 @@ export const WhatsAppChatArea = ({
           phone: targetContact.phone, // ✅ CORRIGIDO: usar phone do targetContact, não do selectedContact
           message: messageContent,
           mediaType: messageToForward.mediaType || 'text',
-          mediaUrl: messageToForward.mediaUrl || null
+          mediaUrl: finalMediaUrl
         }
       });
 
