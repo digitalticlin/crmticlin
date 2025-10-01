@@ -56,6 +56,8 @@ import {
   Target,
   Phone,
   Sparkles,
+  Link as LinkIcon,
+  Image,
 } from 'lucide-react';
 
 import { FlowStepNode, StepAction, Decision, FlowValidationError, Message } from '@/types/flowBuilder';
@@ -74,6 +76,8 @@ import { MoveFunnelEditor } from '@/components/flow-builder/editors/MoveFunnelEd
 import { WaitActionEditor } from '@/components/flow-builder/editors/WaitActionEditor';
 import { TransferHumanEditor } from '@/components/flow-builder/editors/TransferHumanEditor';
 import { EndConversationEditor } from '@/components/flow-builder/editors/EndConversationEditor';
+import { SendLinkEditor } from '@/components/flow-builder/editors/SendLinkEditor';
+import { SendMediaEditor } from '@/components/flow-builder/editors/SendMediaEditor';
 import { convertToRetornoFormat, formatRetornoJson } from '@/utils/flowJsonGenerator';
 
 const nodeTypes: NodeTypes = {
@@ -91,12 +95,14 @@ const SPECIAL_BLOCK = {
   isSpecial: true
 };
 
-// Paleta de blocos - 13 tipos organizados por categoria
+// Paleta de blocos - 15 tipos organizados por categoria
 const BLOCK_TYPES = [
   // === COMUNICAÇÃO ===
   { type: 'ask_question', icon: <MessageSquare className="h-4 w-4" />, label: 'Fazer Pergunta', color: 'bg-blue-500', category: 'Comunicação' },
   { type: 'request_document', icon: <FileText className="h-4 w-4" />, label: 'Solicitar Documento', color: 'bg-orange-500', category: 'Comunicação' },
   { type: 'send_message', icon: <Send className="h-4 w-4" />, label: 'Enviar Mensagem', color: 'bg-purple-500', category: 'Comunicação' },
+  { type: 'send_link', icon: <LinkIcon className="h-4 w-4" />, label: 'Enviar Link', color: 'bg-cyan-500', category: 'Comunicação' },
+  { type: 'send_media', icon: <Image className="h-4 w-4" />, label: 'Enviar Mídia', color: 'bg-pink-500', category: 'Comunicação' },
   { type: 'provide_instructions', icon: <GraduationCap className="h-4 w-4" />, label: 'Ensinar/Orientar', color: 'bg-indigo-500', category: 'Comunicação' },
 
   // === LÓGICA ===
@@ -835,6 +841,44 @@ export default function FlowBuilderTest() {
       {/* 14. Finalizar Conversa */}
       {editingNode?.data.stepType === 'end_conversation' && (
         <EndConversationEditor
+          isOpen={isEditorOpen}
+          onClose={() => {
+            setIsEditorOpen(false);
+            setEditingNode(null);
+          }}
+          initialData={{
+            label: editingNode.data.label,
+            messages: editingNode.data.messages as any,
+            description: editingNode.data.description
+          }}
+          onSave={(data) => {
+            handleSaveNode(data);
+          }}
+        />
+      )}
+
+      {/* 15. Enviar Link */}
+      {editingNode?.data.stepType === 'send_link' && (
+        <SendLinkEditor
+          isOpen={isEditorOpen}
+          onClose={() => {
+            setIsEditorOpen(false);
+            setEditingNode(null);
+          }}
+          initialData={{
+            label: editingNode.data.label,
+            messages: editingNode.data.messages as any,
+            description: editingNode.data.description
+          }}
+          onSave={(data) => {
+            handleSaveNode(data);
+          }}
+        />
+      )}
+
+      {/* 16. Enviar Mídia */}
+      {editingNode?.data.stepType === 'send_media' && (
+        <SendMediaEditor
           isOpen={isEditorOpen}
           onClose={() => {
             setIsEditorOpen(false);
