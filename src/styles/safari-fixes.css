@@ -4,40 +4,45 @@
 /* Classes aplicadas via JavaScript para detecção precisa */
 
 /* === GLASSMORPHISM FIXES PARA TODOS OS MACS === */
+/* CORREÇÃO: Manter transparência original (0.35) - apenas otimizar rendering */
 body.macos-system .backdrop-blur-sm,
 body.safari-browser .backdrop-blur-sm,
 body.webkit-browser.macos-system .backdrop-blur-sm {
-  background-color: rgba(255, 255, 255, 0.92) !important;
-  -webkit-backdrop-filter: blur(4px) saturate(180%);
-  backdrop-filter: blur(4px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 body.macos-system .backdrop-blur,
 body.safari-browser .backdrop-blur,
 body.webkit-browser.macos-system .backdrop-blur {
-  background-color: rgba(255, 255, 255, 0.93) !important;
-  -webkit-backdrop-filter: blur(6px) saturate(180%);
-  backdrop-filter: blur(6px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 body.macos-system .backdrop-blur-md,
 body.safari-browser .backdrop-blur-md,
 body.webkit-browser.macos-system .backdrop-blur-md {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  -webkit-backdrop-filter: blur(8px) saturate(180%);
-  backdrop-filter: blur(8px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 body.macos-system .backdrop-blur-lg,
 body.safari-browser .backdrop-blur-lg,
 body.webkit-browser.macos-system .backdrop-blur-lg {
-  background-color: rgba(255, 255, 255, 0.96) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  backdrop-filter: blur(12px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 /* Fallback APENAS quando backdrop-filter falha completamente NO SAFARI */
@@ -49,104 +54,83 @@ body.safari-browser.backdrop-render-fail [class*="backdrop-blur"] {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-/* Fix para containers específicos do funil de vendas APENAS NO SAFARI */
+/* CORREÇÃO: Sticky headers mantêm transparência original */
 body.safari-browser .sticky.top-0.backdrop-blur-md,
 body.webkit-browser.macos-system .sticky.top-0.backdrop-blur-md {
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.98),
-    rgba(255, 255, 255, 0.96)
-  ) !important;
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
 }
 
-/* Detecta APENAS Safari no macOS - não afeta Windows/Chrome/Firefox */
+/* Detecta APENAS Safari no macOS - apenas otimizações de rendering */
 @supports (-webkit-appearance: none) and (stroke-color: transparent) {
   @media screen and (max-resolution: 192dpi) and (min-color-index: 0) {
-    /* Aplicar SOMENTE se for Safari no macOS */
-    body.safari-browser .sticky.backdrop-blur-md,
-    body.macos-system .sticky.backdrop-blur-md {
-      background-color: rgba(255, 255, 255, 0.98) !important;
-      -webkit-backdrop-filter: blur(12px);
-      backdrop-filter: blur(12px);
-    }
-
-    body.safari-browser .backdrop-blur-md,
-    body.macos-system .backdrop-blur-md {
-      background-color: rgba(255, 255, 255, 0.95) !important;
-      -webkit-backdrop-filter: blur(8px);
-      backdrop-filter: blur(8px);
-    }
-
-    body.safari-browser .backdrop-blur-lg,
-    body.macos-system .backdrop-blur-lg {
-      background-color: rgba(255, 255, 255, 0.96) !important;
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
-    }
-
-    /* Fix geral APENAS para Safari */
-    body.safari-browser [class*="backdrop-blur"] {
+    /* CORREÇÃO: Apenas otimizar rendering, SEM alterar background-color */
+    body.safari-browser [class*="backdrop-blur"],
+    body.macos-system [class*="backdrop-blur"] {
       -webkit-transform: translateZ(0);
       transform: translateZ(0);
       will-change: transform;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
   }
 }
 
-/* iOS Safari específico - não afeta desktop */
+/* iOS Safari específico - manter transparência */
 @supports (-webkit-touch-callout: none) {
   body.ios-system .backdrop-blur-sm,
   body.ios-system .backdrop-blur,
   body.ios-system .backdrop-blur-md,
   body.ios-system .backdrop-blur-lg {
-    -webkit-backdrop-filter: blur(8px) brightness(1.1);
-    backdrop-filter: blur(8px) brightness(1.1);
-    background-color: rgba(255, 255, 255, 0.92);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
 }
 
-/* Performance optimization APENAS para Safari identificado */
+/* Performance optimization - Blur mais forte para Safari */
 body.safari-browser .backdrop-blur-3xl {
-  -webkit-backdrop-filter: blur(24px);
-  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
 }
 
 body.safari-browser .backdrop-blur-2xl {
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
 }
 
 body.safari-browser .backdrop-blur-xl {
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
 }
 
 body.safari-browser .backdrop-blur-lg {
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
 }
 
 body.safari-browser .backdrop-blur-md {
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
 }
 
 body.safari-browser .backdrop-blur-sm {
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
 }
 
 body.safari-browser .backdrop-blur {
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
 }
 
 /* === MODAIS FIXES PARA TODOS OS MACS === */
 
-/* Fix crítico: Modais fora do viewport em TODOS OS MACS */
+/* Fix crítico: Modais centralizados (NÃO full screen) em TODOS OS MACS */
 body.macos-system .fixed.left-\[50\%\].top-\[50\%\],
 body.safari-browser .fixed.left-\[50\%\].top-\[50\%\],
 body.macos-backdrop-issues .fixed.left-\[50\%\].top-\[50\%\],
@@ -159,9 +143,8 @@ body.safari-modal-issues .fixed.left-\[50\%\].top-\[50\%\] {
   /* Garantir z-index alto para modais */
   z-index: 9999 !important;
 
-  /* Fix para overflow em Macs antigos */
-  max-height: calc(100vh - 40px);
-  max-width: calc(100vw - 40px);
+  /* CORREÇÃO: Remover max-width/max-height que causavam full screen */
+  /* Os modais devem usar seus próprios tamanhos definidos */
 }
 
 /* Fix específico para DialogContent do Radix UI */
@@ -221,8 +204,9 @@ body.macos-version-10 [class*="backdrop-blur"],
 body.macos-version-11 [class*="backdrop-blur"],
 body.macos-version-12 [class*="backdrop-blur"] {
   /* Reduzir blur para Macs antigos (melhor performance) */
-  -webkit-backdrop-filter: blur(6px) !important;
-  backdrop-filter: blur(6px) !important;
-  /* Background mais sólido para compensar */
-  background-color: rgba(255, 255, 255, 0.97) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(160%) !important;
+  backdrop-filter: blur(8px) saturate(160%) !important;
+  /* MANTER transparência original - não aumentar opacidade */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
