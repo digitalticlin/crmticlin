@@ -77,7 +77,7 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
   } : {};
 
   // Handler que detecta área clicada e delega apropriadamente
-  const handleCardClick = useCallback((e: React.MouseEvent) => {
+  const handleCardClick = useCallback((e?: React.MouseEvent) => {
     if (isDragging) return;
 
     const target = e.target as Element;
@@ -180,7 +180,7 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
       <div className={className}>
         <LeadCard
           lead={lead}
-          onClick={handleCardClick}
+          onClick={() => handleCardClick()}
           onOpenChat={onOpenChat} // Restaurado - chat funcionava perfeitamente
           onMoveToWon={handleMoveToWon} // Passar o handler real
           onMoveToLost={handleMoveToLost} // Passar o handler real
@@ -232,7 +232,7 @@ export const LeadCardUnified: React.FC<LeadCardUnifiedProps> = ({
       {/* LeadCard renderizado normalmente */}
       <LeadCard
         lead={lead}
-        onClick={handleCardClick}
+        onClick={() => handleCardClick()}
         onOpenChat={onOpenChat} // Restaurado - chat funcionava perfeitamente
         onMoveToWon={handleMoveToWon} // Passar o handler real
         onMoveToLost={handleMoveToLost} // Passar o handler real

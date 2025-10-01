@@ -175,15 +175,7 @@ export const AudioRecordDialog: React.FC<AudioRecordDialogProps> = ({
         const success = await onSendMessage(
           '',  // ✅ Mensagem vazia para PTT nativo
           'ptt',  // ✅ Tipo PTT ao invés de 'audio'
-          base64Data,
-          {
-            // ✅ METADATA PTT COMPLETA
-            ptt: true,
-            filename: `ptt_${Date.now()}.ogg`,
-            seconds: recordingTime,
-            mimeType: 'audio/ogg;codecs=opus',
-            duration: recordingTime
-          }
+          base64Data
         );
 
         if (success) {

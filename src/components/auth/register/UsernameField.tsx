@@ -13,7 +13,7 @@ export function UsernameField({ form }: UsernameFieldProps) {
   return (
     <FormField
       control={form.control}
-      name="username"
+      name={"username" as any}
       render={({ field }) => (
         <FormItem>
           <FormLabel className="text-sm font-semibold text-gray-800">

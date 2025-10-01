@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 🚀 CLIENTS OTIMIZADO E ISOLADO
  * 

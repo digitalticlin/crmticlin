@@ -371,7 +371,7 @@ export function KanbanColumn({
   } = useInfiniteScrollDatabase(
     column.id,
     column.leads.length, // Total em memória
-    totalCount, // Total no banco (do useStageLeadCount)
+    getStageCount(column.id), // Total no banco (do useStageLeadCount)
     onLoadMoreFromDatabase || (() => {}) // Fallback se não houver função
   );
 

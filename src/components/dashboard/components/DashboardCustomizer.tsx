@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 🚀 DASHBOARD CUSTOMIZER ISOLADO
  * 

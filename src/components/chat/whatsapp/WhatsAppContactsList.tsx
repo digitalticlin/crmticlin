@@ -219,7 +219,7 @@ export const WhatsAppContactsList = React.memo(({
             ].map((filter) => (
               <button
                 key={filter.key}
-                onClick={() => setActiveFilter(filter.key)}
+                onClick={() => setActiveFilter(filter.key as 'all' | 'unread')}
                 className={cn(
                   "px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
                   activeFilter === filter.key

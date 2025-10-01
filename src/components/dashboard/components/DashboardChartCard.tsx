@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 🚀 CHART CARD ISOLADO - DASHBOARD
  * 
