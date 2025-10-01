@@ -54,7 +54,15 @@ export const WhatsAppChatArea = ({
     if (!messageToForward || !activeInstance?.id) return;
 
     // 🔥 CORREÇÃO: Buscar URL correta da mídia (priorizar media_cache)
-    const getMediaUrl = () => {
+    const getMediaUrl = async () => {
+      console.log('[WhatsAppChatArea] 🔍 DEBUG - Analisando mensagem:', {
+        messageId: messageToForward.id,
+        hasMediaCache: !!messageToForward.media_cache,
+        mediaCache: messageToForward.media_cache,
+        mediaUrl: messageToForward.mediaUrl,
+        mediaType: messageToForward.mediaType
+      });
+
       // Se tiver media_cache, priorizar cached_url ou original_url
       if (messageToForward.media_cache) {
         const storageUrl = messageToForward.media_cache.cached_url || messageToForward.media_cache.original_url;
@@ -70,10 +78,32 @@ export const WhatsAppChatArea = ({
         return messageToForward.mediaUrl;
       }
 
+      // 🔥 ÚLTIMA TENTATIVA: Buscar media_cache direto no banco
+      if (messageToForward.mediaType !== 'text') {
+        console.log('[WhatsAppChatArea] 🔍 Buscando media_cache no banco para:', messageToForward.id);
+
+        const { data: mediaCache, error } = await supabase
+          .from('media_cache')
+          .select('cached_url, original_url, base64_data, media_type')
+          .eq('message_id', messageToForward.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('[WhatsAppChatArea] ❌ Erro ao buscar media_cache:', error);
+        } else if (mediaCache) {
+          const dbStorageUrl = mediaCache.cached_url || mediaCache.original_url;
+          if (dbStorageUrl) {
+            console.log('[WhatsAppChatArea] ✅ URL encontrada no banco:', dbStorageUrl);
+            return dbStorageUrl;
+          }
+        }
+      }
+
+      console.warn('[WhatsAppChatArea] ⚠️ Nenhuma URL de mídia encontrada!');
       return null;
     };
 
-    const finalMediaUrl = getMediaUrl();
+    const finalMediaUrl = await getMediaUrl();
 
     console.log('[WhatsAppChatArea] 📤 Encaminhando mensagem:', {
       messageId: messageToForward.id,

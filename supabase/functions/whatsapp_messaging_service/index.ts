@@ -184,8 +184,19 @@ serve(async (req)=>{
     // ✅ FLUXO DIRETO: Processar todos os tipos de mídia via RPC + Edge
     let processedMediaUrl = mediaUrl;
     let processedMediaType = mediaType;
+    let isStorageUrl = false;
 
-    if (mediaUrl && mediaUrl.startsWith('data:')) {
+    // 🔥 NOVO: Detectar se é URL do Storage Supabase (encaminhamento)
+    if (mediaUrl && (mediaUrl.includes('supabase.co/storage') || mediaUrl.startsWith('http'))) {
+      isStorageUrl = true;
+      console.log('[Messaging Service] 🗄️ URL do Storage detectada (encaminhamento) - usando direto:', {
+        url: mediaUrl.substring(0, 100) + '...',
+        mediaType
+      });
+      // Usar URL diretamente sem processar
+      processedMediaUrl = mediaUrl;
+      processedMediaType = mediaType || 'text';
+    } else if (mediaUrl && mediaUrl.startsWith('data:')) {
       console.log('[Messaging Service] 🔍 DataURL detectada - usando fluxo direto RPC + Edge');
     }
 
@@ -193,7 +204,7 @@ serve(async (req)=>{
     {
       console.log('[Messaging Service] ⚡ Processamento DIRETO via RPC + Edge');
       // ✅ DETECTAR TIPO DE MÍDIA (RPC + Edge farão o processamento)
-      if (mediaUrl && mediaUrl.startsWith('data:')) {
+      if (!isStorageUrl && mediaUrl && mediaUrl.startsWith('data:')) {
         console.log('[Messaging Service] 🔄 DataURL detectada - será processada pela RPC + Edge...');
         try {
           // Extrair tipo MIME da DataURL para determinar mediaType
@@ -320,11 +331,21 @@ serve(async (req)=>{
       // 🎯 Extrair base64 se for DataURL
       let extractedBase64 = null;
       let extractedMimeType = null;
-      if (processedMediaUrl && processedMediaUrl.startsWith('data:')) {
+      let finalMediaUrl = null;
+
+      // 🔥 NOVO: Se for URL do Storage, usar direto
+      if (isStorageUrl && processedMediaUrl) {
+        finalMediaUrl = processedMediaUrl;
+        console.log('[Messaging Service] 🗄️ Usando URL do Storage direto (encaminhamento):', finalMediaUrl.substring(0, 100) + '...');
+      }
+      // Se for DataURL, extrair base64 para upload
+      else if (processedMediaUrl && processedMediaUrl.startsWith('data:')) {
         const dataUrlMatch = processedMediaUrl.match(/^data:([^;]+);base64,(.+)$/);
         if (dataUrlMatch) {
           extractedMimeType = dataUrlMatch[1];
           extractedBase64 = dataUrlMatch[2];
+          finalMediaUrl = null; // Edge vai fazer upload e atualizar
+          console.log('[Messaging Service] 📤 Base64 extraído para upload via edge');
         }
       }
 
@@ -335,8 +356,11 @@ serve(async (req)=>{
           p_message_text: message.trim().substring(0, 50),
           p_from_me: true,
           p_media_type: processedMediaType || 'text',
+          p_media_url: finalMediaUrl,  // 🔥 CORRIGIDO: URL do Storage OU null para upload
           p_whatsapp_number_id: instanceData?.id,
-          p_external_message_id: vpsData.messageId
+          p_external_message_id: vpsData.messageId,
+          p_has_base64: !!extractedBase64,
+          p_is_forwarded: isStorageUrl
         });
 
         const { data: saveResult, error: saveError } = await supabaseServiceRole.rpc('save_sent_message_from_app', {
@@ -345,11 +369,11 @@ serve(async (req)=>{
           p_message_text: message.trim(),
           p_from_me: true,
           p_media_type: processedMediaType || 'text',
-          p_media_url: null,  // ✅ NULL - edge vai atualizar
+          p_media_url: finalMediaUrl,  // 🔥 CORRIGIDO: URL do Storage (encaminhamento) OU NULL (upload)
           p_external_message_id: vpsData.messageId || null,
           p_contact_name: null,
           p_profile_pic_url: null,
-          p_base64_data: extractedBase64,  // ✅ Base64 para upload
+          p_base64_data: extractedBase64,  // ✅ Base64 para upload (NULL se for encaminhamento)
           p_mime_type: extractedMimeType,
           p_file_name: null,
           p_whatsapp_number_id: instanceData?.id || null,  // ✅ UUID da instância

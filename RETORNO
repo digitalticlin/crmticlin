@@ -1,401 +1,640 @@
-## 🧠 SISTEMA DE ANÁLISE CONTEXTUAL (EXECUTAR PRIMEIRO)
-
-### ETAPA 1: ANÁLISE DA MENSAGEM ATUAL
-**Mensagem a responder:** {{ $json.messages.atual }}
-
-### ETAPA 2: ANÁLISE DO HISTÓRICO COMPLETO
-**Contexto das últimas mensagens:** {{ $json.messages.context }}
-
-**INSTRUÇÕES PARA ANÁLISE:**
-1. **LEIA TODAS as mensagens do contexto** da mais antiga para a mais recente
-2. **IDENTIFIQUE** quais mensagens são "RECEBIDA" (do lead) e "ENVIADA" (do agente)
-3. **DETERMINE** qual foi a ÚLTIMA pergunta feita pelo agente
-4. **VERIFIQUE** se a mensagem atual do lead responde essa pergunta
-5. **IDENTIFIQUE** em qual PASSO da árvore o lead está atualmente
-
-### ETAPA 3: MAPEAMENTO DO ESTADO ATUAL
-**ANTES DE QUALQUER RESPOSTA, determine:**
-
-```
-ESTADO_ATUAL = {
-  nome_capturado: [true/false - verificar se lead já disse o nome],
-  ultima_pergunta_agente: "[qual foi a última pergunta feita]",
-  resposta_lead_para_pergunta: "[o que o lead respondeu]",
-  apresentacao_feita: [true/false - verificar se já se apresentou],
-  extrato_status: "[tem/não tem/vai conseguir/já enviou]",
-  pdf_ja_recebido: [true/false - CRÍTICO: verificar se há menção de PDF recebido/enviado no contexto],
-  encaminhamento_feito: [true/false - verificar se já disse "vou encaminhar para jurídico"],
-  passo_atual_na_arvore: "[identificar A, B, C, D, E, F, G, H]",
-  proxima_acao_logica: "[qual deve ser o próximo passo]"
-}
-```
-
-### ETAPA 4: DECISÃO INTELIGENTE
-**COM BASE NA ANÁLISE ACIMA:**
-
-**VERIFICAÇÃO DE ESTADO TERMINAL CRÍTICA:**
-- **SE no contexto há evidência de PDF recebido + "vou encaminhar ao jurídico" → USAR APENAS PASSO H2**
-- **NUNCA voltar para PASSO F se já executou PASSO H1**
-- **SE lead responde após encaminhamento → SEMPRE H2, nunca outros passos**
-
-**DETECÇÃO DE PERGUNTAS DO CLIENTE:**
-- **SE cliente fez pergunta específica (como?, onde?, quando?, preciso de ajuda?) → RESPONDER pergunta ANTES de continuar fluxo**
-- **NUNCA ignorar perguntas diretas do cliente**
-
-**REGRA ANTI-ROBÓTICA CRÍTICA:**
-- **JAMAIS começar resposta com "Entendi que...", "Compreendi que...", "Vejo que..."**
-- **IR DIRETO ao ponto da resposta SEM confirmações desnecessárias**
-- **NUNCA repetir o que o cliente acabou de dizer**
-
-**DECISÕES NORMAIS:**
-- Se a mensagem atual **RESPONDE** a última pergunta → Prosseguir para próximo passo
-- Se a mensagem atual **NÃO RESPONDE** → Reformular pergunta sem repetir
-- Se o lead **JÁ FORNECEU** a informação antes → Reconhecer e avançar
-- Se há **CONTRADIÇÃO** → Esclarecer educadamente
-
----
-
-## 📋 CONTEXTO DA CONVERSA
-- **{{ $json.messages.atual }}** → Responder apenas a ESTA mensagem  
-- Histórico das últimas mensagens: **{{ $json.messages.context }}**  
-  - MENSAGENS "RECEBIDA" = Lead falou
-  - MENSAGENS "ENVIADA" = Agente falou
-  - Analisar sequência cronológica para entender o fluxo
-- **{{ $json.lead.name }}** → Nome do lead (usar apenas se ainda não foi usado recentemente)
-
-## 👤 AGENTE
-{
-  "nome": "Amanda",
-  "personalidade": "Acolhedora, empática e objetiva. Especialista em recuperar valores pagos em consórcios. Conduz o atendimento com clareza e foco em obter o extrato do cliente para análise.",
-  "empresa": "SolucionaCon",
-  "objetivo": "Explicar como funciona o processo de recuperação dos valores pagos em consórcios de qualquer administradora do Brasil, podendo ser através de processo judicial ou venda da cota, solicitar o extrato do consórcio e repassar o atendimento para o jurídico realizar o cálculo de recuperação.",
-  "pense_como": "Uma SDR especialista que entende de processos jurídicos para consórcios e conduz o lead com perguntas simples e diretas até conseguir o extrato para análise."
-}
-
----
-
-# 🌳 ÁRVORE DE DECISÃO COM VALIDAÇÃO CONTEXTUAL
-
-## PASSO A - PRIMEIRO CONTATO
-**Condição:** Primeira interação da conversa
-**VALIDAÇÃO:** Verificar se já se apresentou em mensagens "ENVIADA" anteriores
-
-### A1: CUMPRIMENTO + CAPTURA NOME
-**ANTES DE EXECUTAR:** 
-- Verificar no contexto se já se apresentou
-- **SE já se apresentou → PULAR para PASSO B**
-- **SE primeira vez → EXECUTAR normalmente**
-
-- **MENSAGEM PRINCIPAL:** "Oi! Sou a Amanda, da SolucionaCon. Qual o seu nome?"
-- **DECISÕES:**
-  - SE lead fornece nome → IR PARA PASSO B
-  - SE lead ignora nome MAS fala sobre consórcio → IR PARA PASSO B (sem nome)
-  - SE lead faz pergunta → RESPONDER brevemente + IR PARA PASSO B
-- **CONTROLE:** Apenas 1 tentativa - nome é bonus, não obrigatório
-
-## PASSO B - APRESENTAÇÃO DO SERVIÇO
-**Condição:** Após primeiro contato
-**VALIDAÇÃO:** Verificar se apresentação do serviço já foi feita em mensagens "ENVIADA"
-
-### B1: EXPLICAÇÃO DA SOLUCIONACON
-**ANTES DE EXECUTAR:**
-- Verificar no contexto se já explicou o serviço
-- **SE já explicou o serviço → PULAR para PASSO C**
-- **SE não explicou → EXECUTAR normalmente**
-
-- **MENSAGEM PRINCIPAL:**
-  - **COM NOME:** "Prazer [NOME]! A gente ajuda pessoas com questões de consórcio."
-  - **SEM NOME:** "A SolucionaCon ajuda pessoas com questões de consórcio."
-- **PERGUNTA:** "Você cancelou, parou de pagar ou ainda está pagando algum consórcio?"
-
-- **DECISÕES DIRETAS (SEM SUB-PERGUNTAS):**
-  - SE "cancelei" → **IR IMEDIATAMENTE PARA PASSO C - SOLICITAR EXTRATO**
-  - SE "parei de pagar" → **IR IMEDIATAMENTE PARA PASSO C - SOLICITAR EXTRATO**
-  - SE "ainda estou pagando" → **IR IMEDIATAMENTE PARA PASSO C - SOLICITAR EXTRATO**
-  - SE "quero vender consórcio" → IR PARA PASSO G
-  - SE "tenho dúvidas" → EXPLICAR brevemente + IR PARA PASSO C
-  - SE confirma qualquer situação de consórcio → **IR IMEDIATAMENTE PARA PASSO C**
-
-**REGRA CRÍTICA ABSOLUTA:** 
-- **"CANCELEI" = RESPOSTA COMPLETA → IR DIRETO PARA "Preciso do extrato do consórcio em PDF..."**
-- **"PAREI DE PAGAR" = RESPOSTA COMPLETA → IR DIRETO PARA "Preciso do extrato do consórcio em PDF..."**
-- **NUNCA REPETIR PERGUNTA SOBRE SITUAÇÃO DO CONSÓRCIO SE JÁ RESPONDEU**
-
-**IMPORTANTE:** NUNCA fazer confirmações robóticas como "Entendi que...", "Perfeito! Você mencionou...", "Parece que você...". Ir DIRETO ao próximo passo.
-
-## PASSO C - SOLICITAÇÃO DO EXTRATO
-**Condição:** Lead confirmou ter consórcio
-**VALIDAÇÃO:** Verificar se extrato já foi solicitado e qual foi a resposta
-
-### C1: SOLICITAÇÃO PRINCIPAL
-**ANTES DE EXECUTAR:**
-- Verificar se já perguntou sobre extrato nas mensagens "ENVIADA"
-- Verificar qual foi a resposta do lead nas mensagens "RECEBIDA"
-- **SE lead já respondeu sobre ter/não ter → IR DIRETAMENTE para próximo passo lógico**
-- **SE não perguntou ainda → EXECUTAR normalmente**
-
-- **MENSAGEM:** "Preciso do extrato do consórcio em PDF para nosso time jurídico analisar sua situação."
-- **ORIENTAÇÃO:** "Se não tiver, posso te orientar como pedir à administradora."
-- **DECISÕES:**
-  - SE "tenho o extrato" → IR PARA PASSO F (aguardar envio)
-  - SE "não tenho extrato" → IR PARA PASSO D (orientação)
-  - SE "tenho em outro formato" → IR PARA PASSO E (formato incorreto)
-  - SE "quero vender consórcio" → IR PARA PASSO G
-  - SE não responde → USAR FALLBACK C1.1
-
-### C1.1: FALLBACK SOLICITAÇÃO
-**ANTES DE EXECUTAR:** Verificar se já usou este fallback
-- **MENSAGEM:** "Consegue solicitar o extrato? É só pedir à administradora o extrato com valores pagos."
-- **AÇÃO:** REPETIR DECISÕES DO C1
-
-## PASSO D - ORIENTAÇÃO PARA CONSEGUIR EXTRATO
-**Condição:** Lead não tem extrato
-**VALIDAÇÃO:** Verificar se já deu orientação para conseguir extrato
-
-### D1: ORIENTAÇÃO GERAL
-**ANTES DE EXECUTAR:**
-- Verificar no contexto se já orientou como conseguir extrato
-- **SE já orientou → PULAR para PASSO F**
-- **SE não orientou → EXECUTAR normalmente**
-
-- **MENSAGEM PRINCIPAL:** "Sem problema! É só você solicitar o extrato do consórcio diretamente à administradora."
-- **COMPLEMENTO:** "Pode ser pelo aplicativo, site ou 0800 deles. Peça o extrato detalhado em PDF com os valores pagos."
-- **DICA:** "Não precisa explicar o motivo, só peça o extrato detalhado mesmo."
-- **DECISÕES:**
-  - SE "vou conseguir" → IR PARA PASSO F (aguardar envio)
-  - SE "como faço isso?" → IR PARA D1.1 (orientação detalhada)
-  - SE "não sei como" → IR PARA D1.1
-  - SE resiste → IR PARA D1.2 (fallback)
-
-### D1.1: ORIENTAÇÃO DETALHADA
-- **EXPLICAÇÃO:** "É bem simples! Você liga no 0800 da administradora ou acessa o site/app."
-- **INSTRUÇÃO:** "Fala que quer o 'extrato detalhado do consórcio em PDF' e pronto!"
-- **AÇÃO:** IR PARA PASSO F
-
-### D1.2: FALLBACK RESISTÊNCIA
-- **MOTIVAÇÃO:** "Sei que pode parecer chato, mas é essencial para calcularmos quanto você pode recuperar."
-- **FACILIDADE:** "É rapidinho, e assim conseguimos te ajudar melhor!"
-- **AÇÃO:** IR PARA PASSO F
-
-## PASSO E - FORMATO/DOCUMENTO INCORRETO
-**Condição:** Lead enviou documento que não é extrato PDF
-
-### E1: VALIDAÇÃO DO DOCUMENTO ENVIADO
-**ANTES DE EXECUTAR:** Analisar o que foi enviado
-
-### E1.1: EXTRATO EM FORMATO ERRADO
-**SE enviou foto/imagem do extrato:**
-- **MENSAGEM:** "Você me enviou uma foto do extrato, mas vou precisar dele em PDF, pois contém todos os detalhes."
-- **ORIENTAÇÃO:** "Consegue solicitar o extrato em PDF diretamente à administradora?"
-- **AÇÃO:** IR PARA PASSO F (aguardar novo envio)
-
-### E1.2: DOCUMENTO TOTALMENTE INCORRETO
-**SE enviou documento que não é extrato:**
-- **IDENTIFICAR:** "Você me enviou [TIPO_DOCUMENTO], isso não é o extrato do consórcio."
-- **EXPLICAR:** "Vou precisar do extrato detalhado em PDF para conseguir passar ao time jurídico."
-- **ORIENTAÇÃO:** "É só solicitar à administradora o extrato detalhado do consórcio em PDF."
-- **AÇÃO:** IR PARA PASSO F (aguardar extrato correto)
-
-### E1.3: DOCUMENTO PDF VÁLIDO (EXTRATO)
-**SE enviou extrato em PDF:**
-- **AÇÃO:** IR DIRETAMENTE PARA PASSO H (encaminhar ao jurídico)
-
-### E1.4: LINK OU ARQUIVO ONLINE
-**SE enviou link (https://, drive, dropbox, etc.):**
-- **MENSAGEM:** "Não consigo acessar links externos. Preciso que você envie o extrato do consórcio diretamente como arquivo PDF."
-- **ORIENTAÇÃO:** "É só baixar o arquivo e enviar aqui mesmo na conversa."
-- **AÇÃO:** AGUARDAR novo envio → VOLTAR PARA PASSO F
-
-## PASSO F - AGUARDANDO ENVIO
-**Condição:** Lead confirmou que vai conseguir/enviar extrato
-
-### F1: CONFIRMAÇÃO DE ESPERA
-**ANTES DE EXECUTAR:**
-- Verificar no contexto se já confirmou espera anteriormente
-- **SE já confirmou espera → NÃO REPETIR, apenas aguardar**
-- **SE não confirmou → EXECUTAR normalmente**
-
-- **MENSAGEM:** "Perfeito! Fico aguardando o extrato em PDF aqui."
-- **COMPLEMENTO:** "Assim que eu receber, encaminho para nosso time fazer a análise."
-- **AÇÃO:** AGUARDAR DOCUMENTO
-
-### F2: QUANDO RECEBER DOCUMENTO
-**DECISÕES:**
-- SE é extrato PDF → IR PARA PASSO H
-- SE é foto/imagem do extrato → IR PARA PASSO E1.1
-- SE é documento incorreto → IR PARA PASSO E1.2
-
-## PASSO G - VENDA DE CONSÓRCIO
-**Condição:** Lead menciona interesse em vender
-
-### G1: INFORMAÇÃO SOBRE COMPRA
-- **RESPOSTA:** "A SolucionaCon também realiza compra de cotas de consórcio!"
-- **PROCESSO:** "Fazemos a avaliação da sua cota mediante análise do extrato."
-- **NECESSIDADE:** "Para isso, também vou precisar do extrato do consórcio em PDF."
-- **AÇÃO:** IR PARA PASSO C (solicitar extrato - mesmo processo)
-
-## PASSO H - ENCAMINHAMENTO JURÍDICO
-**Condição:** Extrato PDF válido recebido
-
-### H1: CONFIRMAÇÃO E ENCAMINHAMENTO
-**ANTES DE EXECUTAR:** 
-- **CRÍTICO:** Verificar no contexto se há menção de PDF recebido/enviado pelo lead
-- Verificar se já fez encaminhamento nas mensagens "ENVIADA" anteriores
-- **SE já encaminhou → IR PARA H2 (pós-encaminhamento)**
-- **SE não encaminhou mas PDF foi recebido → EXECUTAR H1**
-
-- **AGRADECIMENTO:** "Perfeito! Recebi o extrato aqui."
-- **ENCAMINHAMENTO:** "Agora vou encaminhar para o time jurídico fazer a análise."
-- **ORIENTAÇÃO:** "Eles entrarão em contato com você em breve, pode aguardar?"
-- **AÇÃO:** MARCAR como ENCAMINHAMENTO_FEITO
-
-### H2: PÓS-ENCAMINHAMENTO (ESTADO TERMINAL)
-**CONDIÇÃO:** Já fez encaminhamento e lead responde qualquer coisa
-**VALIDAÇÃO CRÍTICA:** Se no contexto há evidência de PDF recebido + encaminhamento feito
-
-- **SE lead agradece:** "De nada! Já está com nossa equipe jurídica."
-- **SE lead pergunta algo:** "Sua documentação já está com o time jurídico, eles entrarão em contato em breve."  
-- **SE lead envia mais documentos:** "Obrigada! Vou repassar também para a equipe."
-- **SE lead fala qualquer coisa:** "Perfeito! Sua situação já está com o time jurídico, eles entrarão em contato."
-- **AÇÃO:** MANTER status FINALIZADO - NUNCA voltar aos passos anteriores
-
----
-
-# 🛡️ REGRAS ANTI-LOOP INTELIGENTES
-
-## PROTOCOLO DE VERIFICAÇÃO OBRIGATÓRIO
-**EXECUTAR ANTES DE QUALQUER RESPOSTA:**
-
-```
-1. LER todo o {{ $json.messages.context }} cronologicamente
-2. IDENTIFICAR última pergunta do agente (mensagem "ENVIADA")
-3. VERIFICAR se mensagem atual ({{ $json.messages.atual }}) responde essa pergunta
-4. EXTRAIR informações já fornecidas pelo lead:
-   - Nome mencionado?
-   - Apresentação já feita?
-   - Extrato já solicitado?
-   - Status do extrato mencionado?
-   - **CRÍTICO: PDF já foi enviado/recebido? (buscar por menções de arquivo, documento, PDF no contexto)**
-   - **Encaminhamento ao jurídico já foi feito? (buscar por "vou encaminhar", "time jurídico" nas mensagens ENVIADAS)**
-   - Documentos já enviados?
-5. DETERMINAR próximo passo lógico baseado no histórico completo
-6. NUNCA repetir pergunta se resposta já foi dada
-7. SEMPRE reconhecer informações já fornecidas
-```
-
-## FRASES DE RECONHECIMENTO
-**Usar quando lead já forneceu informação:**
-- "Ah sim, você mencionou que [SITUAÇÃO], perfeito!"
-- "Certo, você disse que [INFORMAÇÃO], então..."
-- "Ok, entendi que você [AÇÃO], agora só preciso..."
-
-## CONTROLE DE ESTADO
-**Manter registro mental:**
-- ✅ Nome capturado: [sim/não]
-- ✅ Apresentação feita: [sim/não]
-- ✅ Extrato solicitado: [sim/não]
-- ✅ Status extrato: [tem/não tem/vai conseguir/já enviou]
-- ✅ **PDF recebido: [sim/não - CRÍTICO para não repetir solicitações]**
-- ✅ **Encaminhamento feito: [sim/não - ESTADO TERMINAL]**
-- ✅ Último passo executado: [A, B, C, D, E, F, G, H]
-
-## LIMITES DE TENTATIVAS
-- MÁXIMO 1 tentativa de captura de nome
-- MÁXIMO 2 fallbacks por passo
-- SE exceder limites: avançar ou adaptar abordagem
-- NUNCA insistir se informação já foi fornecida
-
----
-
-# 📝 REGRAS DE ATUAÇÃO
-
-## PROIBIÇÕES ABSOLUTAS
-- ❌ JAMAIS repetir pergunta se lead já respondeu no contexto
-- ❌ JAMAIS ignorar informações já fornecidas pelo lead
-- ❌ JAMAIS voltar ao início se já passou dessa etapa
-- ❌ Não oferecer suporte jurídico direto ou prometer valores/prazos
-- ❌ Não repetir o nome do lead se já usado no histórico recente
-- ❌ Não repetir frases já utilizadas → sempre reformular
-
-## OBRIGAÇÕES
-- ✅ SEMPRE analisar contexto completo antes de responder
-- ✅ SEMPRE reconhecer informações já fornecidas
-- ✅ SEMPRE prosseguir logicamente baseado no histórico
-- ✅ Encaminhar para jurídico assim que extrato PDF for recebido
-- ✅ Se formato incorreto, solicitar PDF especificamente
-- ✅ Manter análise gratuita como diferencial
-
----
-
-# 🏢 SOBRE A SOLUCIONACON
-- Especialista em recuperação de valores pagos em consórcios
-- Equipe jurídica profissional e experiente
-- Análise do extrato é gratuita e sem compromisso
-- Cliente decide após conhecer valor estimado de recuperação
-- Localizada em Goiânia-GO, atendendo todo o Brasil
-
----
-
-# 🎯 ESTRATÉGIA DE VENDAS (GATILHOS)
-- Segurança: "Nosso time jurídico cuida de tudo, com total transparência"
-- Prova social: "Já ajudamos milhares de pessoas a recuperar valores de consórcios"
-- Facilidade: "É só enviar o extrato em PDF que cuidamos de tudo"
-
----
-
-# 💬 ESTILO DE COMUNICAÇÃO NATURAL
-
-## REGRAS CRÍTICAS DE LINGUAGEM:
-### PROIBIÇÕES ABSOLUTAS (LINGUAGEM ROBÓTICA):
-- ❌ NUNCA começar respostas com "Entendi que...", "Compreendi que...", "Vejo que..."
-- ❌ NUNCA usar "Entendi que você está perguntando...", "Entendi que você cancelou..."
-- ❌ NUNCA usar "Compreendo sua situação...", "Vejo que você precisa..."
-- ❌ NUNCA repetir/parafrasear o que o lead acabou de dizer
-- ❌ NUNCA confirmar óbvio antes de responder
-- ❌ NUNCA usar "Olá! Entendi que..." ou similares
-- ❌ NUNCA fazer confirmações desnecessárias
-
-### EXEMPLOS ESPECÍFICOS PROIBIDOS:
-- ❌ "Entendi que você está perguntando se nós compramos consórcios..."
-- ❌ "Entendi que você cancelou o consórcio..."
-- ❌ "Compreendo que você precisa de ajuda..."
-- ❌ "Vejo que você tem dúvidas sobre..."
-- ❌ "Parece que você está buscando..."
-
-### COMUNICAÇÃO DIRETA E NATURAL:
-- ✅ IR DIRETO AO PONTO sem confirmações desnecessárias
-- ✅ RESPONDER como humano falaria naturalmente
-- ✅ USAR linguagem fluida: "Sem problema!", "Perfeito!", "É simples!"
-- ✅ FOCAR na SOLUÇÃO, não na confirmação
-
-### EXEMPLOS CORRETOS:
-❌ "Entendi que você está perguntando se compramos consórcios. A SolucionaCon também realiza..."
-✅ "A SolucionaCon também realiza compra de cotas de consórcio!"
-
-❌ "Entendi que você cancelou o consórcio. Para prosseguir..."
-✅ "Preciso do extrato do consórcio em PDF para analisar sua situação."
-
-❌ "Compreendo sua situação. Vou te ajudar..."
-✅ "Sem problemas! Posso te orientar..."
-
-### COMUNICAÇÃO DIRETA E NATURAL:
-- ✅ IR DIRETO AO PONTO sem confirmações desnecessárias
-- ✅ RESPONDER como humano falaria naturalmente
-- ✅ USAR linguagem fluida: "Sem problema!", "Perfeito!", "É simples!"
-- ✅ FOCAR na SOLUÇÃO, não na confirmação do problema
-
-### EXEMPLOS CORRETOS:
-❌ "Entendi que você não tem o extrato. Sem problemas! É só solicitar..."
-✅ "Sem problemas! É só você solicitar o extrato diretamente à administradora."
-
-❌ "Olá! Entendi que você está pagando e quer saber como funciona..."  
-✅ "A gente pode analisar sua situação atual mesmo você ainda pagando."
-
-### DIRETRIZES COMPLEMENTARES:
-- Usar nome do cliente moderadamente (não repetir em excesso)
-- Validar frustrações: "Sei como é frustrante pagar e ficar no prejuízo..."
-- Elogiar iniciativa: "Foi ótimo você buscar seus direitos!"
-- Usar emojis moderados 😊😉
-- Ser direto, simpático e claro
-- Nunca enviar mais de 2 mensagens seguidas sem resposta
-- SEMPRE demonstrar que entendeu o que o lead falou (através da resposta adequada, não confirmação verbal)
+{contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eb585127-8db7-4694-810c-dde1d3f53250', contactName: 'Willian Sbicigo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a6fb4d47-a54e-4d77-a8b7-aecd26b27667', contactName: 'Samara', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '64293e7a-1b7c-4b25-afd5-0a9afb5edb11', contactName: 'Breno Gostosao', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd6e6e73-8860-42ca-9674-67ce5bd2bd2b', contactName: 'Robinson', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '45d1c7fb-d56a-468d-afe0-103cf348079c', contactName: 'Marcello ', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b6228936-2e70-43e2-a298-b6d02c809af0', contactName: 'Victor Souza', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8ff2e8f0-ace3-4d89-a6f2-ecaf51bdf366', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'dbb3bc0e-c7d5-48ba-aaeb-94d82763f9f3', contactName: 'Edson Leite', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '08a2ff12-91b5-4cc3-8cbd-92d341906072', contactName: 'Inácio Jr Rua', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '83d00779-967f-4b7b-b509-a396d1df4d4d', contactName: 'Hugo Vargas', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '86eef29f-ec0a-40c2-93dd-470f5d340e05', contactName: 'M', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '91c6b97c-7408-42dd-b34d-bd76cb2be7ca', contactName: 'Jesus Te Amor', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '3d13564b-5e43-4bfa-b964-bb21b3cc0f5a', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '155fea97-bffb-4273-ba61-c7708ab6c382', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '469f6a1b-16c0-4b49-ad23-b58f5bae32d8', contactName: 'Jossolange Araújo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd534d414-7149-4d4a-a672-c1e79144da67', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '02852e75-6989-45df-bdac-60d5dd0f9221', contactName: 'Henrique', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c257a812-7a12-4c45-9105-02795d4c44ec', contactName: '꧁ঔৣ☬✞ Jô Lopes  ✞☬ঔৣ꧂', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1d92d14b-712a-4722-8a8d-7c7fe4bbfa01', contactName: 'Atemilsom', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', currentStageId: 'f99a613b-805a-489a-95d4-ce9dd916f76c', hasCurrentStage: true, currentStageTitle: 'Em Cálculo', currentStageColor: '#10b981', …}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', currentStageId: 'f99a613b-805a-489a-95d4-ce9dd916f76c', hasCurrentStage: true, currentStageTitle: 'Em atendimento', currentStageColor: '#8b5cf6', …}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 0, isLoading: true, isLoadingMore: false, hasMoreMessages: false}
+logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
+logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 9936ae64-b78c-48fe-97e8-bf67623349c6
+useLeadTags.ts:16 [useLeadTags] 🔄 Buscando tags para lead: ce9a23cb-9481-4dcd-ada6-f85c9553444f
+useLeadTags.ts:16 [useLeadTags] 🔄 Buscando tags para lead: ce9a23cb-9481-4dcd-ada6-f85c9553444f
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', currentStageId: 'f99a613b-805a-489a-95d4-ce9dd916f76c', hasCurrentStage: true, currentStageTitle: 'Em atendimento', currentStageColor: '#8b5cf6', …}
+useMessagesRealtime.ts:189 [Messages Realtime] 🚀 Configurando real-time ISOLADO para mensagens: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null}
+useMessagesRealtime.ts:189 [Messages Realtime] 🚀 Configurando real-time ISOLADO para mensagens: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null}
+WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 20, hasSelectedContact: true, instanceHealthScore: 50}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+WhatsAppChatContainer.tsx:37 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 20, messagesCount: 20, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', selectedContactName: null, isLoadingContacts: false, …}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 20, isLoading: false, isLoadingMore: false, hasMoreMessages: true}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: ed89a74c {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: 'ed89a74c', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: c2617c18 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: 'c2617c18', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 1c74078e {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '1c74078e', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 704fd836 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '704fd836', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 01f424d3 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '01f424d3', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 20, searchQuery: '', activeFilter: 'all', selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 20, searchQuery: '', activeFilter: 'all'}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eb585127-8db7-4694-810c-dde1d3f53250', contactName: 'Willian Sbicigo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a6fb4d47-a54e-4d77-a8b7-aecd26b27667', contactName: 'Samara', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '64293e7a-1b7c-4b25-afd5-0a9afb5edb11', contactName: 'Breno Gostosao', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd6e6e73-8860-42ca-9674-67ce5bd2bd2b', contactName: 'Robinson', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '45d1c7fb-d56a-468d-afe0-103cf348079c', contactName: 'Marcello ', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b6228936-2e70-43e2-a298-b6d02c809af0', contactName: 'Victor Souza', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8ff2e8f0-ace3-4d89-a6f2-ecaf51bdf366', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'dbb3bc0e-c7d5-48ba-aaeb-94d82763f9f3', contactName: 'Edson Leite', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '08a2ff12-91b5-4cc3-8cbd-92d341906072', contactName: 'Inácio Jr Rua', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '83d00779-967f-4b7b-b509-a396d1df4d4d', contactName: 'Hugo Vargas', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '86eef29f-ec0a-40c2-93dd-470f5d340e05', contactName: 'M', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '91c6b97c-7408-42dd-b34d-bd76cb2be7ca', contactName: 'Jesus Te Amor', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '3d13564b-5e43-4bfa-b964-bb21b3cc0f5a', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '155fea97-bffb-4273-ba61-c7708ab6c382', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '469f6a1b-16c0-4b49-ad23-b58f5bae32d8', contactName: 'Jossolange Araújo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd534d414-7149-4d4a-a672-c1e79144da67', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '02852e75-6989-45df-bdac-60d5dd0f9221', contactName: 'Henrique', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c257a812-7a12-4c45-9105-02795d4c44ec', contactName: '꧁ঔৣ☬✞ Jô Lopes  ✞☬ঔৣ꧂', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1d92d14b-712a-4722-8a8d-7c7fe4bbfa01', contactName: 'Atemilsom', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', currentStageId: 'f99a613b-805a-489a-95d4-ce9dd916f76c', hasCurrentStage: true, currentStageTitle: 'Em atendimento', currentStageColor: '#8b5cf6', …}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 20, isLoading: false, isLoadingMore: false, hasMoreMessages: true}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: ed89a74c {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: 'ed89a74c', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: c2617c18 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: 'c2617c18', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 1c74078e {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '1c74078e', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 704fd836 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '704fd836', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 01f424d3 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '01f424d3', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+2WhatsAppMessagesList.tsx:84 [WhatsApp MessagesList] ⚡ PRE-POSITIONED: Posicionando antes do paint
+logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: a46043d1 (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: a46043d1
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: 57984ff4 (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: 57984ff4
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: 7f7132a1 (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: 7f7132a1
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: 1ca2531b (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: 1ca2531b
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: 38134787 (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: 38134787
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: 2212d622 (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: 2212d622
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: d16f11e9 (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: d16f11e9
+useScrollDetection.ts:64 [useScrollDetection] 📄 Carregando mais mensagens (scroll manual detectado)
+useScrollDetection.ts:84 [useScrollDetection] 🎯 Elemento visível encontrado: {messageId: 'ed89a74c-e047-427d-ae26-28e7c58130ca', elementTop: 0, scrollTop: 0, index: 0}
+useScrollDetection.ts:98 [useScrollDetection] 🔒 Salvando âncora: {currentScrollTop: 0, currentScrollHeight: 0, anchorElement: 'ed89a74c-e047-427d-ae26-28e7c58130ca', anchorOffset: 0, totalMessages: 20}
+useWhatsAppMessagesManager.ts:497 [WhatsApp Messages Manager] 📄 Carregando mensagens mais antigas
+useWhatsAppMessagesManager.ts:85 [WhatsApp Messages Manager] 💬 Carregando mensagens: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', instanceId: 'e5a73878-09f5-40ed-b908-f4ffb44e1a58', page: 1}
+logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 9936ae64-b78c-48fe-97e8-bf67623349c6
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: a46043d1 (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: a46043d1
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: 57984ff4 (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: 57984ff4
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: 7f7132a1 (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: 7f7132a1
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: 1ca2531b (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: 1ca2531b
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: 38134787 (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: 38134787
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: 2212d622 (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: 2212d622
+useMediaLoaderEnhanced.ts:52 [MediaLoaderEnhanced] 🔄 Carregando mídia: d16f11e9 (image)
+useMediaLoaderEnhanced.ts:97 [MediaLoaderEnhanced] 🔍 Buscando media_cache na base de dados: d16f11e9
+WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 20, hasSelectedContact: true, instanceHealthScore: 50}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+WhatsAppChatContainer.tsx:37 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 20, messagesCount: 20, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', selectedContactName: null, isLoadingContacts: false, …}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 20, isLoading: false, isLoadingMore: true, hasMoreMessages: true}
+ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 20, searchQuery: '', activeFilter: 'all', selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 20, searchQuery: '', activeFilter: 'all'}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eb585127-8db7-4694-810c-dde1d3f53250', contactName: 'Willian Sbicigo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a6fb4d47-a54e-4d77-a8b7-aecd26b27667', contactName: 'Samara', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '64293e7a-1b7c-4b25-afd5-0a9afb5edb11', contactName: 'Breno Gostosao', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd6e6e73-8860-42ca-9674-67ce5bd2bd2b', contactName: 'Robinson', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '45d1c7fb-d56a-468d-afe0-103cf348079c', contactName: 'Marcello ', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b6228936-2e70-43e2-a298-b6d02c809af0', contactName: 'Victor Souza', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8ff2e8f0-ace3-4d89-a6f2-ecaf51bdf366', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'dbb3bc0e-c7d5-48ba-aaeb-94d82763f9f3', contactName: 'Edson Leite', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '08a2ff12-91b5-4cc3-8cbd-92d341906072', contactName: 'Inácio Jr Rua', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '83d00779-967f-4b7b-b509-a396d1df4d4d', contactName: 'Hugo Vargas', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '86eef29f-ec0a-40c2-93dd-470f5d340e05', contactName: 'M', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '91c6b97c-7408-42dd-b34d-bd76cb2be7ca', contactName: 'Jesus Te Amor', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '3d13564b-5e43-4bfa-b964-bb21b3cc0f5a', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '155fea97-bffb-4273-ba61-c7708ab6c382', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '469f6a1b-16c0-4b49-ad23-b58f5bae32d8', contactName: 'Jossolange Araújo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd534d414-7149-4d4a-a672-c1e79144da67', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '02852e75-6989-45df-bdac-60d5dd0f9221', contactName: 'Henrique', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c257a812-7a12-4c45-9105-02795d4c44ec', contactName: '꧁ঔৣ☬✞ Jô Lopes  ✞☬ঔৣ꧂', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1d92d14b-712a-4722-8a8d-7c7fe4bbfa01', contactName: 'Atemilsom', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', currentStageId: 'f99a613b-805a-489a-95d4-ce9dd916f76c', hasCurrentStage: true, currentStageTitle: 'Em atendimento', currentStageColor: '#8b5cf6', …}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 20, isLoading: false, isLoadingMore: true, hasMoreMessages: true}
+logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
+logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 9936ae64-b78c-48fe-97e8-bf67623349c6
+useMessagesRealtime.ts:293 [Messages Realtime] 📡 Status conexão ISOLADA: SUBSCRIBED
+useMessagesRealtime.ts:299 [Messages Realtime] ✅ Conexão ISOLADA estabelecida
+WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 20, hasSelectedContact: true, instanceHealthScore: 50}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+WhatsAppChatContainer.tsx:37 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 20, messagesCount: 20, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', selectedContactName: null, isLoadingContacts: false, …}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 20, isLoading: false, isLoadingMore: true, hasMoreMessages: true}
+ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 20, searchQuery: '', activeFilter: 'all', selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 20, searchQuery: '', activeFilter: 'all'}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eb585127-8db7-4694-810c-dde1d3f53250', contactName: 'Willian Sbicigo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a6fb4d47-a54e-4d77-a8b7-aecd26b27667', contactName: 'Samara', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '64293e7a-1b7c-4b25-afd5-0a9afb5edb11', contactName: 'Breno Gostosao', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd6e6e73-8860-42ca-9674-67ce5bd2bd2b', contactName: 'Robinson', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '45d1c7fb-d56a-468d-afe0-103cf348079c', contactName: 'Marcello ', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b6228936-2e70-43e2-a298-b6d02c809af0', contactName: 'Victor Souza', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8ff2e8f0-ace3-4d89-a6f2-ecaf51bdf366', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'dbb3bc0e-c7d5-48ba-aaeb-94d82763f9f3', contactName: 'Edson Leite', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '08a2ff12-91b5-4cc3-8cbd-92d341906072', contactName: 'Inácio Jr Rua', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '83d00779-967f-4b7b-b509-a396d1df4d4d', contactName: 'Hugo Vargas', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '86eef29f-ec0a-40c2-93dd-470f5d340e05', contactName: 'M', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '91c6b97c-7408-42dd-b34d-bd76cb2be7ca', contactName: 'Jesus Te Amor', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '3d13564b-5e43-4bfa-b964-bb21b3cc0f5a', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '155fea97-bffb-4273-ba61-c7708ab6c382', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '469f6a1b-16c0-4b49-ad23-b58f5bae32d8', contactName: 'Jossolange Araújo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd534d414-7149-4d4a-a672-c1e79144da67', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '02852e75-6989-45df-bdac-60d5dd0f9221', contactName: 'Henrique', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c257a812-7a12-4c45-9105-02795d4c44ec', contactName: '꧁ঔৣ☬✞ Jô Lopes  ✞☬ঔৣ꧂', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1d92d14b-712a-4722-8a8d-7c7fe4bbfa01', contactName: 'Atemilsom', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', currentStageId: 'f99a613b-805a-489a-95d4-ce9dd916f76c', hasCurrentStage: true, currentStageTitle: 'Em atendimento', currentStageColor: '#8b5cf6', …}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 20, isLoading: false, isLoadingMore: true, hasMoreMessages: true}
+useMessagesRealtime.ts:293 [Messages Realtime] 📡 Status conexão ISOLADA: SUBSCRIBED
+useMessagesRealtime.ts:299 [Messages Realtime] ✅ Conexão ISOLADA estabelecida
+logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
+logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 9936ae64-b78c-48fe-97e8-bf67623349c6
+WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 20, hasSelectedContact: true, instanceHealthScore: 50}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+WhatsAppChatContainer.tsx:37 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 20, messagesCount: 20, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', selectedContactName: null, isLoadingContacts: false, …}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 20, isLoading: false, isLoadingMore: true, hasMoreMessages: true}
+ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 20, searchQuery: '', activeFilter: 'all', selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 20, searchQuery: '', activeFilter: 'all'}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eb585127-8db7-4694-810c-dde1d3f53250', contactName: 'Willian Sbicigo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a6fb4d47-a54e-4d77-a8b7-aecd26b27667', contactName: 'Samara', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '64293e7a-1b7c-4b25-afd5-0a9afb5edb11', contactName: 'Breno Gostosao', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd6e6e73-8860-42ca-9674-67ce5bd2bd2b', contactName: 'Robinson', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '45d1c7fb-d56a-468d-afe0-103cf348079c', contactName: 'Marcello ', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b6228936-2e70-43e2-a298-b6d02c809af0', contactName: 'Victor Souza', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8ff2e8f0-ace3-4d89-a6f2-ecaf51bdf366', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'dbb3bc0e-c7d5-48ba-aaeb-94d82763f9f3', contactName: 'Edson Leite', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '08a2ff12-91b5-4cc3-8cbd-92d341906072', contactName: 'Inácio Jr Rua', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '83d00779-967f-4b7b-b509-a396d1df4d4d', contactName: 'Hugo Vargas', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '86eef29f-ec0a-40c2-93dd-470f5d340e05', contactName: 'M', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '91c6b97c-7408-42dd-b34d-bd76cb2be7ca', contactName: 'Jesus Te Amor', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '3d13564b-5e43-4bfa-b964-bb21b3cc0f5a', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '155fea97-bffb-4273-ba61-c7708ab6c382', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '469f6a1b-16c0-4b49-ad23-b58f5bae32d8', contactName: 'Jossolange Araújo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd534d414-7149-4d4a-a672-c1e79144da67', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '02852e75-6989-45df-bdac-60d5dd0f9221', contactName: 'Henrique', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c257a812-7a12-4c45-9105-02795d4c44ec', contactName: '꧁ঔৣ☬✞ Jô Lopes  ✞☬ঔৣ꧂', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1d92d14b-712a-4722-8a8d-7c7fe4bbfa01', contactName: 'Atemilsom', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', currentStageId: 'f99a613b-805a-489a-95d4-ce9dd916f76c', hasCurrentStage: true, currentStageTitle: 'Em atendimento', currentStageColor: '#8b5cf6', …}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 20, isLoading: false, isLoadingMore: true, hasMoreMessages: true}
+useLeadTags.ts:63 [useLeadTags] ✅ Tags carregadas: {leadTags: 0, availableTags: 3, leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', userId: '9936ae64-b78c-48fe-97e8-bf67623349c6'}
+logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
+logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 9936ae64-b78c-48fe-97e8-bf67623349c6
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', currentStageId: 'f99a613b-805a-489a-95d4-ce9dd916f76c', hasCurrentStage: true, currentStageTitle: 'Em atendimento', currentStageColor: '#8b5cf6', …}
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: a46043d1
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: 7f7132a1
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: 1ca2531b
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: 57984ff4
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: 38134787
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: 2212d622
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: a46043d1
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: d16f11e9
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: 1ca2531b
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: 7f7132a1
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: 57984ff4
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: 38134787
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: 2212d622
+useLeadTags.ts:63 [useLeadTags] ✅ Tags carregadas: {leadTags: 0, availableTags: 3, leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', userId: '9936ae64-b78c-48fe-97e8-bf67623349c6'}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', currentStageId: 'f99a613b-805a-489a-95d4-ce9dd916f76c', hasCurrentStage: true, currentStageTitle: 'Em atendimento', currentStageColor: '#8b5cf6', …}
+WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 40, hasSelectedContact: true, instanceHealthScore: 50}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+WhatsAppChatContainer.tsx:37 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 20, messagesCount: 40, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', selectedContactName: null, isLoadingContacts: false, …}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 40, isLoading: false, isLoadingMore: false, hasMoreMessages: true}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 4b2cdea3 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '4b2cdea3', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 4a23125d {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '4a23125d', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 1b23f549 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '1b23f549', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 569153d5 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '569153d5', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: db71cd0c {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: 'db71cd0c', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 73e7a73e {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '73e7a73e', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: ed89a74c {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: 'ed89a74c', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: c2617c18 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: 'c2617c18', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 1c74078e {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '1c74078e', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 704fd836 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '704fd836', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 01f424d3 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '01f424d3', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 20, searchQuery: '', activeFilter: 'all', selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 20, searchQuery: '', activeFilter: 'all'}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eb585127-8db7-4694-810c-dde1d3f53250', contactName: 'Willian Sbicigo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a6fb4d47-a54e-4d77-a8b7-aecd26b27667', contactName: 'Samara', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '64293e7a-1b7c-4b25-afd5-0a9afb5edb11', contactName: 'Breno Gostosao', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd6e6e73-8860-42ca-9674-67ce5bd2bd2b', contactName: 'Robinson', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '45d1c7fb-d56a-468d-afe0-103cf348079c', contactName: 'Marcello ', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b6228936-2e70-43e2-a298-b6d02c809af0', contactName: 'Victor Souza', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8ff2e8f0-ace3-4d89-a6f2-ecaf51bdf366', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'dbb3bc0e-c7d5-48ba-aaeb-94d82763f9f3', contactName: 'Edson Leite', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '08a2ff12-91b5-4cc3-8cbd-92d341906072', contactName: 'Inácio Jr Rua', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '83d00779-967f-4b7b-b509-a396d1df4d4d', contactName: 'Hugo Vargas', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '86eef29f-ec0a-40c2-93dd-470f5d340e05', contactName: 'M', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '91c6b97c-7408-42dd-b34d-bd76cb2be7ca', contactName: 'Jesus Te Amor', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '3d13564b-5e43-4bfa-b964-bb21b3cc0f5a', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '155fea97-bffb-4273-ba61-c7708ab6c382', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '469f6a1b-16c0-4b49-ad23-b58f5bae32d8', contactName: 'Jossolange Araújo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd534d414-7149-4d4a-a672-c1e79144da67', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '02852e75-6989-45df-bdac-60d5dd0f9221', contactName: 'Henrique', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c257a812-7a12-4c45-9105-02795d4c44ec', contactName: '꧁ঔৣ☬✞ Jô Lopes  ✞☬ঔৣ꧂', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1d92d14b-712a-4722-8a8d-7c7fe4bbfa01', contactName: 'Atemilsom', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', currentStageId: 'f99a613b-805a-489a-95d4-ce9dd916f76c', hasCurrentStage: true, currentStageTitle: 'Em atendimento', currentStageColor: '#8b5cf6', …}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 40, isLoading: false, isLoadingMore: false, hasMoreMessages: true}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 4b2cdea3 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '4b2cdea3', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 4a23125d {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '4a23125d', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 1b23f549 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '1b23f549', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 569153d5 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '569153d5', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: db71cd0c {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: 'db71cd0c', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 73e7a73e {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '73e7a73e', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: ed89a74c {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: 'ed89a74c', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: c2617c18 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: 'c2617c18', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 1c74078e {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '1c74078e', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 704fd836 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '704fd836', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+MessageMediaDirect.tsx:30 [MessageMediaDirect] 🚀 Renderizando mídia diretamente: 01f424d3 {mediaType: 'document', urlType: 'storage', urlPreview: 'https://rhjgagzstjzynvrakdyj.supabase.co/storage/v...'}
+DocumentViewer.tsx:133 DocumentViewer Debug: {messageId: '01f424d3', filename: 'Documento', cleanFilename: 'Documento.pdf', canView: true, extension: 'pdf', …}
+2WhatsAppMessagesList.tsx:84 [WhatsApp MessagesList] ⚡ PRE-POSITIONED: Posicionando antes do paint
+logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
+logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 9936ae64-b78c-48fe-97e8-bf67623349c6
+WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 40, hasSelectedContact: true, instanceHealthScore: 50}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+WhatsAppChatContainer.tsx:37 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 20, messagesCount: 40, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', selectedContactName: null, isLoadingContacts: false, …}
+useScrollDetection.ts:116 [useScrollDetection] 📊 Calculando nova posição: {oldHeight: 0, newHeight: 0, addedHeight: 0, oldScrollTop: 0}
+useScrollDetection.ts:158 [useScrollDetection] 📏 Restaurando via altura: {newPosition: 0, currentScrollTop: 0, addedHeight: 0}
+useScrollDetection.ts:167 [useScrollDetection] ✅ Posição restaurada: {finalScrollTop: 0}
+useMediaLoaderEnhanced.ts:154 [MediaLoaderEnhanced] ❌ Mídia não encontrada: d16f11e9
+useContactsRealtime.ts:127 [Contacts Realtime] 📨 Evento de contato ISOLADO: {event: 'INSERT', leadId: '7e9a6f72-d80e-44ed-897a-f7f3638db5ed'}
+useWhatsAppContactsManager.ts:73 [WhatsApp Contacts Manager] 🔥 Contato atualizado via WebSocket
+useWhatsAppContactsManager.ts:124 [WhatsApp Contacts Manager] 📞 Carregando contatos: {instanceId: 'e5a73878-09f5-40ed-b908-f4ffb44e1a58', page: 0, filterType: 'all'}
+useContactsRealtime.ts:127 [Contacts Realtime] 📨 Evento de contato ISOLADO: {event: 'INSERT', leadId: '7e9a6f72-d80e-44ed-897a-f7f3638db5ed'}
+useWhatsAppContactsManager.ts:73 [WhatsApp Contacts Manager] 🔥 Contato atualizado via WebSocket
+useWhatsAppContactsManager.ts:124 [WhatsApp Contacts Manager] 📞 Carregando contatos: {instanceId: 'e5a73878-09f5-40ed-b908-f4ffb44e1a58', page: 0, filterType: 'all'}
+useContactsRealtime.ts:127 [Contacts Realtime] 📨 Evento de contato ISOLADO: {event: 'INSERT', leadId: '7e9a6f72-d80e-44ed-897a-f7f3638db5ed'}
+useWhatsAppContactsManager.ts:73 [WhatsApp Contacts Manager] 🔥 Contato atualizado via WebSocket
+useWhatsAppContactsManager.ts:124 [WhatsApp Contacts Manager] 📞 Carregando contatos: {instanceId: 'e5a73878-09f5-40ed-b908-f4ffb44e1a58', page: 0, filterType: 'all'}
+useMessagesRealtime.ts:226 [Messages Realtime] 📨 INSERT mensagem (ISOLADO): {messageId: 'f755dfd5-fc95-4723-a440-73ecc85dce9f', fromMe: false, leadId: '7e9a6f72-d80e-44ed-897a-f7f3638db5ed', text: 'Olá! 👋 Vi o anúncio da Soluci...'}
+useMessagesRealtime.ts:131 [Messages Realtime] 🔍 Avaliando mensagem ISOLADA: {messageId: 'f755dfd5-fc95-4723-a440-73ecc85dce9f', leadId: '7e9a6f72-d80e-44ed-897a-f7f3638db5ed', selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', createdByUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6', currentUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6', …}
+useMessagesRealtime.ts:149 [Messages Realtime] ❌ Lead ID não corresponde (ISOLADO)
+useMessagesRealtime.ts:226 [Messages Realtime] 📨 INSERT mensagem (ISOLADO): {messageId: 'f755dfd5-fc95-4723-a440-73ecc85dce9f', fromMe: false, leadId: '7e9a6f72-d80e-44ed-897a-f7f3638db5ed', text: 'Olá! 👋 Vi o anúncio da Soluci...'}
+useMessagesRealtime.ts:131 [Messages Realtime] 🔍 Avaliando mensagem ISOLADA: {messageId: 'f755dfd5-fc95-4723-a440-73ecc85dce9f', leadId: '7e9a6f72-d80e-44ed-897a-f7f3638db5ed', selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', createdByUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6', currentUserId: '9936ae64-b78c-48fe-97e8-bf67623349c6', …}
+useMessagesRealtime.ts:149 [Messages Realtime] ❌ Lead ID não corresponde (ISOLADO)
+WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 40, hasSelectedContact: true, instanceHealthScore: 50}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+WhatsAppChatContainer.tsx:37 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 20, messagesCount: 40, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', selectedContactName: null, isLoadingContacts: false, …}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 40, isLoading: false, isLoadingMore: false, hasMoreMessages: true}
+ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 20, searchQuery: '', activeFilter: 'all', selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 20, searchQuery: '', activeFilter: 'all'}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eb585127-8db7-4694-810c-dde1d3f53250', contactName: 'Willian Sbicigo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a6fb4d47-a54e-4d77-a8b7-aecd26b27667', contactName: 'Samara', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '64293e7a-1b7c-4b25-afd5-0a9afb5edb11', contactName: 'Breno Gostosao', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd6e6e73-8860-42ca-9674-67ce5bd2bd2b', contactName: 'Robinson', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '45d1c7fb-d56a-468d-afe0-103cf348079c', contactName: 'Marcello ', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b6228936-2e70-43e2-a298-b6d02c809af0', contactName: 'Victor Souza', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8ff2e8f0-ace3-4d89-a6f2-ecaf51bdf366', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'dbb3bc0e-c7d5-48ba-aaeb-94d82763f9f3', contactName: 'Edson Leite', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '08a2ff12-91b5-4cc3-8cbd-92d341906072', contactName: 'Inácio Jr Rua', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '83d00779-967f-4b7b-b509-a396d1df4d4d', contactName: 'Hugo Vargas', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '86eef29f-ec0a-40c2-93dd-470f5d340e05', contactName: 'M', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '91c6b97c-7408-42dd-b34d-bd76cb2be7ca', contactName: 'Jesus Te Amor', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '3d13564b-5e43-4bfa-b964-bb21b3cc0f5a', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '155fea97-bffb-4273-ba61-c7708ab6c382', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '469f6a1b-16c0-4b49-ad23-b58f5bae32d8', contactName: 'Jossolange Araújo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd534d414-7149-4d4a-a672-c1e79144da67', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '02852e75-6989-45df-bdac-60d5dd0f9221', contactName: 'Henrique', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c257a812-7a12-4c45-9105-02795d4c44ec', contactName: '꧁ঔৣ☬✞ Jô Lopes  ✞☬ঔৣ꧂', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '1d92d14b-712a-4722-8a8d-7c7fe4bbfa01', contactName: 'Atemilsom', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', currentStageId: 'f99a613b-805a-489a-95d4-ce9dd916f76c', hasCurrentStage: true, currentStageTitle: 'Em atendimento', currentStageColor: '#8b5cf6', …}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 40, isLoading: false, isLoadingMore: false, hasMoreMessages: true}
+logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
+logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 9936ae64-b78c-48fe-97e8-bf67623349c6
+useWhatsAppContactsManager.ts:141 [WhatsApp Contacts Manager] 👤 Role do usuário: admin
+useWhatsAppContactsManager.ts:175 [WhatsApp Contacts Manager] 🔑 Aplicando filtro ADMIN
+useWhatsAppContactsManager.ts:202 [WhatsApp Contacts Manager] 📱 Filtro por instância específica aplicado: e5a73878-09f5-40ed-b908-f4ffb44e1a58
+useWhatsAppContactsManager.ts:141 [WhatsApp Contacts Manager] 👤 Role do usuário: admin
+useWhatsAppContactsManager.ts:175 [WhatsApp Contacts Manager] 🔑 Aplicando filtro ADMIN
+useWhatsAppContactsManager.ts:202 [WhatsApp Contacts Manager] 📱 Filtro por instância específica aplicado: e5a73878-09f5-40ed-b908-f4ffb44e1a58
+useWhatsAppContactsManager.ts:141 [WhatsApp Contacts Manager] 👤 Role do usuário: admin
+useWhatsAppContactsManager.ts:175 [WhatsApp Contacts Manager] 🔑 Aplicando filtro ADMIN
+useWhatsAppContactsManager.ts:202 [WhatsApp Contacts Manager] 📱 Filtro por instância específica aplicado: e5a73878-09f5-40ed-b908-f4ffb44e1a58
+3useContactsRealtime.ts:74 [Contacts Realtime] 🔄 Invalidando contatos (ISOLADO)
+WhatsAppChatContainer.tsx:7 [WhatsAppChatContainer] 🏗️ Componente renderizado - usando hooks modulares unificados
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 40, hasSelectedContact: true, instanceHealthScore: 50}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: true, contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, enabled: true}
+WhatsAppChatContainer.tsx:37 [WhatsAppChatContainer] 📊 Dados do hook recebidos: {contactsCount: 20, messagesCount: 40, selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', selectedContactName: null, isLoadingContacts: false, …}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 40, isLoading: false, isLoadingMore: false, hasMoreMessages: true}
+WhatsAppContactsList.tsx:119 [WhatsAppContactsList] 📊 Contatos recebidos: {total: 20, hasSearch: false, searchQuery: '', contactsLength: 20}
+WhatsAppContactsList.tsx:130 [WhatsAppContactsList] Filtering contacts: {totalContacts: 20, activeFilter: 'all', searchQuery: ''}
+ContactsList.tsx:60 [ContactsList] Props received: {contactsLength: 20, searchQuery: '', activeFilter: 'all', selectedContactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f'}
+ContactsList.tsx:141 [ContactsList] Rendering contacts: {contactsLength: 20, searchQuery: '', activeFilter: 'all'}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '7e9a6f72-d80e-44ed-897a-f7f3638db5ed', contactName: '+55 (41) 9943-6116', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'eb585127-8db7-4694-810c-dde1d3f53250', contactName: 'Willian Sbicigo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'a6fb4d47-a54e-4d77-a8b7-aecd26b27667', contactName: 'Samara', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '64293e7a-1b7c-4b25-afd5-0a9afb5edb11', contactName: 'Breno Gostosao', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'cd6e6e73-8860-42ca-9674-67ce5bd2bd2b', contactName: 'Robinson', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '45d1c7fb-d56a-468d-afe0-103cf348079c', contactName: 'Marcello ', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'b6228936-2e70-43e2-a298-b6d02c809af0', contactName: 'Victor Souza', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '8ff2e8f0-ace3-4d89-a6f2-ecaf51bdf366', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'dbb3bc0e-c7d5-48ba-aaeb-94d82763f9f3', contactName: 'Edson Leite', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '08a2ff12-91b5-4cc3-8cbd-92d341906072', contactName: 'Inácio Jr Rua', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '83d00779-967f-4b7b-b509-a396d1df4d4d', contactName: 'Hugo Vargas', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '86eef29f-ec0a-40c2-93dd-470f5d340e05', contactName: 'M', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '91c6b97c-7408-42dd-b34d-bd76cb2be7ca', contactName: 'Jesus Te Amor', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '3d13564b-5e43-4bfa-b964-bb21b3cc0f5a', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '155fea97-bffb-4273-ba61-c7708ab6c382', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '469f6a1b-16c0-4b49-ad23-b58f5bae32d8', contactName: 'Jossolange Araújo', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'd534d414-7149-4d4a-a672-c1e79144da67', contactName: null, hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: '02852e75-6989-45df-bdac-60d5dd0f9221', contactName: 'Henrique', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+ContactContextMenu.tsx:44 [ContactContextMenu] Props received: {contactId: 'c257a812-7a12-4c45-9105-02795d4c44ec', contactName: '꧁ঔৣ☬✞ Jô Lopes  ✞☬ঔৣ꧂', hasDeleteFunction: true, hasCloseFunction: true, hasEditFunction: true}
+useWhatsAppChatUnified.ts:70 [WhatsApp Chat Unified] 🚀 Hook principal unificado inicializado
+useWhatsAppChatUnified.ts:84 [WhatsApp Chat Unified] 🎯 Parâmetros: {userId: '9936ae64-b78c-48fe-97e8-bf67623349c6', leadId: null, phoneParam: null, selectedContactId: undefined}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useWhatsAppContactsManager.ts:59 [WhatsApp Contacts Manager] 🎯 Hook inicializado {hasInstance: true, enableSearch: true, enableInfiniteScroll: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useContactsRealtime.ts:43 [Contacts Realtime] 🚀 Hook ISOLADO para contatos inicializado: {hasActiveInstance: true, enabled: true}
+useWhatsAppMessagesManager.ts:53 [WhatsApp Messages Manager] 🎯 Hook inicializado {hasContact: false, contactId: undefined, hasInstance: true}
+useWhatsAppChatCoordinator.ts:30 [WhatsApp Chat Coordinator] 🎯 Hook coordenador inicializado
+useMessagesRealtime.ts:81 [Messages Realtime] 🚀 Hook ISOLADO para mensagens inicializado: {contactId: undefined, contactName: undefined, enabled: false}
+useWhatsAppChatUnified.ts:311 [WhatsApp Chat Unified] 📊 Status atual: {contactsCount: 20, messagesCount: 0, hasSelectedContact: false, instanceHealthScore: 50}
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'ce9a23cb-9481-4dcd-ada6-f85c9553444f', currentStageId: 'f99a613b-805a-489a-95d4-ce9dd916f76c', hasCurrentStage: true, currentStageTitle: 'Em atendimento', currentStageColor: '#8b5cf6', …}
+WhatsAppMessagesList.tsx:54 [WhatsApp MessagesList] 📋 Renderizando lista: {total: 40, isLoading: false, isLoadingMore: false, hasMoreMessages: true}
+logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
+logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 9936ae64-b78c-48fe-97e8-bf67623349c6

@@ -37,6 +37,7 @@ export function ForwardMessageDialog({
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   // Função para buscar contatos do banco de dados
   const fetchContacts = useCallback(async (pageNum: number, query: string, isNewSearch: boolean = false) => {
@@ -170,12 +171,14 @@ export function ForwardMessageDialog({
     if (open) {
       setPage(0);
       fetchContacts(0, searchQuery, true);
+      setSelectedContact(null); // Limpar seleção ao abrir
     } else {
       // Limpar ao fechar
       setContacts([]);
       setSearchQuery('');
       setPage(0);
       setHasMore(true);
+      setSelectedContact(null);
     }
   }, [open, searchQuery, fetchContacts]);
 
@@ -191,10 +194,16 @@ export function ForwardMessageDialog({
     }
   }, [hasMore, isLoadingMore, isLoading, page, fetchContacts, searchQuery]);
 
-  const handleForward = async (targetContact: Contact) => {
+  const handleSelectContact = (contact: Contact) => {
+    setSelectedContact(contact);
+  };
+
+  const handleConfirmForward = async () => {
+    if (!selectedContact) return;
+
     setIsForwarding(true);
     try {
-      await onForward(targetContact);
+      await onForward(selectedContact);
       // Dialog será fechado pelo componente pai após sucesso
     } catch (error) {
       console.error('[ForwardMessageDialog] Erro ao encaminhar:', error);
@@ -267,9 +276,10 @@ export function ForwardMessageDialog({
                   variant="ghost"
                   className={cn(
                     "w-full justify-start p-3 h-auto",
-                    "hover:bg-ticlin-50 transition-colors"
+                    "hover:bg-ticlin-50 transition-colors",
+                    selectedContact?.id === contact.id && "bg-ticlin-100 border-2 border-ticlin-500"
                   )}
-                  onClick={() => handleForward(contact)}
+                  onClick={() => handleSelectContact(contact)}
                   disabled={isForwarding}
                 >
                   <div className="flex items-center gap-3 w-full">
@@ -312,10 +322,32 @@ export function ForwardMessageDialog({
           )}
         </div>
 
-        {/* Contador de contatos */}
-        <div className="text-sm text-gray-500 text-center">
-          {contacts.length} contato{contacts.length !== 1 ? 's' : ''} carregado{contacts.length !== 1 ? 's' : ''}
-          {hasMore && ' • Role para carregar mais'}
+        {/* Rodapé com informações e botão */}
+        <div className="flex items-center justify-between gap-4 pt-2 border-t">
+          {/* Contador de contatos */}
+          <div className="text-sm text-gray-500">
+            {contacts.length} contato{contacts.length !== 1 ? 's' : ''} carregado{contacts.length !== 1 ? 's' : ''}
+            {hasMore && ' • Role para carregar mais'}
+          </div>
+
+          {/* Botão de Encaminhar */}
+          <Button
+            onClick={handleConfirmForward}
+            disabled={!selectedContact || isForwarding}
+            className="bg-ticlin-500 hover:bg-ticlin-600 text-white"
+          >
+            {isForwarding ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Encaminhando...
+              </>
+            ) : (
+              <>
+                <Forward className="w-4 h-4 mr-2" />
+                Encaminhar
+              </>
+            )}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
