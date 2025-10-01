@@ -267,12 +267,12 @@ export const AudioRecordDialog: React.FC<AudioRecordDialogProps> = ({
                 </div>
               )}
               {recordingState === 'idle' && (
-                <span className="text-sm text-gray-500">Pressione para começar a gravar</span>
+                <span className="text-sm text-gray-500 font-medium">Clique no botão vermelho abaixo para iniciar</span>
               )}
             </div>
 
             {/* Controles de gravação */}
-            <div className="flex justify-center gap-3">
+            <div className="flex flex-col items-center gap-3">
               {recordingState === 'idle' && (
                 <Button
                   onClick={startRecording}
@@ -284,35 +284,42 @@ export const AudioRecordDialog: React.FC<AudioRecordDialogProps> = ({
               )}
 
               {recordingState === 'recording' && (
-                <Button
-                  onClick={stopRecording}
-                  size="lg"
-                  className="bg-red-600 hover:bg-red-700 text-white w-16 h-16 rounded-full shadow-lg animate-pulse"
-                >
-                  <Square className="h-6 w-6" />
-                </Button>
+                <>
+                  <Button
+                    onClick={stopRecording}
+                    size="lg"
+                    className="bg-red-600 hover:bg-red-700 text-white w-16 h-16 rounded-full shadow-lg animate-pulse"
+                  >
+                    <Square className="h-6 w-6" />
+                  </Button>
+                  <span className="text-xs text-gray-600">Clique para parar a gravação</span>
+                </>
               )}
 
               {recordingState === 'completed' && (
-                <div className="flex gap-3">
-                  <Button
-                    onClick={togglePlayback}
-                    size="lg"
-                    variant="outline"
-                    className="w-12 h-12 rounded-full backdrop-blur-sm bg-white/50"
-                  >
-                    {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                  </Button>
-                  
-                  <Button
-                    onClick={resetRecording}
-                    size="lg"
-                    variant="outline"
-                    className="w-12 h-12 rounded-full backdrop-blur-sm bg-white/50 text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </Button>
-                </div>
+                <>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={togglePlayback}
+                      size="lg"
+                      className="bg-blue-500 hover:bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg"
+                      title={isPlaying ? "Pausar" : "Reproduzir"}
+                    >
+                      {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
+                    </Button>
+
+                    <Button
+                      onClick={resetRecording}
+                      size="lg"
+                      variant="outline"
+                      className="w-14 h-14 rounded-full backdrop-blur-sm bg-white/50 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      title="Descartar e gravar novamente"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
+                  </div>
+                  <span className="text-xs text-gray-600">Ouça o áudio antes de enviar</span>
+                </>
               )}
             </div>
           </div>

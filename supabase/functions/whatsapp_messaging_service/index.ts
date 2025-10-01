@@ -191,7 +191,8 @@ serve(async (req)=>{
     });
     // ✅ FLUXO DIRETO: Processar todos os tipos de mídia via RPC + Edge
     let processedMediaUrl = mediaUrl;
-    let processedMediaType = mediaType;
+    // ✅ CORREÇÃO PTT: Converter 'ptt' para 'audio' para processamento interno
+    let processedMediaType = (mediaType === 'ptt') ? 'audio' : mediaType;
     let isStorageUrl = false;
 
     // 🔥 NOVO: Detectar se é URL do Storage Supabase (encaminhamento)
