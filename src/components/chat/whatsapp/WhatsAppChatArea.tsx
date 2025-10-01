@@ -53,87 +53,30 @@ export const WhatsAppChatArea = ({
   const handleSelectContactForForward = async (targetContact: Contact) => {
     if (!messageToForward || !activeInstance?.id) return;
 
-    // 🔥 CORREÇÃO: Buscar URL correta da mídia (priorizar media_cache)
-    const getMediaUrl = async () => {
-      console.log('[WhatsAppChatArea] 🔍 DEBUG - Analisando mensagem:', {
-        messageId: messageToForward.id,
-        hasMediaCache: !!messageToForward.media_cache,
-        mediaCache: messageToForward.media_cache,
-        mediaUrl: messageToForward.mediaUrl,
-        mediaType: messageToForward.mediaType
-      });
-
-      // Se tiver media_cache, priorizar cached_url ou original_url
-      if (messageToForward.media_cache) {
-        const storageUrl = messageToForward.media_cache.cached_url || messageToForward.media_cache.original_url;
-        if (storageUrl) {
-          console.log('[WhatsAppChatArea] 🗄️ Usando URL do media_cache:', storageUrl);
-          return storageUrl;
-        }
-      }
-
-      // Fallback para mediaUrl direto
-      if (messageToForward.mediaUrl) {
-        console.log('[WhatsAppChatArea] 📎 Usando mediaUrl direto:', messageToForward.mediaUrl);
-        return messageToForward.mediaUrl;
-      }
-
-      // 🔥 ÚLTIMA TENTATIVA: Buscar media_cache direto no banco
-      if (messageToForward.mediaType !== 'text') {
-        console.log('[WhatsAppChatArea] 🔍 Buscando media_cache no banco para:', messageToForward.id);
-
-        const { data: mediaCache, error } = await supabase
-          .from('media_cache')
-          .select('cached_url, original_url, base64_data, media_type')
-          .eq('message_id', messageToForward.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error('[WhatsAppChatArea] ❌ Erro ao buscar media_cache:', error);
-        } else if (mediaCache) {
-          const dbStorageUrl = mediaCache.cached_url || mediaCache.original_url;
-          if (dbStorageUrl) {
-            console.log('[WhatsAppChatArea] ✅ URL encontrada no banco:', dbStorageUrl);
-            return dbStorageUrl;
-          }
-        }
-      }
-
-      console.warn('[WhatsAppChatArea] ⚠️ Nenhuma URL de mídia encontrada!');
-      return null;
-    };
-
-    const finalMediaUrl = await getMediaUrl();
-
-    console.log('[WhatsAppChatArea] 📤 Encaminhando mensagem:', {
+    console.log('[WhatsAppChatArea] 📤 Encaminhando mensagem via edge dedicada:', {
       messageId: messageToForward.id,
       from: selectedContact.id,
-      fromPhone: selectedContact.phone,
       to: targetContact.id,
-      toPhone: targetContact.phone,
-      hasMedia: messageToForward.mediaType !== 'text',
-      mediaType: messageToForward.mediaType,
-      mediaUrl: finalMediaUrl,
-      hasMediaCache: !!messageToForward.media_cache
+      toLeadId: targetContact.id,
+      instanceId: activeInstance.id
     });
 
     try {
-      // 🔥 CORREÇÃO CRÍTICA: Enviar diretamente via edge function para o contato correto
-      const messageContent = messageToForward.text || (finalMediaUrl ? ' ' : '');
-
-      const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
+      // ✅ NOVA ABORDAGEM: Chamar edge dedicada de encaminhamento
+      const { data, error } = await supabase.functions.invoke('whatsapp_messaging_forward', {
         body: {
-          action: 'send_message',
-          instanceId: activeInstance.id,
-          phone: targetContact.phone, // ✅ CORRIGIDO: usar phone do targetContact, não do selectedContact
-          message: messageContent,
-          mediaType: messageToForward.mediaType || 'text',
-          mediaUrl: finalMediaUrl
+          messageId: messageToForward.id,
+          targetContactId: targetContact.id,
+          instanceId: activeInstance.id
         }
       });
 
       if (error) {
         throw error;
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Erro desconhecido ao encaminhar');
       }
 
       console.log('[WhatsAppChatArea] ✅ Mensagem encaminhada com sucesso:', data);
@@ -150,7 +93,7 @@ export const WhatsAppChatArea = ({
       console.error('[WhatsAppChatArea] ❌ Erro ao encaminhar:', error);
       toast({
         title: "Erro ao encaminhar",
-        description: "Não foi possível encaminhar a mensagem. Tente novamente.",
+        description: error instanceof Error ? error.message : "Não foi possível encaminhar a mensagem.",
         variant: "destructive"
       });
     }

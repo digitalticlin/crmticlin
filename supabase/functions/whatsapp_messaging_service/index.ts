@@ -239,10 +239,13 @@ serve(async (req)=>{
         }
       }
       // ✅ PAYLOAD CORRETO PARA VPS: usar vps_instance_id diretamente
+      // 🔧 CORREÇÃO: VPS exige message não vazio - usar " " para mídia
+      const messageContent = message.trim() || (processedMediaType !== 'text' ? ' ' : '');
+
       const vpsPayload = {
         instanceId: vpsInstanceId,
         phone: phone.replace(/\D/g, ''),
-        message: message.trim(),
+        message: messageContent,  // ✅ Nunca vazio
         mediaType: processedMediaType || 'text',
         mediaUrl: processedMediaUrl || null
       };
@@ -390,10 +393,43 @@ serve(async (req)=>{
         if (saveError) {
           console.error('[Messaging Service] ❌ Erro ao salvar mensagem no banco:', saveError);
         } else if (saveResult?.success || saveResult?.data?.success) {
+          const savedMessageId = saveResult?.message_id || saveResult?.data?.message_id;
           console.log('[Messaging Service] ✅ Mensagem salva no banco com sucesso!', {
-            message_id: saveResult?.message_id || saveResult?.data?.message_id,
+            message_id: savedMessageId,
             lead_id: saveResult?.lead_id || saveResult?.data?.lead_id
           });
+
+          // 🚀 UPLOAD ASSÍNCRONO PARA MÍDIA (fire-and-forget como webhook_whatsapp_web)
+          const hadMediaData = !!(extractedBase64 && processedMediaType !== 'text');
+          if (hadMediaData && savedMessageId) {
+            console.log('[Messaging Service] 📤 Iniciando upload assíncrono (fire-and-forget):', savedMessageId);
+
+            // 🚀 FIRE-AND-FORGET: Não bloquear a resposta
+            fetch(`${supabaseUrl}/functions/v1/app_storage_upload`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                message_id: savedMessageId,
+                file_path: `app/${instanceData?.id}/${savedMessageId}.${extractedMimeType?.split('/')[1] || 'bin'}`,
+                base64_data: extractedBase64,
+                content_type: extractedMimeType
+              })
+            })
+            .then(response => response.json())
+            .then(uploadResult => {
+              console.log('[Messaging Service] 📊 Upload resultado:', uploadResult);
+              if (uploadResult.success) {
+                console.log('[Messaging Service] ✅ Upload concluído com sucesso!');
+              } else {
+                console.error('[Messaging Service] ❌ Erro no upload:', uploadResult);
+              }
+            })
+            .catch(uploadError => {
+              console.error('[Messaging Service] ❌ Erro ao chamar upload:', uploadError);
+            });
+          }
         } else {
           console.log('[Messaging Service] ⚠️ RPC retornou sem sucesso:', saveResult);
         }
