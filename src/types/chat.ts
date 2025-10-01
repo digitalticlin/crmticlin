@@ -105,6 +105,10 @@ export interface Message {
   fileName?: string;
   // ✅ SOURCE EDGE: Identifica qual edge function enviou a mensagem
   source_edge?: string;
+  // ✅ ENCAMINHAMENTO: Campos para suporte de mensagens encaminhadas
+  isForwarded?: boolean;
+  forwardedFrom?: string; // Nome do contato original
+  originalMessageId?: string; // ID da mensagem original
 }
 
 import { KanbanTag } from "./kanban";

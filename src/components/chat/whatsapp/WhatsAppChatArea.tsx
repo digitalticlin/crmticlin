@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { WhatsAppChatHeader } from "./WhatsAppChatHeader";
 import { WhatsAppMessagesList } from "./WhatsAppMessagesList";
 import { WhatsAppMessageInput } from "./WhatsAppMessageInput";
+import { ForwardMessageDialog } from "./messages/components/ForwardMessageDialog";
 import { Contact, Message } from "@/types/chat";
+import { useWhatsAppChatUnified } from "@/hooks/whatsappChat/core/useWhatsAppChatUnified";
+import { useToast } from "@/hooks/use-toast";
 
 interface WhatsAppChatAreaProps {
   selectedContact: Contact;
@@ -32,9 +36,58 @@ export const WhatsAppChatArea = ({
   onRefreshMessages,
   leadId
 }: WhatsAppChatAreaProps) => {
+  const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
+  const [messageToForward, setMessageToForward] = useState<Message | null>(null);
+  const { toast } = useToast();
+
+  // Hook para obter lista de contatos
+  const { contacts } = useWhatsAppChatUnified();
+
+  const handleForward = (message: Message) => {
+    console.log('[WhatsAppChatArea] 📤 Abrindo dialog de encaminhamento:', message.id);
+    setMessageToForward(message);
+    setForwardDialogOpen(true);
+  };
+
+  const handleSelectContactForForward = async (targetContact: Contact) => {
+    if (!messageToForward) return;
+
+    console.log('[WhatsAppChatArea] 📤 Encaminhando mensagem:', {
+      messageId: messageToForward.id,
+      from: selectedContact.id,
+      to: targetContact.id,
+      hasMedia: messageToForward.mediaType !== 'text'
+    });
+
+    try {
+      // Encaminhar mensagem usando a mesma função de envio
+      const success = await onSendMessage(
+        messageToForward.text,
+        messageToForward.mediaType !== 'text' ? messageToForward.mediaType : undefined,
+        messageToForward.mediaUrl || undefined
+      );
+
+      if (success) {
+        toast({
+          title: "Mensagem encaminhada",
+          description: `Mensagem encaminhada para ${targetContact.name || targetContact.phone}`,
+        });
+      } else {
+        throw new Error('Falha ao encaminhar mensagem');
+      }
+    } catch (error) {
+      console.error('[WhatsAppChatArea] ❌ Erro ao encaminhar:', error);
+      toast({
+        title: "Erro ao encaminhar",
+        description: "Não foi possível encaminhar a mensagem. Tente novamente.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="h-full flex flex-col bg-white/5 backdrop-blur-sm relative z-10">
-      <WhatsAppChatHeader 
+      <WhatsAppChatHeader
         selectedContact={{
           ...selectedContact,
           leadId
@@ -44,16 +97,27 @@ export const WhatsAppChatArea = ({
         onRefreshMessages={onRefreshMessages}
         isRefreshing={isLoadingMessages}
       />
-      <WhatsAppMessagesList 
-        messages={messages} 
+      <WhatsAppMessagesList
+        messages={messages}
         isLoading={isLoadingMessages}
         isLoadingMore={isLoadingMore}
         hasMoreMessages={hasMoreMessages}
         onLoadMore={onLoadMoreMessages}
+        onForward={handleForward}
       />
-      <WhatsAppMessageInput 
-        onSendMessage={onSendMessage} 
+      <WhatsAppMessageInput
+        onSendMessage={onSendMessage}
         isSending={isSending}
+      />
+
+      {/* Dialog de encaminhamento */}
+      <ForwardMessageDialog
+        open={forwardDialogOpen}
+        onOpenChange={setForwardDialogOpen}
+        message={messageToForward}
+        contacts={contacts}
+        currentContactId={selectedContact.id}
+        onForward={handleSelectContactForForward}
       />
     </div>
   );

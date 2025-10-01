@@ -7,13 +7,14 @@ import { MessageMediaEnhanced } from '../MessageMediaEnhanced';
 import { MessageMediaDirect } from '../MessageMediaDirect';
 import { MessageStatus } from './MessageStatus';
 import { MessageActions } from './MessageActions';
-import { CheckCircle, Info, AlertCircle, Bot } from 'lucide-react';
+import { CheckCircle, Info, AlertCircle, Bot, Forward } from 'lucide-react';
 
 interface MessageItemProps {
   message: any;
   isLastMessage: boolean;
   onResend?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
+  onForward?: (message: any) => void;
   className?: string;
 }
 
@@ -22,6 +23,7 @@ export function MessageItem({
   isLastMessage,
   onResend,
   onDelete,
+  onForward,
   className = ""
 }: MessageItemProps) {
   // 🚀 CORREÇÃO: Formato HH:MM para o horário
@@ -33,6 +35,9 @@ export function MessageItem({
 
   // 🤖 Detectar se é uma mensagem da IA (apenas mensagens enviadas com source_edge)
   const isAIMessage = isFromMe && message.source_edge === 'ai_messaging_service';
+
+  // ✅ Detectar se é uma mensagem encaminhada
+  const isForwarded = message.isForwarded;
 
 
   return (
@@ -98,6 +103,20 @@ export function MessageItem({
 
           {/* Conteúdo da mensagem */}
           <div className="space-y-2">
+            {/* Badge de mensagem encaminhada */}
+            {isForwarded && (
+              <div className={cn(
+                "flex items-center gap-1 text-xs mb-1",
+                isFromMe ? "text-white/70" : "text-gray-600"
+              )}>
+                <Forward className="w-3 h-3" />
+                <span className="font-medium">Encaminhada</span>
+                {message.forwardedFrom && (
+                  <span className="opacity-70">de {message.forwardedFrom}</span>
+                )}
+              </div>
+            )}
+
             {/* Mídia */}
             {message.mediaType !== 'text' && (
               <>
@@ -170,6 +189,7 @@ export function MessageItem({
             message={message}
             onResend={onResend}
             onDelete={onDelete}
+            onForward={onForward}
             className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
           />
         </div>

@@ -16,6 +16,7 @@ interface WhatsAppMessagesListProps {
   isLoadingMore?: boolean;
   hasMoreMessages?: boolean;
   onLoadMore?: () => Promise<void>;
+  onForward?: (message: Message) => void;
 }
 
 // 🚀 CORRIGIDO: Mensagens já chegam em ordem cronológica correta (antigas→recentes)
@@ -44,7 +45,8 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
   isLoading = false,
   isLoadingMore = false,
   hasMoreMessages = false,
-  onLoadMore
+  onLoadMore,
+  onForward
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -130,6 +132,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
                   key={message.id}
                   message={message}
                   isLastMessage={isLastMessage}
+                  onForward={onForward}
                 />
               );
             })}

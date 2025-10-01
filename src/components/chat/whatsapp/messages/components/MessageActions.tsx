@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MoreVertical, RotateCcw, Trash2, Copy } from 'lucide-react';
+import { MoreVertical, RotateCcw, Trash2, Copy, Forward } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
@@ -14,14 +14,16 @@ interface MessageActionsProps {
   message: any;
   onResend?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
+  onForward?: (message: any) => void;
   className?: string;
 }
 
-export function MessageActions({ 
-  message, 
-  onResend, 
-  onDelete, 
-  className 
+export function MessageActions({
+  message,
+  onResend,
+  onDelete,
+  onForward,
+  className
 }: MessageActionsProps) {
   const handleCopy = () => {
     if (message.text) {
@@ -59,16 +61,23 @@ export function MessageActions({
               Copiar texto
             </DropdownMenuItem>
           )}
-          
+
+          {onForward && (
+            <DropdownMenuItem onClick={() => onForward(message)}>
+              <Forward className="w-4 h-4 mr-2" />
+              Encaminhar
+            </DropdownMenuItem>
+          )}
+
           {canResend && onResend && (
             <DropdownMenuItem onClick={() => onResend(message.id)}>
               <RotateCcw className="w-4 h-4 mr-2" />
               Reenviar
             </DropdownMenuItem>
           )}
-          
+
           {canDelete && onDelete && (
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => onDelete(message.id)}
               className="text-red-600 hover:text-red-700"
             >
