@@ -79,7 +79,7 @@ serve(async (req)=>{
         }
       });
     }
-    const { action, instanceId, phone, message, mediaType, mediaUrl } = requestBody;
+    const { action, instanceId, phone, message, mediaType, mediaUrl, metadata } = requestBody;
     // ✅ VALIDAÇÃO RIGOROSA DOS PARÂMETROS
     if (action !== 'send_message') {
       return new Response(JSON.stringify({
@@ -93,7 +93,13 @@ serve(async (req)=>{
         }
       });
     }
-    if (!instanceId || !phone || !message) {
+    // ✅ DETECTAR PTT (Push-to-Talk) - áudio nativo do WhatsApp
+    const isPTT = metadata?.ptt === true || mediaType === 'ptt';
+    const audioFilename = metadata?.filename || null;
+    const audioDuration = metadata?.seconds || metadata?.duration || null;
+    const audioMimeType = metadata?.mimeType || 'audio/ogg;codecs=opus';
+
+    if (!instanceId || !phone || (!message && !isPTT)) {
       return new Response(JSON.stringify({
         success: false,
         error: 'instanceId, phone e message são obrigatórios'
@@ -108,9 +114,11 @@ serve(async (req)=>{
     console.log('[Messaging Service] 📤 Processando envio de mensagem:', {
       instanceId,
       phone: phone.substring(0, 4) + '****',
-      messageLength: message.length,
+      messageLength: message?.length || 0,
       mediaType: mediaType || 'text',
       hasMediaUrl: !!mediaUrl,
+      isPTT,
+      audioDuration,
       userId: user.id,
       userEmail: user.email
     });
@@ -221,6 +229,7 @@ serve(async (req)=>{
             } else if (mimeType.startsWith('video/')) {
               processedMediaType = 'video';
             } else if (mimeType.startsWith('audio/')) {
+              // ✅ Se for PTT, manter como 'audio', não 'ptt'
               processedMediaType = 'audio';
             } else {
               processedMediaType = 'document';
@@ -239,24 +248,38 @@ serve(async (req)=>{
         }
       }
       // ✅ PAYLOAD CORRETO PARA VPS: usar vps_instance_id diretamente
-      // 🔧 CORREÇÃO: VPS exige message não vazio - usar " " para mídia
-      const messageContent = message.trim() || (processedMediaType !== 'text' ? ' ' : '');
+      // 🔧 CORREÇÃO PTT: Separar mensagem para VPS e banco
+      const messageText = isPTT ? '' : (message || '').trim();
+      const vpsMessageText = messageText || ' ';  // VPS precisa de algo não vazio
+
+      // ✅ CAMPOS PTT ADICIONAIS
+      const pttFields = isPTT ? {
+        ptt: true,
+        filename: audioFilename,
+        seconds: audioDuration,
+        audioMimeType: audioMimeType,
+        waveform: metadata?.waveform || null
+      } : {};
 
       const vpsPayload = {
         instanceId: vpsInstanceId,
         phone: phone.replace(/\D/g, ''),
-        message: messageContent,  // ✅ Nunca vazio
+        message: vpsMessageText,  // ✅ ' ' para PTT, texto normal para resto
         mediaType: processedMediaType || 'text',
-        mediaUrl: processedMediaUrl || null
+        mediaUrl: processedMediaUrl || null,
+        ...pttFields  // ✅ Adiciona campos PTT se aplicável
       };
       console.log('[Messaging Service] 📡 Enviando para VPS (síncrono):', {
         url: `${VPS_CONFIG.baseUrl}/queue/add-message`,
         supabaseInstanceId: instanceData.id,
         vpsInstanceId: vpsInstanceId,
+        isPTT,
         payload: {
           ...vpsPayload,
           phone: vpsPayload.phone.substring(0, 4) + '****',
-          mediaUrl: vpsPayload.mediaUrl ? vpsPayload.mediaUrl.substring(0, 50) + '...' : null
+          mediaUrl: vpsPayload.mediaUrl ? vpsPayload.mediaUrl.substring(0, 50) + '...' : null,
+          messageIsEmpty: vpsPayload.message === '',
+          messageIsSpace: vpsPayload.message === ' '
         }
       });
       const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/queue/add-message`, {
@@ -356,20 +379,21 @@ serve(async (req)=>{
         console.log('[Messaging Service] 📞 Chamando RPC save_sent_message_from_app com params:', {
           p_vps_instance_id: user.id,
           p_phone: phone.replace(/\D/g, ''),
-          p_message_text: message.trim().substring(0, 50),
+          p_message_text: messageText.substring(0, 50),  // ✅ Usa messageText (vazio para PTT)
           p_from_me: true,
           p_media_type: processedMediaType || 'text',
           p_media_url: finalMediaUrl,  // 🔥 CORRIGIDO: URL do Storage OU null para upload
           p_whatsapp_number_id: instanceData?.id,
           p_external_message_id: vpsData.messageId,
           p_has_base64: !!extractedBase64,
-          p_is_forwarded: isStorageUrl
+          p_is_forwarded: isStorageUrl,
+          isPTT
         });
 
         const { data: saveResult, error: saveError } = await supabaseServiceRole.rpc('save_sent_message_from_app', {
           p_vps_instance_id: user.id,  // ✅ CORREÇÃO: usar user.id (created_by_user_id)
           p_phone: phone.replace(/\D/g, ''),
-          p_message_text: message.trim(),
+          p_message_text: messageText,  // ✅ Vazio para PTT, texto normal para resto
           p_from_me: true,
           p_media_type: processedMediaType || 'text',
           p_media_url: finalMediaUrl,  // 🔥 CORRIGIDO: URL do Storage (encaminhamento) OU NULL (upload)

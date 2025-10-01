@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface WhatsAppChatAreaProps {
   selectedContact: Contact;
   messages: Message[];
-  onSendMessage: (message: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
+  onSendMessage: (message: string, mediaType?: string, mediaUrl?: string, metadata?: any) => Promise<boolean>;
   onBack: () => void;
   isLoadingMessages: boolean;
   isLoadingMore: boolean;

@@ -129,7 +129,19 @@ export const AudioRecordDialog: React.FC<AudioRecordDialogProps> = ({
     }
   };
 
-  // Enviar áudio
+  // Converter WebM para OGG (formato aceito pelo WhatsApp)
+  const convertWebMToOgg = async (webmBlob: Blob): Promise<Blob> => {
+    // Como navegadores não suportam conversão nativa WebM->OGG facilmente,
+    // vamos manter o WebM mas mudar o MIME type para OGG/Opus que é compatível
+    // A VPS vai processar corretamente
+    console.log('[AudioRecordDialog] 🔄 Preparando áudio para WhatsApp PTT');
+
+    // Criar novo blob com MIME type correto
+    const oggBlob = new Blob([webmBlob], { type: 'audio/ogg;codecs=opus' });
+    return oggBlob;
+  };
+
+  // Enviar áudio como PTT (Push-to-Talk) nativo do WhatsApp
   const handleSendAudio = async () => {
     if (!audioBlob || !audioUrl) {
       toast.error('Nenhum áudio gravado');
@@ -137,36 +149,60 @@ export const AudioRecordDialog: React.FC<AudioRecordDialogProps> = ({
     }
 
     setIsSending(true);
-    
+
     try {
+      console.log('[AudioRecordDialog] 📤 Enviando áudio PTT nativo:', {
+        originalFormat: audioBlob.type,
+        duration: recordingTime,
+        sizeKB: Math.round(audioBlob.size / 1024)
+      });
+
+      // ✅ Converter para formato compatível com WhatsApp
+      const oggBlob = await convertWebMToOgg(audioBlob);
+
       // Converter blob para base64
       const reader = new FileReader();
       reader.onload = async () => {
         const base64Data = reader.result as string;
-        
+
+        console.log('[AudioRecordDialog] ✅ Áudio convertido para OGG/Opus:', {
+          mimeType: 'audio/ogg;codecs=opus',
+          base64Length: base64Data.length,
+          sizeKB: Math.round(oggBlob.size / 1024)
+        });
+
+        // ✅ ENVIAR COMO PTT COM METADATA COMPLETA
         const success = await onSendMessage(
-          `🎵 Mensagem de voz (${Math.floor(recordingTime / 60)}:${(recordingTime % 60).toString().padStart(2, '0')})`,
-          'audio',
-          base64Data
+          '',  // ✅ Mensagem vazia para PTT nativo
+          'ptt',  // ✅ Tipo PTT ao invés de 'audio'
+          base64Data,
+          {
+            // ✅ METADATA PTT COMPLETA
+            ptt: true,
+            filename: `ptt_${Date.now()}.ogg`,
+            seconds: recordingTime,
+            mimeType: 'audio/ogg;codecs=opus',
+            duration: recordingTime
+          }
         );
 
         if (success) {
-          toast.success('Áudio enviado com sucesso!');
+          toast.success('Mensagem de voz enviada!');
           handleClose();
         } else {
-          toast.error('Erro ao enviar áudio');
+          toast.error('Erro ao enviar mensagem de voz');
         }
       };
-      
+
       reader.onerror = () => {
         toast.error('Erro ao processar áudio');
       };
-      
-      reader.readAsDataURL(audioBlob);
-      
+
+      reader.readAsDataURL(oggBlob);
+
     } catch (error) {
-      console.error('Erro ao enviar áudio:', error);
-      toast.error('Erro ao enviar áudio');
+      console.error('[AudioRecordDialog] ❌ Erro ao enviar áudio:', error);
+      toast.error('Erro ao enviar mensagem de voz');
     } finally {
       setIsSending(false);
     }

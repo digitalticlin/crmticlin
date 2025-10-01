@@ -12,7 +12,7 @@ import { VideoUploadDialog } from "./media/VideoUploadDialog";
 import { AudioRecordDialog } from "./media/AudioRecordDialog";
 
 interface WhatsAppMessageInputProps {
-  onSendMessage: (message: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
+  onSendMessage: (message: string, mediaType?: string, mediaUrl?: string, metadata?: any) => Promise<boolean>;
   isSending: boolean;
 }
 
@@ -76,15 +76,17 @@ export const WhatsAppMessageInput = ({
     }
   };
 
-  const handleMediaSend = async (message: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
+  const handleMediaSend = async (message: string, mediaType?: string, mediaUrl?: string, metadata?: any): Promise<boolean> => {
     try {
       console.log('[WhatsAppMessageInput] ▶️ Enviando mídia...', {
         hasText: !!message?.trim(),
         mediaType,
         hasMediaUrl: !!mediaUrl,
+        hasMetadata: !!metadata,
+        isPTT: metadata?.ptt === true,
         mediaUrlPreview: mediaUrl ? mediaUrl.substring(0, 50) + '...' : null
       });
-      return await onSendMessage(message, mediaType, mediaUrl);
+      return await onSendMessage(message, mediaType, mediaUrl, metadata);
     } catch (error) {
       console.error('[WhatsAppMessageInput] Erro ao enviar mídia:', error);
       return false;
