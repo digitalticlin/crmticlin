@@ -1,58 +1,201 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Contact, Message } from '@/types/chat';
-import { Search, Forward, User } from 'lucide-react';
+import { Search, Forward, User, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ForwardMessageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   message: Message | null;
-  contacts: Contact[];
   currentContactId?: string;
+  activeInstanceId?: string | null;
   onForward: (targetContact: Contact) => Promise<void>;
 }
+
+const CONTACTS_PER_PAGE = 20;
 
 export function ForwardMessageDialog({
   open,
   onOpenChange,
   message,
-  contacts,
   currentContactId,
+  activeInstanceId,
   onForward
 }: ForwardMessageDialogProps) {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [isForwarding, setIsForwarding] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Filtrar contatos (excluir o contato atual e filtrar por busca)
-  const filteredContacts = useMemo(() => {
-    return contacts.filter(contact => {
-      // Excluir contato atual
-      if (contact.id === currentContactId) return false;
+  // Função para buscar contatos do banco de dados
+  const fetchContacts = useCallback(async (pageNum: number, query: string, isNewSearch: boolean = false) => {
+    if (!user?.id || !activeInstanceId) return;
 
-      // Filtrar por busca
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        return (
-          contact.name?.toLowerCase().includes(query) ||
-          contact.phone?.toLowerCase().includes(query) ||
-          contact.company?.toLowerCase().includes(query)
-        );
+    if (isNewSearch) {
+      setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+
+    try {
+      console.log('[ForwardMessageDialog] 🔍 Buscando contatos:', {
+        page: pageNum,
+        query,
+        isNewSearch
+      });
+
+      // Buscar role do usuário para filtro multitenant
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, created_by_user_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile) {
+        throw new Error('Profile não encontrado');
       }
 
-      return true;
-    });
-  }, [contacts, currentContactId, searchQuery]);
+      const from = pageNum * CONTACTS_PER_PAGE;
+      const to = from + CONTACTS_PER_PAGE - 1;
+
+      // ✅ CORREÇÃO: Query na tabela LEADS (correta)
+      let dbQuery = supabase
+        .from('leads')
+        .select(`
+          id,
+          name,
+          phone,
+          email,
+          company,
+          profile_pic_url,
+          last_message,
+          last_message_time,
+          unread_count,
+          whatsapp_number_id
+        `, { count: 'exact' })
+        .in('conversation_status', ['active', 'closed'])
+        .neq('id', currentContactId || ''); // Excluir contato atual
+
+      // Aplicar filtro multitenant
+      if (profile.role === 'admin') {
+        dbQuery = dbQuery.eq('created_by_user_id', user.id);
+      } else if (profile.role === 'operational') {
+        // Operacional: buscar instâncias acessíveis
+        const { data: userWhatsAppNumbers } = await supabase
+          .from('user_whatsapp_numbers')
+          .select('whatsapp_number_id')
+          .eq('profile_id', user.id);
+
+        if (userWhatsAppNumbers && userWhatsAppNumbers.length > 0) {
+          const whatsappIds = userWhatsAppNumbers.map(uwn => uwn.whatsapp_number_id);
+          dbQuery = dbQuery.in('whatsapp_number_id', whatsappIds);
+        } else {
+          dbQuery = dbQuery.eq('id', 'impossible-id'); // Sem instâncias
+        }
+      } else {
+        dbQuery = dbQuery.eq('created_by_user_id', user.id);
+      }
+
+      // Filtrar por instância específica
+      if (activeInstanceId) {
+        dbQuery = dbQuery.eq('whatsapp_number_id', activeInstanceId);
+      }
+
+      // 🔥 BUSCA GLOBAL: Aplicar filtro de busca se houver query
+      if (query.trim()) {
+        const searchTerm = `%${query.trim()}%`;
+        dbQuery = dbQuery.or(`name.ilike.${searchTerm},phone.ilike.${searchTerm}`);
+      }
+
+      const { data, error, count } = await dbQuery
+        .order('last_message_time', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (error) {
+        throw error;
+      }
+
+      // Mapear dados para Contact (usando campos corretos da tabela leads)
+      const fetchedContacts: Contact[] = (data || []).map(lead => ({
+        id: lead.id,
+        name: lead.name || undefined,
+        phone: lead.phone || '',
+        profilePicUrl: lead.profile_pic_url || undefined,
+        profile_pic_url: lead.profile_pic_url || undefined,
+        lastMessage: lead.last_message || undefined,
+        lastMessageTime: lead.last_message_time || undefined,
+        unreadCount: lead.unread_count || 0,
+        company: lead.company || undefined,
+        email: lead.email || undefined,
+        whatsapp_number_id: lead.whatsapp_number_id || undefined
+      }));
+
+      console.log('[ForwardMessageDialog] ✅ Contatos carregados:', {
+        count: fetchedContacts.length,
+        total: count,
+        hasMore: (count || 0) > to + 1
+      });
+
+      if (isNewSearch) {
+        setContacts(fetchedContacts);
+      } else {
+        setContacts(prev => [...prev, ...fetchedContacts]);
+      }
+
+      setHasMore((count || 0) > to + 1);
+    } catch (error) {
+      console.error('[ForwardMessageDialog] ❌ Erro ao buscar contatos:', error);
+      setContacts([]);
+      setHasMore(false);
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  }, [user?.id, activeInstanceId, currentContactId]);
+
+  // Buscar contatos ao abrir o dialog ou quando a busca mudar
+  useEffect(() => {
+    if (open) {
+      setPage(0);
+      fetchContacts(0, searchQuery, true);
+    } else {
+      // Limpar ao fechar
+      setContacts([]);
+      setSearchQuery('');
+      setPage(0);
+      setHasMore(true);
+    }
+  }, [open, searchQuery, fetchContacts]);
+
+  // Scroll infinito
+  const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLDivElement;
+    const bottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
+
+    if (bottom && hasMore && !isLoadingMore && !isLoading) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchContacts(nextPage, searchQuery, false);
+    }
+  }, [hasMore, isLoadingMore, isLoading, page, fetchContacts, searchQuery]);
 
   const handleForward = async (targetContact: Contact) => {
     setIsForwarding(true);
     try {
       await onForward(targetContact);
-      onOpenChange(false);
-      setSearchQuery(''); // Limpar busca ao fechar
+      // Dialog será fechado pelo componente pai após sucesso
     } catch (error) {
       console.error('[ForwardMessageDialog] Erro ao encaminhar:', error);
     } finally {
@@ -92,23 +235,33 @@ export function ForwardMessageDialog({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
-            placeholder="Buscar contato..."
+            placeholder="Buscar por nome ou número..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
 
-        {/* Lista de contatos */}
-        <ScrollArea className="h-[300px] pr-4">
-          {filteredContacts.length === 0 ? (
+        {/* Lista de contatos com scroll infinito */}
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="h-[300px] overflow-y-auto pr-4"
+          style={{ scrollBehavior: 'smooth' }}
+        >
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+              <Loader2 className="w-8 h-8 animate-spin mb-2" />
+              <p className="text-sm">Carregando contatos...</p>
+            </div>
+          ) : contacts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-gray-500">
               <User className="w-12 h-12 mb-2 opacity-30" />
               <p className="text-sm">Nenhum contato encontrado</p>
             </div>
           ) : (
             <div className="space-y-1">
-              {filteredContacts.map((contact) => (
+              {contacts.map((contact) => (
                 <Button
                   key={contact.id}
                   variant="ghost"
@@ -148,14 +301,21 @@ export function ForwardMessageDialog({
                   </div>
                 </Button>
               ))}
+
+              {/* Indicador de carregamento no final da lista */}
+              {isLoadingMore && (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="w-6 h-6 animate-spin text-ticlin-500" />
+                </div>
+              )}
             </div>
           )}
-        </ScrollArea>
+        </div>
 
         {/* Contador de contatos */}
         <div className="text-sm text-gray-500 text-center">
-          {filteredContacts.length} contato{filteredContacts.length !== 1 ? 's' : ''} disponível
-          {filteredContacts.length !== 1 ? 'is' : ''}
+          {contacts.length} contato{contacts.length !== 1 ? 's' : ''} carregado{contacts.length !== 1 ? 's' : ''}
+          {hasMore && ' • Role para carregar mais'}
         </div>
       </DialogContent>
     </Dialog>

@@ -6,6 +6,7 @@ import { ForwardMessageDialog } from "./messages/components/ForwardMessageDialog
 import { Contact, Message } from "@/types/chat";
 import { useWhatsAppChatUnified } from "@/hooks/whatsappChat/core/useWhatsAppChatUnified";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WhatsAppChatAreaProps {
   selectedContact: Contact;
@@ -40,8 +41,8 @@ export const WhatsAppChatArea = ({
   const [messageToForward, setMessageToForward] = useState<Message | null>(null);
   const { toast } = useToast();
 
-  // Hook para obter lista de contatos
-  const { contacts } = useWhatsAppChatUnified();
+  // Hook para obter instância ativa e contatos (REMOVIDO: vamos buscar direto no dialog)
+  const { activeInstance } = useWhatsAppChatUnified();
 
   const handleForward = (message: Message) => {
     console.log('[WhatsAppChatArea] 📤 Abrindo dialog de encaminhamento:', message.id);
@@ -50,31 +51,46 @@ export const WhatsAppChatArea = ({
   };
 
   const handleSelectContactForForward = async (targetContact: Contact) => {
-    if (!messageToForward) return;
+    if (!messageToForward || !activeInstance?.id) return;
 
     console.log('[WhatsAppChatArea] 📤 Encaminhando mensagem:', {
       messageId: messageToForward.id,
       from: selectedContact.id,
+      fromPhone: selectedContact.phone,
       to: targetContact.id,
+      toPhone: targetContact.phone,
       hasMedia: messageToForward.mediaType !== 'text'
     });
 
     try {
-      // Encaminhar mensagem usando a mesma função de envio
-      const success = await onSendMessage(
-        messageToForward.text,
-        messageToForward.mediaType !== 'text' ? messageToForward.mediaType : undefined,
-        messageToForward.mediaUrl || undefined
-      );
+      // 🔥 CORREÇÃO CRÍTICA: Enviar diretamente via edge function para o contato correto
+      const messageContent = messageToForward.text || (messageToForward.mediaUrl ? ' ' : '');
 
-      if (success) {
-        toast({
-          title: "Mensagem encaminhada",
-          description: `Mensagem encaminhada para ${targetContact.name || targetContact.phone}`,
-        });
-      } else {
-        throw new Error('Falha ao encaminhar mensagem');
+      const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
+        body: {
+          action: 'send_message',
+          instanceId: activeInstance.id,
+          phone: targetContact.phone, // ✅ CORRIGIDO: usar phone do targetContact, não do selectedContact
+          message: messageContent,
+          mediaType: messageToForward.mediaType || 'text',
+          mediaUrl: messageToForward.mediaUrl || null
+        }
+      });
+
+      if (error) {
+        throw error;
       }
+
+      console.log('[WhatsAppChatArea] ✅ Mensagem encaminhada com sucesso:', data);
+
+      toast({
+        title: "Mensagem encaminhada",
+        description: `Mensagem encaminhada para ${targetContact.name || targetContact.phone}`,
+      });
+
+      // Fechar dialog
+      setForwardDialogOpen(false);
+      setMessageToForward(null);
     } catch (error) {
       console.error('[WhatsAppChatArea] ❌ Erro ao encaminhar:', error);
       toast({
@@ -115,8 +131,8 @@ export const WhatsAppChatArea = ({
         open={forwardDialogOpen}
         onOpenChange={setForwardDialogOpen}
         message={messageToForward}
-        contacts={contacts}
         currentContactId={selectedContact.id}
+        activeInstanceId={activeInstance?.id}
         onForward={handleSelectContactForForward}
       />
     </div>
