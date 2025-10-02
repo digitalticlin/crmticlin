@@ -106,7 +106,7 @@ export const WhatsAppChatHeader = ({
   }, [localContact.leadId, fetchTags]);
 
   return (
-    <div className="flex flex-col bg-white/10 backdrop-blur-md border-b border-white/20">
+    <div className="flex flex-col backdrop-blur-sm bg-gradient-to-r from-white/10 to-white/5 border-b border-white/20">
       <div className="p-4 flex items-center gap-3">
         <Button
           variant="ghost"

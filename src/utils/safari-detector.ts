@@ -45,17 +45,34 @@ export const applySafariFixesIfNeeded = () => {
       document.body.classList.add('ios-system');
     }
 
-    // Log para debug
-    console.log('[Safari Detector] Navegador detectado:', {
+    // Log detalhado para debug - SISTEMA OPERACIONAL E NAVEGADOR
+    console.group('🔍 [SISTEMA OPERACIONAL DEBUG]');
+    console.log('═══════════════════════════════════════════');
+    console.log('📱 Sistema Operacional:', {
+      platform: navigator.platform,
+      userAgent: navigator.userAgent,
+      vendor: navigator.vendor,
+      appVersion: navigator.appVersion
+    });
+    console.log('═══════════════════════════════════════════');
+    console.log('🌐 Detecção de Navegador:', {
       isSafari,
       isWebKit,
       isMacOS,
       isIOS,
-      macOSVersion,
-      safariVersion,
-      userAgent: navigator.userAgent,
-      platform: navigator.platform
+      isChrome: /Chrome/.test(navigator.userAgent),
+      isFirefox: /Firefox/.test(navigator.userAgent),
+      isEdge: /Edg/.test(navigator.userAgent)
     });
+    console.log('═══════════════════════════════════════════');
+    console.log('🍎 macOS Version:', macOSVersion);
+    console.log('🧭 Safari Version:', safariVersion);
+    console.log('═══════════════════════════════════════════');
+    console.log('🎨 Classes CSS aplicadas ao body:',
+      Array.from(document.body.classList)
+    );
+    console.log('═══════════════════════════════════════════');
+    console.groupEnd();
 
     // Aplica fix específico para backdrop-filter se necessário
     testBackdropFilterSupport();
@@ -128,13 +145,26 @@ const testBackdropFilterSupport = () => {
   const supportsBackdrop = testEl.style.backdropFilter !== undefined ||
                           testEl.style.webkitBackdropFilter !== undefined;
 
+  console.group('🎨 [TESTE BACKDROP-FILTER]');
+  console.log('═══════════════════════════════════════════');
+  console.log('🔍 Suporte CSS backdrop-filter:', {
+    supportsBackdrop,
+    'testEl.style.backdropFilter': testEl.style.backdropFilter,
+    'testEl.style.webkitBackdropFilter': testEl.style.webkitBackdropFilter
+  });
+
   if (!supportsBackdrop) {
     document.body.classList.add('no-backdrop-support');
-    console.warn('[Safari Detector] backdrop-filter não suportado - aplicando fallbacks');
+    console.error('❌ backdrop-filter NÃO suportado - aplicando fallbacks');
+    console.log('🛠️ Classe aplicada: no-backdrop-support');
   } else {
+    console.log('✅ backdrop-filter SUPORTADO pelo CSS');
+    console.log('🔄 Testando renderização real...');
     // Testa se funciona corretamente (Safari às vezes aceita mas não renderiza)
     testBackdropRendering();
   }
+  console.log('═══════════════════════════════════════════');
+  console.groupEnd();
 };
 
 // Testa se o backdrop-filter está renderizando corretamente
@@ -159,10 +189,27 @@ const testBackdropRendering = () => {
     const hasBackdrop = computed.backdropFilter !== 'none' ||
                        computed.webkitBackdropFilter !== 'none';
 
+    console.group('🎭 [TESTE RENDERIZAÇÃO BACKDROP]');
+    console.log('═══════════════════════════════════════════');
+    console.log('🖼️ Computed Style do elemento de teste:', {
+      backdropFilter: computed.backdropFilter,
+      webkitBackdropFilter: computed.webkitBackdropFilter,
+      backgroundColor: computed.backgroundColor,
+      hasBackdrop
+    });
+
     if (!hasBackdrop) {
       document.body.classList.add('backdrop-render-fail');
-      console.warn('[Safari Detector] backdrop-filter aceito mas não renderiza - aplicando fallbacks pesados');
+      console.error('❌ FALHA CRÍTICA: backdrop-filter aceito mas NÃO RENDERIZA!');
+      console.log('🛠️ Classe aplicada: backdrop-render-fail');
+      console.log('⚠️ Cards podem aparecer 100% brancos sem transparência');
+      console.log('💡 Aplicando fallbacks pesados com backgrounds sólidos...');
+    } else {
+      console.log('✅ backdrop-filter RENDERIZA CORRETAMENTE');
     }
+
+    console.log('═══════════════════════════════════════════');
+    console.groupEnd();
 
     // Remove elemento de teste
     document.body.removeChild(testContainer);
@@ -193,6 +240,98 @@ export const fixSafariElement = (element: HTMLElement) => {
   }
 };
 
+// Função de debug para verificar elementos com backdrop na página
+export const debugBackdropElements = () => {
+  console.group('🔍 [DEBUG ELEMENTOS BACKDROP]');
+  console.log('═══════════════════════════════════════════');
+
+  // Busca todos os elementos com classes backdrop
+  const backdropElements = document.querySelectorAll('[class*="backdrop-blur"]');
+
+  console.log(`📊 Total de elementos com backdrop encontrados: ${backdropElements.length}`);
+  console.log('═══════════════════════════════════════════');
+
+  backdropElements.forEach((el, index) => {
+    const computed = window.getComputedStyle(el as HTMLElement);
+    const classList = Array.from((el as HTMLElement).classList);
+
+    console.group(`Elemento ${index + 1}/${backdropElements.length}`);
+    console.log('🏷️ Classes:', classList.filter(c => c.includes('backdrop')));
+    console.log('🎨 Computed Styles:', {
+      backdropFilter: computed.backdropFilter,
+      webkitBackdropFilter: computed.webkitBackdropFilter,
+      backgroundColor: computed.backgroundColor,
+      opacity: computed.opacity,
+      display: computed.display,
+      visibility: computed.visibility
+    });
+    console.log('📐 Dimensões:', {
+      width: computed.width,
+      height: computed.height,
+      position: computed.position
+    });
+    console.log('🔗 Elemento:', el);
+    console.groupEnd();
+  });
+
+  console.log('═══════════════════════════════════════════');
+  console.groupEnd();
+};
+
+// Função para verificar quais regras CSS estão sendo aplicadas
+export const debugCSSRules = () => {
+  console.group('📜 [DEBUG REGRAS CSS SAFARI]');
+  console.log('═══════════════════════════════════════════');
+
+  const testElement = document.createElement('div');
+  testElement.className = 'backdrop-blur-md';
+  testElement.style.cssText = 'position: fixed; top: -100px; left: -100px; width: 50px; height: 50px;';
+  document.body.appendChild(testElement);
+
+  const computed = window.getComputedStyle(testElement);
+
+  console.log('🧪 Teste elemento .backdrop-blur-md:', {
+    backdropFilter: computed.backdropFilter,
+    webkitBackdropFilter: computed.webkitBackdropFilter,
+    backgroundColor: computed.backgroundColor,
+    border: computed.border
+  });
+
+  // Testa com classes do body
+  const bodyClasses = Array.from(document.body.classList);
+  console.log('🏷️ Classes no body:', bodyClasses);
+
+  console.log('✅ Regras que DEVEM estar ativas:');
+  if (bodyClasses.includes('macos-system')) {
+    console.log('  - body.macos-system .backdrop-blur-md { background-color: rgba(255,255,255,0.95) }');
+  }
+  if (bodyClasses.includes('safari-browser')) {
+    console.log('  - body.safari-browser .backdrop-blur-md { background-color: rgba(255,255,255,0.95) }');
+  }
+  if (bodyClasses.includes('backdrop-render-fail')) {
+    console.log('  - body.backdrop-render-fail [class*="backdrop-blur"] { background-color: rgba(255,255,255,0.98) }');
+    console.warn('  ⚠️ ATENÇÃO: backdrop-filter desabilitado devido a falha na renderização!');
+  }
+  if (bodyClasses.includes('no-backdrop-support')) {
+    console.log('  - body.no-backdrop-support [class*="backdrop-blur"] { background-color: rgba(255,255,255,0.98) }');
+    console.warn('  ⚠️ ATENÇÃO: backdrop-filter não suportado!');
+  }
+
+  document.body.removeChild(testElement);
+
+  console.log('═══════════════════════════════════════════');
+  console.groupEnd();
+};
+
+// Expõe funções de debug globalmente
+if (typeof window !== 'undefined') {
+  (window as any).debugBackdropElements = debugBackdropElements;
+  (window as any).debugCSSRules = debugCSSRules;
+  console.log('✅ Funções de debug disponíveis:');
+  console.log('  - window.debugBackdropElements()');
+  console.log('  - window.debugCSSRules()');
+}
+
 // Auto-executa ao importar
 if (typeof window !== 'undefined') {
   // Executa quando DOM estiver pronto
@@ -201,4 +340,30 @@ if (typeof window !== 'undefined') {
   } else {
     applySafariFixesIfNeeded();
   }
+
+  // Adiciona listener para executar debug após carregamento completo
+  window.addEventListener('load', () => {
+    console.log('═══════════════════════════════════════════');
+    console.log('🎬 Página completamente carregada - executando debug final...');
+    console.log('═══════════════════════════════════════════');
+
+    // Aguarda mais um frame para garantir que tudo foi renderizado
+    setTimeout(() => {
+      debugBackdropElements();
+      debugCSSRules();
+
+      // Resume das classes aplicadas
+      console.group('📋 [RESUMO FINAL]');
+      console.log('═══════════════════════════════════════════');
+      console.log('🎨 Classes CSS finais no body:', Array.from(document.body.classList));
+      console.log('🌍 User Agent:', navigator.userAgent);
+      console.log('💻 Platform:', navigator.platform);
+      console.log('═══════════════════════════════════════════');
+      console.log('💡 Para re-executar debug:');
+      console.log('  - window.debugBackdropElements()');
+      console.log('  - window.debugCSSRules()');
+      console.log('═══════════════════════════════════════════');
+      console.groupEnd();
+    }, 500);
+  });
 }

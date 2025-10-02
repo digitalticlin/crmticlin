@@ -237,8 +237,17 @@ function App() {
       console.log('[App] ✅ Supabase exposto globalmente para debug');
 
       // Aplicar fixes do Safari se necessário
+      console.group('[App] 🎨 Aplicando Safari/macOS Fixes');
+      console.log('═══════════════════════════════════════════');
+      console.log('⏰ Timestamp:', new Date().toISOString());
+      console.log('📍 Location:', window.location.href);
+
       applySafariFixesIfNeeded();
-      console.log('[App] ✅ Safari fixes aplicados se necessário');
+
+      console.log('✅ Safari fixes aplicados');
+      console.log('🔍 Verifique os logs acima para detalhes do sistema');
+      console.log('═══════════════════════════════════════════');
+      console.groupEnd();
       
              // 🚀 FUNÇÃO DE DEBUG GLOBAL MELHORADA
        (window as any).debugAuth = async () => {

@@ -10,11 +10,11 @@ interface AudioMessageProps {
   isLoading?: boolean;
 }
 
-export const AudioMessage = React.memo(({ 
-  messageId, 
-  url, 
-  isIncoming, 
-  isLoading = false 
+export const AudioMessage = React.memo(({
+  messageId,
+  url,
+  isIncoming,
+  isLoading = false
 }: AudioMessageProps) => {
   const [audioError, setAudioError] = useState(false);
   const [audioLoading, setAudioLoading] = useState(true);
@@ -25,20 +25,59 @@ export const AudioMessage = React.memo(({
   const [retryCount, setRetryCount] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const handleAudioError = useCallback(() => {
-    console.error(`[AudioMessage] ❌ Erro ao carregar áudio: ${messageId}`);
+  // Log de inicialização do componente
+  useEffect(() => {
+    console.group(`[AudioMessage] 🎵 INICIALIZANDO COMPONENTE`);
+    console.log('═══════════════════════════════════════════');
+    console.log('🆔 Message ID:', messageId);
+    console.log('🔗 URL:', url);
+    console.log('📥 Is Incoming:', isIncoming);
+    console.log('⏳ Is Loading:', isLoading);
+    console.log('✅ URL válida?', !!url);
+    console.log('🔍 Tipo da URL:', typeof url);
+    console.log('📏 Tamanho da URL:', url?.length || 0);
+    console.log('═══════════════════════════════════════════');
+    console.groupEnd();
+  }, [messageId, url, isIncoming, isLoading]);
+
+  const handleAudioError = useCallback((e?: Event) => {
+    const audioElement = audioRef.current;
+    console.group(`[AudioMessage] ❌ ERRO AO CARREGAR ÁUDIO`);
+    console.error('═══════════════════════════════════════════');
+    console.error('🆔 Message ID:', messageId);
+    console.error('🔗 URL:', url);
+    console.error('📊 Audio Element:', audioElement);
+    console.error('⚠️ Error Event:', e);
+    if (audioElement) {
+      console.error('🔍 networkState:', audioElement.networkState);
+      console.error('🔍 readyState:', audioElement.readyState);
+      console.error('🔍 error:', audioElement.error);
+      console.error('🔍 error.code:', audioElement.error?.code);
+      console.error('🔍 error.message:', audioElement.error?.message);
+      console.error('🔍 src:', audioElement.src);
+      console.error('🔍 currentSrc:', audioElement.currentSrc);
+    }
+    console.error('═══════════════════════════════════════════');
+    console.groupEnd();
     setAudioError(true);
     setAudioLoading(false);
-  }, [messageId]);
+  }, [messageId, url]);
 
   const handleAudioLoad = useCallback(() => {
-    console.log(`[AudioMessage] ✅ Áudio carregado: ${messageId}`);
+    console.group(`[AudioMessage] ✅ ÁUDIO CARREGADO COM SUCESSO`);
+    console.log('═══════════════════════════════════════════');
+    console.log('🆔 Message ID:', messageId);
+    console.log('🔗 URL:', url);
+    console.log('⏱️ Duration:', audioRef.current?.duration || 0, 'segundos');
+    console.log('📊 Audio Element:', audioRef.current);
+    console.log('═══════════════════════════════════════════');
+    console.groupEnd();
     setAudioLoading(false);
     setAudioError(false);
     if (audioRef.current) {
       setDuration(audioRef.current.duration || 0);
     }
-  }, [messageId]);
+  }, [messageId, url]);
 
   const handleRetry = useCallback(() => {
     console.log(`[AudioMessage] 🔄 Tentando novamente: ${messageId} (tentativa ${retryCount + 1})`);

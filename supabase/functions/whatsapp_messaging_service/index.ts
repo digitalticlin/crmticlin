@@ -191,66 +191,90 @@ serve(async (req)=>{
     });
     // ✅ FLUXO DIRETO: Processar todos os tipos de mídia via RPC + Edge
     let processedMediaUrl = mediaUrl;
-    // ✅ CORREÇÃO PTT: Converter 'ptt' para 'audio' para processamento interno
+    // ✅ CORREÇÃO PTT: Converter 'ptt' para 'audio' ANTES de qualquer processamento
     let processedMediaType = (mediaType === 'ptt') ? 'audio' : mediaType;
     let isStorageUrl = false;
+
+    console.log('[Messaging Service] 🔍 INÍCIO DO PROCESSAMENTO:', {
+      originalMediaType: mediaType,
+      processedMediaType,
+      isPTT,
+      hasMediaUrl: !!mediaUrl,
+      mediaUrlType: mediaUrl ? (mediaUrl.startsWith('data:') ? 'DataURL' : mediaUrl.startsWith('http') ? 'HTTP URL' : 'Unknown') : 'None'
+    });
 
     // 🔥 NOVO: Detectar se é URL do Storage Supabase (encaminhamento)
     if (mediaUrl && (mediaUrl.includes('supabase.co/storage') || mediaUrl.startsWith('http'))) {
       isStorageUrl = true;
       console.log('[Messaging Service] 🗄️ URL do Storage detectada (encaminhamento) - usando direto:', {
         url: mediaUrl.substring(0, 100) + '...',
-        mediaType
+        mediaType: processedMediaType
       });
       // Usar URL diretamente sem processar
       processedMediaUrl = mediaUrl;
-      processedMediaType = mediaType || 'text';
     } else if (mediaUrl && mediaUrl.startsWith('data:')) {
-      console.log('[Messaging Service] 🔍 DataURL detectada - usando fluxo direto RPC + Edge');
-    }
+      console.log('[Messaging Service] 🔍 DataURL detectada - usando fluxo direto RPC + Edge', {
+        mediaUrlLength: mediaUrl.length,
+        mediaUrlStart: mediaUrl.substring(0, 100),
+        isPTT
+      });
 
-    // ✅ PROCESSAMENTO DIRETO (todos os tipos via RPC + Edge)
-    {
-      console.log('[Messaging Service] ⚡ Processamento DIRETO via RPC + Edge');
-      // ✅ DETECTAR TIPO DE MÍDIA (RPC + Edge farão o processamento)
-      if (!isStorageUrl && mediaUrl && mediaUrl.startsWith('data:')) {
-        console.log('[Messaging Service] 🔄 DataURL detectada - será processada pela RPC + Edge...');
-        try {
-          // Extrair tipo MIME da DataURL para determinar mediaType
-          const mimeMatch = mediaUrl.match(/^data:([^;]+);base64,(.+)$/);
-          if (mimeMatch) {
-            const mimeType = mimeMatch[1];
-            console.log('[Messaging Service] 📄 Tipo de mídia detectado:', {
-              mimeType,
-              size: mediaUrl.length
-            });
-            // Determinar mediaType baseado no MIME
+      // ✅ PROCESSAR DataURL IMEDIATAMENTE
+      try {
+        const mimeMatch = mediaUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (mimeMatch) {
+          const mimeType = mimeMatch[1];
+          const base64Data = mimeMatch[2];
+          console.log('[Messaging Service] 📄 Tipo de mídia detectado na DataURL:', {
+            mimeType,
+            fullMediaUrlLength: mediaUrl.length,
+            base64DataLength: base64Data.length,
+            currentProcessedType: processedMediaType
+          });
+
+          // ✅ MANTER processedMediaType se já foi convertido de 'ptt' para 'audio'
+          // Apenas atualizar se ainda não foi definido
+          if (!processedMediaType || processedMediaType === 'text') {
             if (mimeType.startsWith('image/')) {
               processedMediaType = 'image';
             } else if (mimeType.startsWith('video/')) {
               processedMediaType = 'video';
             } else if (mimeType.startsWith('audio/')) {
-              // ✅ Se for PTT, manter como 'audio', não 'ptt'
               processedMediaType = 'audio';
             } else {
               processedMediaType = 'document';
             }
-            // Usar DataURL diretamente para VPS
-            processedMediaUrl = mediaUrl;
-          } else {
-            console.log('[Messaging Service] ⚠️ DataURL inválida, usando como texto');
-            processedMediaType = 'text';
-            processedMediaUrl = null;
           }
-        } catch (error) {
-          console.error('[Messaging Service] ❌ Erro ao processar DataURL:', error);
-          processedMediaType = 'text';
+
+          // Manter DataURL completa
+          processedMediaUrl = mediaUrl;
+          console.log('[Messaging Service] ✅ DataURL processada com sucesso');
+        } else {
+          console.log('[Messaging Service] ⚠️ DataURL inválida, formato não reconhecido', {
+            mediaUrlStart: mediaUrl.substring(0, 200),
+            hasDataPrefix: mediaUrl.startsWith('data:'),
+            hasBase64: mediaUrl.includes('base64')
+          });
           processedMediaUrl = null;
         }
+      } catch (error) {
+        console.error('[Messaging Service] ❌ Erro ao processar DataURL:', error);
+        processedMediaUrl = null;
       }
+    } else {
+      console.log('[Messaging Service] ℹ️ Nenhuma mídia detectada ou tipo desconhecido:', {
+        hasMediaUrl: !!mediaUrl,
+        mediaUrlType: mediaUrl ? typeof mediaUrl : 'undefined'
+      });
+    }
+
+    // ✅ PROCESSAMENTO DIRETO (todos os tipos via RPC + Edge)
+    {
+      console.log('[Messaging Service] ⚡ Processamento DIRETO via RPC + Edge');
       // ✅ PAYLOAD CORRETO PARA VPS: usar vps_instance_id diretamente
       // 🔧 CORREÇÃO PTT: Separar mensagem para VPS e banco
-      const messageText = isPTT ? '' : (message || '').trim();
+      // A RPC save_sent_message_from_app já formata o texto baseado no media_type
+      const messageText = (message || '').trim();  // ✅ Enviar vazio para PTT, RPC vai formatar
       const vpsMessageText = messageText || ' ';  // VPS precisa de algo não vazio
 
       // ✅ CAMPOS PTT ADICIONAIS
@@ -372,15 +396,28 @@ serve(async (req)=>{
           extractedMimeType = dataUrlMatch[1];
           extractedBase64 = dataUrlMatch[2];
           finalMediaUrl = null; // Edge vai fazer upload e atualizar
-          console.log('[Messaging Service] 📤 Base64 extraído para upload via edge');
+          console.log('[Messaging Service] 📤 Base64 extraído para upload via edge:', {
+            mimeType: extractedMimeType,
+            base64Length: extractedBase64.length,
+            mediaType: processedMediaType,
+            isPTT
+          });
+        } else {
+          console.log('[Messaging Service] ⚠️ Falha ao extrair base64 da DataURL');
         }
+      } else {
+        console.log('[Messaging Service] ℹ️ Sem mídia para processar:', {
+          hasProcessedMediaUrl: !!processedMediaUrl,
+          isStorageUrl,
+          processedMediaType
+        });
       }
 
       try {
         console.log('[Messaging Service] 📞 Chamando RPC save_sent_message_from_app com params:', {
           p_vps_instance_id: user.id,
           p_phone: phone.replace(/\D/g, ''),
-          p_message_text: messageText.substring(0, 50),  // ✅ Usa messageText (vazio para PTT)
+          p_message_text: messageText,  // ✅ Vazio para mídia, RPC formata: 'audio' → '🎵 Áudio'
           p_from_me: true,
           p_media_type: processedMediaType || 'text',
           p_media_url: finalMediaUrl,  // 🔥 CORRIGIDO: URL do Storage OU null para upload
@@ -388,7 +425,8 @@ serve(async (req)=>{
           p_external_message_id: vpsData.messageId,
           p_has_base64: !!extractedBase64,
           p_is_forwarded: isStorageUrl,
-          isPTT
+          isPTT,
+          base64Length: extractedBase64?.length || 0
         });
 
         const { data: saveResult, error: saveError } = await supabaseServiceRole.rpc('save_sent_message_from_app', {

@@ -1,77 +1,79 @@
-/* Safari & WebKit Specific Fixes - Otimizações de Rendering */
+/* Safari & WebKit Specific Fixes - TODAS VERSÕES MACOS */
 
-/* IMPORTANTE: Apenas otimizações de performance, SEM alterar backdrop-filter */
-/* O Tailwind CSS controla os valores de blur naturalmente */
+/* IMPORTANTE: Aplica fixes para TODOS os Macs (antigos e novos) */
+/* Classes aplicadas via JavaScript para detecção precisa */
 
-/* === RENDERING OPTIMIZATION PARA BACKDROP-BLUR === */
-/* Força GPU acceleration para melhor performance no Safari */
-body.macos-system [class*="backdrop-blur"],
+/* === DEBUG: Log das classes aplicadas === */
+/* As seguintes classes são aplicadas pelo safari-detector.ts:
+   - body.macos-system: Detectado como macOS
+   - body.safari-browser: Detectado como Safari
+   - body.webkit-browser: Detectado como WebKit (Chrome, Safari, etc)
+   - body.ios-system: Detectado como iOS
+   - body.no-backdrop-support: backdrop-filter não suportado
+   - body.backdrop-render-fail: backdrop-filter aceito mas não renderiza
+   - body.macos-backdrop-issues: macOS com problemas conhecidos
+   - body.safari-modal-issues: Safari com problemas em modais
+*/
+
+/* === RENDERING OPTIMIZATION PARA SAFARI/MACOS === */
+/* IMPORTANTE: NÃO alteramos backdrop-filter ou background-color */
+/* Deixamos o Tailwind CSS aplicar os valores padrão naturalmente */
+/* Apenas otimizamos o rendering para melhor performance */
+
 body.safari-browser [class*="backdrop-blur"],
-body.webkit-browser.macos-system [class*="backdrop-blur"],
-body.ios-system [class*="backdrop-blur"] {
+body.macos-system [class*="backdrop-blur"],
+body.webkit-browser [class*="backdrop-blur"] {
+  /* Força compositing layer para melhor renderização */
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
   will-change: transform;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Otimização de rendering sem alterar visual */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
-/* === MODAIS FIXES - POSICIONAMENTO CORRETO === */
-
-/* Fix crítico: Modais centralizados (NÃO full screen) */
-body.macos-system .fixed.left-\[50\%\].top-\[50\%\],
-body.safari-browser .fixed.left-\[50\%\].top-\[50\%\],
-body.macos-backdrop-issues .fixed.left-\[50\%\].top-\[50\%\],
-body.safari-modal-issues .fixed.left-\[50\%\].top-\[50\%\] {
-  transform: translate(-50%, -50%) translateZ(0) !important;
-  -webkit-transform: translate(-50%, -50%) translateZ(0) !important;
-  will-change: transform;
-  z-index: 9999 !important;
+/* Fallback APENAS quando backdrop-filter falha completamente */
+body.safari-browser.no-backdrop-support [class*="backdrop-blur"],
+body.safari-browser.backdrop-render-fail [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  /* Aumenta opacidade apenas quando backdrop não funciona */
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-/* Fix específico para DialogContent do Radix UI */
-body.macos-system [data-radix-dialog-content],
+/* === MODAIS FIXES PARA SAFARI/MACOS === */
+/* IMPORTANTE: Apenas otimizações de rendering */
+/* NÃO alteramos tamanhos ou posicionamentos definidos pelo Tailwind */
+
+/* Otimização de rendering para modais centralizados */
 body.safari-browser [data-radix-dialog-content],
-body.macos-backdrop-issues [data-radix-dialog-content] {
-  transform: translate(-50%, -50%) translateZ(0) !important;
-  -webkit-transform: translate(-50%, -50%) translateZ(0) !important;
+body.macos-system [data-radix-dialog-content] {
+  /* Força compositing layer para melhor renderização */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
   will-change: transform;
-  position: fixed !important;
-  left: 50% !important;
-  top: 50% !important;
-  z-index: 9999 !important;
+  /* Garante que o posicionamento funcione corretamente */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
-/* Fix para overlay de modais */
-body.macos-system [data-radix-dialog-overlay],
+/* Otimização para overlay de modais */
 body.safari-browser [data-radix-dialog-overlay],
-body.macos-backdrop-issues [data-radix-dialog-overlay] {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 9998 !important;
-}
-
-/* === GLASSMORPHISM SHADOWS (opcional, para visual extra) === */
-body.macos-system .shadow-glass,
-body.safari-browser .shadow-glass,
-body.webkit-browser.macos-system .shadow-glass {
-  box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.8),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  transform: translateZ(0);
+body.macos-system [data-radix-dialog-overlay] {
+  /* Força compositing layer */
   -webkit-transform: translateZ(0);
+  transform: translateZ(0);
   will-change: transform;
 }
 
-body.macos-system .shadow-glass-lg,
+/* === RENDERING OPTIMIZATION PARA SHADOWS === */
+body.safari-browser .shadow-glass,
+body.macos-system .shadow-glass,
 body.safari-browser .shadow-glass-lg,
-body.webkit-browser.macos-system .shadow-glass-lg {
-  box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(255, 255, 255, 0.85),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  transform: translateZ(0);
+body.macos-system .shadow-glass-lg {
+  /* Força compositing layer para melhor renderização de sombras */
   -webkit-transform: translateZ(0);
+  transform: translateZ(0);
   will-change: transform;
 }
