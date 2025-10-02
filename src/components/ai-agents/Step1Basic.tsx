@@ -22,11 +22,9 @@ interface Step1BasicProps {
     whatsapp_number_id: string | null;
   };
   onChange: (field: string, value: any) => void;
-  onNext: () => void;
-  onCancel: () => void;
 }
 
-export const Step1Basic = ({ data, onChange, onNext, onCancel }: Step1BasicProps) => {
+export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
   const [funnels, setFunnels] = useState<any[]>([]);
   const [whatsappInstances, setWhatsappInstances] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,18 +64,6 @@ export const Step1Basic = ({ data, onChange, onNext, onCancel }: Step1BasicProps
 
     fetchData();
   }, []);
-
-  const handleNext = () => {
-    if (!data.name.trim()) {
-      alert('Por favor, preencha o nome do agente');
-      return;
-    }
-    if (!data.objective) {
-      alert('Por favor, selecione um objetivo');
-      return;
-    }
-    onNext();
-  };
 
   const objectives = [
     {
@@ -319,26 +305,6 @@ export const Step1Basic = ({ data, onChange, onNext, onCancel }: Step1BasicProps
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-green-600/10 rounded-full translate-y-12 -translate-x-12" />
         </CardContent>
       </Card>
-
-      {/* Botões de Navegação com Setas */}
-      <div className="flex justify-between items-center pt-6 border-t border-white/30">
-        <Button
-          variant="outline"
-          onClick={onCancel}
-          className="px-8 h-14 bg-white/60 border-2 border-white/50 hover:bg-white/80 rounded-xl font-semibold transition-all"
-        >
-          Cancelar
-        </Button>
-        <Button
-          onClick={handleNext}
-          className="px-10 h-14 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-bold text-lg rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
-        >
-          Próximo: Personalidade
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-          </svg>
-        </Button>
-      </div>
     </div>
   );
 };

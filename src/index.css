@@ -348,3 +348,64 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Flow Builder Glassmorphism & Neumorphism Utilities */
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.15);
+  }
+
+  .glass-dark {
+    background: rgba(139, 92, 246, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+  }
+
+  .neu {
+    background: hsl(220 14% 96%);
+    box-shadow:
+      5px 5px 10px hsl(220 10% 85%),
+      -5px -5px 10px hsl(0 0% 100%);
+  }
+
+  .neu-inset {
+    background: hsl(220 14% 96%);
+    box-shadow: inset 2px 2px 5px rgba(136, 165, 191, 0.48), inset -3px -3px 7px #FFFFFF;
+  }
+
+  .neu-hover:hover {
+    box-shadow:
+      2px 2px 5px hsl(220 10% 85%),
+      -2px -2px 5px hsl(0 0% 100%);
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(220 100% 66%) 100%);
+  }
+
+  .bg-gradient-canvas {
+    background: linear-gradient(135deg, hsl(250 100% 97%) 0%, hsl(220 70% 95%) 100%);
+  }
+
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  .animate-float {
+    animation: float 2s ease-in-out infinite;
+  }
+}
+

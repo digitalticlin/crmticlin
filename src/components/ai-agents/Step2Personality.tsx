@@ -15,11 +15,9 @@ interface Step2PersonalityProps {
     prohibitions: string[];
   };
   onChange: (field: string, value: any) => void;
-  onNext: () => void;
-  onBack: () => void;
 }
 
-export const Step2Personality = ({ data, onChange, onNext, onBack }: Step2PersonalityProps) => {
+export const Step2Personality = ({ data, onChange }: Step2PersonalityProps) => {
   const [newProhibition, setNewProhibition] = useState("");
 
   const communicationStyles = [
@@ -59,18 +57,6 @@ export const Step2Personality = ({ data, onChange, onNext, onBack }: Step2Person
   const handleRemoveProhibition = (index: number) => {
     const updated = data.prohibitions.filter((_, i) => i !== index);
     onChange('prohibitions', updated);
-  };
-
-  const handleNext = () => {
-    if (!data.communication_style) {
-      alert('Por favor, selecione um estilo de conversa');
-      return;
-    }
-    if (!data.agent_profile.trim()) {
-      alert('Por favor, descreva o perfil do agente');
-      return;
-    }
-    onNext();
   };
 
   const selectedStyle = communicationStyles.find(s => s.value === data.communication_style);
@@ -255,29 +241,6 @@ export const Step2Personality = ({ data, onChange, onNext, onBack }: Step2Person
             </p>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Botões de Navegação com Setas */}
-      <div className="flex justify-between items-center pt-6 border-t border-white/30">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          className="px-8 h-14 bg-white/60 border-2 border-white/50 hover:bg-white/80 rounded-xl font-semibold transition-all flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
-          </svg>
-          Voltar
-        </Button>
-        <Button
-          onClick={handleNext}
-          className="px-10 h-14 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold text-lg rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
-        >
-          Próximo: Conhecimento
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-          </svg>
-        </Button>
       </div>
     </div>
   );

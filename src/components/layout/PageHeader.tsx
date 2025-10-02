@@ -6,17 +6,25 @@ interface PageHeaderProps {
   title: string;
   description?: string;
   action?: ReactNode;
+  backButton?: ReactNode;
   className?: string;
 }
 
-export function PageHeader({ title, description, action, className }: PageHeaderProps) {
+export function PageHeader({ title, description, action, backButton, className }: PageHeaderProps) {
   return (
     <div className={cn("flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8 rounded-2xl bg-white/30 backdrop-blur-lg border border-white/30 p-6 shadow-lg relative z-40", className)}>
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-        {description && (
-          <p className="text-gray-800 font-medium">{description}</p>
+      <div className="flex items-center gap-3">
+        {backButton && (
+          <div className="relative z-50">
+            {backButton}
+          </div>
         )}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+          {description && (
+            <p className="text-gray-800 font-medium">{description}</p>
+          )}
+        </div>
       </div>
       {action && (
         <div className="relative z-50">

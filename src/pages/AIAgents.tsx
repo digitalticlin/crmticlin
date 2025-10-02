@@ -1,14 +1,15 @@
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Button } from "@/components/ui/button";
-import { 
-  Plus, 
-  Bot, 
-  MessageSquare, 
-  Users, 
+import {
+  Plus,
+  Bot,
+  MessageSquare,
+  Users,
   Zap,
   Pencil,
   Trash2
@@ -16,14 +17,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AIAgentModal } from "@/components/ai-agents/AIAgentModal";
 import { useAIAgents } from "@/hooks/useAIAgents";
 import { AIAgent } from "@/types/aiAgent";
 
 export default function AIAgents() {
+  const navigate = useNavigate();
   const { agents, isLoading, deleteAgent, toggleAgentStatus, refetch } = useAIAgents();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<AIAgent | null>(null);
   const [agentsConfig, setAgentsConfig] = useState<Record<string, any>>({});
   const [togglingStatus, setTogglingStatus] = useState<string | null>(null);
   const [deletingAgent, setDeletingAgent] = useState<AIAgent | null>(null);
@@ -102,13 +101,11 @@ export default function AIAgents() {
   };
 
   const handleCreateAgent = () => {
-    setEditingAgent(null);
-    setIsModalOpen(true);
+    navigate('/ai-agents/create');
   };
 
   const handleEditAgent = (agent: AIAgent) => {
-    setEditingAgent(agent);
-    setIsModalOpen(true);
+    navigate(`/ai-agents/edit/${agent.id}`);
   };
 
   const handleDeleteAgent = (agent: AIAgent) => {
@@ -136,7 +133,7 @@ export default function AIAgents() {
   const handleToggleStatus = async (id: string) => {
     console.log('🔄 handleToggleStatus chamado para agente:', id);
     setTogglingStatus(id);
-    
+
     try {
       const success = await toggleAgentStatus(id);
       console.log('✅ Toggle status concluído:', success);
@@ -145,38 +142,6 @@ export default function AIAgents() {
     } finally {
       setTogglingStatus(null);
     }
-  };
-
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    setEditingAgent(null);
-  };
-
-  const [isRefreshingAfterSave, setIsRefreshingAfterSave] = useState(false);
-
-  const handleModalSave = async () => {
-    // Prevenir múltiplas chamadas simultâneas
-    if (isRefreshingAfterSave) {
-      console.log('⚠️ Refresh já em andamento, ignorando chamada duplicada');
-      return;
-    }
-
-    console.log('📱 Modal save triggered - forçando refresh da lista');
-    setIsRefreshingAfterSave(true);
-
-    try {
-      // Pequeno delay para garantir que a transação do banco terminou
-      await new Promise(resolve => setTimeout(resolve, 100));
-      await refetch();
-      // Também recarregar configurações
-      await loadAgentsConfig();
-      console.log('✅ Lista de agentes e configurações atualizadas após save do modal');
-    } catch (error) {
-      console.error('❌ Erro ao atualizar lista:', error);
-    } finally {
-      setIsRefreshingAfterSave(false);
-    }
-    // Modal NÃO fecha automaticamente - usuário controla quando fechar
   };
 
   const createAgentAction = (
@@ -329,14 +294,6 @@ export default function AIAgents() {
           )}
         </div>
       </ChartCard>
-      
-
-      <AIAgentModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        agent={editingAgent}
-        onSave={handleModalSave}
-      />
 
       {/* Modal de confirmação para exclusão */}
       <Dialog open={showDeleteConfirm} onOpenChange={() => setShowDeleteConfirm(false)}>

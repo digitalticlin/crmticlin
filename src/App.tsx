@@ -24,9 +24,9 @@ const SettingsPage = lazy(() => import('./pages/Settings'));
 const WhatsAppWebPage = lazy(() => import('./pages/WhatsAppChat'));
 const AutomationPage = lazy(() => import('./pages/Automation'));
 const AIAgentsPage = lazy(() => import('./pages/AIAgents'));
-const AIAgents2Page = lazy(() => import('./pages/AIAgents2'));
-const AIAgents2CreatePage = lazy(() => import('./pages/ai-agents-2/CreateAgent'));
-const AIAgents2EditPage = lazy(() => import('./pages/ai-agents-2/EditAgent'));
+const AIAgentsCreatePage = lazy(() => import('./pages/ai-agents/CreateAgent'));
+const AIAgentsEditPage = lazy(() => import('./pages/ai-agents/EditAgent'));
+const AIAgentsFlowBuilderPage = lazy(() => import('./pages/ai-agents/FlowBuilder'));
 const FlowBuilderTestPage = lazy(() => import('./pages/FlowBuilderTest'));
 const PlansPage = lazy(() => import('./pages/Plans'));
 const PlansUpgradePage = lazy(() => import('./pages/PlansUpgrade'));
@@ -144,36 +144,36 @@ function AppLayoutRoutes() {
         }
       />
       <Route
-        path="/ai-agents-2"
+        path="/ai-agents/create"
         element={
           <AdminGuard>
             <AppLayout>
               <Suspense fallback={<PageLoader />}>
-                <AIAgents2Page />
+                <AIAgentsCreatePage />
               </Suspense>
             </AppLayout>
           </AdminGuard>
         }
       />
       <Route
-        path="/ai-agents-2/create"
+        path="/ai-agents/edit/:id"
         element={
           <AdminGuard>
             <AppLayout>
               <Suspense fallback={<PageLoader />}>
-                <AIAgents2CreatePage />
+                <AIAgentsEditPage />
               </Suspense>
             </AppLayout>
           </AdminGuard>
         }
       />
       <Route
-        path="/ai-agents-2/edit/:id"
+        path="/ai-agents/flow-builder/:agentId"
         element={
           <AdminGuard>
-            <AppLayout>
+            <AppLayout fullHeight>
               <Suspense fallback={<PageLoader />}>
-                <AIAgents2EditPage />
+                <AIAgentsFlowBuilderPage />
               </Suspense>
             </AppLayout>
           </AdminGuard>

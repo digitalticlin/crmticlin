@@ -19,11 +19,9 @@ interface Step3KnowledgeProps {
     faq: QAPair[];
   };
   onChange: (field: string, value: any) => void;
-  onNext: () => void;
-  onBack: () => void;
 }
 
-export const Step3Knowledge = ({ data, onChange, onNext, onBack }: Step3KnowledgeProps) => {
+export const Step3Knowledge = ({ data, onChange }: Step3KnowledgeProps) => {
   const navigate = useNavigate();
   const [faqExpanded, setFaqExpanded] = useState(false);
   const [newQuestion, setNewQuestion] = useState("");
@@ -57,17 +55,10 @@ export const Step3Knowledge = ({ data, onChange, onNext, onBack }: Step3Knowledg
     onChange('faq', updated);
   };
 
-  const handleSave = () => {
-    if (!data.company_info.trim()) {
-      alert('Por favor, preencha as informações da empresa');
-      return;
-    }
-    onNext(); // Chama onNext que irá salvar o agente
-  };
-
   const handleFlowBuilder = () => {
-    // TODO: Implementar navegação para flow builder quando estiver pronto
-    alert('Flow Builder será implementado em breve! Por enquanto, salve o agente.');
+    // Navegar para o flow builder (usar 'new' como placeholder se ainda não existe agente salvo)
+    const agentId = 'new'; // TODO: Passar o ID real do agente quando for implementado o salvamento
+    navigate(`/ai-agents/flow-builder/${agentId}`);
   };
 
   const companyInfoPlaceholder = `Descreva sua empresa para o agente conhecer bem o negócio:
@@ -281,29 +272,6 @@ Exemplo:
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-600/10 rounded-full translate-y-12 -translate-x-12" />
         </CardContent>
       </Card>
-
-      {/* Botões de Navegação com Setas */}
-      <div className="flex justify-between items-center pt-6 border-t border-white/30">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          className="px-8 h-14 bg-white/60 border-2 border-white/50 hover:bg-white/80 rounded-xl font-semibold transition-all flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
-          </svg>
-          Voltar
-        </Button>
-        <Button
-          onClick={handleSave}
-          className="px-10 h-14 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold text-lg rounded-xl shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-          </svg>
-          Salvar Agente
-        </Button>
-      </div>
     </div>
   );
 };
