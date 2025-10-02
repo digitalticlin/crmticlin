@@ -28,6 +28,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 
 
 interface Funnel {
@@ -54,6 +55,7 @@ export const SimpleInstanceCard = ({
   const [showFunnelDialog, setShowFunnelDialog] = useState(false);
   const [selectedFunnelId, setSelectedFunnelId] = useState<string>("");
   const [isUpdatingFunnel, setIsUpdatingFunnel] = useState(false);
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
   const getStatusInfo = () => {
     const status = instance.connection_status?.toLowerCase() || 'unknown';
@@ -183,6 +185,72 @@ export const SimpleInstanceCard = ({
     }
   };
 
+  // Função para solicitar QR Code diretamente à VPS
+  const handleGenerateQRDirect = async () => {
+    console.log('[SimpleInstanceCard] 🔄 Solicitando QR Code para instância:', instance.id);
+    setIsGeneratingQR(true);
+
+    try {
+      console.log('[SimpleInstanceCard] 📡 Invocando edge function whatsapp_qr_manager...');
+
+      const { data, error } = await supabase.functions.invoke('whatsapp_qr_manager', {
+        body: { instanceId: instance.id }
+      });
+
+      console.log('[SimpleInstanceCard] 📥 Resposta recebida:', { data, error });
+
+      // Parse data se for string
+      let parsedData = data;
+      if (typeof data === 'string') {
+        try {
+          parsedData = JSON.parse(data);
+          console.log('[SimpleInstanceCard] 🔄 Data parseada:', parsedData);
+        } catch (e) {
+          console.error('[SimpleInstanceCard] ❌ Erro ao parsear data:', e);
+        }
+      }
+
+      if (error) {
+        console.error('[SimpleInstanceCard] ❌ Erro na edge function:', error);
+        sonnerToast.error(`Erro ao gerar QR Code: ${error.message || 'Desconhecido'}`);
+        return;
+      }
+
+      if (parsedData?.success) {
+        if (parsedData.connected) {
+          console.log('[SimpleInstanceCard] 🎉 Instância já conectada!');
+          sonnerToast.success('WhatsApp já está conectado!');
+          return;
+        }
+
+        if (parsedData.qrCode) {
+          console.log('[SimpleInstanceCard] ✅ QR Code recebido, abrindo modal');
+          sonnerToast.success('QR Code gerado! Abrindo modal...');
+          // Abrir modal com QR Code
+          onGenerateQR(instance.id, instance.instance_name);
+          return;
+        }
+      }
+
+      if (parsedData?.waiting) {
+        console.log('[SimpleInstanceCard] ⏳ QR ainda não disponível, abrindo modal para aguardar');
+        sonnerToast.info('QR Code será gerado automaticamente');
+        onGenerateQR(instance.id, instance.instance_name);
+      } else {
+        console.log('[SimpleInstanceCard] ⚠️ Resposta sem sucesso:', parsedData);
+        sonnerToast.error(parsedData?.error || parsedData?.message || 'Erro ao gerar QR Code');
+      }
+
+    } catch (err: any) {
+      console.error('[SimpleInstanceCard] ❌ Erro inesperado:', err);
+      console.error('[SimpleInstanceCard] ❌ Stack trace:', err.stack);
+      sonnerToast.error(`Erro de conexão: ${err.message || 'Desconhecido'}`);
+    } finally {
+      console.log('[SimpleInstanceCard] ✅ Finalizando requisição');
+      setIsGeneratingQR(false);
+    }
+  };
+
 
   return (
     <Card className="group relative transition-all duration-300 hover:shadow-glass-lg hover:-translate-y-1
@@ -301,11 +369,21 @@ export const SimpleInstanceCard = ({
             <Button
               variant="default"
               size="sm"
-              onClick={() => onGenerateQR(instance.id, instance.instance_name)}
+              onClick={handleGenerateQRDirect}
+              disabled={isGeneratingQR}
               className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
             >
-              <QrCode className="h-4 w-4 mr-1" />
-              Gerar QR
+              {isGeneratingQR ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Gerando...
+                </>
+              ) : (
+                <>
+                  <QrCode className="h-4 w-4 mr-1" />
+                  Gerar QR
+                </>
+              )}
             </Button>
           )}
 
