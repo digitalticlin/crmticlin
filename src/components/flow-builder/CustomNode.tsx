@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
+import { useReactFlow } from 'reactflow';
 import {
   MessageSquare,
   FileText,
@@ -16,14 +17,15 @@ import {
   Sparkles,
   Link as LinkIcon,
   Image,
-  Edit3
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import { NodeEditDialog } from './NodeEditDialog';
+import { PresentationEditor } from './editors/PresentationEditor';
 import { Button } from '../ui/button';
 
 const iconMap = {
   // Special
-  initial_presentation: Sparkles,
   start: Sparkles,
 
   // Comunicação
@@ -52,8 +54,7 @@ const iconMap = {
 
 const colorMap = {
   // Special
-  initial_presentation: 'border-orange-500 text-orange-600',
-  start: 'border-orange-500 text-orange-600',
+  start: 'border-green-500 text-green-600',
 
   // Comunicação
   ask_question: 'border-blue-500 text-blue-600',
@@ -81,8 +82,7 @@ const colorMap = {
 
 const bgMap = {
   // Special
-  initial_presentation: 'from-orange-500/20 to-yellow-400/5',
-  start: 'from-orange-500/20 to-yellow-400/5',
+  start: 'from-green-500/20 to-green-500/5',
 
   // Comunicação
   ask_question: 'from-blue-500/20 to-blue-500/5',
@@ -110,9 +110,19 @@ const bgMap = {
 
 export const CustomNode = memo(({ data, id }: NodeProps) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const { deleteElements } = useReactFlow();
   const Icon = iconMap[data.type as keyof typeof iconMap] || Sparkles;
   const colorClass = colorMap[data.type as keyof typeof colorMap] || colorMap.send_message;
   const bgClass = bgMap[data.type as keyof typeof bgMap] || bgMap.send_message;
+
+  const handleSave = (savedData: any) => {
+    console.log('Dados salvos:', savedData);
+    // TODO: Atualizar o nó no ReactFlow
+  };
+
+  const handleDelete = () => {
+    deleteElements({ nodes: [{ id }] });
+  };
 
   return (
     <>
@@ -143,20 +153,31 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
             </div>
           </div>
 
-          {/* Edit Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsEditOpen(true)}
-            className="w-full mt-2 glass-dark hover:bg-white/20 transition-smooth text-xs"
-          >
-            <Edit3 className="w-3 h-3 mr-2" />
-            Editar
-          </Button>
+          {/* Botões Minimalistas */}
+          <div className="flex gap-1 mt-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsEditOpen(true)}
+              className="flex-1 h-7 glass-dark hover:bg-white/20 transition-smooth"
+              title="Editar"
+            >
+              <Edit3 className="w-3 h-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDelete}
+              className="flex-1 h-7 glass-dark hover:bg-red-500/20 transition-smooth text-red-600"
+              title="Excluir"
+            >
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
         </div>
 
         {/* Handles - Horizontal */}
-        {data.type !== 'start' && data.type !== 'initial_presentation' && (
+        {data.type !== 'start' && (
           <Handle
             type="target"
             position={Position.Left}
@@ -182,15 +203,31 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
         )}
       </div>
 
-      {/* Edit Dialog */}
-      <NodeEditDialog
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        nodeId={id}
-        currentLabel={data.label}
-        currentDescription={data.description || ''}
-        designStyle={data.designStyle}
-      />
+      {/* Edit Dialog - Específico por tipo de bloco */}
+      {data.type === 'start' && (
+        <PresentationEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            messages: data.messages || [],
+            description: data.description
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {/* Fallback para outros tipos (temporário) */}
+      {data.type !== 'start' && (
+        <NodeEditDialog
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          nodeId={id}
+          currentLabel={data.label}
+          currentDescription={data.description || ''}
+          designStyle={data.designStyle}
+        />
+      )}
     </>
   );
 });

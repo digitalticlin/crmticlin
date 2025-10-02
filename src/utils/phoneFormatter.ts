@@ -43,17 +43,17 @@ export const formatPhoneForWhatsApp = (phone: string): string => {
 export const formatPhoneDisplay = (phone: string): string => {
   // Primeiro limpa o telefone
   const cleanPhone = cleanPhoneNumber(phone);
-  
-  // Formata para exibição: +55 (11) 99999-9999
+
+  // Formata para exibição: +55 (62) 99999-9999 (sempre 4 dígitos após o hífen)
   if (cleanPhone.length >= 11) {
     const countryCode = cleanPhone.substring(0, 2);
     const areaCode = cleanPhone.substring(2, 4);
-    const firstPart = cleanPhone.substring(4, 9);
-    const secondPart = cleanPhone.substring(9);
-    
+    const firstPart = cleanPhone.substring(4, cleanPhone.length - 4); // Tudo menos os últimos 4
+    const secondPart = cleanPhone.substring(cleanPhone.length - 4); // Últimos 4 dígitos
+
     return `+${countryCode} (${areaCode}) ${firstPart}-${secondPart}`;
   }
-  
+
   // Se for menor que 11 dígitos, retorna o número limpo
   return cleanPhone;
 };

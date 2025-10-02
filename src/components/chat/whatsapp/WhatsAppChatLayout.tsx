@@ -114,9 +114,9 @@ export const WhatsAppChatLayout = ({
   };
 
   return (
-    <div className="h-full flex relative z-10">
+    <div className="h-full flex relative z-10 p-0 m-0">
       {/* Container principal com max-width de 1400px para consistência com Dashboard */}
-      <div className="w-full max-w-[1400px] mx-auto flex relative h-full">
+      <div className="w-full max-w-[1400px] mx-auto flex relative h-full p-0">
         {/* Mobile layout - comportamento atual */}
         <div className="lg:hidden w-full h-full">
           {!selectedContact ? (

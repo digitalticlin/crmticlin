@@ -100,7 +100,7 @@ export const WhatsAppChatArea = ({
   };
 
   return (
-    <div className="h-full flex flex-col backdrop-blur-sm bg-gradient-to-r from-white/10 to-white/5 relative z-10">
+    <div className="h-full flex flex-col relative z-10">
       <WhatsAppChatHeader
         selectedContact={{
           ...selectedContact,

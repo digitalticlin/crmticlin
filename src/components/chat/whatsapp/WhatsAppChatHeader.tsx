@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Phone, Edit, RefreshCw } from "lucide-react";
+import { ArrowLeft, Edit, RefreshCw } from "lucide-react";
 import { Contact } from "@/types/chat";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { TiclinAvatar } from "@/components/ui/ticlin-avatar";
@@ -106,7 +106,7 @@ export const WhatsAppChatHeader = ({
   }, [localContact.leadId, fetchTags]);
 
   return (
-    <div className="flex flex-col backdrop-blur-sm bg-gradient-to-r from-white/10 to-white/5 border-b border-white/20">
+    <div className="flex flex-col border-b border-white/20">
       <div className="p-4 flex items-center gap-3">
         <Button
           variant="ghost"
@@ -133,7 +133,7 @@ export const WhatsAppChatHeader = ({
           <div className="flex-1">
             <h3 className="font-medium text-gray-900">{displayName}</h3>
             <p className="text-xs text-gray-600">
-              {localContact.isOnline ? "online" : "visto por último hoje às " + localContact.lastMessageTime}
+              {localContact.isOnline ? "online" : formatPhoneDisplay(localContact.phone)}
             </p>
           </div>
         </div>
@@ -153,9 +153,6 @@ export const WhatsAppChatHeader = ({
           <Button variant="ghost" size="icon" className="text-gray-700 hover:text-gray-900 hover:bg-white/20" onClick={onEditLead}>
             <Edit className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-gray-700 hover:text-gray-900 hover:bg-white/20">
-            <Phone className="h-5 w-5" />
-          </Button>
         </div>
       </div>
 
@@ -163,25 +160,23 @@ export const WhatsAppChatHeader = ({
       {localContact.leadId && (
         <div className="px-4 pb-3 flex items-center gap-3">
           {/* Controle de Etapa */}
-          <StageSelector 
+          <StageSelector
             leadId={localContact.leadId}
             currentStageId={localContact.stageId || null}
             className="shrink-0"
           />
-          
+
           {/* Divisor visual */}
           <div className="w-px h-6 bg-white/20" />
-          
-          {/* Tags */}
-          <div className="flex-1">
-            <ChatHeaderTags
-              leadTags={leadTags}
-              availableTags={availableTags}
-              onAddTag={addTag}
-              onRemoveTag={removeTag}
-              isLoading={loading}
-            />
-          </div>
+
+          {/* Tags com botão inline */}
+          <ChatHeaderTags
+            leadTags={leadTags}
+            availableTags={availableTags}
+            onAddTag={addTag}
+            onRemoveTag={removeTag}
+            isLoading={loading}
+          />
         </div>
       )}
     </div>

@@ -154,12 +154,12 @@ export const WhatsAppContactsList = React.memo(({
   return (
     <div className="h-full flex flex-col relative z-10">
       {/* Header fixo sem scroll */}
-      <div className="flex-shrink-0 p-4 border-b border-white/20 backdrop-blur-sm bg-gradient-to-r from-white/10 to-white/5">
+      <div className="flex-shrink-0 p-4 border-b border-white/20">
         <div className="space-y-3">
           {/* Título */}
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-800 drop-shadow-sm">
-              Conversas ({finalContacts.length})
+              Conversas
             </h2>
             
             {onRefreshContacts && (
@@ -234,12 +234,11 @@ export const WhatsAppContactsList = React.memo(({
         </div>
       </div>
 
-      {/* Container da lista com scroll interno - ALTURA FIXA E SCROLL FORÇADO */}
-      <div 
+      {/* Container da lista com scroll interno */}
+      <div
         className="flex-1 min-h-0 glass-scrollbar"
-        style={{ 
-          overflowY: 'auto',
-          maxHeight: 'calc(100vh - 200px)' 
+        style={{
+          overflowY: 'auto'
         }}
       >
         <ContactsList

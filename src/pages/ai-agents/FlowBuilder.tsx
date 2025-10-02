@@ -50,7 +50,7 @@ const BLOCK_TYPES = [
 
 // Bloco especial de início
 const SPECIAL_BLOCK = {
-  type: 'initial_presentation',
+  type: 'start',
   icon: <Sparkles className="h-4 w-4" />,
   label: 'Início',
   color: 'bg-green-500',
@@ -62,7 +62,7 @@ const initialNodes: Node[] = [
     id: '1',
     type: 'custom',
     data: {
-      label: '👋 Apresentação Inicial',
+      label: 'Início',
       type: 'start',
       description: 'Ponto inicial do fluxo do agente',
       designStyle: 'glass',

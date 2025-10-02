@@ -96,7 +96,7 @@ export const WhatsAppMessageInput = ({
   const canSend = message.trim().length > 0;
 
   return (
-    <div className="relative">
+    <div className="relative m-0">
       {/* Painel de Mensagens Rápidas */}
       {showQuickMessages && (
         <QuickMessagesPanel 
@@ -131,37 +131,35 @@ export const WhatsAppMessageInput = ({
       />
 
       <div className={cn(
-        "p-4 border-t border-white/20",
-        "bg-gradient-to-r from-white/10 via-white/5 to-white/10",
-        "backdrop-blur-lg backdrop-saturate-150"
+        "px-4 py-3 border-t border-white/20 rounded-b-xl"
       )}>
-        <div className="flex gap-3 items-end">
+        <div className="flex gap-3 items-center">
           {/* ✅ BOTÕES DE AÇÃO RÁPIDA - APENAS MÍDIA */}
           <div className="flex gap-1">
-            <QuickActionsPopover 
+            <QuickActionsPopover
               onSendMessage={handleMediaSend}
               onOpenPhotoDialog={() => setShowPhotoDialog(true)}
               onOpenFileDialog={() => setShowFileDialog(true)}
               onOpenVideoDialog={() => setShowVideoDialog(true)}
             />
-            <QuickMessagesPopover 
+            <QuickMessagesPopover
               onQuickMessage={handleQuickMessage}
             />
           </div>
-          
+
           <div className="flex-1 relative">
             <Textarea
               ref={textareaRef}
               value={message}
               onChange={handleTextareaChange}
               onKeyPress={handleKeyPress}
-              placeholder="Digite uma mensagem..."
+              placeholder="Mensagem"
               className={cn(
-                "min-h-[44px] max-h-[120px] resize-none",
+                "min-h-[40px] max-h-[120px] resize-none",
                 "bg-white/80 backdrop-blur-sm border-white/40 text-gray-900",
                 "focus:bg-white/90 focus:border-green-400/60 focus:ring-green-400/30",
                 "placeholder:text-gray-500",
-                "rounded-2xl px-4 py-3",
+                "rounded-2xl px-4 py-2",
                 "shadow-sm",
                 "transition-all duration-200"
               )}

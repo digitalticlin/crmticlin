@@ -95,15 +95,14 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      className="pb-4 px-4 glass-scrollbar"
-      style={{ 
-        height: 'calc(100vh - 280px)',
+      className="flex-1 px-4 glass-scrollbar"
+      style={{
         overflowY: 'auto',
         scrollBehavior: 'auto', // PRE-POSITIONED: sem animação
         overflowAnchor: 'auto', // PRE-POSITIONED: permitir ancoragem para estabilidade
-        scrollPaddingBottom: '16px'
+        scrollPaddingBottom: '0'
       }}
     >
       {/* Indicador de carregamento no topo */}
@@ -141,12 +140,12 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
       </div>
       
       {/* Elemento para scroll automático */}
-      <div 
-        ref={messagesEndRef} 
-        className="h-4 w-full" 
-        style={{ 
-          scrollMarginBottom: '16px',
-          clear: 'both' 
+      <div
+        ref={messagesEndRef}
+        className="h-0 w-full"
+        style={{
+          scrollMarginBottom: '0',
+          clear: 'both'
         }}
         aria-hidden="true"
       />

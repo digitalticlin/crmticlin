@@ -193,8 +193,8 @@ export const ChatHeaderTags = ({
 
   return (
     <>
-      <div className="px-4 py-2 flex items-center gap-2 border-t border-white/20">
-        <div className="flex flex-wrap gap-1 flex-1">
+      <div className="flex items-center gap-2 flex-1">
+        <div className="flex flex-wrap gap-1">
           {isLoading ? (
             <LoadingSpinner size="sm" />
           ) : leadTags.length > 0 ? (

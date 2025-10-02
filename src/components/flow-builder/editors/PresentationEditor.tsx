@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { MessageText } from '@/types/flowBuilder';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Save, Eye, Code2, Lightbulb, MessageCircle, EyeOff } from 'lucide-react';
 
 interface PresentationEditorProps {
   isOpen: boolean;
@@ -29,24 +28,18 @@ export function PresentationEditor({
   initialData,
   onSave
 }: PresentationEditorProps) {
-  const [label, setLabel] = useState(initialData?.label || '👋 Apresentação Inicial');
+  const [label, setLabel] = useState(initialData?.label || 'Início');
   const [description, setDescription] = useState(initialData?.description || '');
   const [message, setMessage] = useState(
     initialData?.messages[0]?.type === 'text' ? initialData.messages[0].content : ''
   );
-  const [askName, setAskName] = useState(true);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleSave = () => {
-    let messageContent = message;
-
-    if (askName && !message.includes('nome')) {
-      messageContent = message + '\n\nQual o seu nome?';
-    }
-
     const messages: MessageText[] = [
       {
         type: 'text',
-        content: messageContent,
+        content: message,
         delay: 0
       }
     ];
@@ -60,167 +53,171 @@ export function PresentationEditor({
     onClose();
   };
 
-  const getPreview = () => {
-    if (!message.trim()) return 'Digite uma mensagem de apresentação...';
-
-    let preview = message;
-    if (askName && !message.includes('nome')) {
-      preview += '\n\nQual o seu nome?';
-    }
-
-    return preview;
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-gray-50">
-        <DialogHeader className="border-b pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg">
-              <Sparkles className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <DialogTitle className="text-2xl font-bold text-gray-900">
-                Apresentação Inicial
-              </DialogTitle>
-              <p className="text-sm text-gray-500 mt-1">
-                Configure como a IA vai se apresentar ao cliente
-              </p>
-            </div>
-          </div>
-        </DialogHeader>
-
-        <div className="space-y-6 py-6">
-          {/* Nome do passo */}
-          <div className="space-y-2 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <Label htmlFor="label" className="text-base font-semibold text-gray-700">
-              📝 Como você quer chamar este passo?
-            </Label>
-            <Input
-              id="label"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder="Ex: Boas-vindas, Cumprimento inicial..."
-              className="text-base"
-            />
-            <p className="text-xs text-gray-500">
-              💡 Este nome é só para você se organizar, o cliente não verá
-            </p>
-          </div>
-
-          {/* Descrição da etapa */}
-          <div className="space-y-2 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-            <Label htmlFor="description" className="text-base font-semibold text-gray-700">
-              📋 O que deve acontecer nesta etapa?
-            </Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Nesta etapa você irá se apresentar ao cliente e capturar o nome dele para personalizar a conversa."
-              rows={3}
-              className="resize-none text-base"
-            />
-            <p className="text-xs text-gray-500">
-              💡 A IA usará isso como contexto para executar melhor
-            </p>
-          </div>
-
-          {/* Mensagem de apresentação */}
-          <div className="space-y-3 bg-white p-6 rounded-xl border-2 border-yellow-200 shadow-sm">
-            <Label htmlFor="message" className="text-base font-semibold text-gray-800 flex items-center gap-2">
-              <span className="text-2xl">💬</span>
-              Mensagem de apresentação
-            </Label>
-            <Textarea
-              id="message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Oi! Sou {nome_agente} da {empresa}. Estou aqui para te ajudar!"
-              rows={4}
-              className="resize-none text-base"
-            />
-            <div className="bg-yellow-50 p-3 rounded-lg">
-              <p className="text-sm text-yellow-800 font-medium">
-                💡 Dica: Use variáveis para personalizar
-              </p>
-              <p className="text-xs text-yellow-600 mt-1">
-                {'{nome_agente}'}, {'{empresa}'} serão substituídos automaticamente
-              </p>
-            </div>
-          </div>
-
-          {/* Perguntar nome */}
-          <div className="bg-green-50 p-5 rounded-xl border-2 border-green-200">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label className="text-base font-medium text-gray-800">
-                  ❓ Perguntar o nome do cliente?
-                </Label>
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0 gap-0 glass rounded-3xl shadow-2xl overflow-hidden">
+        {/* Todo o conteúdo em scroll único */}
+        <div className="overflow-y-auto max-h-[90vh] kanban-horizontal-scroll">
+          {/* Header integrado no conteúdo */}
+          <div className="px-8 pt-8 pb-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/30">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="text-2xl font-bold text-gray-900">Editar Bloco</h2>
+                  <span className="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                    Início
+                  </span>
+                </div>
                 <p className="text-sm text-gray-600">
-                  ✅ Recomendado para personalizar a conversa
+                  Configure como a IA vai se apresentar ao cliente
                 </p>
               </div>
-              <Switch
-                checked={askName}
-                onCheckedChange={setAskName}
-                className="data-[state=checked]:bg-green-600"
-              />
             </div>
           </div>
 
-          {/* Preview */}
-          <div className="space-y-3 bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border-2 border-green-300">
-            <Label className="text-base font-semibold text-gray-800 flex items-center gap-2">
-              <span className="text-2xl">📱</span>
-              Como o cliente vai ver
-            </Label>
-            <div className="bg-white p-4 rounded-2xl shadow-md border border-gray-200">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-md flex-shrink-0">
-                  <span className="text-white text-xl">🤖</span>
+          {/* Conteúdo do formulário */}
+          <div className="px-8 pb-8 space-y-6">
+            {/* Nome do bloco */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-green-100">
+                  <MessageCircle className="h-3.5 w-3.5 text-green-600" />
                 </div>
-                <div className="flex-1 bg-gray-100 p-3 rounded-2xl rounded-tl-none">
-                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{getPreview()}</p>
+                Nome do bloco
+              </Label>
+              <Input
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="Ex: Boas-vindas"
+                className="h-11 text-base bg-white/30 border-white/40 focus:border-green-500 focus:ring-green-500/20 rounded-xl placeholder:text-gray-600"
+              />
+              <p className="text-xs text-gray-500 flex items-center gap-1.5 ml-1">
+                <Lightbulb className="h-3 w-3 text-gray-400" />
+                Este nome é apenas para sua organização
+              </p>
+            </div>
+
+            {/* Descrição */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-green-100">
+                  <Eye className="h-3.5 w-3.5 text-green-600" />
+                </div>
+                O que acontece nesta etapa?
+              </Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="A IA se apresenta ao cliente e inicia a conversa..."
+                rows={3}
+                className="resize-none text-base bg-white/30 border-white/40 focus:border-green-500 focus:ring-green-500/20 rounded-xl placeholder:text-gray-600"
+              />
+              <p className="text-xs text-gray-500 flex items-center gap-1.5 ml-1">
+                <Lightbulb className="h-3 w-3 text-gray-400" />
+                A IA usa isso como contexto para executar a etapa
+              </p>
+            </div>
+
+            {/* Mensagem da IA */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-green-100">
+                  <MessageCircle className="h-3.5 w-3.5 text-green-600" />
+                </div>
+                Mensagem da IA
+              </Label>
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Olá! Eu sou a assistente virtual. Como posso ajudar você hoje?"
+                rows={6}
+                className="resize-none text-base bg-white/30 border-white/40 focus:border-green-500 focus:ring-green-500/20 rounded-xl font-mono placeholder:text-gray-600"
+              />
+
+              {/* Variáveis disponíveis */}
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-xl border border-green-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Code2 className="h-4 w-4 text-green-700" />
+                  <p className="text-xs font-semibold text-green-800">
+                    Variáveis disponíveis
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <code className="px-2.5 py-1 bg-white border border-green-300 rounded-lg text-xs text-green-700 font-semibold shadow-sm">
+                    {'{nome_agente}'}
+                  </code>
+                  <code className="px-2.5 py-1 bg-white border border-green-300 rounded-lg text-xs text-green-700 font-semibold shadow-sm">
+                    {'{empresa}'}
+                  </code>
+                  <code className="px-2.5 py-1 bg-white border border-green-300 rounded-lg text-xs text-green-700 font-semibold shadow-sm">
+                    {'{nome_cliente}'}
+                  </code>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* JSON Preview */}
-          <details className="text-xs bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <summary className="cursor-pointer text-gray-600 hover:text-gray-800 font-medium flex items-center gap-2">
-              <span>🔧</span>
-              <span>Ver estrutura técnica (JSON)</span>
-            </summary>
-            <pre className="mt-3 p-4 bg-white rounded-lg overflow-auto text-xs border border-gray-200 shadow-inner">
-              {JSON.stringify(
-                {
-                  tipo: 'initial_presentation',
-                  descricao: description,
-                  mensagem: [getPreview()],
-                  decisoes: [
-                    {
-                      condicao: 'Sempre',
-                      proximoPasso: 'PASSO B'
-                    }
-                  ]
-                },
-                null,
-                2
+            {/* Preview */}
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowPreview(!showPreview)}
+                className="w-full flex items-center justify-between p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all border border-gray-200 group"
+              >
+                <div className="flex items-center gap-2">
+                  {showPreview ? (
+                    <EyeOff className="h-4 w-4 text-gray-600 group-hover:text-green-600 transition-colors" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-600 group-hover:text-green-600 transition-colors" />
+                  )}
+                  <span className="text-sm font-medium text-gray-700">
+                    {showPreview ? 'Ocultar prévia' : 'Ver como o cliente vai receber'}
+                  </span>
+                </div>
+                <span className="text-xs text-gray-500 font-medium">
+                  {showPreview ? '▼' : '▶'}
+                </span>
+              </button>
+
+              {showPreview && message && (
+                <div className="p-5 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+                    Prévia da Mensagem
+                  </p>
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/30 flex-shrink-0">
+                      <Sparkles className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1 bg-white p-4 rounded-2xl rounded-tl-sm shadow-sm border border-gray-200">
+                      <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                        {message}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
-            </pre>
-          </details>
-        </div>
+            </div>
 
-        <DialogFooter className="border-t pt-4 gap-3">
-          <Button variant="outline" onClick={onClose} className="flex-1">
-            ❌ Cancelar
-          </Button>
-          <Button onClick={handleSave} className="flex-1 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold">
-            ✅ Salvar Apresentação
-          </Button>
-        </DialogFooter>
+            {/* Ações - Integradas no conteúdo */}
+            <div className="flex items-center gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={onClose}
+                className="flex-1 h-11 border-gray-300 hover:bg-gray-50 rounded-xl font-medium"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSave}
+                className="flex-1 h-11 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-semibold shadow-lg shadow-green-500/30"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Alterações
+              </Button>
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
