@@ -17,22 +17,22 @@ export function PageLayout({ children, className }: PageLayoutProps) {
 
   return (
     <div className={cn(
-      "h-screen w-full relative",
-      className?.includes("kanban") ? "" : "overflow-hidden"
+      "min-h-screen w-full relative",
+      className?.includes("kanban") ? "" : ""
     )}>
       {/* Fundo gradiente usando o componente reutilizável */}
-      <BackgroundGradient className="fixed inset-0 z-0" />
+      <BackgroundGradient className="fixed inset-0 z-0 pointer-events-none" />
       
       <ResponsiveSidebar />
       
       {/* Main container SEM scroll geral */}
       <main className={cn(
         "min-h-screen w-full z-30 transition-all duration-300",
-        className?.includes("kanban") ? "h-full" : "overflow-hidden h-full",
-        isMobile 
-          ? "pt-14" 
-          : isCollapsed 
-            ? "ml-[64px]" 
+        className?.includes("kanban") ? "h-full" : "overflow-auto",
+        isMobile
+          ? "pt-14"
+          : isCollapsed
+            ? "ml-[64px]"
             : "ml-[200px]",
         className
       )}>
@@ -47,9 +47,9 @@ export function PageLayout({ children, className }: PageLayoutProps) {
             </div>
           </div>
         ) : (
-          <div className="w-full h-full flex justify-center px-6 lg:px-8">
-            <div className="w-full max-w-[1400px] h-full">
-              <div className="h-full py-6 lg:py-8 flex flex-col">
+          <div className="w-full flex justify-center px-6 lg:px-8">
+            <div className="w-full max-w-[1400px]">
+              <div className="py-6 lg:py-8">
                 {children}
               </div>
             </div>

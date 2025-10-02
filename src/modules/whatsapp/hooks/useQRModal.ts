@@ -230,8 +230,26 @@ export const useQRModal = (options: UseQRModalOptions = {}): QRModalState & QRMo
       setIsLoading(true);
       setError(undefined);
       setQrCode(null);
-      
+
       try {
+        // PASSO 1: Limpar QR code antigo da tabela antes de solicitar novo
+        console.log('[useQRModal] 🧹 Limpando QR code antigo da tabela...');
+        const { error: clearError } = await supabase
+          .from('whatsapp_instances')
+          .update({ qr_code: null })
+          .eq('id', currentInstanceId);
+
+        if (clearError) {
+          console.error('[useQRModal] ❌ Erro ao limpar QR code antigo:', clearError);
+          setError('Erro ao limpar QR code antigo');
+          setIsLoading(false);
+          toast.error('Erro ao limpar QR Code');
+          return;
+        }
+
+        console.log('[useQRModal] ✅ QR code antigo limpo com sucesso');
+
+        // PASSO 2: Solicitar novo QR code via edge function
         const { data, error } = await supabase.functions.invoke('whatsapp_qr_manager', {
           body: { instanceId: currentInstanceId }
         });

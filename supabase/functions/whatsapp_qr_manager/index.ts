@@ -118,60 +118,61 @@ serve(async (req: Request) => {
 
     console.log(`🌐 [QR Manager] Solicitando QR Code para VPS: ${instance.instance_name} (${instance.vps_instance_id})`);
 
-    // ✅ REQUISIÇÃO VPS PADRONIZADA
-    const vpsEndpoint = `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/qr`;
-    console.log(`🎯 [QR Manager] Endpoint VPS: ${vpsEndpoint}`);
+    // ✅ USAR ENDPOINT /reconnect PARA INSTÂNCIAS DESCONECTADAS
+    const reconnectEndpoint = `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/reconnect`;
+    console.log(`🔄 [QR Manager] Reconectando instância na VPS: ${reconnectEndpoint}`);
 
-    const response = await fetch(vpsEndpoint, {
-      method: 'GET',
+    const response = await fetch(reconnectEndpoint, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
         'x-api-token': VPS_CONFIG.authToken,
         'User-Agent': 'Supabase-Edge-Function/1.0'
       },
+      body: JSON.stringify({
+        createdByUserId: user.id
+      }),
       signal: AbortSignal.timeout(VPS_CONFIG.timeout)
     });
 
     const vpsResult = await response.json();
     console.log(`📱 [QR Manager] Resposta da VPS:`, vpsResult);
 
-    // Aceitar diferentes formatos do campo de QR Code enviados pela VPS
-    if (response.ok && (vpsResult.qr || vpsResult.qrcode || vpsResult.qrCode)) {
-      const qrCode = vpsResult.qr || vpsResult.qrcode || vpsResult.qrCode;
-      // Atualizar instância com QR Code
+    // ✅ ENDPOINT /reconnect retorna { success: true, status: 'connecting', waitForQr: true }
+    if (response.ok && vpsResult.success) {
+      console.log(`✅ [QR Manager] Reconexão iniciada com sucesso: ${instanceId}`);
+
+      // Atualizar status da instância no banco para 'connecting'
       const { error: updateError } = await supabase
         .from('whatsapp_instances')
         .update({
-          qr_code: qrCode,
-          connection_status: 'waiting_qr',
-          web_status: 'qr_ready',
+          connection_status: 'connecting',
+          web_status: 'waiting_qr',
+          qr_code: null, // Limpar QR antigo
           updated_at: new Date().toISOString()
         })
         .eq('id', instanceId);
 
       if (updateError) {
-        console.error("❌ [QR Manager] Erro ao atualizar QR Code:", updateError);
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: updateError.message 
-        }), { 
-          headers: corsHeaders, 
-          status: 500 
-        });
+        console.error("❌ [QR Manager] Erro ao atualizar status:", updateError);
       }
 
-      console.log(`✅ [QR Manager] QR Code obtido e salvo: ${instanceId}`);
-
+      // Retornar sucesso - QR será enviado via webhook
       return new Response(JSON.stringify({
         success: true,
-        qrCode: qrCode,
-        message: "QR Code obtido com sucesso"
+        waiting: true,
+        status: 'connecting',
+        message: "Reconexão iniciada - QR Code será gerado automaticamente",
+        instanceId,
+        timestamp: new Date().toISOString()
       }), { headers: corsHeaders });
     }
 
-    // Se não tem QR Code, verificar se já está conectado
-    if (vpsResult.state === 'open' || vpsResult.connected) {
+    // Se VPS retornar erro 409 (já conectado)
+    if (response.status === 409 || vpsResult.connected) {
+      console.log(`✅ [QR Manager] Instância já conectada: ${instanceId}`);
+
       const { error: updateError } = await supabase
         .from('whatsapp_instances')
         .update({
@@ -182,22 +183,24 @@ serve(async (req: Request) => {
         })
         .eq('id', instanceId);
 
-      if (!updateError) {
-        console.log(`✅ [QR Manager] Instância já conectada: ${instanceId}`);
-        return new Response(JSON.stringify({
-          success: true,
-          connected: true,
-          message: "Instância já está conectada"
-        }), { headers: corsHeaders });
-      }
+      return new Response(JSON.stringify({
+        success: true,
+        connected: true,
+        message: "Instância já está conectada"
+      }), { headers: corsHeaders });
     }
 
-    console.log(`⏳ [QR Manager] QR Code ainda não disponível: ${instanceId}`);
+    // Erro genérico
+    console.log(`⏳ [QR Manager] Erro ao reconectar: ${instanceId}`);
     return new Response(JSON.stringify({
       success: false,
-      waiting: true,
-      message: "QR Code ainda não está disponível"
-    }), { headers: corsHeaders });
+      waiting: false,
+      error: vpsResult.error || vpsResult.message || "Erro ao reconectar instância",
+      message: vpsResult.message || "Erro desconhecido"
+    }), {
+      headers: corsHeaders,
+      status: response.status || 500
+    });
 
   } catch (error: any) {
     console.error("❌ [QR Manager] Erro geral:", error);

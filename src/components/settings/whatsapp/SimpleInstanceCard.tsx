@@ -191,6 +191,23 @@ export const SimpleInstanceCard = ({
     setIsGeneratingQR(true);
 
     try {
+      // PASSO 1: Limpar QR code antigo da tabela antes de solicitar novo
+      console.log('[SimpleInstanceCard] 🧹 Limpando QR code antigo...');
+      const { error: clearError } = await supabase
+        .from('whatsapp_instances')
+        .update({ qr_code: null })
+        .eq('id', instance.id);
+
+      if (clearError) {
+        console.error('[SimpleInstanceCard] ❌ Erro ao limpar QR code antigo:', clearError);
+        sonnerToast.error('Erro ao limpar QR code antigo');
+        setIsGeneratingQR(false);
+        return;
+      }
+
+      console.log('[SimpleInstanceCard] ✅ QR code antigo limpo com sucesso');
+
+      // PASSO 2: Solicitar novo QR code via edge function
       console.log('[SimpleInstanceCard] 📡 Invocando edge function whatsapp_qr_manager...');
 
       const { data, error } = await supabase.functions.invoke('whatsapp_qr_manager', {

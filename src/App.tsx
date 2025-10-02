@@ -24,6 +24,9 @@ const SettingsPage = lazy(() => import('./pages/Settings'));
 const WhatsAppWebPage = lazy(() => import('./pages/WhatsAppChat'));
 const AutomationPage = lazy(() => import('./pages/Automation'));
 const AIAgentsPage = lazy(() => import('./pages/AIAgents'));
+const AIAgents2Page = lazy(() => import('./pages/AIAgents2'));
+const AIAgents2CreatePage = lazy(() => import('./pages/ai-agents-2/CreateAgent'));
+const AIAgents2EditPage = lazy(() => import('./pages/ai-agents-2/EditAgent'));
 const FlowBuilderTestPage = lazy(() => import('./pages/FlowBuilderTest'));
 const PlansPage = lazy(() => import('./pages/Plans'));
 const PlansUpgradePage = lazy(() => import('./pages/PlansUpgrade'));
@@ -135,6 +138,42 @@ function AppLayoutRoutes() {
             <AppLayout>
               <Suspense fallback={<PageLoader />}>
                 <AIAgentsPage />
+              </Suspense>
+            </AppLayout>
+          </AdminGuard>
+        }
+      />
+      <Route
+        path="/ai-agents-2"
+        element={
+          <AdminGuard>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <AIAgents2Page />
+              </Suspense>
+            </AppLayout>
+          </AdminGuard>
+        }
+      />
+      <Route
+        path="/ai-agents-2/create"
+        element={
+          <AdminGuard>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <AIAgents2CreatePage />
+              </Suspense>
+            </AppLayout>
+          </AdminGuard>
+        }
+      />
+      <Route
+        path="/ai-agents-2/edit/:id"
+        element={
+          <AdminGuard>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <AIAgents2EditPage />
               </Suspense>
             </AppLayout>
           </AdminGuard>
