@@ -284,7 +284,10 @@ export default function FlowBuilderTest() {
         id: `edge_${params.source}_${params.target}_${Date.now()}`,
         type: 'smoothstep',
         animated: true,
-        style: { stroke: '#3B82F6', strokeWidth: 2 },
+        style: { 
+          stroke: 'url(#gradient)', 
+          strokeWidth: 3 
+        },
       };
       setEdges((eds) => addEdge(newEdge, eds));
     },
@@ -356,7 +359,7 @@ export default function FlowBuilderTest() {
   }, [nodes, edges, entryPointId]);
 
   return (
-    <div className="w-full h-screen flex flex-col">
+    <div className="w-full h-screen flex flex-col flow-canvas-bg">
       <PageHeader
         title="Flow Builder - Teste"
         description="Crie o fluxo conversacional do seu agente de IA"
@@ -364,10 +367,10 @@ export default function FlowBuilderTest() {
 
       <div className="flex-1 flex gap-4 p-4 overflow-hidden">
         {/* Sidebar Esquerda - Paleta */}
-        <Card className="w-64 flex-shrink-0 overflow-y-auto max-h-[calc(100vh-200px)]">
+        <Card className="w-64 flex-shrink-0 overflow-y-auto max-h-[calc(100vh-200px)] flow-glass border-white/30 shadow-lg animate-fade-in">
           <CardHeader>
-            <CardTitle className="text-lg">Blocos</CardTitle>
-            <CardDescription>Clique para adicionar</CardDescription>
+            <CardTitle className="text-lg font-bold flow-gradient-text">Blocos</CardTitle>
+            <CardDescription className="text-gray-600">Arraste para o canvas</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Bloco Especial - Destaque */}
@@ -378,12 +381,12 @@ export default function FlowBuilderTest() {
                   <Sparkles className="h-3 w-3" />
                   ⭐ RECOMENDADO
                 </h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start gap-2 text-xs h-10 border-2 border-orange-300 bg-gradient-to-r from-yellow-50 to-orange-50 hover:from-yellow-100 hover:to-orange-100 font-semibold"
-                  onClick={() => handleAddNode(SPECIAL_BLOCK.type as StepAction)}
-                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start gap-2 text-xs h-10 border-2 border-orange-300 flow-glass hover:flow-glass-dark font-semibold shadow-md"
+                    onClick={() => handleAddNode(SPECIAL_BLOCK.type as StepAction)}
+                  >
                   <div className={`p-1.5 rounded ${SPECIAL_BLOCK.color} text-white shadow-md`}>
                     {SPECIAL_BLOCK.icon}
                   </div>
@@ -404,7 +407,7 @@ export default function FlowBuilderTest() {
                     key={block.type}
                     variant="outline"
                     size="sm"
-                    className="w-full justify-start gap-2 text-xs h-8"
+                    className="w-full justify-start gap-2 text-xs h-8 flow-glass hover:flow-glass-dark transition-all duration-200"
                     onClick={() => handleAddNode(block.type as StepAction)}
                   >
                     <div className={`p-1 rounded ${block.color} text-white`}>{block.icon}</div>
@@ -474,7 +477,7 @@ export default function FlowBuilderTest() {
         </Card>
 
         {/* Canvas Principal */}
-        <div className="flex-1 border rounded-lg overflow-hidden bg-gray-50 relative">
+        <div className="flex-1 border-2 border-white/30 rounded-2xl overflow-hidden relative flow-glass shadow-lg animate-scale-in">
           <ReactFlowProvider>
             <ReactFlow
               nodes={nodes}
@@ -485,32 +488,53 @@ export default function FlowBuilderTest() {
               nodeTypes={nodeTypes}
               fitView
             >
-              <Background />
-              <Controls />
-              <MiniMap />
+              {/* Gradient definition for edges */}
+              <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+                <defs>
+                  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#8B5CF6" />
+                    <stop offset="100%" stopColor="#3B82F6" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              
+              <Background gap={16} color="#E9D5FF" />
+              <Controls className="flow-glass !border-white/30 !shadow-lg [&>button]:flow-glass-dark [&>button]:!border-0" />
+              <MiniMap 
+                className="flow-glass !border-white/30 !shadow-lg" 
+                nodeColor={(node) => {
+                  const colors: Record<string, string> = {
+                    initial_presentation: '#F59E0B',
+                    ask_question: '#3B82F6',
+                    send_message: '#A855F7',
+                    end_conversation: '#10B981',
+                  };
+                  return colors[node.data.stepType] || '#6B7280';
+                }}
+              />
             </ReactFlow>
           </ReactFlowProvider>
 
           {/* Sugestão quando canvas vazio */}
           {nodes.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center space-y-4 pointer-events-auto">
-                <div className="inline-flex p-4 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 mb-2">
-                  <Sparkles className="h-8 w-8 text-white" />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="text-center space-y-6 pointer-events-auto flow-glass p-8 rounded-3xl border-2 border-white/40 shadow-2xl animate-fade-in">
+                <div className="inline-flex p-6 rounded-2xl bg-flow-gradient-primary mb-2 animate-flow-float shadow-lg">
+                  <Sparkles className="h-10 w-10 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-700">Comece seu fluxo!</h3>
-                <p className="text-sm text-gray-500 max-w-sm">
+                <h3 className="text-2xl font-bold flow-gradient-text">Comece seu fluxo!</h3>
+                <p className="text-sm text-gray-700 max-w-sm">
                   Recomendamos começar com o bloco de <strong>Apresentação Inicial</strong> para uma melhor experiência
                 </p>
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-bold shadow-lg"
+                  className="bg-flow-gradient-primary hover:opacity-90 text-white font-bold shadow-xl flow-hover-glow border-0"
                   onClick={() => handleAddNode('initial_presentation')}
                 >
-                  <Sparkles className="h-4 w-4 mr-2" />
+                  <Sparkles className="h-5 w-5 mr-2" />
                   Adicionar Apresentação Inicial
                 </Button>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-500">
                   ou escolha qualquer bloco da sidebar ←
                 </p>
               </div>
@@ -519,9 +543,9 @@ export default function FlowBuilderTest() {
         </div>
 
         {/* Sidebar Direita - Controles */}
-        <Card className="w-80 flex-shrink-0 flex flex-col">
+        <Card className="w-80 flex-shrink-0 flex flex-col flow-glass border-white/30 shadow-lg animate-fade-in">
           <CardHeader>
-            <CardTitle className="text-lg">Controles</CardTitle>
+            <CardTitle className="text-lg font-bold flow-gradient-text">Controles</CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col gap-4 overflow-y-auto">
             {/* Entry Point */}
@@ -554,7 +578,10 @@ export default function FlowBuilderTest() {
             </div>
 
             {/* Validação */}
-            <Button onClick={handleValidate} className="w-full" variant="outline">
+            <Button 
+              onClick={handleValidate} 
+              className="w-full bg-flow-gradient-primary hover:opacity-90 text-white shadow-lg flow-hover-glow border-0"
+            >
               <Play className="h-4 w-4 mr-2" />
               Validar Fluxo
             </Button>
@@ -566,9 +593,10 @@ export default function FlowBuilderTest() {
                   <Alert
                     key={index}
                     variant={error.severity === 'error' ? 'destructive' : 'default'}
+                    className="flow-glass-dark border-red-300/50"
                   >
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>{error.type}</AlertTitle>
+                    <AlertTitle className="font-bold">{error.type}</AlertTitle>
                     <AlertDescription className="text-xs">
                       {error.message}
                       {error.suggestion && (
@@ -581,7 +609,10 @@ export default function FlowBuilderTest() {
             )}
 
             {/* Export */}
-            <Button onClick={handleExportJSON} className="w-full mt-auto">
+            <Button 
+              onClick={handleExportJSON} 
+              className="w-full mt-auto bg-flow-gradient-primary hover:opacity-90 text-white shadow-lg flow-hover-glow border-0"
+            >
               <Download className="h-4 w-4 mr-2" />
               Exportar JSON
             </Button>

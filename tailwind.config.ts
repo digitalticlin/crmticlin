@@ -135,13 +135,28 @@ export default {
                         opacity: '1',
                         transform: 'scale(1)'
                     }
+                },
+                'flow-pulse': {
+                    '0%, 100%': { opacity: '0.5' },
+                    '50%': { opacity: '1' }
+                },
+                'flow-float': {
+                    '0%, 100%': { transform: 'translateY(0px)' },
+                    '50%': { transform: 'translateY(-10px)' }
+                },
+                'flow-glow': {
+                    '0%, 100%': { boxShadow: '0 0 20px rgba(139, 92, 246, 0.3)' },
+                    '50%': { boxShadow: '0 0 30px rgba(139, 92, 246, 0.5)' }
                 }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
                 'fade-in': 'fade-in 0.4s ease-out',
-                'scale-in': 'scale-in 0.3s ease-out'
+                'scale-in': 'scale-in 0.3s ease-out',
+                'flow-pulse': 'flow-pulse 8s ease-in-out infinite',
+                'flow-float': 'flow-float 3s ease-in-out infinite',
+                'flow-glow': 'flow-glow 2s ease-in-out infinite'
 			},
 			fontFamily: {
 				inter: ['Inter', 'sans-serif'],
@@ -154,6 +169,9 @@ export default {
 				'glass-light': "linear-gradient(135deg, rgba(255,255,255,0.60) 80%, rgba(245,245,245,0.76) 100%)",
 				'glass-dark': "linear-gradient(135deg, rgba(30,30,30,0.76) 80%, rgba(18,18,18,0.9) 100%)",
 				'pulse-gradient': 'linear-gradient(180deg, rgba(222, 220, 0, 0.8) 0%, rgba(149, 193, 31, 0) 100%)',
+				'flow-gradient-primary': 'linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(220 100% 66%) 100%)',
+				'flow-gradient-canvas': 'linear-gradient(135deg, hsl(250 100% 97%) 0%, hsl(220 70% 95%) 100%)',
+				'flow-gradient-node': 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%)',
 			},
 		}
 	},

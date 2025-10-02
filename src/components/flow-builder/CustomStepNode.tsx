@@ -78,32 +78,40 @@ export const CustomStepNode = memo(({ data, selected }: NodeProps<CustomNodeData
   return (
     <div
       className={`
-        relative px-4 py-3 rounded-lg border-2 bg-white shadow-lg min-w-[200px] max-w-[300px]
-        transition-all duration-200
-        ${selected ? 'border-blue-500 shadow-xl scale-105' : 'border-gray-300'}
-        ${hasErrors ? 'border-red-500 animate-pulse' : ''}
+        relative px-4 py-3 rounded-2xl border-2 min-w-[220px] max-w-[320px]
+        flow-glass flow-hover-glow
+        transition-all duration-300
+        ${selected ? 'border-purple-400 shadow-lg scale-105 animate-flow-glow' : 'border-white/30'}
+        ${hasErrors ? 'border-red-400 animate-pulse' : ''}
+        group
       `}
     >
+      {/* Gradient backdrop */}
+      <div className="absolute inset-0 bg-flow-gradient-node rounded-2xl opacity-60 -z-10" />
+
       {/* Handle de entrada (esquerda) */}
       <Handle
         type="target"
         position={Position.Left}
-        className="!w-3 !h-3 !bg-blue-500 !border-2 !border-white"
+        className="!w-4 !h-4 !bg-gradient-to-br !from-purple-500 !to-blue-500 !border-2 !border-white !shadow-lg"
       />
 
       {/* Cabeçalho com ícone */}
-      <div className="flex items-center gap-2 mb-2">
-        <div className={`p-1.5 rounded ${getStepColor(data.stepType)} text-white`}>
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`
+          p-2 rounded-xl ${getStepColor(data.stepType)} text-white shadow-md
+          group-hover:animate-flow-float transition-all duration-300
+        `}>
           {getStepIcon(data.stepType)}
         </div>
-        <div className="flex-1 font-semibold text-sm text-gray-900 truncate">
+        <div className="flex-1 font-bold text-sm text-gray-900 truncate">
           {data.label || 'Novo passo'}
         </div>
       </div>
 
       {/* Preview da mensagem */}
       {data.messages && data.messages.length > 0 && (
-        <div className="text-xs text-gray-600 mb-2 line-clamp-2">
+        <div className="text-xs text-gray-700 mb-3 line-clamp-2 bg-white/40 rounded-lg p-2 backdrop-blur-sm">
           {data.messages[0].type === 'text'
             ? data.messages[0].content.substring(0, 60) + (data.messages[0].content.length > 60 ? '...' : '')
             : 'Mensagem condicional'}
@@ -111,26 +119,26 @@ export const CustomStepNode = memo(({ data, selected }: NodeProps<CustomNodeData
       )}
 
       {/* Badges de status */}
-      <div className="flex flex-wrap gap-1 mb-2">
+      <div className="flex flex-wrap gap-1.5 mb-3">
         {data.decisions.length > 0 && (
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs backdrop-blur-sm bg-white/50 border-purple-200">
             {data.decisions.length} saída{data.decisions.length > 1 ? 's' : ''}
           </Badge>
         )}
         {isTerminal && (
-          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">
+          <Badge variant="outline" className="text-xs backdrop-blur-sm bg-green-50/80 text-green-700 border-green-300">
             ✓ Final
           </Badge>
         )}
         {hasErrors && (
-          <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-300">
+          <Badge variant="outline" className="text-xs backdrop-blur-sm bg-red-50/80 text-red-700 border-red-300">
             ⚠ Erro
           </Badge>
         )}
       </div>
 
       {/* Botões de ação */}
-      <div className="flex gap-1">
+      <div className="flex gap-2">
         <Button
           variant="ghost"
           size="sm"
@@ -138,9 +146,9 @@ export const CustomStepNode = memo(({ data, selected }: NodeProps<CustomNodeData
             e.stopPropagation();
             data.onEdit();
           }}
-          className="h-7 px-2 flex-1"
+          className="h-8 px-3 flex-1 flow-glass-dark hover:bg-purple-500/20 transition-all duration-200"
         >
-          <Edit className="h-3 w-3 mr-1" />
+          <Edit className="h-3.5 w-3.5 mr-1.5" />
           Editar
         </Button>
         <Button
@@ -150,9 +158,9 @@ export const CustomStepNode = memo(({ data, selected }: NodeProps<CustomNodeData
             e.stopPropagation();
             data.onDelete();
           }}
-          className="h-7 px-2 hover:bg-red-50 hover:text-red-600"
+          className="h-8 px-3 flow-glass-dark hover:bg-red-500/20 hover:text-red-600 transition-all duration-200"
         >
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
 
@@ -161,7 +169,7 @@ export const CustomStepNode = memo(({ data, selected }: NodeProps<CustomNodeData
         <Handle
           type="source"
           position={Position.Right}
-          className="!w-3 !h-3 !bg-green-500 !border-2 !border-white"
+          className="!w-4 !h-4 !bg-gradient-to-br !from-green-400 !to-emerald-500 !border-2 !border-white !shadow-lg"
         />
       )}
     </div>

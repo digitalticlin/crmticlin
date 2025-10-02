@@ -39,6 +39,14 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
   --ticlin: 41 100% 64%;
+  
+  /* Flow Builder Glassmorphism Variables */
+  --flow-glass-bg: rgba(255, 255, 255, 0.4);
+  --flow-glass-border: rgba(255, 255, 255, 0.18);
+  --flow-glass-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.15);
+  --flow-gradient-primary: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(220 100% 66%) 100%);
+  --flow-gradient-canvas: linear-gradient(135deg, hsl(250 100% 97%) 0%, hsl(220 70% 95%) 100%);
+  --flow-accent-glow: 0 0 20px rgba(139, 92, 246, 0.3);
   }
 
   .dark {
@@ -102,6 +110,72 @@ body {
 
   .glass-bg-dark {
     background: rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Flow Builder Glassmorphism */
+  .flow-glass {
+    background: var(--flow-glass-bg);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid var(--flow-glass-border);
+    box-shadow: var(--flow-glass-shadow);
+  }
+  
+  .flow-glass-dark {
+    background: rgba(139, 92, 246, 0.1);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+  }
+  
+  .flow-gradient-primary {
+    background: var(--flow-gradient-primary);
+  }
+  
+  .flow-gradient-text {
+    background: var(--flow-gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .flow-hover-glow {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .flow-hover-glow:hover {
+    box-shadow: var(--flow-accent-glow), var(--flow-glass-shadow);
+    transform: translateY(-2px);
+  }
+  
+  .flow-canvas-bg {
+    background: var(--flow-gradient-canvas);
+    position: relative;
+  }
+  
+  .flow-canvas-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+      radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+    animation: flow-pulse 8s ease-in-out infinite;
+    pointer-events: none;
+  }
+  
+  @keyframes flow-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+  
+  @keyframes flow-float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  
+  .flow-float {
+    animation: flow-float 3s ease-in-out infinite;
   }
 }
 
