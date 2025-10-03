@@ -27,6 +27,7 @@ import {
 import { NodeEditDialog } from './NodeEditDialog';
 import { PresentationEditor } from './editors/PresentationEditor';
 import { AskQuestionEditor } from './editors/AskQuestionEditor';
+import { SendMessageEditor } from './editors/SendMessageEditor';
 import { Button } from '../ui/button';
 
 const iconMap = {
@@ -360,8 +361,22 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
         />
       )}
 
+      {data.type === 'send_message' && (
+        <SendMessageEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            messages: data.messages || [],
+            description: data.description,
+            delay: data.delay || 0
+          }}
+          onSave={handleSave}
+        />
+      )}
+
       {/* Fallback para outros tipos (temporário) */}
-      {data.type !== 'start' && data.type !== 'ask_question' && (
+      {data.type !== 'start' && data.type !== 'ask_question' && data.type !== 'send_message' && (
         <NodeEditDialog
           isOpen={isEditOpen}
           onClose={() => setIsEditOpen(false)}
