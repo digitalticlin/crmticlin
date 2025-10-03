@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Edit3, Check, ArrowRight } from 'lucide-react';
 
 interface RequestDocumentEditorProps {
@@ -18,9 +17,7 @@ interface RequestDocumentEditorProps {
     decisions: Decision[];
     description?: string;
     documentType?: string;
-    timeout?: number;
-    checkField?: string;
-    saveVariable?: string;
+    checkIfSent?: boolean;
   };
   onSave: (data: {
     label: string;
@@ -28,9 +25,7 @@ interface RequestDocumentEditorProps {
     decisions: Decision[];
     description: string;
     documentType: string;
-    timeout: number;
-    checkField?: string;
-    saveVariable: string;
+    checkIfSent: boolean;
   }) => void;
 }
 
@@ -47,10 +42,7 @@ export function RequestDocumentEditor({
   const [message, setMessage] = useState(
     initialData?.messages[0]?.type === 'text' ? initialData.messages[0].content : ''
   );
-  const [checkIfSent, setCheckIfSent] = useState(!!initialData?.checkField);
-  const [checkField, setCheckField] = useState(initialData?.checkField || '');
-  const [timeout, setTimeout] = useState<number>(initialData?.timeout || 3600000);
-  const [saveVariable, setSaveVariable] = useState(initialData?.saveVariable || '');
+  const [checkIfSent, setCheckIfSent] = useState(initialData?.checkIfSent || false);
 
   const handleSave = () => {
     setIsEditingLabel(false);
@@ -70,8 +62,7 @@ export function RequestDocumentEditor({
         condition: 'documento_recebido',
         targetStepId: '',
         priority: 0,
-        outputHandle: 'output-0',
-        action: saveVariable || undefined
+        outputHandle: 'output-0'
       },
       {
         id: `decision_${Date.now()}_1`,
@@ -89,29 +80,12 @@ export function RequestDocumentEditor({
       messages,
       decisions,
       documentType,
-      timeout,
-      checkField: checkIfSent ? checkField : undefined,
-      saveVariable
+      checkIfSent
     });
 
     onClose();
   };
 
-  const isValid = () => {
-    return message.trim().length > 0 && documentType.trim().length > 0 && saveVariable.trim().length > 0;
-  };
-
-  const getTimeoutLabel = (ms: number) => {
-    switch (ms) {
-      case 300000: return '5 minutos';
-      case 1800000: return '30 minutos';
-      case 3600000: return '1 hora';
-      case 21600000: return '6 horas';
-      case 86400000: return '1 dia';
-      case 0: return 'Sem limite';
-      default: return `${ms / 1000}s`;
-    }
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -205,14 +179,14 @@ export function RequestDocumentEditor({
             </div>
 
             {/* Verificar se já enviou */}
-            <div className="bg-white/30 border border-white/40 p-4 rounded-xl space-y-3">
+            <div className="bg-white/30 border border-white/40 p-4 rounded-xl">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <Label className="text-sm font-medium text-gray-700">
                     Verificar se já enviou antes?
                   </Label>
                   <p className="text-xs text-gray-600">
-                    Evita pedir o mesmo documento duas vezes
+                    Se já enviou, pula esta etapa e segue para o próximo passo
                   </p>
                 </div>
                 <Switch
@@ -220,61 +194,6 @@ export function RequestDocumentEditor({
                   onCheckedChange={setCheckIfSent}
                 />
               </div>
-
-              {checkIfSent && (
-                <div className="space-y-2 pt-2">
-                  <Label htmlFor="checkField" className="text-xs font-medium text-gray-700">
-                    Qual informação verificar?
-                  </Label>
-                  <Input
-                    id="checkField"
-                    value={checkField}
-                    onChange={(e) => setCheckField(e.target.value)}
-                    placeholder="Ex: tem_rg, enviou_comprovante"
-                    className="bg-white/50 border-white/40 text-sm"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Tempo máximo de espera */}
-            <div className="space-y-2">
-              <Label htmlFor="timeout" className="text-sm font-medium text-gray-700">
-                Tempo máximo de espera
-              </Label>
-              <Select value={timeout.toString()} onValueChange={(value) => setTimeout(Number(value))}>
-                <SelectTrigger className="bg-white/30 border-white/40">
-                  <SelectValue placeholder="Selecione o tempo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="300000">5 minutos</SelectItem>
-                  <SelectItem value="1800000">30 minutos</SelectItem>
-                  <SelectItem value="3600000">1 hora</SelectItem>
-                  <SelectItem value="21600000">6 horas</SelectItem>
-                  <SelectItem value="86400000">1 dia</SelectItem>
-                  <SelectItem value="0">Sem limite</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500">
-                Se não enviar neste tempo, seguirá pelo caminho "timeout"
-              </p>
-            </div>
-
-            {/* Guardar arquivo em */}
-            <div className="space-y-2">
-              <Label htmlFor="saveVariable" className="text-sm font-medium text-gray-700">
-                Guardar arquivo recebido em
-              </Label>
-              <Input
-                id="saveVariable"
-                value={saveVariable}
-                onChange={(e) => setSaveVariable(e.target.value)}
-                placeholder="Ex: arquivo_rg, documento_renda"
-                className="bg-white/30 border-white/40 focus:bg-white/50 placeholder:text-gray-500"
-              />
-              <p className="text-xs text-gray-500">
-                O arquivo será salvo nesta variável
-              </p>
             </div>
 
             {/* Outputs */}
@@ -292,7 +211,7 @@ export function RequestDocumentEditor({
                       <span className="font-bold text-green-700 text-sm">SAÍDA 1</span>
                       <ArrowRight className="h-3.5 w-3.5 text-green-500" />
                     </div>
-                    <p className="text-xs text-gray-600">SE documento recebido</p>
+                    <p className="text-xs text-gray-600">Recebeu documento proxima etapa</p>
                   </div>
                 </div>
               </div>
@@ -308,7 +227,7 @@ export function RequestDocumentEditor({
                       <span className="font-bold text-red-700 text-sm">SAÍDA 2</span>
                       <ArrowRight className="h-3.5 w-3.5 text-red-500" />
                     </div>
-                    <p className="text-xs text-gray-600">SE tempo esgotado ({getTimeoutLabel(timeout)})</p>
+                    <p className="text-xs text-gray-600">Já solicitou mais de uma vez e o cliente não enviou</p>
                   </div>
                 </div>
               </div>

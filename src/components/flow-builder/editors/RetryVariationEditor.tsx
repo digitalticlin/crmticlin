@@ -4,32 +4,43 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RotateCcw, Edit3, Check } from 'lucide-react';
+
+interface PreviousBlock {
+  id: string;
+  label: string;
+}
 
 interface RetryVariationEditorProps {
   isOpen: boolean;
   onClose: () => void;
+  previousBlocks?: PreviousBlock[];
   initialData?: {
     label: string;
     messages: MessageText[];
     description?: string;
+    retryBlockId?: string;
   };
   onSave: (data: {
     label: string;
     messages: MessageText[];
     description: string;
+    retryBlockId?: string;
   }) => void;
 }
 
 export function RetryVariationEditor({
   isOpen,
   onClose,
+  previousBlocks = [],
   initialData,
   onSave
 }: RetryVariationEditorProps) {
   const [label, setLabel] = useState(initialData?.label || 'Repetir com Variação');
   const [isEditingLabel, setIsEditingLabel] = useState(false);
   const [description, setDescription] = useState(initialData?.description || '');
+  const [retryBlockId, setRetryBlockId] = useState(initialData?.retryBlockId || '');
   const [message, setMessage] = useState(
     initialData?.messages[0]?.type === 'text' ? initialData.messages[0].content : ''
   );
@@ -48,7 +59,8 @@ export function RetryVariationEditor({
     onSave({
       label,
       description,
-      messages
+      messages,
+      retryBlockId
     });
 
     onClose();
@@ -114,9 +126,37 @@ export function RetryVariationEditor({
               />
             </div>
 
+            {/* Seletor de bloco para repetir */}
+            <div className="space-y-2">
+              <Label htmlFor="retryBlock" className="text-sm font-medium text-gray-700">
+                Selecione o bloco anterior para repetir
+              </Label>
+              <Select value={retryBlockId} onValueChange={setRetryBlockId}>
+                <SelectTrigger className="bg-white/30 border-white/40">
+                  <SelectValue placeholder="Escolha um bloco para repetir" />
+                </SelectTrigger>
+                <SelectContent>
+                  {previousBlocks.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      Nenhum bloco anterior disponível
+                    </SelectItem>
+                  ) : (
+                    previousBlocks.map((block) => (
+                      <SelectItem key={block.id} value={block.id}>
+                        🔄 {block.label}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Este bloco será repetido com variação na mensagem
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="message" className="text-sm font-medium text-gray-700">
-                Mensagem
+                Mensagem de variação
               </Label>
               <Textarea
                 id="message"
@@ -126,6 +166,9 @@ export function RetryVariationEditor({
                 rows={4}
                 className="bg-white/30 border-white/40 focus:bg-white/50 placeholder:text-gray-500 resize-none"
               />
+              <p className="text-xs text-gray-500">
+                Esta mensagem será usada pela IA para variar a abordagem
+              </p>
             </div>
 
             <div className="flex justify-end gap-3 pt-6 border-t border-white/40">

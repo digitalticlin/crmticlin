@@ -24,6 +24,7 @@ import {
   HelpCircle,
   MessageCircleQuestion
 } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
 import { PresentationEditor } from './editors/PresentationEditor';
 import { AskQuestionEditor } from './editors/AskQuestionEditor';
 import { SendMessageEditor } from './editors/SendMessageEditor';
@@ -37,7 +38,6 @@ import { CheckIfDoneEditor } from './editors/CheckIfDoneEditor';
 import { RetryVariationEditor } from './editors/RetryVariationEditor';
 import { UpdateLeadEditor } from './editors/UpdateLeadEditor';
 import { MoveFunnelEditor } from './editors/MoveFunnelEditor';
-import { WaitActionEditor } from './editors/WaitActionEditor';
 import { TransferHumanEditor } from './editors/TransferHumanEditor';
 import { EndConversationEditor } from './editors/EndConversationEditor';
 import { Button } from '../ui/button';
@@ -65,8 +65,7 @@ const iconMap = {
   move_lead_in_funnel: Target,
 
   // Controle
-  wait_for_action: Clock,
-  transfer_to_human: Send,
+  transfer_to_human: FaWhatsapp,
   end_conversation: CheckCircle,
 };
 
@@ -93,8 +92,7 @@ const colorMap = {
   move_lead_in_funnel: 'border-emerald-600 text-emerald-700',
 
   // Controle
-  wait_for_action: 'border-gray-500 text-gray-600',
-  transfer_to_human: 'border-orange-600 text-orange-700',
+  transfer_to_human: 'border-green-600 text-green-600',
   end_conversation: 'border-green-500 text-green-600',
 };
 
@@ -121,14 +119,13 @@ const bgMap = {
   move_lead_in_funnel: 'from-emerald-600/20 to-emerald-600/5',
 
   // Controle
-  wait_for_action: 'from-gray-500/20 to-gray-500/5',
-  transfer_to_human: 'from-orange-600/20 to-orange-600/5',
+  transfer_to_human: 'from-green-600/20 to-green-600/5',
   end_conversation: 'from-green-500/20 to-green-500/5',
 };
 
 export const CustomNode = memo(({ data, id }: NodeProps) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const { deleteElements, setNodes } = useReactFlow();
+  const { deleteElements, setNodes, getEdges, getNodes } = useReactFlow();
   const Icon = iconMap[data.type as keyof typeof iconMap] || Play;
   const colorClass = colorMap[data.type as keyof typeof colorMap] || colorMap.send_message;
   const bgClass = bgMap[data.type as keyof typeof bgMap] || bgMap.send_message;
@@ -161,6 +158,28 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
 
   const handleDelete = () => {
     deleteElements({ nodes: [{ id }] });
+  };
+
+  // Função para obter o bloco conectado ao input deste node
+  const getConnectedInputBlock = () => {
+    const edges = getEdges();
+    const nodes = getNodes();
+
+    // Encontrar a edge que conecta AO input deste node
+    const inputEdge = edges.find(edge => edge.target === id);
+
+    if (inputEdge) {
+      // Encontrar o node de origem
+      const sourceNode = nodes.find(node => node.id === inputEdge.source);
+      if (sourceNode) {
+        return {
+          id: sourceNode.id,
+          label: sourceNode.data.label || 'Bloco sem nome'
+        };
+      }
+    }
+
+    return null;
   };
 
   // Calcular altura mínima baseada no número de decisões
@@ -380,8 +399,7 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
           initialData={{
             label: data.label,
             messages: data.messages || [],
-            description: data.description,
-            delay: data.delay || 0
+            description: data.description
           }}
           onSave={handleSave}
         />
@@ -483,11 +501,13 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
         <CheckIfDoneEditor
           isOpen={isEditOpen}
           onClose={() => setIsEditOpen(false)}
+          previousBlocks={getConnectedInputBlock() ? [getConnectedInputBlock()!] : []}
           initialData={{
             label: data.label,
             decisions: data.decisions || [],
             description: data.description,
-            checkField: data.checkField
+            checkField: data.checkField,
+            referenceBlockId: data.referenceBlockId
           }}
           onSave={handleSave}
         />
@@ -497,10 +517,12 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
         <RetryVariationEditor
           isOpen={isEditOpen}
           onClose={() => setIsEditOpen(false)}
+          previousBlocks={getConnectedInputBlock() ? [getConnectedInputBlock()!] : []}
           initialData={{
             label: data.label,
             messages: data.messages || [],
-            description: data.description
+            description: data.description,
+            retryBlockId: data.retryBlockId
           }}
           onSave={handleSave}
         />
@@ -513,8 +535,7 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
           initialData={{
             label: data.label,
             description: data.description,
-            fieldName: data.fieldName,
-            fieldValue: data.fieldValue
+            fieldUpdates: data.fieldUpdates
           }}
           onSave={handleSave}
         />
@@ -527,24 +548,14 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
           initialData={{
             label: data.label,
             description: data.description,
-            targetStage: data.targetStage
+            funnelId: data.funnelId,
+            kanbanStageId: data.kanbanStageId,
+            messages: data.messages
           }}
           onSave={handleSave}
         />
       )}
 
-      {data.type === 'wait_for_action' && (
-        <WaitActionEditor
-          isOpen={isEditOpen}
-          onClose={() => setIsEditOpen(false)}
-          initialData={{
-            label: data.label,
-            description: data.description,
-            waitDuration: data.waitDuration
-          }}
-          onSave={handleSave}
-        />
-      )}
 
       {data.type === 'transfer_to_human' && (
         <TransferHumanEditor

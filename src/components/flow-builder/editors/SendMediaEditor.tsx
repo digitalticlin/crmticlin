@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Image, Edit3, Check } from 'lucide-react';
+import { Image, Edit3, Check, Upload } from 'lucide-react';
 
 interface SendMediaEditorProps {
   isOpen: boolean;
@@ -40,6 +40,7 @@ export function SendMediaEditor({
   const [mediaType, setMediaType] = useState<'image' | 'video'>(initialData?.mediaType || 'image');
   const [mediaUrl, setMediaUrl] = useState(initialData?.mediaUrl || '');
   const [caption, setCaption] = useState(initialData?.caption || '');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const handleSave = () => {
     setIsEditingLabel(false);
@@ -62,6 +63,15 @@ export function SendMediaEditor({
     });
 
     onClose();
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+      // TODO: Aqui futuramente será feito o upload para storage e retornará um ID
+      // Por enquanto, apenas armazena o arquivo localmente
+    }
   };
 
   const isValid = () => {
@@ -152,35 +162,58 @@ export function SendMediaEditor({
               </Select>
             </div>
 
-            {/* URL da Mídia */}
+            {/* Upload de Mídia */}
             <div className="space-y-2">
-              <Label htmlFor="mediaUrl" className="text-sm font-medium text-gray-700">
-                URL da {mediaType === 'image' ? 'Imagem' : 'Vídeo'}
+              <Label htmlFor="mediaUpload" className="text-sm font-medium text-gray-700">
+                Upload da {mediaType === 'image' ? 'Imagem' : 'Vídeo'}
               </Label>
-              <Input
-                id="mediaUrl"
-                value={mediaUrl}
-                onChange={(e) => setMediaUrl(e.target.value)}
-                placeholder="https://exemplo.com/imagem.jpg"
-                className="bg-white/30 border-white/40 focus:bg-white/50 placeholder:text-gray-500 font-mono text-sm"
-                type="url"
-              />
-              {mediaUrl && !isValidUrl(mediaUrl) && (
-                <p className="text-xs text-red-600">
-                  ⚠️ URL inválida. Use o formato completo: https://...
-                </p>
-              )}
-              {mediaUrl && isValidUrl(mediaUrl) && (
-                <p className="text-xs text-green-600">
-                  ✅ URL válida
-                </p>
-              )}
+              <div className="flex items-center gap-3">
+                <label
+                  htmlFor="mediaUpload"
+                  className="flex-1 cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 bg-white/30 border border-white/40 rounded-xl p-4 hover:bg-white/40 transition-all">
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-pink-500 to-rose-600">
+                      <Upload className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      {uploadedFile ? (
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{uploadedFile.name}</p>
+                          <p className="text-xs text-gray-600">
+                            {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">
+                            Clique para fazer upload
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {mediaType === 'image' ? 'PNG, JPG, JPEG até 10MB' : 'MP4, MOV até 50MB'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </label>
+                <input
+                  id="mediaUpload"
+                  type="file"
+                  accept={mediaType === 'image' ? 'image/*' : 'video/*'}
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                🔒 Futuramente será salvo no storage e vinculado ao fluxo via ID
+              </p>
             </div>
 
-            {/* Legenda */}
+            {/* Mensagem */}
             <div className="space-y-2">
               <Label htmlFor="caption" className="text-sm font-medium text-gray-700">
-                Legenda (opcional)
+                Mensagem para enviar com a mídia
               </Label>
               <Textarea
                 id="caption"
@@ -190,9 +223,6 @@ export function SendMediaEditor({
                 rows={3}
                 className="bg-white/30 border-white/40 focus:bg-white/50 placeholder:text-gray-500 resize-none"
               />
-              <p className="text-xs text-gray-500">
-                Texto que acompanha a mídia
-              </p>
             </div>
 
             {/* Botões minimalistas */}

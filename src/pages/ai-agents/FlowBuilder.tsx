@@ -15,7 +15,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, MessageSquare, FileText, Send, GitBranch, CheckCircle, Clock, Phone, GraduationCap, Search, RotateCcw, UserCog, Target, Play, Link as LinkIcon, Image, MousePointer2, Hand, MessageCircleQuestion } from "lucide-react";
+import { ArrowLeft, MessageSquare, FileText, Send, GitBranch, CheckCircle, Phone, GraduationCap, Search, RotateCcw, UserCog, Target, Play, Link as LinkIcon, Image, MousePointer2, Hand, MessageCircleQuestion, Crown, RefreshCw, Calendar, CalendarClock, Images, Globe, Package, Wand2 } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import { CustomNode } from '@/components/flow-builder/CustomNode';
 
 const nodeTypes = {
@@ -43,9 +44,19 @@ const BLOCK_TYPES = [
   { type: 'move_lead_in_funnel', icon: <Target className="h-4 w-4" />, label: 'Mover Lead no Funil', color: 'bg-emerald-600', category: 'CRM' },
 
   // CONTROLE
-  { type: 'wait_for_action', icon: <Clock className="h-4 w-4" />, label: 'Aguardar Ação', color: 'bg-gray-500', category: 'Controle' },
-  { type: 'transfer_to_human', icon: <Send className="h-4 w-4" />, label: 'Encaminhar para Humano', color: 'bg-orange-600', category: 'Controle' },
   { type: 'end_conversation', icon: <CheckCircle className="h-4 w-4" />, label: 'Finalizar Conversa', color: 'bg-green-500', category: 'Controle' },
+];
+
+// Blocos Premium (bloqueados)
+const PREMIUM_BLOCKS = [
+  { type: 'transfer_to_human', icon: <FaWhatsapp className="h-4 w-4" />, label: 'Notificar Equipe no WhatsApp', color: 'bg-green-600', category: 'Premium', isPremium: true },
+  { type: 'follow_up', icon: <RefreshCw className="h-4 w-4" />, label: 'Follow Up', color: 'bg-violet-500', category: 'Premium', isPremium: true },
+  { type: 'schedule_meeting', icon: <Calendar className="h-4 w-4" />, label: 'Marcar Reunião', color: 'bg-rose-500', category: 'Premium', isPremium: true },
+  { type: 'schedule_time', icon: <CalendarClock className="h-4 w-4" />, label: 'Agendar Horário', color: 'bg-sky-500', category: 'Premium', isPremium: true },
+  { type: 'send_multiple_media', icon: <Images className="h-4 w-4" />, label: 'Envio de Várias Mídias', color: 'bg-fuchsia-500', category: 'Premium', isPremium: true },
+  { type: 'integrate_website', icon: <Globe className="h-4 w-4" />, label: 'Integrar com Site', color: 'bg-lime-500', category: 'Premium', isPremium: true },
+  { type: 'integrate_stock', icon: <Package className="h-4 w-4" />, label: 'Integrar com Estoque', color: 'bg-slate-500', category: 'Premium', isPremium: true },
+  { type: 'custom_function', icon: <Wand2 className="h-4 w-4" />, label: 'Personalizar Função', color: 'bg-gradient-to-r from-purple-500 to-pink-500', category: 'Premium', isPremium: true },
 ];
 
 // Bloco especial de início
@@ -280,6 +291,35 @@ function FlowBuilderContent() {
                   >
                     <div className={`p-1 rounded-md ${block.color} text-white flex-shrink-0 shadow-sm`}>{block.icon}</div>
                     <span className="truncate font-medium">{block.label}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Premium */}
+            <div className="pt-2 border-t border-white/30">
+              <div className="flex items-center gap-1.5 mb-1.5 px-1">
+                <Crown className="w-3 h-3 text-amber-500" />
+                <h3 className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide">Premium</h3>
+              </div>
+              <div className="space-y-1">
+                {PREMIUM_BLOCKS.map((block) => (
+                  <Button
+                    key={block.type}
+                    variant="outline"
+                    size="sm"
+                    disabled
+                    className="w-full justify-start gap-1.5 text-[10.5px] h-8 px-2 glass border-white/40 opacity-60 cursor-not-allowed relative group"
+                    onClick={() => {
+                      alert('🔒 Recurso Premium\n\nEste bloco está disponível apenas no plano Premium.\n\nEntre em contato com nossa equipe comercial para liberar este e outros recursos exclusivos!');
+                    }}
+                  >
+                    <div className={`p-1 rounded-md ${block.color} text-white flex-shrink-0 shadow-sm`}>
+                      {block.icon}
+                    </div>
+                    <span className="truncate font-medium">{block.label}</span>
+                    <Crown className="w-3 h-3 text-amber-500 ml-auto" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                   </Button>
                 ))}
               </div>

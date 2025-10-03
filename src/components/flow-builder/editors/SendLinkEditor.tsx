@@ -14,14 +14,12 @@ interface SendLinkEditorProps {
     messages: MessageText[];
     description?: string;
     linkUrl?: string;
-    linkTitle?: string;
   };
   onSave: (data: {
     label: string;
     messages: MessageText[];
     description: string;
     linkUrl: string;
-    linkTitle: string;
   }) => void;
 }
 
@@ -34,8 +32,7 @@ export function SendLinkEditor({
   const [label, setLabel] = useState(initialData?.label || 'Enviar Link');
   const [isEditingLabel, setIsEditingLabel] = useState(false);
   const [description, setDescription] = useState(initialData?.description || '');
-  const [linkUrl, setLinkUrl] = useState(initialData?.linkUrl || '');
-  const [linkTitle, setLinkTitle] = useState(initialData?.linkTitle || '');
+  const [linkUrl, setLinkUrl] = useState(initialData?.linkUrl || 'https://');
   const [message, setMessage] = useState(
     initialData?.messages[0]?.type === 'text' ? initialData.messages[0].content : ''
   );
@@ -55,8 +52,7 @@ export function SendLinkEditor({
       label,
       description,
       messages,
-      linkUrl,
-      linkTitle
+      linkUrl
     });
 
     onClose();
@@ -157,23 +153,6 @@ export function SendLinkEditor({
                   ✅ URL válida
                 </p>
               )}
-            </div>
-
-            {/* Título do Link */}
-            <div className="space-y-2">
-              <Label htmlFor="linkTitle" className="text-sm font-medium text-gray-700">
-                Título do Link (opcional)
-              </Label>
-              <Input
-                id="linkTitle"
-                value={linkTitle}
-                onChange={(e) => setLinkTitle(e.target.value)}
-                placeholder="Ex: Catálogo de Produtos 2024"
-                className="bg-white/30 border-white/40 focus:bg-white/50 placeholder:text-gray-500"
-              />
-              <p className="text-xs text-gray-500">
-                Se deixar vazio, mostrará a URL
-              </p>
             </div>
 
             {/* Mensagem */}

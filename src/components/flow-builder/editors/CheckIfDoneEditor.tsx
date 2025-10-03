@@ -4,28 +4,38 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckSquare, Edit3, Check, ArrowRight } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CheckSquare, Edit3, Check, ArrowRight, Checkbox as CheckboxIcon } from 'lucide-react';
+
+interface PreviousBlock {
+  id: string;
+  label: string;
+}
 
 interface CheckIfDoneEditorProps {
   isOpen: boolean;
   onClose: () => void;
+  previousBlocks?: PreviousBlock[];
   initialData?: {
     label: string;
     decisions: Decision[];
     description?: string;
     checkField?: string;
+    referenceBlockId?: string;
   };
   onSave: (data: {
     label: string;
     decisions: Decision[];
     description: string;
     checkField: string;
+    referenceBlockId?: string;
   }) => void;
 }
 
 export function CheckIfDoneEditor({
   isOpen,
   onClose,
+  previousBlocks = [],
   initialData,
   onSave
 }: CheckIfDoneEditorProps) {
@@ -33,6 +43,7 @@ export function CheckIfDoneEditor({
   const [isEditingLabel, setIsEditingLabel] = useState(false);
   const [description, setDescription] = useState(initialData?.description || '');
   const [checkField, setCheckField] = useState(initialData?.checkField || '');
+  const [referenceBlockId, setReferenceBlockId] = useState(initialData?.referenceBlockId || '');
 
   const handleSave = () => {
     setIsEditingLabel(false);
@@ -60,7 +71,8 @@ export function CheckIfDoneEditor({
       label,
       description,
       decisions,
-      checkField
+      checkField,
+      referenceBlockId
     });
 
     onClose();
@@ -126,9 +138,37 @@ export function CheckIfDoneEditor({
               />
             </div>
 
+            {/* Seletor de bloco anterior */}
+            <div className="space-y-2">
+              <Label htmlFor="referenceBlock" className="text-sm font-medium text-gray-700">
+                Selecione o bloco anterior para verificar
+              </Label>
+              <Select value={referenceBlockId} onValueChange={setReferenceBlockId}>
+                <SelectTrigger className="bg-white/30 border-white/40">
+                  <SelectValue placeholder="Escolha um bloco anterior" />
+                </SelectTrigger>
+                <SelectContent>
+                  {previousBlocks.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      Nenhum bloco anterior disponível
+                    </SelectItem>
+                  ) : (
+                    previousBlocks.map((block) => (
+                      <SelectItem key={block.id} value={block.id}>
+                        ✓ {block.label}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Verificará se este bloco já foi executado anteriormente
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="checkField" className="text-sm font-medium text-gray-700">
-                Campo para verificar
+                Campo para verificar (opcional)
               </Label>
               <Input
                 id="checkField"
@@ -138,7 +178,7 @@ export function CheckIfDoneEditor({
                 className="bg-white/30 border-white/40 focus:bg-white/50 placeholder:text-gray-500"
               />
               <p className="text-xs text-gray-500">
-                Verificará se este campo existe e tem valor
+                Campo adicional para validação específica
               </p>
             </div>
 
