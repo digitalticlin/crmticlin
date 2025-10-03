@@ -15,7 +15,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, MessageSquare, FileText, Send, GitBranch, CheckCircle, Clock, Phone, GraduationCap, Search, RotateCcw, UserCog, Target, Sparkles, Link as LinkIcon, Image, MousePointer2, Hand } from "lucide-react";
+import { ArrowLeft, MessageSquare, FileText, Send, GitBranch, CheckCircle, Clock, Phone, GraduationCap, Search, RotateCcw, UserCog, Target, Play, Link as LinkIcon, Image, MousePointer2, Hand, MessageCircleQuestion } from "lucide-react";
 import { CustomNode } from '@/components/flow-builder/CustomNode';
 
 const nodeTypes = {
@@ -25,8 +25,8 @@ const nodeTypes = {
 // Blocos organizados por categoria (15 tipos da flow-builder-test)
 const BLOCK_TYPES = [
   // COMUNICAÇÃO
-  { type: 'ask_question', icon: <MessageSquare className="h-4 w-4" />, label: 'Fazer Pergunta', color: 'bg-blue-500', category: 'Comunicação' },
-  { type: 'send_message', icon: <Send className="h-4 w-4" />, label: 'Enviar Mensagem', color: 'bg-purple-500', category: 'Comunicação' },
+  { type: 'ask_question', icon: <MessageCircleQuestion className="h-4 w-4" />, label: 'Fazer Pergunta', color: 'bg-blue-500', category: 'Comunicação' },
+  { type: 'send_message', icon: <MessageSquare className="h-4 w-4" />, label: 'Enviar Mensagem', color: 'bg-purple-500', category: 'Comunicação' },
   { type: 'request_document', icon: <FileText className="h-4 w-4" />, label: 'Solicitar Documento', color: 'bg-orange-500', category: 'Comunicação' },
   { type: 'send_link', icon: <LinkIcon className="h-4 w-4" />, label: 'Enviar Link', color: 'bg-cyan-500', category: 'Comunicação' },
   { type: 'send_media', icon: <Image className="h-4 w-4" />, label: 'Enviar Mídia', color: 'bg-pink-500', category: 'Comunicação' },
@@ -44,14 +44,14 @@ const BLOCK_TYPES = [
 
   // CONTROLE
   { type: 'wait_for_action', icon: <Clock className="h-4 w-4" />, label: 'Aguardar Ação', color: 'bg-gray-500', category: 'Controle' },
-  { type: 'transfer_to_human', icon: <Phone className="h-4 w-4" />, label: 'Encaminhar para Humano', color: 'bg-orange-600', category: 'Controle' },
+  { type: 'transfer_to_human', icon: <Send className="h-4 w-4" />, label: 'Encaminhar para Humano', color: 'bg-orange-600', category: 'Controle' },
   { type: 'end_conversation', icon: <CheckCircle className="h-4 w-4" />, label: 'Finalizar Conversa', color: 'bg-green-500', category: 'Controle' },
 ];
 
 // Bloco especial de início
 const SPECIAL_BLOCK = {
   type: 'start',
-  icon: <Sparkles className="h-4 w-4" />,
+  icon: <Play className="h-4 w-4" />,
   label: 'Início',
   color: 'bg-green-500',
   category: 'Especial',

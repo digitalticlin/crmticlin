@@ -14,23 +14,28 @@ import {
   RotateCcw,
   UserCog,
   Target,
-  Sparkles,
+  Play,
   Link as LinkIcon,
   Image,
   Edit3,
-  Trash2
+  Trash2,
+  CircleCheck,
+  CircleAlert,
+  HelpCircle,
+  MessageCircleQuestion
 } from 'lucide-react';
 import { NodeEditDialog } from './NodeEditDialog';
 import { PresentationEditor } from './editors/PresentationEditor';
+import { AskQuestionEditor } from './editors/AskQuestionEditor';
 import { Button } from '../ui/button';
 
 const iconMap = {
   // Special
-  start: Sparkles,
+  start: Play,
 
   // Comunicação
-  ask_question: MessageSquare,
-  send_message: Send,
+  ask_question: MessageCircleQuestion,
+  send_message: MessageSquare,
   request_document: FileText,
   send_link: LinkIcon,
   send_media: Image,
@@ -48,7 +53,7 @@ const iconMap = {
 
   // Controle
   wait_for_action: Clock,
-  transfer_to_human: Phone,
+  transfer_to_human: Send,
   end_conversation: CheckCircle,
 };
 
@@ -110,19 +115,45 @@ const bgMap = {
 
 export const CustomNode = memo(({ data, id }: NodeProps) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const { deleteElements } = useReactFlow();
-  const Icon = iconMap[data.type as keyof typeof iconMap] || Sparkles;
+  const { deleteElements, setNodes } = useReactFlow();
+  const Icon = iconMap[data.type as keyof typeof iconMap] || Play;
   const colorClass = colorMap[data.type as keyof typeof colorMap] || colorMap.send_message;
   const bgClass = bgMap[data.type as keyof typeof bgMap] || bgMap.send_message;
 
+  // Verifica se o bloco está configurado (para bloco start)
+  const isConfigured = data.type === 'start'
+    ? !!(data.description && data.messages && data.messages.length > 0)
+    : true;
+
   const handleSave = (savedData: any) => {
     console.log('Dados salvos:', savedData);
-    // TODO: Atualizar o nó no ReactFlow
+
+    // Atualizar o nó no ReactFlow com os novos dados
+    setNodes((nodes) =>
+      nodes.map((node) =>
+        node.id === id
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                ...savedData,
+                // Garantir que decisions seja salvo corretamente
+                decisions: savedData.decisions || node.data.decisions || []
+              }
+            }
+          : node
+      )
+    );
   };
 
   const handleDelete = () => {
     deleteElements({ nodes: [{ id }] });
   };
+
+  // Calcular altura mínima baseada no número de decisões
+  const minHeight = data.decisions && data.decisions.length > 1
+    ? 120 + (data.decisions.length - 1) * 40 // 40px de espaço por decisão adicional
+    : 'auto';
 
   return (
     <>
@@ -132,19 +163,30 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
           glass
           transition-smooth hover:scale-105 group
         `}
+        style={{
+          minHeight: minHeight
+        }}
       >
         {/* Gradient Background */}
         <div className={`absolute inset-0 bg-gradient-to-br ${bgClass} rounded-2xl opacity-50`} />
 
         {/* Content */}
-        <div className="relative p-4">
+        <div className="relative p-4 pb-12">
           <div className="flex items-start gap-3 mb-3">
             <div className="p-2 rounded-xl glass-dark group-hover:animate-float">
               <Icon className="w-5 h-5" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm mb-1">{data.label}</div>
-              <div className="text-xs text-muted-foreground capitalize mb-1">{data.type}</div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="font-semibold text-sm">{data.label}</div>
+                {data.type === 'start' && (
+                  isConfigured ? (
+                    <CircleCheck className="w-4 h-4 text-green-600" title="Configurado" />
+                  ) : (
+                    <CircleAlert className="w-4 h-4 text-orange-500" title="Não configurado" />
+                  )
+                )}
+              </div>
               {data.description && (
                 <div className="text-xs text-muted-foreground/80 line-clamp-2 mt-2">
                   {data.description}
@@ -152,9 +194,11 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
               )}
             </div>
           </div>
+        </div>
 
-          {/* Botões Minimalistas */}
-          <div className="flex gap-1 mt-2">
+        {/* Botões Minimalistas - Footer Fixo */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 pt-0">
+          <div className="flex gap-1">
             <Button
               variant="ghost"
               size="icon"
@@ -176,7 +220,7 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
           </div>
         </div>
 
-        {/* Handles - Horizontal */}
+        {/* Handles - Input (Left) */}
         {data.type !== 'start' && (
           <Handle
             type="target"
@@ -185,21 +229,106 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
               !w-3 !h-3 !rounded-full !border-2
               ${colorClass}
               !bg-white/50
-              transition-smooth hover:!scale-150
+              !cursor-crosshair
             `}
           />
         )}
+
+        {/* Handles - Output (Right) - Dinâmicos para blocos com decisões */}
         {data.type !== 'end_conversation' && (
-          <Handle
-            type="source"
-            position={Position.Right}
-            className={`
-              !w-3 !h-3 !rounded-full !border-2
-              ${colorClass}
-              !bg-white/50
-              transition-smooth hover:!scale-150
-            `}
-          />
+          <>
+            {data.decisions && data.decisions.length > 0 ? (
+              // Múltiplos outputs numerados para blocos com decisões
+              data.decisions.map((decision: any, index: number) => {
+                const totalDecisions = data.decisions.length;
+                // Espaçamento mínimo de 40px entre outputs
+                const minSpacingPx = 40;
+                const baseOffsetPx = 60; // Offset inicial do topo
+                const topPosition = baseOffsetPx + (index * minSpacingPx);
+
+                return (
+                  <>
+                    {/* Linha conectora DO BLOCO até o OUTPUT */}
+                    <div
+                      key={`connector-${index}`}
+                      style={{
+                        position: 'absolute',
+                        right: '0px',
+                        top: `${topPosition}px`,
+                        width: '14px',
+                        height: '2px',
+                        pointerEvents: 'none',
+                        zIndex: 0
+                      }}
+                      className={`${colorClass.split(' ')[1]} opacity-30`}
+                    />
+                    <Handle
+                      key={`output-${index}`}
+                      type="source"
+                      position={Position.Right}
+                      id={`output-${index}`}
+                      style={{
+                        position: 'absolute',
+                        top: `${topPosition}px`,
+                        right: '-14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '28px',
+                        height: '28px'
+                      }}
+                      className={`
+                        !rounded-full !border-2
+                        ${colorClass}
+                        !bg-white
+                        !cursor-crosshair
+                      `}
+                    >
+                      <span className="text-xs font-bold pointer-events-none">
+                        {index + 1}
+                      </span>
+                    </Handle>
+                  </>
+                );
+              })
+            ) : (
+              // Output único padrão para blocos sem decisões
+              <>
+                {/* Linha conectora DO BLOCO até o OUTPUT */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: '0px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '6px',
+                    height: '2px',
+                    pointerEvents: 'none',
+                    zIndex: 0
+                  }}
+                  className={`${colorClass.split(' ')[1]} opacity-30`}
+                />
+                <Handle
+                  type="source"
+                  position={Position.Right}
+                  style={{
+                    position: 'absolute',
+                    right: '-6px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '12px',
+                    height: '12px'
+                  }}
+                  className={`
+                    !rounded-full !border-2
+                    ${colorClass}
+                    !bg-white/50
+                    !cursor-crosshair
+                  `}
+                />
+              </>
+            )}
+          </>
         )}
       </div>
 
@@ -217,8 +346,22 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
         />
       )}
 
+      {data.type === 'ask_question' && (
+        <AskQuestionEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            messages: data.messages || [],
+            decisions: data.decisions || [],
+            description: data.description
+          }}
+          onSave={handleSave}
+        />
+      )}
+
       {/* Fallback para outros tipos (temporário) */}
-      {data.type !== 'start' && (
+      {data.type !== 'start' && data.type !== 'ask_question' && (
         <NodeEditDialog
           isOpen={isEditOpen}
           onClose={() => setIsEditOpen(false)}
