@@ -28,6 +28,19 @@ import { NodeEditDialog } from './NodeEditDialog';
 import { PresentationEditor } from './editors/PresentationEditor';
 import { AskQuestionEditor } from './editors/AskQuestionEditor';
 import { SendMessageEditor } from './editors/SendMessageEditor';
+import { RequestDocumentEditor } from './editors/RequestDocumentEditor';
+import { SendLinkEditor } from './editors/SendLinkEditor';
+import { SendMediaEditor } from './editors/SendMediaEditor';
+import { TeachEditor } from './editors/TeachEditor';
+import { ValidateDocumentEditor } from './editors/ValidateDocumentEditor';
+import { DecisionEditor } from './editors/DecisionEditor';
+import { CheckIfDoneEditor } from './editors/CheckIfDoneEditor';
+import { RetryVariationEditor } from './editors/RetryVariationEditor';
+import { UpdateLeadEditor } from './editors/UpdateLeadEditor';
+import { MoveFunnelEditor } from './editors/MoveFunnelEditor';
+import { WaitActionEditor } from './editors/WaitActionEditor';
+import { TransferHumanEditor } from './editors/TransferHumanEditor';
+import { EndConversationEditor } from './editors/EndConversationEditor';
 import { Button } from '../ui/button';
 
 const iconMap = {
@@ -375,15 +388,190 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
         />
       )}
 
-      {/* Fallback para outros tipos (temporário) */}
-      {data.type !== 'start' && data.type !== 'ask_question' && data.type !== 'send_message' && (
-        <NodeEditDialog
+      {data.type === 'request_document' && (
+        <RequestDocumentEditor
           isOpen={isEditOpen}
           onClose={() => setIsEditOpen(false)}
-          nodeId={id}
-          currentLabel={data.label}
-          currentDescription={data.description || ''}
-          designStyle={data.designStyle}
+          initialData={{
+            label: data.label,
+            messages: data.messages || [],
+            decisions: data.decisions || [],
+            description: data.description,
+            documentType: data.documentType,
+            timeout: data.timeout,
+            checkField: data.checkField,
+            saveVariable: data.saveVariable
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'send_link' && (
+        <SendLinkEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            messages: data.messages || [],
+            description: data.description,
+            linkUrl: data.linkUrl,
+            linkTitle: data.linkTitle
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'send_media' && (
+        <SendMediaEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            messages: data.messages || [],
+            description: data.description,
+            mediaType: data.mediaType,
+            mediaUrl: data.mediaUrl,
+            caption: data.caption
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'provide_instructions' && (
+        <TeachEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            messages: data.messages || [],
+            description: data.description,
+            teachingContent: data.teachingContent
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'validate_document' && (
+        <ValidateDocumentEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            messages: data.messages || [],
+            decisions: data.decisions || [],
+            description: data.description,
+            documentVariable: data.documentVariable,
+            validationCriteria: data.validationCriteria
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'branch_decision' && (
+        <DecisionEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            decisions: data.decisions || [],
+            description: data.description
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'check_if_done' && (
+        <CheckIfDoneEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            decisions: data.decisions || [],
+            description: data.description,
+            checkField: data.checkField
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'retry_with_variation' && (
+        <RetryVariationEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            messages: data.messages || [],
+            description: data.description
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'update_lead_data' && (
+        <UpdateLeadEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            description: data.description,
+            fieldName: data.fieldName,
+            fieldValue: data.fieldValue
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'move_lead_in_funnel' && (
+        <MoveFunnelEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            description: data.description,
+            targetStage: data.targetStage
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'wait_for_action' && (
+        <WaitActionEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            description: data.description,
+            waitDuration: data.waitDuration
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'transfer_to_human' && (
+        <TransferHumanEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            messages: data.messages || [],
+            description: data.description
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'end_conversation' && (
+        <EndConversationEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            messages: data.messages || [],
+            description: data.description,
+            reason: data.reason,
+            farewellMessage: data.farewellMessage
+          }}
+          onSave={handleSave}
         />
       )}
     </>
