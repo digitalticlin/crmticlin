@@ -24,7 +24,6 @@ import {
   HelpCircle,
   MessageCircleQuestion
 } from 'lucide-react';
-import { NodeEditDialog } from './NodeEditDialog';
 import { PresentationEditor } from './editors/PresentationEditor';
 import { AskQuestionEditor } from './editors/AskQuestionEditor';
 import { SendMessageEditor } from './editors/SendMessageEditor';
