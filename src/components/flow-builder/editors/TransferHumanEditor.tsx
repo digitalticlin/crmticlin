@@ -137,7 +137,7 @@ export function TransferHumanEditor({
               </button>
               <button
                 onClick={handleSave}
-                disabled={!isValid()}
+                
                 className="px-6 py-2.5 bg-gradient-to-br from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white rounded-full text-sm font-medium shadow-lg shadow-orange-600/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Check className="h-4 w-4" />

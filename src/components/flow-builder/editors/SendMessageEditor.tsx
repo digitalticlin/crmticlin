@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MessageSquare, Edit3, Check } from 'lucide-react';
 
 interface SendMessageEditorProps {
@@ -15,13 +14,11 @@ interface SendMessageEditorProps {
     label: string;
     messages: MessageText[];
     description?: string;
-    delay?: number;
   };
   onSave: (data: {
     label: string;
     messages: MessageText[];
     description: string;
-    delay: number;
   }) => void;
 }
 
@@ -37,7 +34,6 @@ export function SendMessageEditor({
   const [message, setMessage] = useState(
     initialData?.messages[0]?.type === 'text' ? initialData.messages[0].content : ''
   );
-  const [delay, setDelay] = useState<number>(initialData?.delay || 0);
 
   const handleSave = () => {
     setIsEditingLabel(false);
@@ -46,15 +42,14 @@ export function SendMessageEditor({
       {
         type: 'text',
         content: message,
-        delay: delay
+        delay: 0
       }
     ];
 
     onSave({
       label,
       description,
-      messages,
-      delay
+      messages
     });
 
     onClose();
@@ -138,28 +133,6 @@ export function SendMessageEditor({
               />
             </div>
 
-            {/* Delay */}
-            <div className="space-y-2">
-              <Label htmlFor="delay" className="text-sm font-medium text-gray-700">
-                Delay antes de enviar
-              </Label>
-              <Select value={delay.toString()} onValueChange={(value) => setDelay(Number(value))}>
-                <SelectTrigger className="bg-white/30 border-white/40">
-                  <SelectValue placeholder="Selecione o delay" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Imediato</SelectItem>
-                  <SelectItem value="2000">2 segundos</SelectItem>
-                  <SelectItem value="5000">5 segundos</SelectItem>
-                  <SelectItem value="10000">10 segundos</SelectItem>
-                  <SelectItem value="30000">30 segundos</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500">
-                Simula "digitando..." para parecer mais natural
-              </p>
-            </div>
-
             {/* Botões minimalistas */}
             <div className="flex justify-end gap-3 pt-6 border-t border-white/40">
               <button
@@ -170,7 +143,7 @@ export function SendMessageEditor({
               </button>
               <button
                 onClick={handleSave}
-                disabled={!isValid()}
+                
                 className="px-6 py-2.5 bg-gradient-to-br from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-full text-sm font-medium shadow-lg shadow-purple-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Check className="h-4 w-4" />

@@ -210,7 +210,7 @@ export function ValidateDocumentEditor({
               </button>
               <button
                 onClick={handleSave}
-                disabled={!isValid()}
+                
                 className="px-6 py-2.5 bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-full text-sm font-medium shadow-lg shadow-red-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Check className="h-4 w-4" />

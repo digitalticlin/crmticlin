@@ -125,7 +125,7 @@ export function MoveFunnelEditor({
               </button>
               <button
                 onClick={handleSave}
-                disabled={!isValid()}
+                
                 className="px-6 py-2.5 bg-gradient-to-br from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-full text-sm font-medium shadow-lg shadow-emerald-600/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 <Check className="h-4 w-4" />
