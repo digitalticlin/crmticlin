@@ -1,5 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { convertReactFlowToStructured, convertStructuredToReactFlow } from "@/utils/flowConverter";
 import ReactFlow, {
   Node,
   Edge,
@@ -90,11 +93,110 @@ function FlowBuilderContent() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [nodeIdCounter, setNodeIdCounter] = useState(2);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
+
+  // Proteção: redirecionar se agentId for "new"
+  useEffect(() => {
+    if (agentId === 'new') {
+      toast.error('Crie o agente primeiro antes de configurar o fluxo');
+      navigate('/ai-agents/create');
+    }
+  }, [agentId, navigate]);
+
+  // Carregar flow ao montar
+  useEffect(() => {
+    const loadFlow = async () => {
+      if (!agentId || agentId === 'new') {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('ai_agents')
+          .select('flow')
+          .eq('id', agentId)
+          .single();
+
+        if (error) throw error;
+
+        if (data?.flow) {
+          const structuredFlow = data.flow;
+          const { nodes: loadedNodes, edges: loadedEdges } = convertStructuredToReactFlow(structuredFlow);
+
+          if (loadedNodes.length > 0) {
+            setNodes(loadedNodes);
+            setEdges(loadedEdges);
+
+            // Atualizar nodeIdCounter para o maior ID existente + 1
+            const maxId = Math.max(...loadedNodes.map(n => parseInt(n.id) || 0));
+            setNodeIdCounter(maxId + 1);
+          }
+        }
+      } catch (error: any) {
+        console.error('Erro ao carregar flow:', error);
+        toast.error('Erro ao carregar fluxo');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadFlow();
+  }, [agentId]);
+
+  const handleSave = async () => {
+    if (!agentId || agentId === 'new') {
+      toast.error('Salve o agente primeiro antes de criar o fluxo');
+      return;
+    }
+
+    setIsSaving(true);
+    setIsSaved(false);
+
+    try {
+      // Validar se tem nodes
+      if (nodes.length === 0) {
+        toast.error('Adicione pelo menos um bloco antes de salvar');
+        setIsSaving(false);
+        return;
+      }
+
+      // Converter para estrutura padronizada
+      const structuredFlow = convertReactFlowToStructured(nodes, edges);
+
+      // Salvar no banco
+      const { data, error } = await supabase
+        .from('ai_agents')
+        .update({
+          flow: structuredFlow,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', agentId)
+        .select('id, name, flow');
+
+      if (error) throw error;
+
+      toast.success('Fluxo salvo com sucesso!');
+      setIsSaved(true);
+
+      // Resetar estado "SALVO!" após 2 segundos
+      setTimeout(() => {
+        setIsSaved(false);
+      }, 2000);
+    } catch (error: any) {
+      console.error('Erro ao salvar fluxo:', error);
+      toast.error(error.message || 'Erro ao salvar fluxo');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const addNode = useCallback(
     (type: string) => {
@@ -127,7 +229,7 @@ function FlowBuilderContent() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate(`/ai-agents/edit/${agentId}?step=3`)}
             className="h-9 w-9 rounded-lg glass hover:bg-white/40 transition-all shadow-lg border border-white/30"
           >
             <ArrowLeft className="h-4 w-4 text-gray-700" />
@@ -135,9 +237,15 @@ function FlowBuilderContent() {
           <Button
             variant="default"
             size="sm"
-            className="h-9 px-4 rounded-lg glass border border-white/30 hover:bg-white/40 transition-all shadow-lg font-medium text-gray-700"
+            onClick={handleSave}
+            disabled={isSaving || isSaved}
+            className={`h-9 px-4 rounded-lg glass border transition-all shadow-lg font-medium ${
+              isSaved
+                ? 'bg-green-500/20 border-green-500/50 text-green-700'
+                : 'border-white/30 hover:bg-white/40 text-gray-700'
+            }`}
           >
-            Salvar
+            {isSaving ? 'Salvando...' : isSaved ? '✓ Salvo!' : 'Salvar'}
           </Button>
         </div>
 

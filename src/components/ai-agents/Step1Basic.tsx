@@ -17,9 +17,9 @@ import {
 interface Step1BasicProps {
   data: {
     name: string;
-    objective: 'sales' | 'support' | 'qualification';
+    objective: { name: string; description: string };
     funnel_id: string | null;
-    whatsapp_number_id: string | null;
+    instance_phone: string | null;
   };
   onChange: (field: string, value: any) => void;
 }
@@ -49,7 +49,7 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
           supabase
             .from('whatsapp_instances')
             .select('id, phone, instance_name, profile_name')
-            .eq('user_id', user.id)
+            .eq('created_by_user_id', user.id)
             .order('phone')
         ]);
 
@@ -65,26 +65,44 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
     fetchData();
   }, []);
 
+  const formatPhone = (phone: string) => {
+    if (!phone) return '';
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 13) {
+      return `${cleaned.slice(0, 2)} (${cleaned.slice(2, 4)}) ${cleaned.slice(4, 9)}-${cleaned.slice(9)}`;
+    }
+    return phone;
+  };
+
   const objectives = [
     {
-      value: 'sales' as const,
+      value: {
+        name: 'Vendas',
+        description: 'Seu objetivo é vender. Conduza a conversa para entender a necessidade do cliente, apresente soluções adequadas, contorne objeções de forma persuasiva e trabalhe ativamente para fechar a venda. Seja proativo em oferecer produtos/serviços e criar senso de urgência quando apropriado.'
+      },
       icon: '💰',
       title: 'Vendas',
-      description: 'Converter leads em vendas',
+      preview: 'Converter leads em vendas',
       gradient: 'from-yellow-400 to-orange-500'
     },
     {
-      value: 'support' as const,
+      value: {
+        name: 'Suporte',
+        description: 'Seu objetivo é ajudar e resolver problemas. Seja paciente, empático e focado em solucionar dúvidas ou questões técnicas. Ouça atentamente o problema, faça perguntas para entender melhor a situação e forneça soluções claras e práticas. A satisfação do cliente é prioridade.'
+      },
       icon: '🎧',
       title: 'Suporte',
-      description: 'Atender e ajudar clientes',
+      preview: 'Atender e ajudar clientes',
       gradient: 'from-purple-500 to-purple-600'
     },
     {
-      value: 'qualification' as const,
+      value: {
+        name: 'Qualificação',
+        description: 'Seu objetivo é identificar se o lead tem potencial de compra. Faça perguntas estratégicas para entender: necessidade real, orçamento disponível, autoridade para decidir e timing de compra. Colete informações importantes e classifique o lead antes de encaminhá-lo para o time de vendas.'
+      },
       icon: '✅',
       title: 'Qualificação',
-      description: 'Qualificar leads para o time',
+      preview: 'Qualificar leads para o time',
       gradient: 'from-blue-500 to-blue-600'
     },
   ];
@@ -104,12 +122,12 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
         <div className="max-w-[70%] mx-auto grid grid-cols-1 md:grid-cols-3 gap-3">
           {objectives.map((obj) => (
             <button
-              key={obj.value}
+              key={obj.value.name}
               onClick={() => onChange('objective', obj.value)}
               className={cn(
                 "relative overflow-hidden p-4 rounded-2xl border-2 transition-all duration-300 text-center group",
                 "hover:shadow-xl hover:scale-105",
-                data.objective === obj.value
+                data.objective?.name === obj.value.name
                   ? `bg-gradient-to-br ${obj.gradient} border-transparent shadow-xl scale-105`
                   : 'bg-white/40 backdrop-blur-sm border-white/50 hover:bg-white/60'
               )}
@@ -119,19 +137,19 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
               </div>
               <h3 className={cn(
                 "font-bold text-base mb-1 transition-colors",
-                data.objective === obj.value ? 'text-white' : 'text-gray-900'
+                data.objective?.name === obj.value.name ? 'text-white' : 'text-gray-900'
               )}>
                 {obj.title}
               </h3>
               <p className={cn(
                 "text-xs transition-colors",
-                data.objective === obj.value ? 'text-white/90' : 'text-gray-600'
+                data.objective?.name === obj.value.name ? 'text-white/90' : 'text-gray-600'
               )}>
-                {obj.description}
+                {obj.preview}
               </p>
 
               {/* Efeito visual */}
-              {data.objective === obj.value && (
+              {data.objective?.name === obj.value.name && (
                 <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 rounded-full -translate-y-8 translate-x-8" />
               )}
             </button>
@@ -258,8 +276,8 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
           </div>
 
           <Select
-            value={data.whatsapp_number_id || undefined}
-            onValueChange={(value) => onChange('whatsapp_number_id', value)}
+            value={data.instance_phone || undefined}
+            onValueChange={(value) => onChange('instance_phone', value)}
             disabled={isLoading}
           >
             <SelectTrigger className={cn(
@@ -269,7 +287,13 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
               "data-[placeholder]:text-gray-500",
               isLoading && 'opacity-50 cursor-not-allowed'
             )}>
-              <SelectValue placeholder="Selecione um número (opcional)" />
+              {data.instance_phone ? (
+                <span className="flex items-center gap-2">
+                  📞 {formatPhone(data.instance_phone)}
+                </span>
+              ) : (
+                <span className="text-gray-500">Selecione um número (opcional)</span>
+              )}
             </SelectTrigger>
             <SelectContent className="rounded-xl border-2 border-white/50 bg-white/95 backdrop-blur-lg shadow-2xl">
               <SelectItem
@@ -283,11 +307,11 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
               {whatsappInstances.map((instance) => (
                 <SelectItem
                   key={instance.id}
-                  value={instance.id}
+                  value={instance.phone}
                   className="rounded-lg hover:bg-green-50 focus:bg-green-100 cursor-pointer transition-colors"
                 >
                   <span className="flex items-center gap-2">
-                    📞 {instance.phone || instance.instance_name}
+                    📞 {formatPhone(instance.phone) || instance.instance_name}
                   </span>
                 </SelectItem>
               ))}

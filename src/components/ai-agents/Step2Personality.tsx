@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 
 interface Step2PersonalityProps {
   data: {
-    communication_style: string;
-    agent_profile: string;
+    communication_style: { name: string; description: string };
+    agent_function: string;
     signature: string;
     prohibitions: string[];
   };
@@ -22,7 +22,10 @@ export const Step2Personality = ({ data, onChange }: Step2PersonalityProps) => {
 
   const communicationStyles = [
     {
-      value: 'formal',
+      value: {
+        name: 'Formal',
+        description: 'Use linguagem formal e respeitosa. Trate o cliente com "Senhor(a)" ou "Você" de forma educada. Evite gírias, abreviações ou emojis. Seja objetivo, claro e mantenha tom profissional em todas as interações. Use vocabulário técnico quando necessário e sempre demonstre seriedade.'
+      },
       icon: '👔',
       title: 'FORMAL',
       subtitle: 'Sério e profissional',
@@ -30,7 +33,10 @@ export const Step2Personality = ({ data, onChange }: Step2PersonalityProps) => {
       gradient: 'from-gray-600 to-gray-700'
     },
     {
-      value: 'normal',
+      value: {
+        name: 'Normal',
+        description: 'Use linguagem natural e acessível. Seja cordial sem ser formal demais. Pode usar "você" de forma amigável. Evite gírias excessivas, mas pode usar termos cotidianos. Seja claro, direto e mantenha equilíbrio entre profissionalismo e proximidade. Emojis ocasionais são aceitáveis.'
+      },
       icon: '💼',
       title: 'NORMAL',
       subtitle: 'Profissional e acessível',
@@ -38,7 +44,10 @@ export const Step2Personality = ({ data, onChange }: Step2PersonalityProps) => {
       gradient: 'from-blue-500 to-blue-600'
     },
     {
-      value: 'casual',
+      value: {
+        name: 'Descontraído',
+        description: 'Seja amigável e próximo como um amigo. Use linguagem casual, gírias leves e emojis para transmitir emoção. Trate o cliente de forma pessoal e descontraída. Faça a conversa fluir naturalmente, com bom humor quando apropriado. Evite ser excessivamente informal a ponto de perder credibilidade.'
+      },
       icon: '😄',
       title: 'DESCONTRAÍDO',
       subtitle: 'Amigável e próximo',
@@ -59,7 +68,7 @@ export const Step2Personality = ({ data, onChange }: Step2PersonalityProps) => {
     onChange('prohibitions', updated);
   };
 
-  const selectedStyle = communicationStyles.find(s => s.value === data.communication_style);
+  const selectedStyle = communicationStyles.find(s => s.value.name === data.communication_style?.name);
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 relative z-20">
@@ -76,12 +85,12 @@ export const Step2Personality = ({ data, onChange }: Step2PersonalityProps) => {
         <div className="max-w-[70%] mx-auto grid grid-cols-1 md:grid-cols-3 gap-3">
           {communicationStyles.map((style) => (
             <button
-              key={style.value}
+              key={style.value.name}
               onClick={() => onChange('communication_style', style.value)}
               className={cn(
                 "relative overflow-hidden p-4 rounded-2xl border-2 transition-all duration-300 text-center group",
                 "hover:shadow-xl hover:scale-105",
-                data.communication_style === style.value
+                data.communication_style?.name === style.value.name
                   ? `bg-gradient-to-br ${style.gradient} border-transparent shadow-xl scale-105`
                   : 'bg-white/40 backdrop-blur-sm border-white/50 hover:bg-white/60'
               )}
@@ -91,25 +100,25 @@ export const Step2Personality = ({ data, onChange }: Step2PersonalityProps) => {
               </div>
               <h3 className={cn(
                 "font-bold text-base mb-1 transition-colors",
-                data.communication_style === style.value ? 'text-white' : 'text-gray-900'
+                data.communication_style?.name === style.value.name ? 'text-white' : 'text-gray-900'
               )}>
                 {style.title}
               </h3>
               <p className={cn(
                 "text-xs mb-2 transition-colors",
-                data.communication_style === style.value ? 'text-white/90' : 'text-gray-600'
+                data.communication_style?.name === style.value.name ? 'text-white/90' : 'text-gray-600'
               )}>
                 {style.subtitle}
               </p>
               <div className={cn(
                 "text-[10px] italic p-2 rounded-lg transition-colors",
-                data.communication_style === style.value ? 'bg-white/20 text-white' : 'bg-white/60 text-gray-500'
+                data.communication_style?.name === style.value.name ? 'bg-white/20 text-white' : 'bg-white/60 text-gray-500'
               )}>
                 "{style.preview}"
               </div>
 
               {/* Efeito visual */}
-              {data.communication_style === style.value && (
+              {data.communication_style?.name === style.value.name && (
                 <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 rounded-full -translate-y-8 translate-x-8" />
               )}
             </button>
@@ -136,8 +145,8 @@ export const Step2Personality = ({ data, onChange }: Step2PersonalityProps) => {
           </div>
 
           <Textarea
-            value={data.agent_profile}
-            onChange={(e) => onChange('agent_profile', e.target.value)}
+            value={data.agent_function}
+            onChange={(e) => onChange('agent_function', e.target.value)}
             placeholder="Ex: Deve ser educado, paciente e sempre ajudar o cliente. Faz perguntas para entender melhor antes de responder. Nunca é grosseiro."
             className="min-h-[120px] text-base bg-white/60 border-2 border-white/50 focus:border-purple-500 rounded-xl transition-all"
             required

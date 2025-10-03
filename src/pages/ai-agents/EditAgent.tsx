@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { WizardSteps } from "@/components/ai-agents/WizardSteps";
 import { Step1Basic } from "@/components/ai-agents/Step1Basic";
@@ -19,7 +19,9 @@ const WIZARD_STEPS = [
 export default function EditAgent() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [searchParams] = useSearchParams();
+  const stepFromUrl = parseInt(searchParams.get('step') || '1', 10);
+  const [currentStep, setCurrentStep] = useState(stepFromUrl);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -27,32 +29,48 @@ export default function EditAgent() {
   const [formData, setFormData] = useState({
     // Step 1 - Básico
     name: "",
-    objective: "sales" as "sales" | "support" | "qualification",
+    objective: {
+      name: "Vendas",
+      description: "Seu objetivo é vender. Conduza a conversa para entender a necessidade do cliente, apresente soluções adequadas, contorne objeções de forma persuasiva e trabalhe ativamente para fechar a venda. Seja proativo em oferecer produtos/serviços e criar senso de urgência quando apropriado."
+    },
     funnel_id: null as string | null,
-    whatsapp_number_id: null as string | null,
+    instance_phone: null as string | null,
 
     // Step 2 - Personalidade
-    communication_style: "normal",
-    agent_profile: "",
+    communication_style: {
+      name: "Normal",
+      description: "Use linguagem natural e acessível. Seja cordial sem ser formal demais. Pode usar \"você\" de forma amigável. Evite gírias excessivas, mas pode usar termos cotidianos. Seja claro, direto e mantenha equilíbrio entre profissionalismo e proximidade. Emojis ocasionais são aceitáveis."
+    },
+    agent_function: "",
     prohibitions: [] as string[],
     signature: "",
 
     // Step 3 - Conhecimento
     company_info: "",
-    products_services: "",
     faq: [] as { question: string; answer: string }[],
   });
 
   useEffect(() => {
-    if (id) {
+    // Não tentar carregar se o ID for "new"
+    if (id && id !== 'new') {
       loadAgentData(id);
+    } else if (id === 'new') {
+      // Se for "new", redirecionar para criar agente
+      toast.error('Use a página de criar agente');
+      navigate('/ai-agents/create');
     }
-  }, [id]);
+  }, [id, navigate]);
+
+  useEffect(() => {
+    const stepFromUrl = parseInt(searchParams.get('step') || '1', 10);
+    if (stepFromUrl >= 1 && stepFromUrl <= 3) {
+      setCurrentStep(stepFromUrl);
+    }
+  }, [searchParams]);
 
   const loadAgentData = async (agentId: string) => {
     setIsLoading(true);
     try {
-      // Load agent basic data
       const { data: agent, error: agentError } = await supabase
         .from('ai_agents')
         .select('*')
@@ -61,29 +79,17 @@ export default function EditAgent() {
 
       if (agentError) throw agentError;
 
-      // Load agent prompt data
-      const { data: prompt, error: promptError } = await supabase
-        .from('ai_agent_prompts')
-        .select('*')
-        .eq('agent_id', agentId)
-        .single();
-
-      if (promptError && promptError.code !== 'PGRST116') {
-        throw promptError;
-      }
-
       setFormData({
         name: agent.name || "",
-        objective: agent.type || "sales",
+        objective: agent.objective || { name: "Vendas", description: "Agente focado em converter leads em clientes, utilizando técnicas de persuasão e fechamento de vendas" },
         funnel_id: agent.funnel_id,
-        whatsapp_number_id: agent.whatsapp_number_id,
-        communication_style: prompt?.communication_style || "normal",
-        agent_profile: prompt?.agent_objective || "",
-        prohibitions: prompt?.prohibitions || [],
-        signature: "",
-        company_info: prompt?.company_info || "",
-        products_services: prompt?.products_services || "",
-        faq: [],
+        instance_phone: agent.instance_phone || null,
+        communication_style: agent.communication_style || { name: "Normal", description: "Comunicação equilibrada entre profissionalismo e acessibilidade, mantendo cordialidade sem excessos de formalidade" },
+        agent_function: agent.agent_function || "",
+        prohibitions: agent.prohibitions || [],
+        signature: agent.signature || "",
+        company_info: agent.company_info || "",
+        faq: agent.faq || [],
       });
     } catch (error: any) {
       console.error('Erro ao carregar agente:', error);
@@ -119,36 +125,24 @@ export default function EditAgent() {
     setIsSaving(true);
 
     try {
-      // 1. Atualizar o agente
       const { error: agentError } = await supabase
         .from('ai_agents')
         .update({
           name: formData.name,
-          type: formData.objective,
+          objective: formData.objective,
           funnel_id: formData.funnel_id,
-          whatsapp_number_id: formData.whatsapp_number_id,
+          instance_phone: formData.instance_phone,
+          communication_style: formData.communication_style,
+          agent_function: formData.agent_function,
+          prohibitions: formData.prohibitions,
+          signature: formData.signature,
+          company_info: formData.company_info,
+          faq: formData.faq,
+          updated_at: new Date().toISOString()
         })
         .eq('id', id);
 
       if (agentError) throw agentError;
-
-      // 2. Atualizar ou criar o prompt do agente
-      const { error: promptError } = await supabase
-        .from('ai_agent_prompts')
-        .upsert({
-          agent_id: id,
-          communication_style: formData.communication_style,
-          company_info: formData.company_info,
-          products_services: formData.products_services,
-          prohibitions: formData.prohibitions,
-          rules_guidelines: [],
-          client_objections: [],
-          flow: []
-        }, {
-          onConflict: 'agent_id'
-        });
-
-      if (promptError) throw promptError;
 
       toast.success("Agente atualizado com sucesso!");
       navigate('/ai-agents');
@@ -203,7 +197,7 @@ export default function EditAgent() {
           )}
 
           {currentStep === 3 && (
-            <Step3Knowledge data={formData} onChange={handleFieldChange} />
+            <Step3Knowledge data={formData} onChange={handleFieldChange} agentId={id} />
           )}
         </div>
 

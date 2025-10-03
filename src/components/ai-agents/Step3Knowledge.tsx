@@ -19,9 +19,10 @@ interface Step3KnowledgeProps {
     faq: QAPair[];
   };
   onChange: (field: string, value: any) => void;
+  agentId?: string;
 }
 
-export const Step3Knowledge = ({ data, onChange }: Step3KnowledgeProps) => {
+export const Step3Knowledge = ({ data, onChange, agentId }: Step3KnowledgeProps) => {
   const navigate = useNavigate();
   const [faqExpanded, setFaqExpanded] = useState(false);
   const [newQuestion, setNewQuestion] = useState("");
@@ -56,8 +57,10 @@ export const Step3Knowledge = ({ data, onChange }: Step3KnowledgeProps) => {
   };
 
   const handleFlowBuilder = () => {
-    // Navegar para o flow builder (usar 'new' como placeholder se ainda não existe agente salvo)
-    const agentId = 'new'; // TODO: Passar o ID real do agente quando for implementado o salvamento
+    if (!agentId) {
+      console.error('⚠️ Agent ID não disponível');
+      return;
+    }
     navigate(`/ai-agents/flow-builder/${agentId}`);
   };
 

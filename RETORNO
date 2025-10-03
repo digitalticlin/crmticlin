@@ -1,21 +1,377 @@
-Etapa 1 - 
-Nesta etapa vamos corrigri algumas copys.
-
-Nos ícones de navegação exclua o tempo (30s, 1min, 2-3min)
-Retire o texto - Escolha a função do Funcionário
-Aumente um pouco o bold e px da frase "Selecione qual será o objetivo principal deste agente" e altere a frase para " Qual o objetivo principal desse funcionári?"
-
-Etappa 2 
-
-Dexe o titulo igual a etapa 1 apenas uma frase "Defina o estilo de comunicação"
-
-O card "Ele deve assinar as mensagens" colo ele deopis  do card de Poribições e deixe mais simples, apenas um aviso com comunicado em BREVe, pode ter o card 50% do tamanho.
-
-
-Etapa 3 
-
-O card do fluxo, não é opicional, vamos alterar completametne ele para.
-
-Criar fluxo de atendimento, (ou se conter o fluxo deve haver o card para editar o fluxo.)
-
-
+chunk-276SZO74.js?v=a139fff3:521 Warning: Encountered two children with the same key, `[object Object]`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at div
+    at div
+    at Step1Basic (http://localhost:8080/src/components/ai-agents/Step1Basic.tsx?t=1759463661673:30:30)
+    at div
+    at div
+    at EditAgent (http://localhost:8080/src/pages/ai-agents/EditAgent.tsx?t=1759463757333:52:22)
+    at Suspense
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:28:29)
+    at RoleGuard (http://localhost:8080/src/components/auth/RoleGuard.tsx:395:29)
+    at AdminGuard (http://localhost:8080/src/components/auth/AdminGuard.tsx:519:30)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8080/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=e9d42bdb:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1759463757333:1310:5)
+printWarning @ chunk-276SZO74.js?v=a139fff3:521Understand this error
+rhjgagzstjzynvrakdyj.supabase.co/rest/v1/whatsapp_instances?select=id%2Cphone%2Cinstance_name%2Cprofile_name&user_id=eq.9936ae64-b78c-48fe-97e8-bf67623349c6&order=phone.asc:1  Failed to load resource: the server responded with a status of 400 ()Understand this error
+6chunk-276SZO74.js?v=a139fff3:521 Warning: Encountered two children with the same key, `[object Object]`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at div
+    at div
+    at Step1Basic (http://localhost:8080/src/components/ai-agents/Step1Basic.tsx?t=1759463661673:30:30)
+    at div
+    at div
+    at EditAgent (http://localhost:8080/src/pages/ai-agents/EditAgent.tsx?t=1759463757333:52:22)
+    at Suspense
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:28:29)
+    at RoleGuard (http://localhost:8080/src/components/auth/RoleGuard.tsx:395:29)
+    at AdminGuard (http://localhost:8080/src/components/auth/AdminGuard.tsx:519:30)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8080/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=e9d42bdb:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1759463757333:1310:5)
+printWarning @ chunk-276SZO74.js?v=a139fff3:521Understand this error
+chunk-24BRHPTI.js?v=a139fff3:42 Select is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+(anonymous) @ chunk-24BRHPTI.js?v=a139fff3:42Understand this warning
+2chunk-276SZO74.js?v=a139fff3:521 Warning: Encountered two children with the same key, `[object Object]`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at div
+    at div
+    at Step1Basic (http://localhost:8080/src/components/ai-agents/Step1Basic.tsx?t=1759463661673:30:30)
+    at div
+    at div
+    at EditAgent (http://localhost:8080/src/pages/ai-agents/EditAgent.tsx?t=1759463757333:52:22)
+    at Suspense
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:28:29)
+    at RoleGuard (http://localhost:8080/src/components/auth/RoleGuard.tsx:395:29)
+    at AdminGuard (http://localhost:8080/src/components/auth/AdminGuard.tsx:519:30)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8080/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=e9d42bdb:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1759463757333:1310:5)
+printWarning @ chunk-276SZO74.js?v=a139fff3:521
+error @ chunk-276SZO74.js?v=a139fff3:505
+warnOnInvalidKey @ chunk-276SZO74.js?v=a139fff3:10219
+reconcileChildrenArray @ chunk-276SZO74.js?v=a139fff3:10235
+reconcileChildFibers2 @ chunk-276SZO74.js?v=a139fff3:10559
+reconcileChildren @ chunk-276SZO74.js?v=a139fff3:14292
+updateHostComponent @ chunk-276SZO74.js?v=a139fff3:14807
+beginWork @ chunk-276SZO74.js?v=a139fff3:15935
+beginWork$1 @ chunk-276SZO74.js?v=a139fff3:19753
+performUnitOfWork @ chunk-276SZO74.js?v=a139fff3:19198
+workLoopSync @ chunk-276SZO74.js?v=a139fff3:19137
+renderRootSync @ chunk-276SZO74.js?v=a139fff3:19116
+performConcurrentWorkOnRoot @ chunk-276SZO74.js?v=a139fff3:18678
+workLoop @ chunk-276SZO74.js?v=a139fff3:197
+flushWork @ chunk-276SZO74.js?v=a139fff3:176
+performWorkUntilDeadline @ chunk-276SZO74.js?v=a139fff3:384Understand this error
+chunk-24BRHPTI.js?v=a139fff3:42 Select is changing from uncontrolled to controlled. Components should not switch from controlled to uncontrolled (or vice versa). Decide between using a controlled or uncontrolled value for the lifetime of the component.
+(anonymous) @ chunk-24BRHPTI.js?v=a139fff3:42
+commitHookEffectListMount @ chunk-276SZO74.js?v=a139fff3:16915
+commitPassiveMountOnFiber @ chunk-276SZO74.js?v=a139fff3:18156
+commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=a139fff3:18129
+commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=a139fff3:18119
+commitPassiveMountEffects @ chunk-276SZO74.js?v=a139fff3:18109
+flushPassiveEffectsImpl @ chunk-276SZO74.js?v=a139fff3:19490
+flushPassiveEffects @ chunk-276SZO74.js?v=a139fff3:19447
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=a139fff3:18868
+flushSyncCallbacks @ chunk-276SZO74.js?v=a139fff3:9119
+commitRootImpl @ chunk-276SZO74.js?v=a139fff3:19432
+commitRoot @ chunk-276SZO74.js?v=a139fff3:19277
+finishConcurrentRender @ chunk-276SZO74.js?v=a139fff3:18805
+performConcurrentWorkOnRoot @ chunk-276SZO74.js?v=a139fff3:18718
+workLoop @ chunk-276SZO74.js?v=a139fff3:197
+flushWork @ chunk-276SZO74.js?v=a139fff3:176
+performWorkUntilDeadline @ chunk-276SZO74.js?v=a139fff3:384Understand this warning
+2chunk-276SZO74.js?v=a139fff3:521 Warning: Encountered two children with the same key, `[object Object]`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at div
+    at div
+    at Step2Personality (http://localhost:8080/src/components/ai-agents/Step2Personality.tsx?t=1759463757333:30:36)
+    at div
+    at div
+    at EditAgent (http://localhost:8080/src/pages/ai-agents/EditAgent.tsx?t=1759463757333:52:22)
+    at Suspense
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:28:29)
+    at RoleGuard (http://localhost:8080/src/components/auth/RoleGuard.tsx:395:29)
+    at AdminGuard (http://localhost:8080/src/components/auth/AdminGuard.tsx:519:30)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8080/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=e9d42bdb:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1759463757333:1310:5)
+printWarning @ chunk-276SZO74.js?v=a139fff3:521
+error @ chunk-276SZO74.js?v=a139fff3:505
+warnOnInvalidKey @ chunk-276SZO74.js?v=a139fff3:10219
+reconcileChildrenArray @ chunk-276SZO74.js?v=a139fff3:10235
+reconcileChildFibers2 @ chunk-276SZO74.js?v=a139fff3:10559
+reconcileChildren @ chunk-276SZO74.js?v=a139fff3:14290
+updateHostComponent @ chunk-276SZO74.js?v=a139fff3:14807
+beginWork @ chunk-276SZO74.js?v=a139fff3:15935
+beginWork$1 @ chunk-276SZO74.js?v=a139fff3:19753
+performUnitOfWork @ chunk-276SZO74.js?v=a139fff3:19198
+workLoopSync @ chunk-276SZO74.js?v=a139fff3:19137
+renderRootSync @ chunk-276SZO74.js?v=a139fff3:19116
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=a139fff3:18874
+flushSyncCallbacks @ chunk-276SZO74.js?v=a139fff3:9119
+(anonymous) @ chunk-276SZO74.js?v=a139fff3:18627Understand this error
+10chunk-276SZO74.js?v=a139fff3:521 Warning: Encountered two children with the same key, `[object Object]`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at div
+    at div
+    at Step2Personality (http://localhost:8080/src/components/ai-agents/Step2Personality.tsx?t=1759463757333:30:36)
+    at div
+    at div
+    at EditAgent (http://localhost:8080/src/pages/ai-agents/EditAgent.tsx?t=1759463757333:52:22)
+    at Suspense
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:28:29)
+    at RoleGuard (http://localhost:8080/src/components/auth/RoleGuard.tsx:395:29)
+    at AdminGuard (http://localhost:8080/src/components/auth/AdminGuard.tsx:519:30)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8080/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=e9d42bdb:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1759463757333:1310:5)
+printWarning @ chunk-276SZO74.js?v=a139fff3:521
+error @ chunk-276SZO74.js?v=a139fff3:505
+warnOnInvalidKey @ chunk-276SZO74.js?v=a139fff3:10219
+reconcileChildrenArray @ chunk-276SZO74.js?v=a139fff3:10235
+reconcileChildFibers2 @ chunk-276SZO74.js?v=a139fff3:10559
+reconcileChildren @ chunk-276SZO74.js?v=a139fff3:14292
+updateHostComponent @ chunk-276SZO74.js?v=a139fff3:14807
+beginWork @ chunk-276SZO74.js?v=a139fff3:15935
+beginWork$1 @ chunk-276SZO74.js?v=a139fff3:19753
+performUnitOfWork @ chunk-276SZO74.js?v=a139fff3:19198
+workLoopSync @ chunk-276SZO74.js?v=a139fff3:19137
+renderRootSync @ chunk-276SZO74.js?v=a139fff3:19116
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=a139fff3:18874
+flushSyncCallbacks @ chunk-276SZO74.js?v=a139fff3:9119
+flushSync @ chunk-276SZO74.js?v=a139fff3:18959
+finishEventHandler @ chunk-276SZO74.js?v=a139fff3:3569
+batchedUpdates @ chunk-276SZO74.js?v=a139fff3:3582
+dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=a139fff3:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=a139fff3:5478
+dispatchEvent @ chunk-276SZO74.js?v=a139fff3:5472
+dispatchDiscreteEvent @ chunk-276SZO74.js?v=a139fff3:5449Understand this error
+2chunk-276SZO74.js?v=a139fff3:521 Warning: Encountered two children with the same key, `[object Object]`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at div
+    at div
+    at Step2Personality (http://localhost:8080/src/components/ai-agents/Step2Personality.tsx?t=1759463757333:30:36)
+    at div
+    at div
+    at EditAgent (http://localhost:8080/src/pages/ai-agents/EditAgent.tsx?t=1759463757333:52:22)
+    at Suspense
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:28:29)
+    at RoleGuard (http://localhost:8080/src/components/auth/RoleGuard.tsx:395:29)
+    at AdminGuard (http://localhost:8080/src/components/auth/AdminGuard.tsx:519:30)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8080/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=e9d42bdb:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1759463757333:1310:5)
+printWarning @ chunk-276SZO74.js?v=a139fff3:521
+error @ chunk-276SZO74.js?v=a139fff3:505
+warnOnInvalidKey @ chunk-276SZO74.js?v=a139fff3:10219
+reconcileChildrenArray @ chunk-276SZO74.js?v=a139fff3:10235
+reconcileChildFibers2 @ chunk-276SZO74.js?v=a139fff3:10559
+reconcileChildren @ chunk-276SZO74.js?v=a139fff3:14292
+updateHostComponent @ chunk-276SZO74.js?v=a139fff3:14807
+beginWork @ chunk-276SZO74.js?v=a139fff3:15935
+beginWork$1 @ chunk-276SZO74.js?v=a139fff3:19753
+performUnitOfWork @ chunk-276SZO74.js?v=a139fff3:19198
+workLoopSync @ chunk-276SZO74.js?v=a139fff3:19137
+renderRootSync @ chunk-276SZO74.js?v=a139fff3:19116
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=a139fff3:18874
+flushSyncCallbacks @ chunk-276SZO74.js?v=a139fff3:9119
+(anonymous) @ chunk-276SZO74.js?v=a139fff3:18627Understand this error
+10chunk-276SZO74.js?v=a139fff3:521 Warning: Encountered two children with the same key, `[object Object]`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at div
+    at div
+    at Step2Personality (http://localhost:8080/src/components/ai-agents/Step2Personality.tsx?t=1759463757333:30:36)
+    at div
+    at div
+    at EditAgent (http://localhost:8080/src/pages/ai-agents/EditAgent.tsx?t=1759463757333:52:22)
+    at Suspense
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:28:29)
+    at RoleGuard (http://localhost:8080/src/components/auth/RoleGuard.tsx:395:29)
+    at AdminGuard (http://localhost:8080/src/components/auth/AdminGuard.tsx:519:30)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8080/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=e9d42bdb:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1759463757333:1310:5)
+printWarning @ chunk-276SZO74.js?v=a139fff3:521
+error @ chunk-276SZO74.js?v=a139fff3:505
+warnOnInvalidKey @ chunk-276SZO74.js?v=a139fff3:10219
+reconcileChildrenArray @ chunk-276SZO74.js?v=a139fff3:10235
+reconcileChildFibers2 @ chunk-276SZO74.js?v=a139fff3:10559
+reconcileChildren @ chunk-276SZO74.js?v=a139fff3:14292
+updateHostComponent @ chunk-276SZO74.js?v=a139fff3:14807
+beginWork @ chunk-276SZO74.js?v=a139fff3:15935
+beginWork$1 @ chunk-276SZO74.js?v=a139fff3:19753
+performUnitOfWork @ chunk-276SZO74.js?v=a139fff3:19198
+workLoopSync @ chunk-276SZO74.js?v=a139fff3:19137
+renderRootSync @ chunk-276SZO74.js?v=a139fff3:19116
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=a139fff3:18874
+flushSyncCallbacks @ chunk-276SZO74.js?v=a139fff3:9119
+flushSync @ chunk-276SZO74.js?v=a139fff3:18959
+finishEventHandler @ chunk-276SZO74.js?v=a139fff3:3569
+batchedUpdates @ chunk-276SZO74.js?v=a139fff3:3582
+dispatchEventForPluginEventSystem @ chunk-276SZO74.js?v=a139fff3:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-276SZO74.js?v=a139fff3:5478
+dispatchEvent @ chunk-276SZO74.js?v=a139fff3:5472
+dispatchDiscreteEvent @ chunk-276SZO74.js?v=a139fff3:5449Understand this error
+2chunk-276SZO74.js?v=a139fff3:521 Warning: Encountered two children with the same key, `[object Object]`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at div
+    at div
+    at Step2Personality (http://localhost:8080/src/components/ai-agents/Step2Personality.tsx?t=1759463757333:30:36)
+    at div
+    at div
+    at EditAgent (http://localhost:8080/src/pages/ai-agents/EditAgent.tsx?t=1759463757333:52:22)
+    at Suspense
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:28:29)
+    at RoleGuard (http://localhost:8080/src/components/auth/RoleGuard.tsx:395:29)
+    at AdminGuard (http://localhost:8080/src/components/auth/AdminGuard.tsx:519:30)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8080/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=3c1f9536:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=e9d42bdb:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1759463757333:1310:5)
+printWarning @ chunk-276SZO74.js?v=a139fff3:521
+error @ chunk-276SZO74.js?v=a139fff3:505
+warnOnInvalidKey @ chunk-276SZO74.js?v=a139fff3:10219
+reconcileChildrenArray @ chunk-276SZO74.js?v=a139fff3:10235
+reconcileChildFibers2 @ chunk-276SZO74.js?v=a139fff3:10559
+reconcileChildren @ chunk-276SZO74.js?v=a139fff3:14292
+updateHostComponent @ chunk-276SZO74.js?v=a139fff3:14807
+beginWork @ chunk-276SZO74.js?v=a139fff3:15935
+beginWork$1 @ chunk-276SZO74.js?v=a139fff3:19753
+performUnitOfWork @ chunk-276SZO74.js?v=a139fff3:19198
+workLoopSync @ chunk-276SZO74.js?v=a139fff3:19137
+renderRootSync @ chunk-276SZO74.js?v=a139fff3:19116
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=a139fff3:18874
+flushSyncCallbacks @ chunk-276SZO74.js?v=a139fff3:9119
+(anonymous) @ chunk-276SZO74.js?v=a139fff3:18627Understand this error
+@supabase_supabase-js.js?v=858972ea:3916  PATCH https://rhjgagzstjzynvrakdyj.supabase.co/rest/v1/ai_agents?id=eq.481766d9-2b00-4812-aeb1-9ea350a7ed71 400 (Bad Request)
+(anonymous) @ @supabase_supabase-js.js?v=858972ea:3916
+(anonymous) @ @supabase_supabase-js.js?v=858972ea:3937
+fulfilled @ @supabase_supabase-js.js?v=858972ea:3889
+Promise.then
+step @ @supabase_supabase-js.js?v=858972ea:3902
+(anonymous) @ @supabase_supabase-js.js?v=858972ea:3904
+__awaiter6 @ @supabase_supabase-js.js?v=858972ea:3886
+(anonymous) @ @supabase_supabase-js.js?v=858972ea:3927
+then @ @supabase_supabase-js.js?v=858972ea:89Understand this error
+EditAgent.tsx:156 Erro ao atualizar agente: {code: 'PGRST204', details: null, hint: null, message: "Could not find the 'type' column of 'ai_agents' in the schema cache"}

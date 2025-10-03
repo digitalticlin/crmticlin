@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { WizardSteps } from "@/components/ai-agents/WizardSteps";
@@ -20,24 +20,30 @@ export default function CreateAgent() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSaving, setIsSaving] = useState(false);
+  const [createdAgentId, setCreatedAgentId] = useState<string | null>(null);
 
   // Form data state
   const [formData, setFormData] = useState({
     // Step 1 - Básico
     name: "",
-    objective: "sales" as "sales" | "support" | "qualification",
+    objective: {
+      name: "Vendas",
+      description: "Seu objetivo é vender. Conduza a conversa para entender a necessidade do cliente, apresente soluções adequadas, contorne objeções de forma persuasiva e trabalhe ativamente para fechar a venda. Seja proativo em oferecer produtos/serviços e criar senso de urgência quando apropriado."
+    },
     funnel_id: null as string | null,
-    whatsapp_number_id: null as string | null,
+    instance_phone: null as string | null,
 
     // Step 2 - Personalidade
-    communication_style: "normal",
-    agent_profile: "",
+    communication_style: {
+      name: "Normal",
+      description: "Use linguagem natural e acessível. Seja cordial sem ser formal demais. Pode usar \"você\" de forma amigável. Evite gírias excessivas, mas pode usar termos cotidianos. Seja claro, direto e mantenha equilíbrio entre profissionalismo e proximidade. Emojis ocasionais são aceitáveis."
+    },
+    agent_function: "",
     prohibitions: [] as string[],
     signature: "",
 
     // Step 3 - Conhecimento
     company_info: "",
-    products_services: "",
     faq: [] as { question: string; answer: string }[],
   });
 
@@ -49,9 +55,65 @@ export default function CreateAgent() {
     setCurrentStep(stepNumber);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    // Se está indo para o step 3 e ainda não criou o agente, criar primeiro
+    if (currentStep === 2 && !createdAgentId) {
+      await autoSaveAgent();
+    }
+
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const autoSaveAgent = async () => {
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data: newAgent, error: agentError } = await supabase
+        .from('ai_agents')
+        .insert({
+          name: formData.name || 'Novo Agente',
+          objective: formData.objective,
+          funnel_id: formData.funnel_id,
+          instance_phone: formData.instance_phone,
+          communication_style: formData.communication_style,
+          agent_function: formData.agent_function,
+          prohibitions: formData.prohibitions,
+          signature: formData.signature,
+          company_info: formData.company_info,
+          faq: formData.faq,
+          flow: {
+            flow_metadata: {
+              version: "1.0",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+            steps: [],
+            canvas: {
+              nodes: [],
+              edges: []
+            }
+          },
+          status: 'inactive',
+          created_by_user_id: user.id
+        })
+        .select('id')
+        .single();
+
+      if (agentError) throw agentError;
+
+      if (newAgent?.id) {
+        setCreatedAgentId(newAgent.id);
+        toast.success("Rascunho do agente salvo!");
+      }
+    } catch (error: any) {
+      console.error('Erro ao salvar rascunho:', error);
+      toast.error(error.message || "Erro ao salvar agente");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -68,43 +130,65 @@ export default function CreateAgent() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // 1. Criar o agente
-      const { data: agent, error: agentError } = await supabase
-        .from('ai_agents')
-        .insert({
-          name: formData.name,
-          type: formData.objective,
-          funnel_id: formData.funnel_id,
-          whatsapp_number_id: formData.whatsapp_number_id,
-          status: 'active',
-          user_id: user.id
-        })
-        .select()
-        .single();
+      // Se já existe um agente criado (rascunho), atualizar ao invés de inserir
+      if (createdAgentId) {
+        const { error: updateError } = await supabase
+          .from('ai_agents')
+          .update({
+            name: formData.name,
+            objective: formData.objective,
+            funnel_id: formData.funnel_id,
+            instance_phone: formData.instance_phone,
+            communication_style: formData.communication_style,
+            agent_function: formData.agent_function,
+            prohibitions: formData.prohibitions,
+            signature: formData.signature,
+            company_info: formData.company_info,
+            faq: formData.faq,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', createdAgentId);
 
-      if (agentError) throw agentError;
+        if (updateError) throw updateError;
+      } else {
+        // Criar novo agente
+        const { error: agentError } = await supabase
+          .from('ai_agents')
+          .insert({
+            name: formData.name,
+            objective: formData.objective,
+            funnel_id: formData.funnel_id,
+            instance_phone: formData.instance_phone,
+            communication_style: formData.communication_style,
+            agent_function: formData.agent_function,
+            prohibitions: formData.prohibitions,
+            signature: formData.signature,
+            company_info: formData.company_info,
+            faq: formData.faq,
+            flow: {
+              flow_metadata: {
+                version: "1.0",
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              },
+              steps: [],
+              canvas: {
+                nodes: [],
+                edges: []
+              }
+            },
+            status: 'inactive',
+            created_by_user_id: user.id
+          });
 
-      // 2. Criar o prompt do agente
-      const { error: promptError } = await supabase
-        .from('ai_agent_prompts')
-        .insert({
-          agent_id: agent.id,
-          communication_style: formData.communication_style,
-          company_info: formData.company_info,
-          products_services: formData.products_services,
-          prohibitions: formData.prohibitions,
-          rules_guidelines: [],
-          client_objections: [],
-          flow: []
-        });
+        if (agentError) throw agentError;
+      }
 
-      if (promptError) throw promptError;
-
-      toast.success("Agente criado com sucesso!");
+      toast.success("Agente salvo com sucesso!");
       navigate('/ai-agents');
     } catch (error: any) {
-      console.error('Erro ao criar agente:', error);
-      toast.error(error.message || "Erro ao criar agente");
+      console.error('Erro ao salvar agente:', error);
+      toast.error(error.message || "Erro ao salvar agente");
     } finally {
       setIsSaving(false);
     }
@@ -143,7 +227,7 @@ export default function CreateAgent() {
           )}
 
           {currentStep === 3 && (
-            <Step3Knowledge data={formData} onChange={handleFieldChange} />
+            <Step3Knowledge data={formData} onChange={handleFieldChange} agentId={createdAgentId || undefined} />
           )}
         </div>
 
