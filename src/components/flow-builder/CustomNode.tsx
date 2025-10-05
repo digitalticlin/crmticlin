@@ -191,7 +191,7 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
     <>
       <div
         className={`
-          relative min-w-[200px] md:min-w-[220px] rounded-2xl border-2 ${colorClass}
+          relative min-w-[200px] md:min-w-[220px] max-w-[220px] rounded-2xl border-2 ${colorClass}
           glass
           transition-smooth hover:scale-105 active:scale-95 group touch-manipulation
         `}
@@ -210,7 +210,7 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <div className="font-semibold text-xs md:text-sm">{data.label}</div>
+                <div className="font-semibold text-xs md:text-sm truncate">{data.label}</div>
                 {data.type === 'start' && (
                   isConfigured ? (
                     <CircleCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-green-600" title="Configurado" />
@@ -220,7 +220,7 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
                 )}
               </div>
               {data.description && (
-                <div className="text-[10px] md:text-xs text-muted-foreground/80 line-clamp-2 mt-1 md:mt-2">
+                <div className="text-[10px] md:text-xs text-muted-foreground/80 line-clamp-2 mt-1 md:mt-2 break-words">
                   {data.description}
                 </div>
               )}
