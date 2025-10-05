@@ -372,6 +372,7 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
           initialData={{
             label: data.label,
             messages: data.messages || [],
+            decisions: data.decisions || [],
             description: data.description
           }}
           onSave={handleSave}
