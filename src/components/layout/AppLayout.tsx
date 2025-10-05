@@ -1,5 +1,6 @@
 import React from 'react';
 import ResponsiveSidebar from './ResponsiveSidebar';
+import { BottomNavigation } from './BottomNavigation';
 import { BackgroundGradient } from '@/components/ui/BackgroundGradient';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -30,27 +31,30 @@ export function AppLayout({
       {/* Container principal com transições suaves */}
       <main className={cn(
         "min-h-screen z-30 transition-all duration-300",
-        isMobile 
-          ? "pt-14 w-full" 
-          : isCollapsed 
-            ? "ml-[64px] w-[calc(100vw-64px)]" 
+        isMobile
+          ? "pt-14 pb-20 w-full" // Adicionado pb-20 para espaço do bottom nav
+          : isCollapsed
+            ? "ml-[64px] w-[calc(100vw-64px)]"
             : "ml-[200px] w-[calc(100vw-200px)]"
       )}>
         {/* Container de conteúdo */}
         <div className={cn(
           "w-full",
-          fullHeight ? "h-[calc(100vh-3.5rem)] sm:h-screen" : "",
+          fullHeight ? (isMobile ? "h-[calc(100vh-8.5rem)]" : "h-screen") : "",
           !fullHeight && "px-4 sm:px-6 lg:px-8"
         )}>
           <div className={cn(
             fullHeight ? "h-full" : "py-6 lg:py-8 space-y-6 lg:space-y-8 mx-auto",
             !fullHeight && maxWidth,
-            isMobile && !fullHeight && "pt-6"
+            isMobile && !fullHeight && "pt-6 pb-6"
           )}>
             {children}
           </div>
         </div>
       </main>
+
+      {/* Bottom Navigation - apenas mobile */}
+      {isMobile && <BottomNavigation />}
     </div>
   );
 }

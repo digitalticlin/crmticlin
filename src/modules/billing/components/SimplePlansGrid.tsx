@@ -185,15 +185,15 @@ export const SimplePlansGrid = () => {
   const context = getUserContext();
 
   return (
-    <div id="plans-section" className="space-y-6">
-      <div className="text-center space-y-2">
-        <h2 className="text-3xl sm:text-4xl font-bold">{context.title}</h2>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+    <div id="plans-section" className="space-y-6 md:space-y-8">
+      <div className="text-center space-y-2 md:space-y-3 px-4 md:px-0">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold">{context.title}</h2>
+        <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
           {context.subtitle}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 px-4 md:px-0">
         {plans.map((plan) => {
           const Icon = plan.icon;
           const isActive = isPlanActive(plan.id);
@@ -202,53 +202,53 @@ export const SimplePlansGrid = () => {
           return (
             <Card
               key={plan.id}
-              className={`rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/40 animate-fade-in ${
+              className={`rounded-2xl md:rounded-3xl bg-white/35 backdrop-blur-lg border-2 border-white/30 shadow-2xl transition-all duration-500 hover:shadow-3xl md:hover:scale-[1.02] hover:bg-white/40 animate-fade-in ${
                 isActive
                   ? 'bg-gradient-to-br from-green-500/20 to-emerald-600/20 border-green-300'
                   : ''
               }`}
             >
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div className={`p-3 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/25 bg-gradient-to-r ${plan.color} text-white`}>
-                    <Icon className="h-6 w-6" />
+              <CardHeader className="pb-3 md:pb-4 p-4 md:p-6">
+                <div className="flex items-center justify-between mb-3 md:mb-0">
+                  <div className={`p-2 md:p-3 rounded-xl md:rounded-2xl bg-white/15 backdrop-blur-sm border border-white/25 bg-gradient-to-r ${plan.color} text-white`}>
+                    <Icon className="h-5 w-5 md:h-6 md:w-6" />
                   </div>
 
                   {plan.badge && (
-                    <Badge className={plan.badgeColor}>
+                    <Badge className={`text-xs md:text-sm ${plan.badgeColor}`}>
                       {plan.badge}
                     </Badge>
                   )}
                 </div>
 
-                <div className="space-y-1">
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
-                  <CardDescription>{plan.description}</CardDescription>
+                <div className="space-y-1 mt-3 md:mt-0">
+                  <CardTitle className="text-lg md:text-xl">{plan.name}</CardTitle>
+                  <CardDescription className="text-sm md:text-base">{plan.description}</CardDescription>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1 mt-3 md:mt-0">
                   <div className="flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">{plan.priceText}</span>
-                    <span className="text-sm text-muted-foreground">/{plan.period}</span>
+                    <span className="text-2xl md:text-3xl font-bold">{plan.priceText}</span>
+                    <span className="text-xs md:text-sm text-muted-foreground">/{plan.period}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MessageSquare className="h-4 w-4" />
+                  <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
+                    <MessageSquare className="h-3.5 w-3.5 md:h-4 md:w-4" />
                     <span>{plan.messages.toLocaleString('pt-BR')} mensagens IA</span>
                   </div>
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-4">
-                <ul className="space-y-2">
+              <CardContent className="space-y-3 md:space-y-4 p-4 md:p-6">
+                <ul className="space-y-1.5 md:space-y-2">
                   {plan.features.map((feature, index) => {
                     // Suportar formato **texto** para negrito (igual ao register)
                     const isBold = feature.startsWith('**') && feature.endsWith('**');
                     const text = isBold ? feature.slice(2, -2) : feature;
 
                     return (
-                      <li key={index} className="flex items-center gap-2 text-sm">
-                        <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <li key={index} className="flex items-center gap-2 text-xs md:text-sm">
+                        <CheckCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-green-500 flex-shrink-0" />
                         <span className={isBold ? 'font-bold' : ''}>{text}</span>
                       </li>
                     );
@@ -265,7 +265,7 @@ export const SimplePlansGrid = () => {
                       if (planData) handlePlanSelection(planData);
                     }
                   }}
-                  className="w-full transition-all duration-200 hover:scale-105"
+                  className="w-full h-11 md:h-12 text-sm md:text-base transition-all duration-200 md:hover:scale-105 active:scale-95"
                 >
                   {isActive ? (
                     <>
@@ -306,12 +306,12 @@ export const SimplePlansGrid = () => {
       </div>
 
       {/* Informação adicional */}
-      <div className="text-center">
-        <Card className="rounded-3xl bg-white/20 backdrop-blur-sm border border-dashed border-white/40 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4" />
-              <span>Cancele a qualquer momento • Sem taxas ocultas • Suporte em português</span>
+      <div className="text-center px-4 md:px-0">
+        <Card className="rounded-2xl md:rounded-3xl bg-white/20 backdrop-blur-sm border border-dashed border-white/40 shadow-lg">
+          <CardContent className="p-3 md:p-4">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 text-xs md:text-sm text-muted-foreground">
+              <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4 hidden md:block" />
+              <span className="text-center">Cancele a qualquer momento • Sem taxas ocultas • Suporte em português</span>
             </div>
           </CardContent>
         </Card>

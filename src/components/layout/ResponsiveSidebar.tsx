@@ -148,22 +148,9 @@ export default function ResponsiveSidebar() {
   if (isMobile) {
     return (
       <>
-        {/* Mobile Header fixo */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center px-4 border-b bg-white/25 backdrop-blur-lg border-white/30">
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="mr-3 hover:bg-white/15">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-[280px] bg-white/25 backdrop-blur-lg border-r border-white/30">
-              <div className="h-full flex flex-col">
-                <SidebarContent />
-              </div>
-            </SheetContent>
-          </Sheet>
+        {/* Mobile Header fixo - 100% transparente com glassmorphism */}
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-center px-4 border-b backdrop-blur-xl border-white/30 shadow-lg">
           <SidebarLogo isCollapsed={false} />
-          
         </div>
       </>
     );

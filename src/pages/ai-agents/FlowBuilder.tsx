@@ -21,6 +21,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ArrowLeft, MessageSquare, FileText, Send, GitBranch, CheckCircle, Phone, GraduationCap, Search, RotateCcw, UserCog, Target, Play, Link as LinkIcon, Image, MousePointer2, Hand, MessageCircleQuestion, Crown, RefreshCw, Calendar, CalendarClock, Images, Globe, Package, Wand2 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { CustomNode } from '@/components/flow-builder/CustomNode';
+import { MobileBlockDrawer } from '@/components/flow-builder/MobileBlockDrawer';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const nodeTypes = {
   custom: CustomNode,
@@ -89,6 +91,7 @@ const initialEdges: Edge[] = [];
 
 function FlowBuilderContent() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { agentId } = useParams<{ agentId: string }>();
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -221,25 +224,25 @@ function FlowBuilderContent() {
   );
 
   return (
-    <div className="w-full h-full flex gap-4 p-4 overflow-hidden bg-gradient-canvas">
+    <div className="w-full h-full flex gap-0 md:gap-4 p-0 md:p-4 overflow-hidden bg-gradient-canvas">
       {/* Canvas Principal com Glassmorphism - Ocupa espaço disponível */}
-      <div className="flex-1 h-full overflow-hidden relative glass border-2 border-white/30 rounded-2xl shadow-lg">
-        {/* Header Minimalista no Canto Esquerdo */}
-        <div className="absolute top-4 left-4 z-50 flex items-center gap-2">
+      <div className="flex-1 h-full overflow-hidden relative glass border-0 md:border-2 border-white/30 md:rounded-2xl shadow-lg">
+        {/* Header Minimalista */}
+        <div className="absolute top-2 md:top-4 left-2 md:left-4 z-50 flex items-center gap-1.5 md:gap-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate(`/ai-agents/edit/${agentId}?step=3`)}
-            className="h-9 w-9 rounded-lg glass hover:bg-white/40 transition-all shadow-lg border border-white/30"
+            className="h-8 w-8 md:h-9 md:w-9 rounded-lg glass hover:bg-white/40 transition-all shadow-lg border border-white/30"
           >
-            <ArrowLeft className="h-4 w-4 text-gray-700" />
+            <ArrowLeft className="h-3.5 w-3.5 md:h-4 md:w-4 text-gray-700" />
           </Button>
           <Button
             variant="default"
             size="sm"
             onClick={handleSave}
             disabled={isSaving || isSaved}
-            className={`h-9 px-4 rounded-lg glass border transition-all shadow-lg font-medium ${
+            className={`h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm rounded-lg glass border transition-all shadow-lg font-medium ${
               isSaved
                 ? 'bg-green-500/20 border-green-500/50 text-green-700'
                 : 'border-white/30 hover:bg-white/40 text-gray-700'
@@ -274,15 +277,26 @@ function FlowBuilderContent() {
         </ReactFlow>
 
         {/* Título do Fluxo - Posicionado no canto inferior direito */}
-        <div className="absolute bottom-4 right-4 z-10">
+        <div className="absolute bottom-2 md:bottom-4 right-2 md:right-4 z-10 hidden md:block">
           <div className="glass border border-white/30 rounded-lg px-4 py-2 shadow-lg">
             <p className="text-sm font-semibold text-gray-700">Fluxo de Atendimento da IA</p>
           </div>
         </div>
       </div>
 
-      {/* Sidebar Direita - Blocos Modernizado */}
-      <div className="w-[200px] flex-shrink-0 h-full overflow-y-auto overflow-x-hidden glass border-2 border-white/30 rounded-2xl shadow-lg kanban-horizontal-scroll">
+      {/* Mobile: Drawer flutuante */}
+      {isMobile && (
+        <MobileBlockDrawer
+          onAddNode={addNode}
+          blockTypes={BLOCK_TYPES}
+          premiumBlocks={PREMIUM_BLOCKS}
+          specialBlock={SPECIAL_BLOCK}
+        />
+      )}
+
+      {/* Desktop: Sidebar Direita - Blocos Modernizado */}
+      {!isMobile && (
+        <div className="w-[200px] flex-shrink-0 h-full overflow-y-auto overflow-x-hidden glass border-2 border-white/30 rounded-2xl shadow-lg kanban-horizontal-scroll">
           {/* Header Moderno com Ícones */}
           <div className="px-3 py-4 border-b border-white/20">
             <div className="flex items-center justify-center gap-2 mb-1">
@@ -433,7 +447,8 @@ function FlowBuilderContent() {
               </div>
             </div>
           </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -20,30 +20,30 @@ export default function Settings() {
       />
         
       <Tabs defaultValue="profile" className="w-full">
-        {/* Menu de abas reordenado: Perfil, WhatsApp, Equipe (apenas para admin) */}
+        {/* Menu de abas mobile responsive */}
         <div className="flex justify-center mb-6">
-          <TabsList className={`w-full max-w-2xl bg-white/80 backdrop-blur-sm border border-white/30 text-sm sm:text-base ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'} grid`}>
-            <TabsTrigger 
+          <TabsList className={`w-full max-w-2xl bg-white/80 backdrop-blur-sm border border-white/30 text-xs sm:text-base ${isAdmin ? 'grid-cols-3' : 'grid-cols-2'} grid gap-1 sm:gap-0 p-1`}>
+            <TabsTrigger
               value="profile"
-              className="flex items-center gap-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700"
+              className="flex items-center gap-1 sm:gap-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700 px-2 sm:px-3"
             >
-              <User className="h-4 w-4" />
-              Perfil
+              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="truncate">Perfil</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="whatsapp" 
-              className="flex items-center gap-2 data-[state=active]:bg-green-100 data-[state=active]:text-green-700"
+            <TabsTrigger
+              value="whatsapp"
+              className="flex items-center gap-1 sm:gap-2 data-[state=active]:bg-green-100 data-[state=active]:text-green-700 px-2 sm:px-3"
             >
-              <MessageSquare className="h-4 w-4" />
-              WhatsApp
+              <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="truncate">WhatsApp</span>
             </TabsTrigger>
             {isAdmin && (
-              <TabsTrigger 
+              <TabsTrigger
                 value="team"
-                className="flex items-center gap-2 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700"
+                className="flex items-center gap-1 sm:gap-2 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 px-2 sm:px-3"
               >
-                <Users className="h-4 w-4" />
-                Equipe
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="truncate">Equipe</span>
               </TabsTrigger>
             )}
           </TabsList>

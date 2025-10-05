@@ -19,9 +19,12 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAIAgents } from "@/hooks/useAIAgents";
 import { AIAgent } from "@/types/aiAgent";
+import { AIAgentCard } from "@/components/ai-agents/AIAgentCard";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function AIAgents() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { agents, isLoading, deleteAgent, toggleAgentStatus, refetch } = useAIAgents();
   const [agentsConfig, setAgentsConfig] = useState<Record<string, any>>({});
   const [togglingStatus, setTogglingStatus] = useState<string | null>(null);
@@ -174,134 +177,159 @@ export default function AIAgents() {
         action={createAgentAction}
       />
       
-      <ChartCard 
-        title="Agentes Ativos" 
+      <ChartCard
+        title="Agentes Ativos"
         description="Agentes de IA disponíveis para uso nos seus números de WhatsApp"
       >
         <div className="mt-4 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left border-b border-gray-200 dark:border-gray-700">
-                  <th className="pb-2 font-medium">Agente</th>
-                  <th className="pb-2 font-medium">Configuração</th>
-                  <th className="pb-2 font-medium text-center">Mensagens</th>
-                  <th className="pb-2 font-medium text-center">Status</th>
-                  <th className="pb-2 font-medium text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {agents.map((agent) => (
-                  <tr key={agent.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                    {/* Coluna Agente */}
-                    <td className="py-4">
-                      <div className="flex items-center">
-                        <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-ticlin/20 to-ticlin/10 grid place-items-center mr-3 border border-ticlin/20">
-                          {getTypeIcon(agent.type)}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-900">{agent.name}</div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Criado em {new Date(agent.created_at).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Coluna Configuração */}
-                    <td className="py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${agentsConfig[agent.id]?.hasPrompt ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                          <span className="text-xs text-gray-600">
-                            {agentsConfig[agent.id]?.hasPrompt ? 'Prompt configurado' : 'Prompt pendente'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${(agentsConfig[agent.id]?.flowSteps || 0) > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                          <span className="text-xs text-gray-600">
-                            Fluxo ({agentsConfig[agent.id]?.flowSteps || 0} passos)
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${agent.funnel_id ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                          <span className="text-xs text-gray-600">
-                            {agent.funnel_id ? 'Funil conectado' : 'Sem funil'}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Coluna Mensagens */}
-                    <td className="py-4">
-                      <div className="text-center">
-                        <div className="font-bold text-xl text-gray-900">
-                          {agent.messages_count.toLocaleString()}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          mensagens enviadas
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Coluna Status */}
-                    <td className="py-4">
-                      <div className="flex justify-center items-center">
-                        <Switch 
-                          checked={agent.status === "active"} 
-                          onCheckedChange={() => handleToggleStatus(agent.id)}
-                          disabled={togglingStatus === agent.id}
-                        />
-                        {togglingStatus === agent.id && (
-                          <div className="ml-2 animate-spin h-4 w-4 border-2 border-ticlin border-t-transparent rounded-full"></div>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Coluna Ações */}
-                    <td className="py-4">
-                      <div className="flex justify-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditAgent(agent)}
-                          className="h-9 w-9 p-0 hover:bg-ticlin/10 hover:text-ticlin transition-colors"
-                          title="Editar agente"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleDeleteAgent(agent)}
-                          className="h-9 w-9 p-0 hover:bg-red-50 hover:text-red-600 transition-colors"
-                          title="Excluir agente"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {agents.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Nenhum agente de IA configurado. Crie seu primeiro agente para começar.</p>
+          {/* Mobile: Card View */}
+          {isMobile ? (
+            <div className="space-y-3">
+              {agents.map((agent) => (
+                <AIAgentCard
+                  key={agent.id}
+                  agent={agent}
+                  agentConfig={agentsConfig[agent.id] || { hasPrompt: false, flowSteps: 0 }}
+                  onEdit={() => handleEditAgent(agent)}
+                  onDelete={() => handleDeleteAgent(agent)}
+                  onToggleStatus={() => handleToggleStatus(agent.id)}
+                  isTogglingStatus={togglingStatus === agent.id}
+                />
+              ))}
+              {agents.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Nenhum agente de IA configurado. Crie seu primeiro agente para começar.</p>
+                </div>
+              )}
             </div>
+          ) : (
+            /* Desktop: Table View */
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left border-b border-gray-200 dark:border-gray-700">
+                      <th className="pb-2 font-medium">Agente</th>
+                      <th className="pb-2 font-medium">Configuração</th>
+                      <th className="pb-2 font-medium text-center">Mensagens</th>
+                      <th className="pb-2 font-medium text-center">Status</th>
+                      <th className="pb-2 font-medium text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agents.map((agent) => (
+                      <tr key={agent.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
+                        {/* Coluna Agente */}
+                        <td className="py-4">
+                          <div className="flex items-center">
+                            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-ticlin/20 to-ticlin/10 grid place-items-center mr-3 border border-ticlin/20">
+                              {getTypeIcon(agent.type)}
+                            </div>
+                            <div>
+                              <div className="font-semibold text-gray-900">{agent.name}</div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                Criado em {new Date(agent.created_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Coluna Configuração */}
+                        <td className="py-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${agentsConfig[agent.id]?.hasPrompt ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                              <span className="text-xs text-gray-600">
+                                {agentsConfig[agent.id]?.hasPrompt ? 'Prompt configurado' : 'Prompt pendente'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${(agentsConfig[agent.id]?.flowSteps || 0) > 0 ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                              <span className="text-xs text-gray-600">
+                                Fluxo ({agentsConfig[agent.id]?.flowSteps || 0} passos)
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${agent.funnel_id ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                              <span className="text-xs text-gray-600">
+                                {agent.funnel_id ? 'Funil conectado' : 'Sem funil'}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Coluna Mensagens */}
+                        <td className="py-4">
+                          <div className="text-center">
+                            <div className="font-bold text-xl text-gray-900">
+                              {agent.messages_count.toLocaleString()}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              mensagens enviadas
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Coluna Status */}
+                        <td className="py-4">
+                          <div className="flex justify-center items-center">
+                            <Switch
+                              checked={agent.status === "active"}
+                              onCheckedChange={() => handleToggleStatus(agent.id)}
+                              disabled={togglingStatus === agent.id}
+                            />
+                            {togglingStatus === agent.id && (
+                              <div className="ml-2 animate-spin h-4 w-4 border-2 border-ticlin border-t-transparent rounded-full"></div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Coluna Ações */}
+                        <td className="py-4">
+                          <div className="flex justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditAgent(agent)}
+                              className="h-9 w-9 p-0 hover:bg-ticlin/10 hover:text-ticlin transition-colors"
+                              title="Editar agente"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteAgent(agent)}
+                              className="h-9 w-9 p-0 hover:bg-red-50 hover:text-red-600 transition-colors"
+                              title="Excluir agente"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {agents.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Nenhum agente de IA configurado. Crie seu primeiro agente para começar.</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </ChartCard>
 
       {/* Modal de confirmação para exclusão */}
       <Dialog open={showDeleteConfirm} onOpenChange={() => setShowDeleteConfirm(false)}>
-        <DialogContent className="max-w-md bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-xl">
-          <DialogHeader className="border-b border-white/30 pb-3 bg-white/20 backdrop-blur-sm rounded-t-xl -mx-6 -mt-6 px-6 pt-6">
-            <DialogTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
+        <DialogContent className="max-w-md bg-white/20 backdrop-blur-md border border-white/30 shadow-glass md:rounded-xl rounded-none">
+          <DialogHeader className="border-b border-white/30 pb-3 bg-white/20 backdrop-blur-sm md:rounded-t-xl -mx-6 -mt-6 px-4 md:px-6 pt-4 md:pt-6">
+            <DialogTitle className="flex items-center gap-2 text-base md:text-lg font-bold text-gray-900">
               <div className="p-2 bg-red-500/20 backdrop-blur-sm rounded-lg border border-red-500/30">
-                <Trash2 className="h-5 w-5 text-red-600" />
+                <Trash2 className="h-4 w-4 md:h-5 md:w-5 text-red-600" />
               </div>
               Confirmar exclusão
             </DialogTitle>
@@ -311,23 +339,23 @@ export default function AIAgents() {
             <p className="text-gray-700 text-sm leading-relaxed mb-3">
               Tem certeza que deseja excluir o agente <strong>"{deletingAgent?.name}"</strong>?
             </p>
-            <p className="text-red-600 text-sm font-medium">
+            <p className="text-red-600 text-xs md:text-sm font-medium">
               ⚠️ Esta ação não pode ser desfeita. Todas as configurações, prompts e fluxos serão perdidos permanentemente.
             </p>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/30 bg-white/10 backdrop-blur-sm -mx-6 -mb-6 px-6 pb-6 rounded-b-xl">
-            <Button 
-              type="button" 
-              variant="outline" 
+          <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t border-white/30 bg-white/10 backdrop-blur-sm -mx-6 -mb-6 px-4 md:px-6 pb-4 md:pb-6 md:rounded-b-xl">
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => setShowDeleteConfirm(false)}
-              className="px-4 h-10 bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-lg transition-all duration-200"
+              className="w-full sm:w-auto px-4 h-10 bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-lg transition-all duration-200"
             >
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={confirmDeleteAgent}
-              className="px-4 h-10 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-all duration-200"
+              className="w-full sm:w-auto px-4 h-10 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-all duration-200"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Excluir Agente

@@ -29,18 +29,24 @@ export default function DashboardHeader({}: DashboardHeaderProps) {
   };
 
   return (
-    <div className="flex justify-between items-center mb-8 rounded-2xl bg-white/30 backdrop-blur-lg border border-white/30 p-6 shadow-lg">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">{greeting}</h1>
-        <p className="text-gray-800 font-medium">Bem-vindo de volta ao seu dashboard</p>
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6 md:mb-8 rounded-2xl bg-white/30 backdrop-blur-lg border border-white/30 p-4 sm:p-6 shadow-lg">
+      <div className="flex-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{greeting}</h1>
+        <p className="text-sm sm:text-base text-gray-800 font-medium hidden sm:block">
+          Bem-vindo de volta ao seu dashboard
+        </p>
+        {/* Versão mobile mais curta */}
+        <p className="text-sm text-gray-800 font-medium sm:hidden">
+          Seu dashboard
+        </p>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4 self-end sm:self-auto">
         {/* Botão de notificações */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label="Notificações"
-          className="hover:bg-white/20 rounded-xl backdrop-blur-sm"
+          className="hover:bg-white/20 rounded-xl backdrop-blur-sm h-10 w-10 sm:h-auto sm:w-auto"
         >
           <Bell className="w-5 h-5" />
         </Button>

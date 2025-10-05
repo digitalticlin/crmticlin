@@ -191,9 +191,9 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
     <>
       <div
         className={`
-          relative min-w-[220px] rounded-2xl border-2 ${colorClass}
+          relative min-w-[200px] md:min-w-[220px] rounded-2xl border-2 ${colorClass}
           glass
-          transition-smooth hover:scale-105 group
+          transition-smooth hover:scale-105 active:scale-95 group touch-manipulation
         `}
         style={{
           minHeight: minHeight
@@ -203,24 +203,24 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
         <div className={`absolute inset-0 bg-gradient-to-br ${bgClass} rounded-2xl opacity-50`} />
 
         {/* Content */}
-        <div className="relative p-4 pb-12">
-          <div className="flex items-start gap-3 mb-3">
-            <div className="p-2 rounded-xl glass-dark group-hover:animate-float">
-              <Icon className="w-5 h-5" />
+        <div className="relative p-3 md:p-4 pb-10 md:pb-12">
+          <div className="flex items-start gap-2 md:gap-3 mb-2 md:mb-3">
+            <div className="p-1.5 md:p-2 rounded-xl glass-dark group-hover:animate-float">
+              <Icon className="w-4 h-4 md:w-5 md:h-5" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <div className="font-semibold text-sm">{data.label}</div>
+                <div className="font-semibold text-xs md:text-sm">{data.label}</div>
                 {data.type === 'start' && (
                   isConfigured ? (
-                    <CircleCheck className="w-4 h-4 text-green-600" title="Configurado" />
+                    <CircleCheck className="w-3.5 h-3.5 md:w-4 md:h-4 text-green-600" title="Configurado" />
                   ) : (
-                    <CircleAlert className="w-4 h-4 text-orange-500" title="Não configurado" />
+                    <CircleAlert className="w-3.5 h-3.5 md:w-4 md:h-4 text-orange-500" title="Não configurado" />
                   )
                 )}
               </div>
               {data.description && (
-                <div className="text-xs text-muted-foreground/80 line-clamp-2 mt-2">
+                <div className="text-[10px] md:text-xs text-muted-foreground/80 line-clamp-2 mt-1 md:mt-2">
                   {data.description}
                 </div>
               )}
@@ -228,23 +228,23 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
           </div>
         </div>
 
-        {/* Botões Minimalistas - Footer Fixo */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 pt-0">
+        {/* Botões Minimalistas - Footer Fixo - Touch friendly no mobile */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 pt-0">
           <div className="flex gap-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsEditOpen(true)}
-              className="flex-1 h-7 glass-dark hover:bg-white/20 transition-smooth"
+              className="flex-1 h-9 md:h-7 glass-dark hover:bg-white/20 active:bg-white/30 transition-smooth"
               title="Editar"
             >
-              <Edit3 className="w-3 h-3" />
+              <Edit3 className="w-4 h-4 md:w-3 md:h-3" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={handleDelete}
-              className="flex-1 h-7 glass-dark hover:bg-red-500/20 transition-smooth text-red-600"
+              className="flex-1 h-9 md:h-7 glass-dark hover:bg-red-500/20 active:bg-red-500/30 transition-smooth text-red-600"
               title="Excluir"
             >
               <Trash2 className="w-3 h-3" />

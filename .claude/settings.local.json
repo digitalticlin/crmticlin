@@ -6,7 +6,9 @@
       "Bash(rm:*)",
       "Bash(powershell:*)",
       "Bash(grep:*)",
-      "Bash(npm run build:dev:*)"
+      "Bash(npm run build:dev:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nchore: Limpar projeto removendo 200 arquivos obsoletos da raiz\n\nRemove scripts temporários, arquivos de teste, debug e documentação\ntécnica obsoleta que estavam na raiz do projeto, mantendo apenas\narquivos essenciais de configuração.\n\nArquivos mantidos:\n- Configurações do projeto (vite, tailwind, postcss, eslint, jest)\n- ecosystem.config.js (PM2)\n- package.json e tsconfig\n- README.md e index.html\n\nTipos de arquivos removidos:\n- Scripts de migração/debug (.js, .ts, .sh, .ps1, .py)\n- Documentação técnica obsoleta (.md)\n- Scripts SQL de teste/debug\n- Arquivos temporários de teste\n- Backups de código antigo\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []

@@ -68,22 +68,23 @@ export default function Clients() {
 
   const addClientAction = (
     <div className="flex items-center gap-2">
-      <Button 
+      <Button
         variant="outline"
-        className="bg-white/20 backdrop-blur-md border-white/40 text-gray-800 hover:bg-white/30 hover:text-gray-900 rounded-xl px-4 py-2.5 font-medium shadow-lg"
+        className="bg-white/20 backdrop-blur-md border-white/40 text-gray-800 hover:bg-white/30 hover:text-gray-900 rounded-xl px-3 sm:px-4 py-2.5 font-medium shadow-lg"
         onClick={() => refetch()}
         disabled={isLoading}
       >
-        <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-        Atualizar
+        <RefreshCw className={`h-4 w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+        <span className="hidden sm:inline">Atualizar</span>
       </Button>
-      <Button 
-        className="bg-[#d3d800]/80 hover:bg-[#d3d800] text-black border-2 border-[#d3d800] rounded-xl px-6 py-2.5 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl backdrop-blur-sm"
+      <Button
+        className="bg-[#d3d800]/80 hover:bg-[#d3d800] text-black border-2 border-[#d3d800] rounded-xl px-3 sm:px-6 py-2.5 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl backdrop-blur-sm whitespace-nowrap"
         onClick={handleCreateClient}
         disabled={isLoading}
       >
-        <Plus className="h-4 w-4 mr-2" />
-        Adicionar Cliente
+        <Plus className="h-4 w-4 sm:mr-2" />
+        <span className="hidden sm:inline">Adicionar Cliente</span>
+        <span className="sm:hidden">Cliente</span>
       </Button>
     </div>
   );

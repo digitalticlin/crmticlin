@@ -71,42 +71,46 @@ export const ClientsSearchBar = ({
   };
 
   return (
-    <div className="bg-white/30 backdrop-blur-md rounded-2xl p-6 border border-white/40 shadow-xl">
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="flex gap-2 items-center flex-1 max-w-md">
-          <Search className="w-4 h-4 text-black" />
+    <div className="bg-white/30 backdrop-blur-md rounded-2xl p-4 md:p-6 border border-white/40 shadow-xl">
+      {/* Mobile: 2 linhas - busca em cima, botões embaixo */}
+      <div className="flex flex-col gap-3">
+        {/* Linha 1: Search bar full width no mobile */}
+        <div className="flex gap-2 items-center w-full">
+          <Search className="w-4 h-4 text-black flex-shrink-0" />
           <Input
-            placeholder="Buscar por nome, telefone, email ou empresa..."
+            placeholder="Buscar cliente..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="flex-1 bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-gray-800 placeholder:text-gray-600"
+            className="flex-1 bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-gray-800 placeholder:text-gray-600 h-10"
           />
         </div>
-        <div className="flex items-center gap-3">
+
+        {/* Linha 2: Botões de ação */}
+        <div className="flex items-center gap-2 justify-end">
           <AdvancedFiltersPopover />
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
-            className="flex items-center gap-2 rounded-xl bg-blue-600/20 backdrop-blur-sm border-blue-400/40 text-blue-800 hover:bg-blue-600/30 hover:text-blue-900"
+            className="flex items-center gap-1.5 rounded-xl bg-blue-600/20 backdrop-blur-sm border-blue-400/40 text-blue-800 hover:bg-blue-600/30 hover:text-blue-900 h-9 px-3"
             onClick={() => setShowImportModal(true)}
           >
             <Upload className="h-4 w-4" />
-            Importar
+            <span className="hidden sm:inline">Importar</span>
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
-            className="flex items-center gap-2 rounded-xl bg-white/20 backdrop-blur-sm border-white/40 text-gray-800 hover:bg-white/30 hover:text-gray-900"
+            className="flex items-center gap-1.5 rounded-xl bg-white/20 backdrop-blur-sm border-white/40 text-gray-800 hover:bg-white/30 hover:text-gray-900 h-9 px-3"
             onClick={exportToCSV}
             disabled={filteredClients.length === 0}
           >
             <FileSpreadsheet className="h-4 w-4" />
-            Exportar
+            <span className="hidden sm:inline">Exportar</span>
           </Button>
         </div>
       </div>
-      
-      <ImportSpreadsheetModal 
+
+      <ImportSpreadsheetModal
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
       />

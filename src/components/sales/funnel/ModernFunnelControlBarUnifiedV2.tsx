@@ -155,11 +155,11 @@ export function ModernFunnelControlBarUnifiedV2({
 
         {/* Conteúdo principal */}
         <div className="relative">
-          {/* Header: Tabs + Actions */}
-          <div className="flex items-center justify-between px-6 py-4">
+          {/* Header: Tabs + Actions - Mobile Responsive */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0 px-4 sm:px-6 py-3 sm:py-4">
 
-            {/* Left: Navigation Tabs */}
-            <div className="flex items-center gap-2">
+            {/* Left: Navigation Tabs - Mobile: Full width, Desktop: Auto */}
+            <div className="flex items-center gap-2 overflow-x-auto">
               <button
                 onClick={() => {
                   console.log('[ModernFunnelControlBarUnifiedV2] ⚡ Clicando em Board/Funil');
@@ -265,18 +265,18 @@ export function ModernFunnelControlBarUnifiedV2({
               </DropdownMenu>
             </div>
 
-            {/* Right: Action Buttons */}
-            <div className="flex items-center gap-3">
+            {/* Right: Action Buttons - Mobile: Full width grid, Desktop: Flex */}
+            <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto">
               {/* Botões de Ação Principais */}
               {!massSelection?.isSelectionMode && (
                 <>
                   {/* Botão + Lead */}
                   <Button
                     onClick={controlBar.openCreateLead}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg rounded-xl px-4 py-2 text-sm font-medium transition-all duration-200 hover:scale-105"
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg rounded-xl px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-all duration-200 hover:scale-105 whitespace-nowrap flex-shrink-0"
                   >
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    + Lead
+                    <UserPlus className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">+ Lead</span>
                   </Button>
 
                   {/* Botão + Tags */}
@@ -287,10 +287,10 @@ export function ModernFunnelControlBarUnifiedV2({
                       controlBar.openManageTags();
                     }}
                     variant="outline"
-                    className="bg-white/60 backdrop-blur-sm border-white/30 rounded-xl hover:bg-white/80"
+                    className="bg-white/60 backdrop-blur-sm border-white/30 rounded-xl hover:bg-white/80 px-3 sm:px-4 whitespace-nowrap flex-shrink-0"
                   >
-                    <Tag className="w-4 h-4 mr-2" />
-                    + Tags
+                    <Tag className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">+ Tags</span>
                   </Button>
 
                   {/* Botão Personalizar Funil */}
@@ -306,11 +306,11 @@ export function ModernFunnelControlBarUnifiedV2({
                       controlBar.openConfigureFunnel();
                     }}
                     variant="outline"
-                    className="bg-white/60 backdrop-blur-sm border-white/30 rounded-xl hover:bg-white/80"
+                    className="bg-white/60 backdrop-blur-sm border-white/30 rounded-xl hover:bg-white/80 px-3 sm:px-4 whitespace-nowrap flex-shrink-0 hidden sm:flex"
                     disabled={!selectedFunnel?.id}
                   >
-                    <Settings className="w-4 h-4 mr-2" />
-                    Personalizar
+                    <Settings className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Personalizar</span>
                   </Button>
                 </>
               )}
@@ -348,29 +348,30 @@ export function ModernFunnelControlBarUnifiedV2({
             </div>
           </div>
 
-          {/* 🔍 BARRA DE FILTROS */}
-          <div className="px-6 pb-4">
-            <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl px-4 py-2.5 shadow-lg">
-              <div className="flex items-center justify-center gap-4">
-              {/* Ícone de Filtro */}
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <Filter className="w-4 h-4 text-gray-500" />
-                <span className="text-xs font-medium text-gray-500">Filtros:</span>
-              </div>
-              {/* Campo de Busca */}
-              <div className="relative w-48">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Buscar leads..."
-                  value={localSearchTerm}
-                  onChange={handleSearchChange}
-                  className="pl-10 bg-white border-gray-200 rounded-xl h-9 text-sm placeholder:text-gray-400 focus:bg-white focus:border-blue-300 transition-all shadow-sm"
-                />
-              </div>
+          {/* 🔍 BARRA DE FILTROS - Mobile Responsive */}
+          <div className="px-3 sm:px-6 pb-3 sm:pb-4">
+            <div className="bg-white/30 backdrop-blur-lg border border-white/30 rounded-2xl px-3 sm:px-4 py-2.5 shadow-lg">
+              {/* Desktop: Uma linha com todos filtros */}
+              <div className="hidden sm:flex items-center justify-center gap-4">
+                {/* Ícone de Filtro */}
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <Filter className="w-4 h-4 text-gray-500" />
+                  <span className="text-xs font-medium text-gray-500">Filtros:</span>
+                </div>
+                {/* Campo de Busca */}
+                <div className="relative w-48 flex-shrink-0">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Buscar leads..."
+                    value={localSearchTerm}
+                    onChange={handleSearchChange}
+                    className="pl-10 bg-white border-gray-200 rounded-xl h-9 text-sm placeholder:text-gray-400 focus:bg-white focus:border-blue-300 transition-all shadow-sm w-full"
+                  />
+                </div>
 
-              {/* Filtro de Tags - Sempre visível */}
-              {true && (
+                {/* Filtro de Tags */}
+                {true && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -526,6 +527,144 @@ export function ModernFunnelControlBarUnifiedV2({
                   Limpar ({filters.getActiveFiltersCount()})
                 </Button>
               )}
+              </div>
+
+              {/* Mobile: Layout em 2 linhas */}
+              <div className="flex sm:hidden flex-col gap-2">
+                {/* Linha 1: Busca */}
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Buscar leads..."
+                    value={localSearchTerm}
+                    onChange={handleSearchChange}
+                    className="pl-10 bg-white border-gray-200 rounded-xl h-9 text-sm placeholder:text-gray-400 focus:bg-white focus:border-blue-300 transition-all shadow-sm w-full"
+                  />
+                </div>
+
+                {/* Linha 2: Filtros de Tags, Responsável e Limpar */}
+                <div className="flex items-center gap-2">
+                  {/* Mobile Tags - duplicado do desktop mas visível apenas em mobile */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="bg-white border border-gray-200 hover:border-gray-300 rounded-full h-8 px-3 text-gray-600 hover:text-gray-800 hover:bg-gray-50 transition-all text-xs font-medium shadow-sm flex-1"
+                      >
+                        <Tag className="w-3 h-3 mr-2" />
+                        Tags
+                        {filters.state.selectedTags.length > 0 && (
+                          <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700 text-xs h-4 px-1.5">
+                            {filters.state.selectedTags.length}
+                          </Badge>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-72 bg-white/95 backdrop-blur-xl border-white/30 shadow-2xl rounded-2xl">
+                      <div className="p-3">
+                        <div className="text-xs font-medium text-gray-500 mb-3">Filtrar por Tags</div>
+                        <div className="space-y-1 max-h-64 overflow-y-auto">
+                          {availableTags.length > 0 ? (
+                            availableTags.map((tag) => (
+                              <div
+                                key={tag.id}
+                                onClick={() => filters.toggleTag(tag.id)}
+                                className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-50 cursor-pointer group"
+                              >
+                                <div
+                                  className="w-3 h-3 rounded-full shadow-sm"
+                                  style={{ backgroundColor: tag.color }}
+                                />
+                                <span className="flex-1 text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                                  {tag.name}
+                                </span>
+                                {filters.state.selectedTags.includes(tag.id) && (
+                                  <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <span className="text-blue-600 text-xs">✓</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-4 text-center text-gray-500 text-sm">
+                              Nenhuma tag encontrada.<br />
+                              Adicione tags aos leads para filtrar.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Mobile Responsável - duplicado do desktop */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="bg-white border border-gray-200 hover:border-gray-300 rounded-full h-8 px-3 text-gray-600 hover:text-gray-800 hover:bg-gray-50 transition-all text-xs font-medium shadow-sm flex-1"
+                      >
+                        <Users className="w-3 h-3 mr-1.5" />
+                        Resp.
+                        {filters.state.selectedUser && filters.state.selectedUser !== "all" && (
+                          <Badge variant="secondary" className="ml-1.5 bg-green-100 text-green-700 text-xs h-4 px-1.5">
+                            1
+                          </Badge>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-64 bg-white/95 backdrop-blur-xl border-white/30 shadow-2xl rounded-2xl">
+                      <div className="p-3">
+                        <div className="text-xs font-medium text-gray-500 mb-3">Filtrar por Responsável</div>
+                        <div className="space-y-1">
+                          <div
+                            onClick={() => filters.setSelectedUser("all")}
+                            className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 cursor-pointer"
+                          >
+                            <span className="text-sm font-medium text-gray-700">Todos</span>
+                            {(!filters.state.selectedUser || filters.state.selectedUser === "all") && (
+                              <span className="text-blue-600 text-xs">✓</span>
+                            )}
+                          </div>
+                          {availableUsers.length > 0 ? (
+                            availableUsers.map((user) => (
+                              <div
+                                key={user}
+                                onClick={() => filters.setSelectedUser(user)}
+                                className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 cursor-pointer"
+                              >
+                                <span className="text-sm font-medium text-gray-700">
+                                  {user || "Sem responsável"}
+                                </span>
+                                {filters.state.selectedUser === user && (
+                                  <span className="text-blue-600 text-xs">✓</span>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="p-4 text-center text-gray-500 text-sm">
+                              Nenhum responsável disponível
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Mobile Limpar Filtros */}
+                  {filters.hasActiveFilters && (
+                    <Button
+                      onClick={filters.clearFilters}
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full h-8 px-3 text-xs font-medium border border-red-200 hover:border-red-300 transition-all flex-shrink-0"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

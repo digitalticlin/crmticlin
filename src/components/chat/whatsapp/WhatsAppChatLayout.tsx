@@ -117,10 +117,11 @@ export const WhatsAppChatLayout = ({
     <div className="h-full flex relative z-10 p-0 m-0">
       {/* Container principal com max-width de 1400px para consistência com Dashboard */}
       <div className="w-full max-w-[1400px] mx-auto flex relative h-full p-0">
-        {/* Mobile layout - comportamento atual */}
+        {/* Mobile layout - 100% transparente com glassmorphism */}
         <div className="lg:hidden w-full h-full">
           {!selectedContact ? (
-            <div className="w-full h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
+            // View de lista de conversas - 100% transparente
+            <div className="w-full h-full flex flex-col backdrop-blur-xl border border-white/30 rounded-2xl shadow-lg relative z-10 overflow-hidden">
               <WhatsAppContactsList
                 contacts={contacts}
                 selectedContact={selectedContact}
@@ -136,7 +137,8 @@ export const WhatsAppChatLayout = ({
               />
             </div>
           ) : (
-            <div className="w-full h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
+            // View de chat ativa - 100% transparente
+            <div className="w-full h-full flex flex-col backdrop-blur-xl border border-white/30 rounded-2xl shadow-lg relative z-10 overflow-hidden">
               <WhatsAppChatArea
                 selectedContact={selectedContact}
                 messages={messages}

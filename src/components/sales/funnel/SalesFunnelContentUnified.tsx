@@ -498,7 +498,7 @@ export function SalesFunnelContentUnified() {
                   hasActiveFilters={funnel.hasActiveFilters}
                   wonStageId={wonStageId}
                   lostStageId={lostStageId}
-                  onLoadMoreFromDatabase={funnel.loadMoreForStage} // 🚀 FASE 2: Conectar scroll infinito real
+                  onLoadMoreFromDatabase={funnel.loadMoreForStage}
                 />
               </>
             )
