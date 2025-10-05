@@ -167,7 +167,7 @@ export function PresentationEditor({
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="A IA se apresenta ao cliente e inicia a conversa..."
+                placeholder="Ex: Se apresentar e entender a mensagem do cliente para seguir o fluxo correto"
                 rows={3}
                 className="resize-none text-base bg-white/30 border-white/40 focus:border-green-500 focus:ring-green-500/20 rounded-xl placeholder:text-gray-600"
               />
@@ -231,7 +231,7 @@ export function PresentationEditor({
                   <div className="p-1.5 rounded-lg bg-green-100">
                     <ArrowRight className="h-3.5 w-3.5 text-green-600" />
                   </div>
-                  O que fazer com as respostas?
+                  O que fazer com a mensagem do cliente?
                 </Label>
                 <button
                   onClick={addDecisionOption}
@@ -263,7 +263,7 @@ export function PresentationEditor({
                       </div>
 
                       <div className="space-y-2">
-                        <Label className="text-xs text-gray-700">SE o cliente responder:</Label>
+                        <Label className="text-xs text-gray-700">SE o cliente falar:</Label>
                         <Input
                           value={option.condition}
                           onChange={(e) => updateDecisionOption(option.id, 'condition', e.target.value)}
