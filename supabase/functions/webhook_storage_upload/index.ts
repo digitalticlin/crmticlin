@@ -3,13 +3,51 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 console.log("🚀 Webhook Storage Upload Service - Direct Mode Only")
 
+// 🔐 Buscar SECRET para validação JWT
+const EDGE_FUNCTION_SECRET = Deno.env.get('EDGE_FUNCTION_SECRET')
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+console.log('🔑 Secret configurada:', !!EDGE_FUNCTION_SECRET)
+console.log('🔑 Service Role configurada:', !!SUPABASE_SERVICE_ROLE_KEY)
+
 serve(async (req) => {
   // 🔒 Apenas POST permitido
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
   }
 
-  // 🎯 SEM VERIFICAÇÃO JWT - Acesso direto interno
+  // 🔐 VALIDAR JWT - Aceitar Service Role ou Secret interna
+  const authHeader = req.headers.get('Authorization')
+
+  if (!authHeader) {
+    console.error('❌ Authorization header não fornecido')
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Authorization required'
+    }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 401
+    })
+  }
+
+  const token = authHeader.replace('Bearer ', '')
+
+  // ✅ Aceitar tanto SERVICE_ROLE_KEY quanto EDGE_FUNCTION_SECRET
+  const isValidToken = token === SUPABASE_SERVICE_ROLE_KEY || token === EDGE_FUNCTION_SECRET
+
+  if (!isValidToken) {
+    console.error('❌ Token inválido')
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Invalid token'
+    }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 403
+    })
+  }
+
+  console.log('✅ Token validado com sucesso')
+
   try {
     const body = await req.json()
 

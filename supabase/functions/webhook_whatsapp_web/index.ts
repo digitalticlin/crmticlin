@@ -9,8 +9,10 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const webhookSecret = Deno.env.get("WEBHOOK_SECRET");
+const edgeFunctionSecret = Deno.env.get("EDGE_FUNCTION_SECRET");
 console.log('[Webhook] 🚀 Inicializando webhook WhatsApp Web v3.1 - OTIMIZADO PARA MEMÓRIA');
 console.log('[Webhook] 🔑 Webhook secret configurado:', !!webhookSecret);
+console.log('[Webhook] 🔐 Edge Function secret configurada:', !!edgeFunctionSecret);
 // =====================================================================
 // 🧠 CONFIGURAÇÕES DE LIMITE DE MEMÓRIA
 // =====================================================================
@@ -580,6 +582,7 @@ async function processMessage(supabase, data) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`, // 🔐 Usar SERVICE_ROLE_KEY para upload
       },
       body: JSON.stringify({
         message_id: result.message_id,  // 🎯 ID CORRETO DA RPC

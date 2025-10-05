@@ -11,110 +11,88 @@ export function convertReactFlowToStructured(
 ): StructuredFlow {
   const steps: FlowStep[] = [];
 
-  // Mapear nodes por ordem de conexão (BFS a partir do start)
+  // Encontrar node de início
   const startNode = nodes.find(n => n.data.type === 'start');
   if (!startNode) {
     throw new Error('Fluxo deve ter um bloco de INÍCIO');
   }
 
-  // Criar letra do passo baseado na posição
   const stepLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-  let stepIndex = 0;
-  let variationCounters: Record<string, number> = {};
 
-  // Ordenar nodes por conexão (BFS)
-  const visited = new Set<string>();
-  const queue = [startNode.id];
-  const orderedNodes: Node[] = [];
+  // 🔧 CORREÇÃO: Calcular distância BFS de cada node
+  const distances = calculateBFSDistances(nodes, edges, startNode);
 
-  while (queue.length > 0) {
-    const currentId = queue.shift()!;
-    if (visited.has(currentId)) continue;
+  // 🔧 CORREÇÃO: Agrupar nodes pela MESMA distância
+  const nodesByDistance = groupNodesByDistance(nodes, distances);
 
-    visited.add(currentId);
-    const currentNode = nodes.find(n => n.id === currentId);
-    if (currentNode && currentNode.data.type !== 'start') {
-      orderedNodes.push(currentNode);
-    }
-
-    // Adicionar próximos nodes
-    const nextEdges = edges.filter(e => e.source === currentId);
-    nextEdges.forEach(edge => {
-      if (!visited.has(edge.target)) {
-        queue.push(edge.target);
-      }
-    });
-  }
-
-  // Agrupar nodes em passos
-  orderedNodes.forEach((node, index) => {
-    const stepLetter = stepLetters[stepIndex] || `STEP_${stepIndex}`;
+  // 🔧 CORREÇÃO: Criar PASSOS e VARIAÇÕES corretamente
+  nodesByDistance.forEach((nodesAtDistance, distance) => {
+    const stepLetter = stepLetters[distance - 1] || `STEP_${distance}`;
     const stepId = `PASSO ${stepLetter}`;
 
-    // Verificar se já existe passo com essa letra
-    let currentStep = steps.find(s => s.step_id === stepId);
-
-    if (!currentStep) {
-      // Criar novo passo
-      currentStep = {
-        step_id: stepId,
-        step_name: node.data.label || `Passo ${stepLetter}`,
-        variations: []
-      };
-      steps.push(currentStep);
-      variationCounters[stepId] = 1;
-      stepIndex++;
-    }
-
-    // Criar variação
-    const variationNumber = variationCounters[stepId] || 1;
-    const variationId = `PASSO ${stepLetter}${variationNumber}`;
-
-    // Extrair decisões do node
-    const nodeDecisions: StepDecision[] = (node.data.decisions || []).map((d: any, idx: number) => {
-      // Encontrar edge correspondente para descobrir target
-      const edge = edges.find(e => e.source === node.id && e.sourceHandle === d.outputHandle);
-      const targetNode = edge ? nodes.find(n => n.id === edge.target) : null;
-
-      return {
-        id: d.id || `d${idx}`,
-        type: d.type || 'if_user_says',
-        condition: d.condition || '',
-        action: d.action || null,
-        action_label: targetNode ? `VÁ PARA O ${getNodeStepId(targetNode, nodes, edges, stepLetters)}` : '',
-        target_step: targetNode ? getNodeStepId(targetNode, nodes, edges, stepLetters) : '',
-        target_variation: targetNode ? getNodeVariationId(targetNode, nodes, edges, stepLetters) : '',
-        priority: d.priority || idx
-      };
-    });
-
-    const variation: StepVariation = {
-      variation_id: variationId,
-      variation_name: node.data.label || `Variação ${variationNumber}`,
-      block_type: node.data.type || 'send_message',
-      position: node.position,
-
-      validation: node.data.validation || undefined,
-
-      messages: node.data.messages || [
-        { type: 'text', content: '', delay: 0 }
-      ],
-
-      decisions: nodeDecisions,
-
-      block_data: node.data.block_data || {},
-
-      control: {
-        max_attempts: node.data.control?.max_attempts || null,
-        is_required: node.data.control?.is_required || false,
-        timeout_seconds: node.data.control?.timeout_seconds || null
-      },
-
-      description: node.data.description || ''
+    const step: FlowStep = {
+      step_id: stepId,
+      step_name: `Passo ${stepLetter}`,
+      variations: []
     };
 
-    currentStep.variations.push(variation);
-    variationCounters[stepId]++;
+    // Cada node nessa distância é uma VARIAÇÃO do mesmo PASSO
+    nodesAtDistance.forEach((node, varIdx) => {
+      const variationId = `PASSO ${stepLetter}${varIdx + 1}`;
+
+      // Extrair decisões do node
+      const nodeDecisions: StepDecision[] = (node.data.decisions || []).map((d: any, idx: number) => {
+        const edge = edges.find(e => e.source === node.id && e.sourceHandle === d.outputHandle);
+        const targetNode = edge ? nodes.find(n => n.id === edge.target) : null;
+
+        return {
+          id: d.id || `d${idx}`,
+          type: d.type || 'if_user_says',
+          condition: d.condition || '',
+          action: d.action || null,
+          action_label: targetNode ? `VÁ PARA O ${getNodeStepLabel(targetNode, distances, stepLetters)}` : '',
+          target_step: targetNode ? getNodeStepLabel(targetNode, distances, stepLetters) : '',
+          target_variation: targetNode ? getNodeVariationLabel(targetNode, distances, stepLetters, nodesAtDistance) : '',
+          priority: d.priority || idx
+        };
+      });
+
+      // 🆕 Determinar action.type baseado no block_type
+      const actionType = getActionType(node.data.type);
+
+      const variation: StepVariation = {
+        variation_id: variationId,
+        variation_name: node.data.label || `Variação ${varIdx + 1}`,
+        block_type: node.data.type || 'send_message',
+        position: node.position,
+
+        // 🆕 NOVO: Campo action padronizado
+        action: {
+          type: actionType,
+          data: {
+            messages: node.data.messages || [],
+            decisions: nodeDecisions,
+            ...node.data.block_data
+          }
+        },
+
+        // Mantidos para retrocompatibilidade
+        validation: node.data.validation || undefined,
+        messages: node.data.messages || [{ type: 'text', content: '', delay: 0 }],
+        decisions: nodeDecisions,
+        block_data: node.data.block_data || {},
+        control: {
+          max_attempts: node.data.control?.max_attempts || null,
+          is_required: node.data.control?.is_required || false,
+          timeout_seconds: node.data.control?.timeout_seconds || null
+        },
+        description: node.data.description || ''
+      };
+
+      step.variations.push(variation);
+    });
+
+    steps.push(step);
   });
 
   return {
@@ -124,11 +102,74 @@ export function convertReactFlowToStructured(
       updated_at: new Date().toISOString()
     },
     steps,
-    canvas: {
-      nodes,
-      edges
-    }
+    canvas: { nodes, edges }
   };
+}
+
+// 🆕 NOVA: Calcular distância BFS de cada node
+function calculateBFSDistances(nodes: Node[], edges: Edge[], startNode: Node): Map<string, number> {
+  const distances = new Map<string, number>();
+  const queue = [{ id: startNode.id, dist: 0 }];
+  const visited = new Set<string>();
+
+  while (queue.length > 0) {
+    const { id, dist } = queue.shift()!;
+    if (visited.has(id)) continue;
+    visited.add(id);
+    distances.set(id, dist);
+
+    edges
+      .filter(e => e.source === id)
+      .forEach(e => queue.push({ id: e.target, dist: dist + 1 }));
+  }
+
+  return distances;
+}
+
+// 🆕 NOVA: Agrupar nodes pela mesma distância
+function groupNodesByDistance(nodes: Node[], distances: Map<string, number>): Map<number, Node[]> {
+  const groups = new Map<number, Node[]>();
+
+  nodes.forEach(node => {
+    if (node.data.type === 'start') return; // Ignorar node de início
+
+    const dist = distances.get(node.id) || 0;
+    if (!groups.has(dist)) {
+      groups.set(dist, []);
+    }
+    groups.get(dist)!.push(node);
+  });
+
+  return groups;
+}
+
+// 🆕 NOVA: Determinar action.type baseado no block_type
+function getActionType(blockType: string): 'send_and_wait' | 'send_only' | 'decision' | 'update_data' | 'end' {
+  const sendAndWait = ['ask_question', 'request_document', 'validate_document'];
+  const decision = ['branch_decision', 'check_if_done', 'retry_with_variation'];
+  const updateData = ['update_lead_data', 'move_lead_in_funnel'];
+  const end = ['end_conversation'];
+
+  if (sendAndWait.includes(blockType)) return 'send_and_wait';
+  if (decision.includes(blockType)) return 'decision';
+  if (updateData.includes(blockType)) return 'update_data';
+  if (end.includes(blockType)) return 'end';
+  return 'send_only';
+}
+
+// 🔧 NOVA: Obter label do passo baseado na distância
+function getNodeStepLabel(node: Node, distances: Map<string, number>, stepLetters: string[]): string {
+  const distance = distances.get(node.id) || 0;
+  const stepLetter = stepLetters[distance - 1] || `STEP_${distance}`;
+  return `PASSO ${stepLetter}`;
+}
+
+// 🔧 NOVA: Obter label da variação
+function getNodeVariationLabel(node: Node, distances: Map<string, number>, stepLetters: string[], nodesAtDistance: Node[]): string {
+  const distance = distances.get(node.id) || 0;
+  const stepLetter = stepLetters[distance - 1] || `STEP_${distance}`;
+  const varIdx = nodesAtDistance.findIndex(n => n.id === node.id);
+  return `PASSO ${stepLetter}${varIdx + 1}`;
 }
 
 /**
@@ -189,36 +230,4 @@ export function convertStructuredToReactFlow(
   });
 
   return { nodes, edges };
-}
-
-// Funções auxiliares
-function getNodeStepId(node: Node, nodes: Node[], edges: Edge[], stepLetters: string[]): string {
-  // Calcular distância do início (BFS)
-  const startNode = nodes.find(n => n.data.type === 'start');
-  if (!startNode) return 'PASSO A';
-
-  const distances = new Map<string, number>();
-  const queue = [{ id: startNode.id, dist: 0 }];
-  const visited = new Set<string>();
-
-  while (queue.length > 0) {
-    const { id, dist } = queue.shift()!;
-    if (visited.has(id)) continue;
-    visited.add(id);
-    distances.set(id, dist);
-
-    edges
-      .filter(e => e.source === id)
-      .forEach(e => queue.push({ id: e.target, dist: dist + 1 }));
-  }
-
-  const distance = distances.get(node.id) || 0;
-  const stepLetter = stepLetters[distance] || `STEP_${distance}`;
-  return `PASSO ${stepLetter}`;
-}
-
-function getNodeVariationId(node: Node, nodes: Node[], edges: Edge[], stepLetters: string[]): string {
-  const stepId = getNodeStepId(node, nodes, edges, stepLetters);
-  const stepLetter = stepId.replace('PASSO ', '');
-  return `${stepId}1`; // Simplificado, retorna primeira variação
 }

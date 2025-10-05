@@ -75,12 +75,22 @@ export interface StepControl {
   timeout_seconds: number | null;
 }
 
+// 🆕 NOVA: Interface para padronizar ações
+export interface ActionData {
+  type: 'send_and_wait' | 'send_only' | 'decision' | 'update_data' | 'end';
+  data: any; // Campos específicos de cada tipo de bloco
+}
+
 export interface StepVariation {
   variation_id: string;           // PASSO A1, PASSO A2, PASSO B1, PASSO B2...
   variation_name: string;
   block_type: string;              // ask_question, send_message, etc.
   position: { x: number; y: number };
 
+  // 🆕 NOVO: Campo action para padronizar
+  action: ActionData;
+
+  // ✅ Mantidos para retrocompatibilidade (serão movidos para action.data)
   validation?: StepValidation;
   messages: MessageContent[];
   decisions: StepDecision[];

@@ -8,7 +8,9 @@
       "Bash(grep:*)",
       "Bash(npm run build:dev:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nchore: Limpar projeto removendo 200 arquivos obsoletos da raiz\n\nRemove scripts temporários, arquivos de teste, debug e documentação\ntécnica obsoleta que estavam na raiz do projeto, mantendo apenas\narquivos essenciais de configuração.\n\nArquivos mantidos:\n- Configurações do projeto (vite, tailwind, postcss, eslint, jest)\n- ecosystem.config.js (PM2)\n- package.json e tsconfig\n- README.md e index.html\n\nTipos de arquivos removidos:\n- Scripts de migração/debug (.js, .ts, .sh, .ps1, .py)\n- Documentação técnica obsoleta (.md)\n- Scripts SQL de teste/debug\n- Arquivos temporários de teste\n- Backups de código antigo\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Padronizar JSONB e corrigir lógica de ramificações do Flow Builder\n\n**JSONB Padronizado:**\n- Adicionar campo `action` com `type` e `data` em todos os blocos\n- Definir action.type: send_and_wait | send_only | decision | update_data | end\n- Manter retrocompatibilidade com campos existentes\n\n**Lógica de Ramificações Corrigida:**\n- Implementar BFS correto para calcular distâncias\n- Agrupar nodes pela MESMA distância em variações (A1, A2, B1, B2)\n- Antes: sempre criava passos sequenciais (A, B, C, D...)\n- Agora: detecta ramificações e agrupa corretamente\n\n**Arquivos modificados:**\n- src/types/flowStructure.ts - interface ActionData\n- src/utils/flowConverter.ts - funções BFS e agrupamento\n- supabase/functions/webhook_whatsapp_web/index.ts - correção JWT upload\n\n**Exemplo de estrutura gerada:**\n```\nINÍCIO → Pergunta (dist=1) = PASSO A1\n         ├→ Sim (dist=2) = PASSO B1\n         └→ Não (dist=2) = PASSO B2  ← Mesma distância = VARIAÇÃO!\n```\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
