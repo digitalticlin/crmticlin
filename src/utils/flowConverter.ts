@@ -22,23 +22,25 @@ export function convertReactFlowToStructured(
   // 🔧 CORREÇÃO: Calcular distância BFS de cada node
   const distances = calculateBFSDistances(nodes, edges, startNode);
 
-  // 🔧 CORREÇÃO: Agrupar nodes pela MESMA distância
-  const nodesByDistance = groupNodesByDistance(nodes, distances);
+  // 🔧 CORREÇÃO: Agrupar nodes pela MESMA distância (incluindo START)
+  const nodesByDistance = groupNodesByDistance(nodes, distances, true);
 
   // 🔧 CORREÇÃO: Criar PASSOS e VARIAÇÕES corretamente
   nodesByDistance.forEach((nodesAtDistance, distance) => {
-    const stepLetter = stepLetters[distance - 1] || `STEP_${distance}`;
-    const stepId = `PASSO ${stepLetter}`;
+    // Se distance=0, é o bloco START
+    const isStartStep = distance === 0;
+    const stepLetter = isStartStep ? 'INÍCIO' : stepLetters[distance - 1] || `STEP_${distance}`;
+    const stepId = isStartStep ? 'INÍCIO' : `PASSO ${stepLetter}`;
 
     const step: FlowStep = {
       step_id: stepId,
-      step_name: `Passo ${stepLetter}`,
+      step_name: isStartStep ? 'Início' : `Passo ${stepLetter}`,
       variations: []
     };
 
     // Cada node nessa distância é uma VARIAÇÃO do mesmo PASSO
     nodesAtDistance.forEach((node, varIdx) => {
-      const variationId = `PASSO ${stepLetter}${varIdx + 1}`;
+      const variationId = isStartStep ? 'INÍCIO' : `PASSO ${stepLetter}${varIdx + 1}`;
 
       // Extrair decisões do node
       const nodeDecisions: StepDecision[] = (node.data.decisions || []).map((d: any, idx: number) => {
@@ -127,11 +129,12 @@ function calculateBFSDistances(nodes: Node[], edges: Edge[], startNode: Node): M
 }
 
 // 🆕 NOVA: Agrupar nodes pela mesma distância
-function groupNodesByDistance(nodes: Node[], distances: Map<string, number>): Map<number, Node[]> {
+function groupNodesByDistance(nodes: Node[], distances: Map<string, number>, includeStart: boolean = false): Map<number, Node[]> {
   const groups = new Map<number, Node[]>();
 
   nodes.forEach(node => {
-    if (node.data.type === 'start') return; // Ignorar node de início
+    // Se não deve incluir START, ignorar
+    if (!includeStart && node.data.type === 'start') return;
 
     const dist = distances.get(node.id) || 0;
     if (!groups.has(dist)) {
@@ -145,7 +148,7 @@ function groupNodesByDistance(nodes: Node[], distances: Map<string, number>): Ma
 
 // 🆕 NOVA: Determinar action.type baseado no block_type
 function getActionType(blockType: string): 'send_and_wait' | 'send_only' | 'decision' | 'update_data' | 'end' {
-  const sendAndWait = ['ask_question', 'request_document', 'validate_document'];
+  const sendAndWait = ['ask_question', 'request_document', 'validate_document', 'start'];
   const decision = ['branch_decision', 'check_if_done', 'retry_with_variation'];
   const updateData = ['update_lead_data', 'move_lead_in_funnel'];
   const end = ['end_conversation'];

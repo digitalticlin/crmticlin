@@ -80,7 +80,7 @@ const initialNodes: Node[] = [
     data: {
       label: 'Início',
       type: 'start',
-      description: 'Ponto inicial do fluxo do agente',
+      description: 'Se apresentar e entender a mensagem do cliente para seguir o fluxo correto',
       designStyle: 'glass',
     },
     position: { x: 250, y: 250 },
