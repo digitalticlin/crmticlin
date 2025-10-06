@@ -132,7 +132,10 @@ function FlowBuilderContent() {
 
         if (data?.flow) {
           const structuredFlow = data.flow;
+          console.log('📦 Fluxo carregado do banco:', structuredFlow);
+
           const { nodes: loadedNodes, edges: loadedEdges } = convertStructuredToReactFlow(structuredFlow);
+          console.log('🔄 Nodes após conversão:', loadedNodes);
 
           if (loadedNodes.length > 0) {
             setNodes(loadedNodes);

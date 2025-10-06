@@ -114,8 +114,8 @@ export function convertReactFlowToStructured(
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     },
-    steps,
-    canvas: { nodes, edges }
+    steps
+    // ❌ NÃO salvar canvas - sempre reconstruir dos steps para garantir dados atualizados
   };
 }
 
@@ -194,11 +194,14 @@ export function convertStructuredToReactFlow(
 ): { nodes: Node[]; edges: Edge[] } {
   if (structuredFlow.canvas?.nodes && structuredFlow.canvas?.edges) {
     // Se já tem canvas salvo, usar direto
+    console.log('📌 Usando canvas salvo diretamente');
     return {
       nodes: structuredFlow.canvas.nodes,
       edges: structuredFlow.canvas.edges
     };
   }
+
+  console.log('🔨 Reconstruindo do zero a partir dos steps');
 
   // Caso contrário, reconstruir do zero
   const nodes: Node[] = [];
