@@ -86,6 +86,7 @@ export interface StepVariation {
   variation_name: string;
   block_type: string;              // ask_question, send_message, etc.
   position: { x: number; y: number };
+  old_node_id?: string;            // ✅ ID original do ReactFlow para mapear edges
 
   // 🆕 NOVO: Campo action para padronizar
   action: ActionData;
@@ -113,5 +114,6 @@ export interface CanvasData {
 export interface StructuredFlow {
   flow_metadata: FlowMetadata;
   steps: FlowStep[];
-  canvas: CanvasData;
+  edges?: any[];  // ✅ Edges salvas para reconstruir conexões
+  canvas?: CanvasData;  // Opcional - usado apenas como fallback
 }

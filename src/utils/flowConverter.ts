@@ -78,6 +78,7 @@ export function convertReactFlowToStructured(
         variation_name: node.data.label || `Variação ${varIdx + 1}`,
         block_type: node.data.type || 'send_message',
         position: node.position,
+        old_node_id: node.id, // ✅ Guardar ID original para mapear edges
 
         // 🆕 NOVO: Campo action padronizado
         action: {
@@ -114,8 +115,15 @@ export function convertReactFlowToStructured(
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     },
-    steps
-    // ❌ NÃO salvar canvas - sempre reconstruir dos steps para garantir dados atualizados
+    steps,
+    // ✅ Salvar edges para reconstruir conexões
+    edges: edges.map(e => ({
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      sourceHandle: e.sourceHandle,
+      targetHandle: e.targetHandle
+    }))
   };
 }
 
@@ -207,6 +215,7 @@ export function convertStructuredToReactFlow(
   const nodes: Node[] = [];
   const edges: Edge[] = [];
   let nodeIdCounter = 0;
+  const oldIdToNewId = new Map<string, string>(); // Mapeamento de IDs antigos para novos
 
   // Converter variações para nodes (incluindo INÍCIO)
   structuredFlow.steps.forEach((step, stepIdx) => {
@@ -215,6 +224,11 @@ export function convertStructuredToReactFlow(
     step.variations.forEach((variation, varIdx) => {
       nodeIdCounter++;
       const nodeId = `${nodeIdCounter}`;
+
+      // Guardar mapeamento se existir old_node_id
+      if ((variation as any).old_node_id) {
+        oldIdToNewId.set((variation as any).old_node_id, nodeId);
+      }
 
       const nodeData = {
         label: variation.variation_name,
@@ -238,6 +252,24 @@ export function convertStructuredToReactFlow(
       });
     });
   });
+
+  // Reconstruir edges usando mapeamento de IDs
+  if (structuredFlow.edges && Array.isArray(structuredFlow.edges)) {
+    structuredFlow.edges.forEach((edgeData: any, idx: number) => {
+      const sourceId = oldIdToNewId.get(edgeData.source) || edgeData.source;
+      const targetId = oldIdToNewId.get(edgeData.target) || edgeData.target;
+
+      edges.push({
+        id: edgeData.id || `e${idx}`,
+        source: sourceId,
+        target: targetId,
+        sourceHandle: edgeData.sourceHandle,
+        targetHandle: edgeData.targetHandle,
+        type: 'default'
+      });
+    });
+    console.log(`🔗 Reconstruídas ${edges.length} conexões`);
+  }
 
   return { nodes, edges };
 }
