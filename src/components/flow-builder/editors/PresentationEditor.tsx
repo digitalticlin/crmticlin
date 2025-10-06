@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MessageText, Decision } from '@/types/flowBuilder';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -49,6 +49,24 @@ export function PresentationEditor({
       action: d.action
     })) || [{ id: '1', condition: '', action: '' }]
   );
+
+  // ✅ Atualizar estados quando initialData mudar
+  useEffect(() => {
+    if (initialData) {
+      setLabel(initialData.label || 'Início');
+      setDescription(initialData.description || '');
+      setMessageExamples(
+        initialData.messages?.map(m => m.type === 'text' ? m.content : '').filter(Boolean) || ['']
+      );
+      setDecisionOptions(
+        initialData.decisions?.map(d => ({
+          id: d.id || Date.now().toString(),
+          condition: d.condition,
+          action: d.action
+        })) || [{ id: '1', condition: '', action: '' }]
+      );
+    }
+  }, [initialData]);
 
   const addMessageExample = () => {
     setMessageExamples([...messageExamples, '']);
