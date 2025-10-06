@@ -42,6 +42,17 @@ export function convertReactFlowToStructured(
     nodesAtDistance.forEach((node, varIdx) => {
       const variationId = isStartStep ? 'INÍCIO' : `PASSO ${stepLetter}${varIdx + 1}`;
 
+      // DEBUG: Ver dados do node
+      if (isStartStep) {
+        console.log('🔍 DEBUG - Node START:', {
+          id: node.id,
+          label: node.data.label,
+          description: node.data.description,
+          messages: node.data.messages,
+          decisions: node.data.decisions
+        });
+      }
+
       // Extrair decisões do node
       const nodeDecisions: StepDecision[] = (node.data.decisions || []).map((d: any, idx: number) => {
         const edge = edges.find(e => e.source === node.id && e.sourceHandle === d.outputHandle);

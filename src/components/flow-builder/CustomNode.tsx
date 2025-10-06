@@ -136,23 +136,30 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
     : true;
 
   const handleSave = (savedData: any) => {
-    console.log('Dados salvos:', savedData);
+    console.log('✅ CustomNode - handleSave chamado:', {
+      nodeId: id,
+      nodeType: data.type,
+      savedData
+    });
 
     // Atualizar o nó no ReactFlow com os novos dados
     setNodes((nodes) =>
-      nodes.map((node) =>
-        node.id === id
-          ? {
-              ...node,
-              data: {
-                ...node.data,
-                ...savedData,
-                // Garantir que decisions seja salvo corretamente
-                decisions: savedData.decisions || node.data.decisions || []
-              }
+      nodes.map((node) => {
+        if (node.id === id) {
+          const updatedNode = {
+            ...node,
+            data: {
+              ...node.data,
+              ...savedData,
+              // Garantir que decisions seja salvo corretamente
+              decisions: savedData.decisions || node.data.decisions || []
             }
-          : node
-      )
+          };
+          console.log('✅ Node atualizado:', updatedNode);
+          return updatedNode;
+        }
+        return node;
+      })
     );
   };
 
