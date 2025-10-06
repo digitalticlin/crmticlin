@@ -192,22 +192,9 @@ export function convertStructuredToReactFlow(
   // Caso contrário, reconstruir do zero
   const nodes: Node[] = [];
   const edges: Edge[] = [];
-  let nodeIdCounter = 1;
+  let nodeIdCounter = 0;
 
-  // Adicionar node de início
-  nodes.push({
-    id: '1',
-    type: 'custom',
-    data: {
-      label: 'Início',
-      type: 'start',
-      description: 'Ponto inicial do fluxo',
-      designStyle: 'glass'
-    },
-    position: { x: 250, y: 100 }
-  });
-
-  // Converter variações para nodes
+  // Converter variações para nodes (incluindo INÍCIO)
   structuredFlow.steps.forEach((step, stepIdx) => {
     step.variations.forEach((variation, varIdx) => {
       nodeIdCounter++;
