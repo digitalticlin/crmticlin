@@ -210,24 +210,30 @@ export function convertStructuredToReactFlow(
 
   // Converter variações para nodes (incluindo INÍCIO)
   structuredFlow.steps.forEach((step, stepIdx) => {
+    console.log(`📝 Processando step: ${step.step_id}`, step);
+
     step.variations.forEach((variation, varIdx) => {
       nodeIdCounter++;
       const nodeId = `${nodeIdCounter}`;
 
+      const nodeData = {
+        label: variation.variation_name,
+        type: variation.block_type,
+        description: variation.description,
+        messages: variation.messages,
+        decisions: variation.decisions,
+        block_data: variation.block_data,
+        validation: variation.validation,
+        control: variation.control,
+        designStyle: 'glass'
+      };
+
+      console.log(`🔨 Reconstruindo node ${nodeId} (${variation.block_type}):`, nodeData);
+
       nodes.push({
         id: nodeId,
         type: 'custom',
-        data: {
-          label: variation.variation_name,
-          type: variation.block_type,
-          description: variation.description,
-          messages: variation.messages,
-          decisions: variation.decisions,
-          block_data: variation.block_data,
-          validation: variation.validation,
-          control: variation.control,
-          designStyle: 'glass'
-        },
+        data: nodeData,
         position: variation.position
       });
     });
