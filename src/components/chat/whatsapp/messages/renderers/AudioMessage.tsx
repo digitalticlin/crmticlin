@@ -41,6 +41,11 @@ export const AudioMessage = React.memo(({
   const [retryCount, setRetryCount] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
+  // 🎵 Web Audio API para Safari/iOS (compatibilidade com OGG)
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const [useWebAudioAPI, setUseWebAudioAPI] = useState(false);
+
   // Log de inicialização do componente
   useEffect(() => {
     console.group(`[AudioMessage] 🎵 INICIALIZANDO COMPONENTE`);
@@ -117,10 +122,74 @@ export const AudioMessage = React.memo(({
     setAudioLoading(true);
   }, [messageId, retryCount]);
 
-  const handlePlayPause = useCallback(() => {
+  const handlePlayPause = useCallback(async () => {
+    // 🎵 Tentar Web Audio API primeiro para OGG em Safari/iOS
+    const isOgg = url?.toLowerCase().includes('.ogg');
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+
+    if (isOgg && isSafari && !useWebAudioAPI) {
+      try {
+        console.log('[AudioMessage] 🍎 Safari detectado com OGG - usando Web Audio API');
+        setIsPlaying(true);
+
+        // Baixar áudio
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+
+        // Criar AudioContext
+        if (!audioContextRef.current) {
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+
+        // Decodificar
+        const audioBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
+        setDuration(audioBuffer.duration);
+
+        // Parar source anterior se existir
+        if (sourceNodeRef.current) {
+          try {
+            sourceNodeRef.current.stop();
+          } catch (e) {
+            // Ignorar erro se já parou
+          }
+        }
+
+        // Criar e conectar source
+        const source = audioContextRef.current.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContextRef.current.destination);
+
+        source.onended = () => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+          setProgress(0);
+        };
+
+        source.start(0);
+        sourceNodeRef.current = source;
+        setUseWebAudioAPI(true);
+
+        console.log('[AudioMessage] ✅ Reproduzindo com Web Audio API');
+        return;
+      } catch (error) {
+        console.error('[AudioMessage] ⚠️ Erro com Web Audio API, tentando fallback:', error);
+        setUseWebAudioAPI(false);
+        // Continuar para fallback com <audio>
+      }
+    }
+
+    // 🔄 Fallback: usar <audio> tradicional
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
+        // Parar Web Audio API se estiver ativo
+        if (sourceNodeRef.current) {
+          try {
+            sourceNodeRef.current.stop();
+          } catch (e) {
+            // Ignorar
+          }
+        }
       } else {
         audioRef.current.play().catch((error) => {
           console.error(`[AudioMessage] ❌ Erro ao reproduzir áudio: ${messageId}`, error);
@@ -128,7 +197,7 @@ export const AudioMessage = React.memo(({
         });
       }
     }
-  }, [isPlaying, messageId]);
+  }, [isPlaying, messageId, url, useWebAudioAPI]);
 
   const handleTimeUpdate = useCallback(() => {
     if (audioRef.current) {
