@@ -10,6 +10,22 @@ interface AudioMessageProps {
   isLoading?: boolean;
 }
 
+// 🎵 Função auxiliar para detectar MIME type do áudio pela extensão/URL
+function getAudioMimeType(url: string): string {
+  if (!url) return 'audio/mpeg';
+
+  const urlLower = url.toLowerCase();
+
+  if (urlLower.includes('.mp3') || urlLower.includes('mpeg')) return 'audio/mpeg';
+  if (urlLower.includes('.ogg') || urlLower.includes('opus')) return 'audio/ogg; codecs=opus';
+  if (urlLower.includes('.wav')) return 'audio/wav';
+  if (urlLower.includes('.m4a') || urlLower.includes('.aac')) return 'audio/aac';
+  if (urlLower.includes('.webm')) return 'audio/webm';
+
+  // Default: assumir MP3 (mais compatível)
+  return 'audio/mpeg';
+}
+
 export const AudioMessage = React.memo(({
   messageId,
   url,
@@ -56,6 +72,21 @@ export const AudioMessage = React.memo(({
       console.error('🔍 error.message:', audioElement.error?.message);
       console.error('🔍 src:', audioElement.src);
       console.error('🔍 currentSrc:', audioElement.currentSrc);
+
+      // 🆕 LOGS ESPECÍFICOS PARA SAFARI/iOS
+      console.error('🍎 User Agent:', navigator.userAgent);
+      console.error('🍎 É Safari?', /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent));
+      console.error('🍎 É iOS?', /iPhone|iPad|iPod/.test(navigator.userAgent));
+      console.error('🎵 MIME type detectado:', getAudioMimeType(url));
+
+      // Traduzir error.code para mensagem legível
+      const errorCodes = {
+        1: 'MEDIA_ERR_ABORTED - Usuário cancelou',
+        2: 'MEDIA_ERR_NETWORK - Erro de rede',
+        3: 'MEDIA_ERR_DECODE - Erro ao decodificar',
+        4: 'MEDIA_ERR_SRC_NOT_SUPPORTED - Formato não suportado'
+      };
+      console.error('📝 Descrição do erro:', errorCodes[audioElement.error?.code || 0] || 'Erro desconhecido');
     }
     console.error('═══════════════════════════════════════════');
     console.groupEnd();
@@ -212,10 +243,9 @@ export const AudioMessage = React.memo(({
         </div>
       </div>
 
-      {/* Audio element */}
+      {/* Audio element com suporte para múltiplos formatos (fallback Safari/iOS) */}
       <audio
         ref={audioRef}
-        src={url}
         onLoadedMetadata={handleAudioLoad}
         onError={handleAudioError}
         onTimeUpdate={handleTimeUpdate}
@@ -228,7 +258,18 @@ export const AudioMessage = React.memo(({
         }}
         preload="metadata"
         key={`${messageId}-${retryCount}`}
-      />
+      >
+        {/* Tentar carregar o áudio original primeiro */}
+        <source src={url} type={getAudioMimeType(url)} />
+
+        {/* Fallback: Tentar forçar como MP3 se Safari não reconhecer OGG */}
+        {url && (url.includes('.ogg') || url.includes('opus')) && (
+          <source src={url} type="audio/mpeg" />
+        )}
+
+        {/* Mensagem para navegadores muito antigos sem suporte HTML5 */}
+        Seu navegador não suporta áudio HTML5.
+      </audio>
     </div>
   );
 });

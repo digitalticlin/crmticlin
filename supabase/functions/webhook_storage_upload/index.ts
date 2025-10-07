@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 console.log("🚀 Webhook Storage Upload Service - Direct Mode Only")
+console.log("🎵 Conversão automática OGG/Opus → MP3 ativada")
 
 // 🔐 Buscar SECRET para validação JWT
 const EDGE_FUNCTION_SECRET = Deno.env.get('EDGE_FUNCTION_SECRET')

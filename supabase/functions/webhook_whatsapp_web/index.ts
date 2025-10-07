@@ -483,12 +483,24 @@ async function processMessage(supabase, data) {
   // Limpar telefone
   const cleanPhone = messageData.from.replace('@s.whatsapp.net', '').replace('@c.us', '');
 
+  // 🆕 Extrair MIME type do prefixo base64 (data:MIME;base64,...)
+  function extractMimeTypeFromBase64(base64String: string): string | null {
+    if (!base64String) return null;
+
+    const match = base64String.match(/^data:([^;]+);base64,/);
+    if (match && match[1]) {
+      console.log('[Webhook] 🔍 MIME extraído do base64:', match[1]);
+      return match[1];
+    }
+    return null;
+  }
+
   // 🎯 Determinar MIME type baseado no messageType se não vier explicitamente
   function getMimeType(messageType: string): string {
     switch (messageType) {
       case 'image': return 'image/jpeg';
       case 'video': return 'video/mp4';
-      case 'audio': return 'audio/mpeg';
+      case 'audio': return 'audio/ogg'; // ← 🔧 CORRIGIDO: audio genérico é OGG
       case 'document': return 'application/pdf';
       case 'sticker': return 'image/webp';
       case 'voice': return 'audio/ogg';
@@ -496,6 +508,69 @@ async function processMessage(supabase, data) {
       default: return 'application/octet-stream';
     }
   }
+
+  // 🆕 Converter MIME type para extensão de arquivo (equivalente à helper function SQL)
+  function getFileExtensionFromMime(mimeType: string | null | undefined, mediaType: string): string {
+    const mime = (mimeType || '').toLowerCase().trim();
+
+    // 🎵 AUDIO
+    if (mime.startsWith('audio/ogg')) return 'ogg';
+    if (mime === 'audio/mpeg' || mime === 'audio/mp3') return 'mp3';
+    if (mime === 'audio/wav') return 'wav';
+    if (mime === 'audio/aac') return 'aac';
+    if (mime === 'audio/m4a') return 'm4a';
+    if (mime === 'audio/webm') return 'webm';
+
+    // 🖼️ IMAGE
+    if (mime === 'image/jpeg' || mime === 'image/jpg') return 'jpg';
+    if (mime === 'image/png') return 'png';
+    if (mime === 'image/gif') return 'gif';
+    if (mime === 'image/webp') return 'webp';
+    if (mime === 'image/svg+xml') return 'svg';
+
+    // 🎬 VIDEO
+    if (mime === 'video/mp4') return 'mp4';
+    if (mime === 'video/webm') return 'webm';
+    if (mime === 'video/quicktime') return 'mov';
+    if (mime === 'video/x-msvideo') return 'avi';
+
+    // 📄 DOCUMENT
+    if (mime === 'application/pdf') return 'pdf';
+    if (mime.startsWith('application/vnd.ms-excel')) return 'xls';
+    if (mime.startsWith('application/vnd.openxmlformats-officedocument.spreadsheetml')) return 'xlsx';
+    if (mime.startsWith('application/vnd.ms-powerpoint')) return 'ppt';
+    if (mime.startsWith('application/vnd.openxmlformats-officedocument.presentationml')) return 'pptx';
+    if (mime.startsWith('application/msword')) return 'doc';
+    if (mime.startsWith('application/vnd.openxmlformats-officedocument.wordprocessingml')) return 'docx';
+    if (mime === 'text/plain') return 'txt';
+    if (mime === 'application/zip') return 'zip';
+    if (mime === 'application/x-rar-compressed') return 'rar';
+
+    // 🎨 DESIGN
+    if (mime === 'application/postscript') return 'ai';
+    if (mime === 'image/vnd.adobe.photoshop') return 'psd';
+
+    // 🔄 FALLBACK: Extrair segunda parte do MIME (ex: audio/mpeg → mpeg)
+    const mimeParts = mime.split('/');
+    if (mimeParts.length === 2 && mimeParts[1]) {
+      // Remover parâmetros extras (ex: "ogg; codecs=opus" → "ogg")
+      const extension = mimeParts[1].split(';')[0].trim();
+      if (extension) return extension;
+    }
+
+    // 🔄 FALLBACK FINAL: Usar media_type
+    switch (mediaType.toLowerCase()) {
+      case 'audio': return 'ogg';  // ⚠️ Default para áudio é OGG (WhatsApp)
+      case 'image': return 'jpg';
+      case 'video': return 'mp4';
+      case 'document': return 'pdf';
+      case 'sticker': return 'webp';
+      default: return 'bin';
+    }
+  }
+
+  // 🆕 Extrair MIME type real do base64 primeiro
+  const mimeTypeFromBase64 = extractMimeTypeFromBase64(messageData.mediaData?.base64Data);
 
   // 🔍 DEBUG DETALHADO: Log dos parâmetros exatos que serão enviados para a RPC
   const rpcParams = {
@@ -509,20 +584,28 @@ async function processMessage(supabase, data) {
     p_contact_name: null, // ❌ SEMPRE NULL - forçar uso do telefone formatado
     p_profile_pic_url: messageData.profile_pic_url || null, // 📸 PROFILE PIC URL
     p_base64_data: messageData.mediaData?.base64Data || null, // 🎯 Base64 real para upload
-    p_mime_type: messageData.mediaData?.mimeType || messageData.mediaData?.mimetype || getMimeType(messageData.messageType) || null, // 🎯 MIME type com fallback
+    p_mime_type: mimeTypeFromBase64 || messageData.mediaData?.mimeType || messageData.mediaData?.mimetype || getMimeType(messageData.messageType) || null, // 🎯 MIME type: 1º base64, 2º mediaData, 3º fallback
     p_file_name: messageData.mediaData?.fileName || null,      // 🎯 Nome do arquivo
     p_whatsapp_number_id: instanceData?.id || null,  // 🆔 UUID da instância WhatsApp
     p_source_edge: 'webhook_whatsapp_web',  // 🏷️ Identificar a Edge
     p_instance_funnel_id: instanceFunnelId  // 🎯 NOVO: Funil da instância
   };
 
-  // Log simplificado para produção
+  // Log DETALHADO para debug de áudio
   if (rpcParams.p_media_type !== 'text') {
     console.log('[Webhook] 📤 Mídia processada:', {
       tipo: rpcParams.p_media_type,
       tamanho: rpcParams.p_base64_data?.length || 0,
-      mimeType: rpcParams.p_mime_type
+      mimeType: rpcParams.p_mime_type,
+      hasBase64: !!rpcParams.p_base64_data,
+      base64Preview: rpcParams.p_base64_data ? rpcParams.p_base64_data.substring(0, 50) + '...' : 'NULL'
     });
+
+    // ⚠️ ALERTA: Se for áudio sem base64, algo está errado
+    if (rpcParams.p_media_type === 'audio' && !rpcParams.p_base64_data) {
+      console.warn('[Webhook] ⚠️ ÁUDIO SEM BASE64! Edge de upload NÃO será chamada!');
+      console.warn('[Webhook] 📊 mediaData completo:', messageData.mediaData);
+    }
   }
 
   console.log('[Webhook] 🚀 Chamando RPC save_received_message_webhook...');
@@ -572,30 +655,39 @@ async function processMessage(supabase, data) {
 
   console.log('[Webhook] ✅ Mensagem salva:', messageId);
 
-  // 🚀 UPLOAD ASSÍNCRONO PARA ESCALABILIDADE
+  // 🚀 UPLOAD DIRETO PARA STORAGE (arquitetura simplificada)
+  // Helper function garante extensão correta baseada no MIME type
   const hadMediaData = !!(messageData.mediaData?.base64Data && messageData.messageType !== 'text');
   if (hadMediaData) {
-    console.log('[Webhook] 📤 Iniciando upload assíncrono (fire-and-forget):', result.message_id);
+    // 🎯 Calcular extensão correta usando helper function
+    const correctExtension = getFileExtensionFromMime(rpcParams.p_mime_type, rpcParams.p_media_type);
 
-    // 🚀 FIRE-AND-FORGET: Não bloquear a resposta
+    console.log('[Webhook] 📤 Iniciando upload:', {
+      message_id: messageId,
+      mime_type: rpcParams.p_mime_type,
+      media_type: rpcParams.p_media_type,
+      extension: correctExtension
+    });
+
+    // 🚀 FIRE-AND-FORGET: Upload assíncrono
     fetch(`${supabaseUrl}/functions/v1/webhook_storage_upload`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseKey}`, // 🔐 Usar SERVICE_ROLE_KEY para upload
+        'Authorization': `Bearer ${supabaseKey}`,
       },
       body: JSON.stringify({
-        message_id: result.message_id,  // 🎯 ID CORRETO DA RPC
-        file_path: `webhook/${instanceData?.id}/${result.message_id}.${messageData.mediaData?.mimeType?.split('/')[1] || 'jpg'}`,
+        message_id: messageId,
+        file_path: `webhook/${instanceData?.id}/${messageId}.${correctExtension}`,
         base64_data: messageData.mediaData.base64Data,
-        content_type: messageData.mediaData.mimeType
+        content_type: rpcParams.p_mime_type
       })
     })
     .then(response => response.json())
     .then(uploadResult => {
       console.log('[Webhook] 📊 Upload resultado:', uploadResult);
       if (uploadResult.success) {
-        console.log('[Webhook] ✅ Upload concluído com sucesso!');
+        console.log('[Webhook] ✅ Upload concluído:', uploadResult.url);
       } else {
         console.error('[Webhook] ❌ Erro no upload:', uploadResult);
       }
@@ -604,7 +696,7 @@ async function processMessage(supabase, data) {
       console.error('[Webhook] ❌ Erro na chamada de upload:', uploadError);
     });
 
-    console.log('[Webhook] 🚀 Upload disparado em background - retornando imediatamente');
+    console.log('[Webhook] 🚀 Upload disparado - extensão:', correctExtension);
 
     // ✅ Limpeza da mídia da memória IMEDIATAMENTE
     messageData.mediaData.base64Data = null;

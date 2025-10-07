@@ -13,7 +13,8 @@
       "Bash(git push:*)",
       "Bash(ssh root@31.97.163.57 \"pm2 logs --lines 1000 --nostream | grep ''556391378430''\")",
       "Bash(npm run dev:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npx supabase functions deploy:*)"
     ],
     "deny": [],
     "ask": []

@@ -4,6 +4,66 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
+
+// 🆕 Helper function para converter MIME type → extensão de arquivo
+function getFileExtensionFromMime(mimeType: string | null | undefined, mediaType: string): string {
+  const mime = (mimeType || '').toLowerCase().trim();
+
+  // 🎵 AUDIO
+  if (mime.startsWith('audio/ogg')) return 'ogg';
+  if (mime === 'audio/mpeg' || mime === 'audio/mp3') return 'mp3';
+  if (mime === 'audio/wav') return 'wav';
+  if (mime === 'audio/aac') return 'aac';
+  if (mime === 'audio/m4a') return 'm4a';
+  if (mime === 'audio/webm') return 'webm';
+
+  // 🖼️ IMAGE
+  if (mime === 'image/jpeg' || mime === 'image/jpg') return 'jpg';
+  if (mime === 'image/png') return 'png';
+  if (mime === 'image/gif') return 'gif';
+  if (mime === 'image/webp') return 'webp';
+  if (mime === 'image/svg+xml') return 'svg';
+
+  // 🎬 VIDEO
+  if (mime === 'video/mp4') return 'mp4';
+  if (mime === 'video/webm') return 'webm';
+  if (mime === 'video/quicktime') return 'mov';
+  if (mime === 'video/x-msvideo') return 'avi';
+
+  // 📄 DOCUMENT
+  if (mime === 'application/pdf') return 'pdf';
+  if (mime.startsWith('application/vnd.ms-excel')) return 'xls';
+  if (mime.startsWith('application/vnd.openxmlformats-officedocument.spreadsheetml')) return 'xlsx';
+  if (mime.startsWith('application/vnd.ms-powerpoint')) return 'ppt';
+  if (mime.startsWith('application/vnd.openxmlformats-officedocument.presentationml')) return 'pptx';
+  if (mime.startsWith('application/msword')) return 'doc';
+  if (mime.startsWith('application/vnd.openxmlformats-officedocument.wordprocessingml')) return 'docx';
+  if (mime === 'text/plain') return 'txt';
+  if (mime === 'application/zip') return 'zip';
+  if (mime === 'application/x-rar-compressed') return 'rar';
+
+  // 🎨 DESIGN
+  if (mime === 'application/postscript') return 'ai';
+  if (mime === 'image/vnd.adobe.photoshop') return 'psd';
+
+  // 🔄 FALLBACK: Extrair segunda parte do MIME (ex: audio/mpeg → mpeg)
+  const mimeParts = mime.split('/');
+  if (mimeParts.length === 2 && mimeParts[1]) {
+    // Remover parâmetros extras (ex: "ogg; codecs=opus" → "ogg")
+    const extension = mimeParts[1].split(';')[0].trim();
+    if (extension) return extension;
+  }
+
+  // 🔄 FALLBACK FINAL: Usar media_type
+  switch (mediaType.toLowerCase()) {
+    case 'audio': return 'ogg';
+    case 'image': return 'jpg';
+    case 'video': return 'mp4';
+    case 'document': return 'pdf';
+    case 'sticker': return 'webp';
+    default: return 'bin';
+  }
+}
 // ✅ CONFIGURAÇÃO LIMPA DA VPS (via env)
 const VPS_CONFIG = {
   baseUrl: Deno.env.get('VPS_BASE_URL'),
@@ -465,7 +525,15 @@ serve(async (req)=>{
           // 🚀 UPLOAD ASSÍNCRONO PARA MÍDIA (fire-and-forget como webhook_whatsapp_web)
           const hadMediaData = !!(extractedBase64 && processedMediaType !== 'text');
           if (hadMediaData && savedMessageId) {
-            console.log('[Messaging Service] 📤 Iniciando upload assíncrono (fire-and-forget):', savedMessageId);
+            // 🎯 Calcular extensão correta usando helper function
+            const correctExtension = getFileExtensionFromMime(extractedMimeType, processedMediaType);
+
+            console.log('[Messaging Service] 📤 Iniciando upload:', {
+              message_id: savedMessageId,
+              mime_type: extractedMimeType,
+              media_type: processedMediaType,
+              extension: correctExtension
+            });
 
             // 🚀 FIRE-AND-FORGET: Não bloquear a resposta
             fetch(`${supabaseUrl}/functions/v1/app_storage_upload`, {
@@ -475,7 +543,7 @@ serve(async (req)=>{
               },
               body: JSON.stringify({
                 message_id: savedMessageId,
-                file_path: `app/${instanceData?.id}/${savedMessageId}.${extractedMimeType?.split('/')[1] || 'bin'}`,
+                file_path: `app/${instanceData?.id}/${savedMessageId}.${correctExtension}`,
                 base64_data: extractedBase64,
                 content_type: extractedMimeType
               })
