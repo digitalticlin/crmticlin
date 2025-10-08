@@ -198,7 +198,7 @@ BEGIN
 
         -- ✅ INSERIR LEAD (colunas corretas)
         INSERT INTO public.leads (
-            name,                   -- ✅ NULL - front formata automaticamente
+            name,                   -- ✅ Telefone formatado: +55 (11) 98765-4321
             phone,                  -- ✅ Telefone limpo: 5511987654321
             profile_pic_url,
             whatsapp_number_id,
@@ -211,7 +211,7 @@ BEGIN
             last_message,
             last_message_time
         ) VALUES (
-            NULL,                   -- ✅ Nome = NULL (front formata)
+            v_formatted_name,       -- ✅ Nome = telefone formatado
             v_clean_phone,          -- ✅ Phone = números apenas
             p_profile_pic_url,      -- 📸 Base64 da foto de perfil
             v_instance_id,

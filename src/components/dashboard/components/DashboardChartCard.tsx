@@ -123,12 +123,12 @@ const DashboardChartCard = memo(({
   return (
     <Card className={cn(
       "relative overflow-hidden transition-all duration-300 hover:shadow-lg",
-      "bg-white border border-gray-200"
+      "bg-white/10 backdrop-blur-md border border-white/20"
     )}>
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center justify-between">
           {getChartTitle(type)}
-          
+
           {/* ✅ CHART TYPE INDICATOR */}
           <div className={cn(
             "w-3 h-3 rounded-full",
@@ -136,13 +136,13 @@ const DashboardChartCard = memo(({
           )} />
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent className="pt-0">
         {renderChart()}
-        
+
         {/* ✅ DATA SUMMARY */}
         {data && !loading && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="mt-4 pt-4 border-t border-white/20">
             <div className="flex justify-between text-sm text-gray-600">
               <span>Total de pontos: {data.values.length}</span>
               <span>
@@ -152,10 +152,10 @@ const DashboardChartCard = memo(({
           </div>
         )}
       </CardContent>
-      
+
       {/* ✅ LOADING OVERLAY */}
       {loading && (
-        <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
         </div>
       )}

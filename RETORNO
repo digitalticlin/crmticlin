@@ -1,215 +1,146 @@
 [
   {
-    "id": "694b87b1-87bc-4ae4-bbe9-72855b3b0cbe",
-    "name": "",
-    "phone": "554799165400",
-    "profile_pic_url": "https://pps.whatsapp.net/v/t61.24694-24/186455990_681707243272823_6875765446590584958_n.jpg?ccb=11-4&oh=01_Q5Aa2gHzW40Zx9Fl_EFwIq-0ThQasG9jb1Z-XxFeGpHikWaq0Q&oe=68F256DD&_nc_sid=5e03e0&_nc_cat=104",
-    "url_length": 196,
-    "formato": "🌐 URL HTTP",
-    "preview_inicio": "https://pps.whatsapp.net/v/t61.24694-24/186455990_681707243272823_6875765446590584958_n.jpg?ccb=11-4"
-  },
-  {
-    "id": "c6c83365-4f61-40db-ba38-ee4cb7aaa859",
-    "name": "",
-    "phone": "559484093461",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "197deb9a-8ad8-4a8b-a3ee-d8dcda8e7b36",
-    "name": "",
-    "phone": "556593085392",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "c5f8fb59-6e64-425c-8a12-855b71e24354",
-    "name": "",
-    "phone": "5521977105242",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "506c7beb-8bed-4b7b-ac5f-870951f34811",
-    "name": "Agailton Brito Silva",
-    "phone": "557799015335",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "fea0bc53-6baa-45cd-b2a1-f162ce176118",
-    "name": "Carlos Borges",
-    "phone": "556291255490",
-    "profile_pic_url": "https://pps.whatsapp.net/v/t61.24694-24/322458261_2167654296770301_7884908304646692166_n.jpg?ccb=11-4&oh=01_Q5Aa2gGGdickxNlKHmXFBdk758uG_zhViOOCUWHa7juBtAlPZw&oe=68F23FFD&_nc_sid=5e03e0&_nc_cat=109",
-    "url_length": 197,
-    "formato": "🌐 URL HTTP",
-    "preview_inicio": "https://pps.whatsapp.net/v/t61.24694-24/322458261_2167654296770301_7884908304646692166_n.jpg?ccb=11-"
-  },
-  {
-    "id": "f833520b-b48d-4b4e-b8ba-2bdced06dc09",
-    "name": "+55 (62) 8207-0422",
-    "phone": "556282070422",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "f44d76cd-742b-40e9-9a73-7bb4e3f8da5f",
-    "name": "Rogério",
-    "phone": "5522988120809",
-    "profile_pic_url": "https://pps.whatsapp.net/v/t61.24694-24/534419244_773105518996688_8477708410542623626_n.jpg?ccb=11-4&oh=01_Q5Aa2gH4llp5h9aJs5m7n8KIYGQJ-C6jy1ad0scRN_LIBuu8gg&oe=68F230D8&_nc_sid=5e03e0&_nc_cat=103",
-    "url_length": 196,
-    "formato": "🌐 URL HTTP",
-    "preview_inicio": "https://pps.whatsapp.net/v/t61.24694-24/534419244_773105518996688_8477708410542623626_n.jpg?ccb=11-4"
-  },
-  {
-    "id": "5f959809-8351-4f82-b379-de37798e25d0",
-    "name": "+55 (94) 9113-2648",
-    "phone": "559491132648",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "3fbaf421-0791-4af4-b3be-4cde2e297451",
-    "name": "+55 (65) 9669-8206",
-    "phone": "556596698206",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "f2aa5cf8-8230-4e71-9f88-9d8d198eaf18",
-    "name": "",
-    "phone": "556286032824",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "609f6be4-bd96-41cc-8104-25c2848d3527",
-    "name": "vinicius",
-    "phone": "447539332153",
-    "profile_pic_url": "https://pps.whatsapp.net/v/t61.24694-24/473404007_2332244827142458_3502447728559847638_n.jpg?ccb=11-4&oh=01_Q5Aa2gGJKg3exr_0svSVmeY37-P_MKjmDZagdaH6ypH3Et8g_Q&oe=68F241AD&_nc_sid=5e03e0&_nc_cat=108",
-    "url_length": 197,
-    "formato": "🌐 URL HTTP",
-    "preview_inicio": "https://pps.whatsapp.net/v/t61.24694-24/473404007_2332244827142458_3502447728559847638_n.jpg?ccb=11-"
-  },
-  {
-    "id": "10281bb6-1ac6-4075-bebd-e21478bc8d53",
-    "name": "Juh Mello ☺️🌸",
-    "phone": "555195584404",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "881dd3e5-936e-4a82-b9b5-20445b15df8b",
-    "name": "+55 (62) 8248-6434",
-    "phone": "556282486434",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "fdcb69b1-0411-4a7d-b754-01acae9f8655",
-    "name": "+447842199305",
-    "phone": "447842199305",
-    "profile_pic_url": "https://pps.whatsapp.net/v/t61.24694-24/556817604_3053691384821721_6913763111847914818_n.jpg?ccb=11-4&oh=01_Q5Aa2gHhpg2CUHd0RbSKLv8W3z9RagIa79wS3nin74BF_N7gFg&oe=68F23205&_nc_sid=5e03e0&_nc_cat=105",
-    "url_length": 197,
-    "formato": "🌐 URL HTTP",
-    "preview_inicio": "https://pps.whatsapp.net/v/t61.24694-24/556817604_3053691384821721_6913763111847914818_n.jpg?ccb=11-"
-  },
-  {
-    "id": "219ea655-3eb1-470f-87af-00881ee0fd8e",
-    "name": "",
-    "phone": "553891473287",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "67fc9994-058c-4d5f-aa9d-f3f8e458c156",
-    "name": "+447576205175",
-    "phone": "447576205175",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "d20a82b5-1d60-4374-a6be-8875c5360785",
-    "name": "Clebio Sousa",
-    "phone": "556191561670",
-    "profile_pic_url": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gIoSUNDX1BST0ZJTEUAAQEAAAIYAAAAAAIQAABtbnRyUkdCIFhZWiAAAAAAAAAAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjA...6jBhJnVlWQAlT5g52oAOmAFeddTHcOCPZ7qbMmVU/Y3yGHLA9/toJS4KkwyHu12KyAE+3PqTy9KiG84krAzxvc/2fd4OTn3be2mBLeKKYFHclMb74HwpZeGLLIshzqBDDB2PuqKl/DIYw6mOXOo94hA95361YRmVJfFCNAONaPn5UADWFRdiKOPDYwxJ1evOmNZzI39KRGVHhONOemD8qO7d26tLgEbgDcEjlXNeOZgjQxgMcDWOuaAIloY1IM2SgGzKvi88ECppZEYqI2GDnUTsfP2U6O3aW5Cxu+chnXBK9fKuaIapCW8RGwGMfCgBRKiOxCYfHIjmMdPhXSGUr4JCwxgnmTQ5Ze9K904woH3MDYUK3fupgHUqxOHCgAcjg88kUgDLclnYSRLpQYXAOff8ArQyGZNAXSQBk5ODvSOZMyKkysvLCgZ6dSKGsTRyBWZwhGCVwpA8sDyoA/9k=",
-    "url_length": 90155,
-    "formato": "✅ BASE64",
-    "preview_inicio": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gIoSUNDX1BST0ZJTEUAAQEAAAIYAAAAAAIQAABtbnRyUkdCI"
-  },
-  {
-    "id": "beb6686e-3631-45e0-9d59-fb1449a0a402",
-    "name": "Mara",
-    "phone": "556299949234",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
-  },
-  {
-    "id": "873ae355-73fe-49f3-a4c8-2f49b43a965c",
-    "name": "",
-    "phone": "5522998790858",
-    "profile_pic_url": null,
-    "url_length": null,
-    "formato": "❌ NULL",
-    "preview_inicio": null
+    "function_code": "CREATE OR REPLACE FUNCTION public.save_received_message_webhook(p_vps_instance_id text, p_phone text, p_message_text text, p_from_me boolean, p_media_type text DEFAULT 'text'::text, p_media_url text DEFAULT NULL::text, p_external_message_id text DEFAULT NULL::text, p_contact_name text DEFAULT NULL::text, p_profile_pic_url text DEFAULT NULL::text, p_base64_data text DEFAULT NULL::text, p_mime_type text DEFAULT NULL::text, p_file_name text DEFAULT NULL::text, p_whatsapp_number_id uuid DEFAULT NULL::uuid, p_source_edge text DEFAULT NULL::text, p_instance_funnel_id uuid DEFAULT NULL::uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n    v_instance_id uuid;\r\n    v_user_id uuid;\r\n    v_lead_id uuid;\r\n    v_clean_phone text;\r\n    v_formatted_name text;\r\n    v_message_id uuid;\r\n    v_funnel_id uuid;\r\n    v_first_stage_id uuid;\r\n    v_owner_id uuid;\r\n    v_media_type_enum media_type;\r\n    v_should_call_edge boolean := false;\r\n    v_edge_url text;\r\n    v_service_role_key text;\r\n    v_edge_result jsonb;\r\n    v_file_extension text;\r\n    v_message_text text;\r\nBEGIN\r\n    -- 🎯 TEXTO DA MENSAGEM\r\n    CASE LOWER(COALESCE(p_media_type, 'text'))\r\n        WHEN 'text' THEN\r\n            v_message_text := COALESCE(NULLIF(TRIM(p_message_text), ''), 'Mensagem vazia');\r\n        WHEN 'image' THEN\r\n            v_message_text := '📷 Imagem';\r\n        WHEN 'video' THEN\r\n            v_message_text := '🎥 Vídeo';\r\n        WHEN 'audio' THEN\r\n            v_message_text := '🎵 Áudio';\r\n        WHEN 'document' THEN\r\n            v_message_text := '📄 Documento';\r\n        WHEN 'sticker' THEN\r\n            v_message_text := '😊 Sticker';\r\n        ELSE\r\n            v_message_text := COALESCE(NULLIF(TRIM(p_message_text), ''), '📎 Mídia');\r\n    END CASE;\r\n\r\n    -- 🔍 BUSCAR INSTÂNCIA E USUÁRIO (TABELA CORRETA: whatsapp_instances)\r\n    SELECT id, created_by_user_id INTO v_instance_id, v_user_id\r\n    FROM public.whatsapp_instances\r\n    WHERE instance_name = p_vps_instance_id OR id = p_whatsapp_number_id\r\n    LIMIT 1;\r\n\r\n    IF v_instance_id IS NULL THEN\r\n        RETURN jsonb_build_object('success', false, 'error', 'Instance not found');\r\n    END IF;\r\n\r\n    -- 🧹 Limpar telefone (apenas números)\r\n    v_clean_phone := regexp_replace(p_phone, '[^0-9]', '', 'g');\r\n\r\n    -- 📞 Formatar nome (SEMPRE usar telefone formatado, nunca contact_name)\r\n    IF length(v_clean_phone) = 13 AND v_clean_phone ~ '^55\\d{11}' THEN\r\n        v_formatted_name := '+55 (' || substring(v_clean_phone from 3 for 2) || ') ' || substring(v_clean_phone from 5 for 5) || '-' || substring(v_clean_phone from 10 for 4);\r\n    ELSIF length(v_clean_phone) = 12 AND v_clean_phone ~ '^55\\d{10}' THEN\r\n        v_formatted_name := '+55 (' || substring(v_clean_phone from 3 for 2) || ') ' || substring(v_clean_phone from 5 for 4) || '-' || substring(v_clean_phone from 9 for 4);\r\n    ELSE\r\n        v_formatted_name := '+' || v_clean_phone;\r\n    END IF;\r\n\r\n    -- Converter media_type para enum\r\n    v_media_type_enum := CASE\r\n        WHEN p_media_type IN ('image', 'video', 'audio', 'document', 'text') THEN p_media_type::media_type\r\n        ELSE 'text'::media_type\r\n    END;\r\n\r\n    -- 🔍 BUSCAR OU CRIAR LEAD (lookup por created_by_user_id)\r\n    SELECT id INTO v_lead_id\r\n    FROM public.leads\r\n    WHERE phone = v_clean_phone\r\n      AND created_by_user_id = v_user_id\r\n    LIMIT 1;\r\n\r\n    IF v_lead_id IS NULL THEN\r\n        -- ✅ Owner é sempre o dono da instância\r\n        v_owner_id := v_user_id;\r\n\r\n        -- ✅ BUSCAR FUNIL (tabela correta: funnels)\r\n        SELECT id INTO v_funnel_id\r\n        FROM public.funnels\r\n        WHERE created_by_user_id = v_user_id\r\n        ORDER BY created_at ASC\r\n        LIMIT 1;\r\n\r\n        IF v_funnel_id IS NOT NULL THEN\r\n            -- ✅ BUSCAR PRIMEIRO STAGE (tabela correta: kanban_stages, coluna: order_position)\r\n            SELECT id INTO v_first_stage_id\r\n            FROM public.kanban_stages\r\n            WHERE funnel_id = v_funnel_id\r\n            ORDER BY order_position ASC\r\n            LIMIT 1;\r\n        END IF;\r\n\r\n        -- ✅ INSERIR LEAD (colunas corretas)\r\n        INSERT INTO public.leads (\r\n            name,                   -- ✅ Telefone formatado: +55 (11) 98765-4321\r\n            phone,                  -- ✅ Telefone limpo: 5511987654321\r\n            profile_pic_url,\r\n            whatsapp_number_id,\r\n            created_by_user_id,\r\n            import_source,\r\n            funnel_id,\r\n            kanban_stage_id,        -- ✅ CORRETO (não current_stage_id)\r\n            owner_id,\r\n            country,                -- ✅ Adicionar campo country\r\n            last_message,\r\n            last_message_time\r\n        ) VALUES (\r\n            v_formatted_name,       -- ✅ Nome = telefone formatado\r\n            v_clean_phone,          -- ✅ Phone = números apenas\r\n            p_profile_pic_url,      -- 📸 Base64 da foto de perfil\r\n            v_instance_id,\r\n            v_user_id,\r\n            'webhook',\r\n            v_funnel_id,\r\n            v_first_stage_id,\r\n            v_owner_id,\r\n            NULL,                   -- country\r\n            v_message_text,\r\n            NOW()\r\n        )\r\n        RETURNING id INTO v_lead_id;\r\n    ELSE\r\n        -- Atualizar lead existente\r\n        UPDATE public.leads\r\n        SET\r\n            last_message = v_message_text,\r\n            last_message_time = NOW(),\r\n            -- 📸 Só atualiza profile_pic se vier nova (não NULL) E for diferente da atual\r\n            profile_pic_url = CASE\r\n                WHEN p_profile_pic_url IS NOT NULL\r\n                     AND (profile_pic_url IS NULL OR LEFT(p_profile_pic_url, 100) != LEFT(profile_pic_url, 100))\r\n                THEN p_profile_pic_url\r\n                ELSE profile_pic_url\r\n            END\r\n        WHERE id = v_lead_id;\r\n    END IF;\r\n\r\n    -- Inserir mensagem (media_url NULL - será preenchida pela edge)\r\n    INSERT INTO public.messages (text, from_me, created_by_user_id, lead_id, media_type, media_url, external_message_id, whatsapp_number_id, source_edge, import_source, timestamp, status)\r\n    VALUES (v_message_text, p_from_me, v_user_id, v_lead_id, v_media_type_enum, NULL, p_external_message_id, v_instance_id, p_source_edge, 'webhook', NOW(), CASE WHEN p_from_me THEN 'sent'::message_status ELSE 'received'::message_status END)\r\n    RETURNING id INTO v_message_id;\r\n\r\n    -- ⚠️ CALCULAR EXTENSÃO **ANTES** DE CHAMAR EDGE\r\n    v_should_call_edge := (p_media_type != 'text' AND p_base64_data IS NOT NULL);\r\n\r\n    IF v_should_call_edge THEN\r\n        -- 🎯 USAR HELPER FUNCTION\r\n        v_file_extension := get_file_extension_from_mime(p_mime_type, p_media_type);\r\n\r\n        -- Chamar edge de upload (comentado - upload é feito pelo webhook diretamente)\r\n        -- O webhook chama webhook_storage_upload com extensão correta\r\n    ELSE\r\n        v_file_extension := NULL;\r\n    END IF;\r\n\r\n    RETURN jsonb_build_object('success', true, 'message_id', v_message_id, 'lead_id', v_lead_id, 'file_extension', v_file_extension);\r\nEXCEPTION\r\n    WHEN OTHERS THEN\r\n        RETURN jsonb_build_object('success', false, 'error', SQLERRM);\r\nEND;\r\n$function$\n"
   }
 ]
 
 
-
 [
-    {
-      "formato": "❌ NULL",
-      "quantidade": 237,
-      "tamanho_medio": null
-    },
-    {
-      "formato": "🌐 URL",
-      "quantidade": 181,
-      "tamanho_medio": "196"
-    },
-    {
-      "formato": "✅ BASE64",
-      "quantidade": 23,
-      "tamanho_medio": "72929"
-    }
-  ]
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_17571",
+    "function_name": "RI_FKey_noaction_del",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_del$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_17572",
+    "function_name": "RI_FKey_noaction_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_431939",
+    "function_name": "RI_FKey_cascade_del",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_del$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_431940",
+    "function_name": "RI_FKey_cascade_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_779441",
+    "function_name": "RI_FKey_cascade_del",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_del$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_779442",
+    "function_name": "RI_FKey_noaction_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_779461",
+    "function_name": "RI_FKey_cascade_del",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_del$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_779462",
+    "function_name": "RI_FKey_noaction_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_779481",
+    "function_name": "RI_FKey_cascade_del",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_del$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_779482",
+    "function_name": "RI_FKey_noaction_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_779491",
+    "function_name": "RI_FKey_cascade_del",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_del$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_779492",
+    "function_name": "RI_FKey_noaction_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_423248",
+    "function_name": "RI_FKey_check_ins",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_423249",
+    "function_name": "RI_FKey_check_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_431951",
+    "function_name": "RI_FKey_check_ins",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_431952",
+    "function_name": "RI_FKey_check_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_484435",
+    "function_name": "RI_FKey_check_ins",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_484436",
+    "function_name": "RI_FKey_check_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_691066",
+    "function_name": "RI_FKey_check_ins",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_691067",
+    "function_name": "RI_FKey_check_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_779408",
+    "function_name": "RI_FKey_check_ins",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_779409",
+    "function_name": "RI_FKey_check_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_779413",
+    "function_name": "RI_FKey_check_ins",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_779414",
+    "function_name": "RI_FKey_check_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_779418",
+    "function_name": "RI_FKey_check_ins",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_779419",
+    "function_name": "RI_FKey_check_upd",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
+  },
+  {
+    "trigger_name": "update_leads_updated_at",
+    "function_name": "update_updated_at_column",
+    "trigger_function_code": "CREATE OR REPLACE FUNCTION public.update_updated_at_column()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public'\nAS $function$\r\nBEGIN\r\n  NEW.updated_at = NOW();\r\n  RETURN NEW;\r\nEND;\r\n$function$\n"
+  }
+]
 
 
-  [
-    {
-      "id": "f2aa5cf8-8230-4e71-9f88-9d8d198eaf18",
-      "name": "",
-      "phone": "556286032824",
-      "profile_pic_url": null,
-      "url_length": null,
-      "formato": "❌ NULL",
-      "created_at": "2025-10-07 15:35:47.387696+00",
-      "updated_at": "2025-10-07 15:36:23.56421+00"
-    },

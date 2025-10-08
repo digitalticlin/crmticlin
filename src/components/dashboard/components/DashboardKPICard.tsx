@@ -70,7 +70,7 @@ const DashboardKPICard = memo(({
 
   if (loading) {
     return (
-      <Card className="relative overflow-hidden">
+      <Card className="relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20">
         <CardHeader className="pb-2">
           <Skeleton className="h-4 w-24" />
         </CardHeader>
@@ -85,6 +85,7 @@ const DashboardKPICard = memo(({
   return (
     <Card className={cn(
       "relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-105",
+      "bg-white/10 backdrop-blur-md border border-white/20",
       "bg-gradient-to-br", getCardColor(index)
     )}>
       <CardHeader className="pb-2">
@@ -92,12 +93,12 @@ const DashboardKPICard = memo(({
           {title.replace(/_/g, ' ')}
         </CardTitle>
       </CardHeader>
-      
+
       <CardContent>
         <div className="text-2xl font-bold text-white mb-1">
           {prefix}{formatValue(value)}{suffix}
         </div>
-        
+
         {trend && (
           <div className={cn(
             "text-xs font-medium flex items-center",
@@ -109,7 +110,7 @@ const DashboardKPICard = memo(({
             {Math.abs(trend.value).toFixed(1)}% vs período anterior
           </div>
         )}
-        
+
         {/* ✅ EFEITO VISUAL */}
         <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
         <div className="absolute bottom-0 left-0 w-12 h-12 bg-black/10 rounded-full translate-y-6 -translate-x-6" />
