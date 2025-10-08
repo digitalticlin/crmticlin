@@ -296,8 +296,11 @@ export function convertStructuredToReactFlow(
         oldIdToNewId.set(oldNodeId, nodeId);
       }
 
-      // 🆕 NOVO FORMATO 100% PT
-      if (isNovoFormato) {
+      // 🆕 DETECTAR SE VARIAÇÃO ESTÁ EM MARKDOWN PT (independente da estrutura raiz)
+      const isVariacaoMarkdown = variation.instrucoes !== undefined && variation._metadata !== undefined;
+
+      // 🆕 NOVO FORMATO 100% PT (ou variação markdown em estrutura antiga)
+      if (isNovoFormato || isVariacaoMarkdown) {
         // Reconstruir messages baseado no tipo de bloco
         let messages: any[] = [];
 
@@ -321,7 +324,12 @@ export function convertStructuredToReactFlow(
         }
 
         // Reconstruir decisions
-        const decisions = (variation.instrucoes.decisoes || variation.instrucoes.decisoes_diretas || []).map((d: any) => ({
+        const decisoesArray = variation.instrucoes.decisoes ||
+                             variation.instrucoes.decisoes_diretas ||
+                             variation.instrucoes.avaliar_resposta_do_cliente ||
+                             [];
+
+        const decisions = decisoesArray.map((d: any) => ({
           id: `d${d.numero}`,
           type: d.tipo === 'resposta_usuario' ? 'if_user_says' : d.tipo === 'timeout' ? 'timeout' : 'condition',
           condition: d.se_cliente_falar || d.se_lead_falar || d.se_lead || '',
@@ -330,7 +338,7 @@ export function convertStructuredToReactFlow(
         }));
 
         const nodeData = {
-          label: variation.variacao_nome,
+          label: variation.variacao_nome || variation.passo?.nome || 'Node',
           type: variation._metadata.tipo_tecnico,
           description: variation.instrucoes.objetivo,
           messages,
@@ -343,24 +351,32 @@ export function convertStructuredToReactFlow(
             skip_to_step: variation.validacao.se_ja_feito?.pular_para
           } : undefined,
           control: {
-            max_attempts: variation.controle.tentativas_maximas,
-            is_required: variation.controle.campo_obrigatorio,
-            timeout_seconds: variation.controle.timeout_segundos
+            max_attempts: variation.controle?.tentativas_maximas || variation.configuracoes?.maximo_tentativas || null,
+            is_required: variation.controle?.campo_obrigatorio || variation.configuracoes?.campo_obrigatorio || false,
+            timeout_seconds: variation.controle?.timeout_segundos || variation.configuracoes?.timeout_segundos || null
           },
           designStyle: 'glass'
         };
 
-        console.log(`🔨 Reconstruindo node ${nodeId} (100% PT):`, nodeData);
+        const position = variation._metadata?.posicao_canvas || { x: 100, y: 100 };
+
+        console.log(`🔨 Reconstruindo node ${nodeId} (100% PT)`, {
+          nodeData,
+          position,
+          _metadata: variation._metadata
+        });
 
         nodes.push({
           id: nodeId,
           type: 'custom',
           data: nodeData,
-          position: variation._metadata.posicao_canvas
+          position
         });
 
       } else {
         // FORMATO ANTIGO
+        const position = variation.position || { x: 100, y: 100 };
+
         const nodeData = {
           label: variation.variation_name,
           type: variation.block_type,
@@ -373,13 +389,16 @@ export function convertStructuredToReactFlow(
           designStyle: 'glass'
         };
 
-        console.log(`🔨 Reconstruindo node ${nodeId} (FORMATO ANTIGO):`, nodeData);
+        console.log(`🔨 Reconstruindo node ${nodeId} (FORMATO ANTIGO)`, {
+          nodeData,
+          position
+        });
 
         nodes.push({
           id: nodeId,
           type: 'custom',
           data: nodeData,
-          position: variation.position
+          position
         });
       }
     });

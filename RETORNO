@@ -1,146 +1,122 @@
-[
-  {
-    "function_code": "CREATE OR REPLACE FUNCTION public.save_received_message_webhook(p_vps_instance_id text, p_phone text, p_message_text text, p_from_me boolean, p_media_type text DEFAULT 'text'::text, p_media_url text DEFAULT NULL::text, p_external_message_id text DEFAULT NULL::text, p_contact_name text DEFAULT NULL::text, p_profile_pic_url text DEFAULT NULL::text, p_base64_data text DEFAULT NULL::text, p_mime_type text DEFAULT NULL::text, p_file_name text DEFAULT NULL::text, p_whatsapp_number_id uuid DEFAULT NULL::uuid, p_source_edge text DEFAULT NULL::text, p_instance_funnel_id uuid DEFAULT NULL::uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nDECLARE\r\n    v_instance_id uuid;\r\n    v_user_id uuid;\r\n    v_lead_id uuid;\r\n    v_clean_phone text;\r\n    v_formatted_name text;\r\n    v_message_id uuid;\r\n    v_funnel_id uuid;\r\n    v_first_stage_id uuid;\r\n    v_owner_id uuid;\r\n    v_media_type_enum media_type;\r\n    v_should_call_edge boolean := false;\r\n    v_edge_url text;\r\n    v_service_role_key text;\r\n    v_edge_result jsonb;\r\n    v_file_extension text;\r\n    v_message_text text;\r\nBEGIN\r\n    -- 🎯 TEXTO DA MENSAGEM\r\n    CASE LOWER(COALESCE(p_media_type, 'text'))\r\n        WHEN 'text' THEN\r\n            v_message_text := COALESCE(NULLIF(TRIM(p_message_text), ''), 'Mensagem vazia');\r\n        WHEN 'image' THEN\r\n            v_message_text := '📷 Imagem';\r\n        WHEN 'video' THEN\r\n            v_message_text := '🎥 Vídeo';\r\n        WHEN 'audio' THEN\r\n            v_message_text := '🎵 Áudio';\r\n        WHEN 'document' THEN\r\n            v_message_text := '📄 Documento';\r\n        WHEN 'sticker' THEN\r\n            v_message_text := '😊 Sticker';\r\n        ELSE\r\n            v_message_text := COALESCE(NULLIF(TRIM(p_message_text), ''), '📎 Mídia');\r\n    END CASE;\r\n\r\n    -- 🔍 BUSCAR INSTÂNCIA E USUÁRIO (TABELA CORRETA: whatsapp_instances)\r\n    SELECT id, created_by_user_id INTO v_instance_id, v_user_id\r\n    FROM public.whatsapp_instances\r\n    WHERE instance_name = p_vps_instance_id OR id = p_whatsapp_number_id\r\n    LIMIT 1;\r\n\r\n    IF v_instance_id IS NULL THEN\r\n        RETURN jsonb_build_object('success', false, 'error', 'Instance not found');\r\n    END IF;\r\n\r\n    -- 🧹 Limpar telefone (apenas números)\r\n    v_clean_phone := regexp_replace(p_phone, '[^0-9]', '', 'g');\r\n\r\n    -- 📞 Formatar nome (SEMPRE usar telefone formatado, nunca contact_name)\r\n    IF length(v_clean_phone) = 13 AND v_clean_phone ~ '^55\\d{11}' THEN\r\n        v_formatted_name := '+55 (' || substring(v_clean_phone from 3 for 2) || ') ' || substring(v_clean_phone from 5 for 5) || '-' || substring(v_clean_phone from 10 for 4);\r\n    ELSIF length(v_clean_phone) = 12 AND v_clean_phone ~ '^55\\d{10}' THEN\r\n        v_formatted_name := '+55 (' || substring(v_clean_phone from 3 for 2) || ') ' || substring(v_clean_phone from 5 for 4) || '-' || substring(v_clean_phone from 9 for 4);\r\n    ELSE\r\n        v_formatted_name := '+' || v_clean_phone;\r\n    END IF;\r\n\r\n    -- Converter media_type para enum\r\n    v_media_type_enum := CASE\r\n        WHEN p_media_type IN ('image', 'video', 'audio', 'document', 'text') THEN p_media_type::media_type\r\n        ELSE 'text'::media_type\r\n    END;\r\n\r\n    -- 🔍 BUSCAR OU CRIAR LEAD (lookup por created_by_user_id)\r\n    SELECT id INTO v_lead_id\r\n    FROM public.leads\r\n    WHERE phone = v_clean_phone\r\n      AND created_by_user_id = v_user_id\r\n    LIMIT 1;\r\n\r\n    IF v_lead_id IS NULL THEN\r\n        -- ✅ Owner é sempre o dono da instância\r\n        v_owner_id := v_user_id;\r\n\r\n        -- ✅ BUSCAR FUNIL (tabela correta: funnels)\r\n        SELECT id INTO v_funnel_id\r\n        FROM public.funnels\r\n        WHERE created_by_user_id = v_user_id\r\n        ORDER BY created_at ASC\r\n        LIMIT 1;\r\n\r\n        IF v_funnel_id IS NOT NULL THEN\r\n            -- ✅ BUSCAR PRIMEIRO STAGE (tabela correta: kanban_stages, coluna: order_position)\r\n            SELECT id INTO v_first_stage_id\r\n            FROM public.kanban_stages\r\n            WHERE funnel_id = v_funnel_id\r\n            ORDER BY order_position ASC\r\n            LIMIT 1;\r\n        END IF;\r\n\r\n        -- ✅ INSERIR LEAD (colunas corretas)\r\n        INSERT INTO public.leads (\r\n            name,                   -- ✅ Telefone formatado: +55 (11) 98765-4321\r\n            phone,                  -- ✅ Telefone limpo: 5511987654321\r\n            profile_pic_url,\r\n            whatsapp_number_id,\r\n            created_by_user_id,\r\n            import_source,\r\n            funnel_id,\r\n            kanban_stage_id,        -- ✅ CORRETO (não current_stage_id)\r\n            owner_id,\r\n            country,                -- ✅ Adicionar campo country\r\n            last_message,\r\n            last_message_time\r\n        ) VALUES (\r\n            v_formatted_name,       -- ✅ Nome = telefone formatado\r\n            v_clean_phone,          -- ✅ Phone = números apenas\r\n            p_profile_pic_url,      -- 📸 Base64 da foto de perfil\r\n            v_instance_id,\r\n            v_user_id,\r\n            'webhook',\r\n            v_funnel_id,\r\n            v_first_stage_id,\r\n            v_owner_id,\r\n            NULL,                   -- country\r\n            v_message_text,\r\n            NOW()\r\n        )\r\n        RETURNING id INTO v_lead_id;\r\n    ELSE\r\n        -- Atualizar lead existente\r\n        UPDATE public.leads\r\n        SET\r\n            last_message = v_message_text,\r\n            last_message_time = NOW(),\r\n            -- 📸 Só atualiza profile_pic se vier nova (não NULL) E for diferente da atual\r\n            profile_pic_url = CASE\r\n                WHEN p_profile_pic_url IS NOT NULL\r\n                     AND (profile_pic_url IS NULL OR LEFT(p_profile_pic_url, 100) != LEFT(profile_pic_url, 100))\r\n                THEN p_profile_pic_url\r\n                ELSE profile_pic_url\r\n            END\r\n        WHERE id = v_lead_id;\r\n    END IF;\r\n\r\n    -- Inserir mensagem (media_url NULL - será preenchida pela edge)\r\n    INSERT INTO public.messages (text, from_me, created_by_user_id, lead_id, media_type, media_url, external_message_id, whatsapp_number_id, source_edge, import_source, timestamp, status)\r\n    VALUES (v_message_text, p_from_me, v_user_id, v_lead_id, v_media_type_enum, NULL, p_external_message_id, v_instance_id, p_source_edge, 'webhook', NOW(), CASE WHEN p_from_me THEN 'sent'::message_status ELSE 'received'::message_status END)\r\n    RETURNING id INTO v_message_id;\r\n\r\n    -- ⚠️ CALCULAR EXTENSÃO **ANTES** DE CHAMAR EDGE\r\n    v_should_call_edge := (p_media_type != 'text' AND p_base64_data IS NOT NULL);\r\n\r\n    IF v_should_call_edge THEN\r\n        -- 🎯 USAR HELPER FUNCTION\r\n        v_file_extension := get_file_extension_from_mime(p_mime_type, p_media_type);\r\n\r\n        -- Chamar edge de upload (comentado - upload é feito pelo webhook diretamente)\r\n        -- O webhook chama webhook_storage_upload com extensão correta\r\n    ELSE\r\n        v_file_extension := NULL;\r\n    END IF;\r\n\r\n    RETURN jsonb_build_object('success', true, 'message_id', v_message_id, 'lead_id', v_lead_id, 'file_extension', v_file_extension);\r\nEXCEPTION\r\n    WHEN OTHERS THEN\r\n        RETURN jsonb_build_object('success', false, 'error', SQLERRM);\r\nEND;\r\n$function$\n"
-  }
-]
+✅ Reconstrução completa: 1 nodes, 0 edges
+FlowBuilder.tsx:138 🔄 Nodes após conversão: [{…}]
+chunk-276SZO74.js?v=2cd0586c:16670 Uncaught TypeError: Cannot read properties of undefined (reading 'x')
+    at reactflow.js?v=2cd0586c:4850:26
+    at Array.forEach (<anonymous>)
+    at createNodeInternals (reactflow.js?v=2cd0586c:4843:9)
+    at setNodes (reactflow.js?v=2cd0586c:7101:27)
+    at reactflow.js?v=2cd0586c:4630:7
+    at commitHookEffectListMount (chunk-276SZO74.js?v=2cd0586c:16915:34)
+    at commitPassiveMountOnFiber (chunk-276SZO74.js?v=2cd0586c:18156:19)
+    at commitPassiveMountEffects_complete (chunk-276SZO74.js?v=2cd0586c:18129:17)
+    at commitPassiveMountEffects_begin (chunk-276SZO74.js?v=2cd0586c:18119:15)
+    at commitPassiveMountEffects (chunk-276SZO74.js?v=2cd0586c:18109:11)
+(anonymous) @ reactflow.js?v=2cd0586c:4850
+createNodeInternals @ reactflow.js?v=2cd0586c:4843
+setNodes @ reactflow.js?v=2cd0586c:7101
+(anonymous) @ reactflow.js?v=2cd0586c:4630
+commitHookEffectListMount @ chunk-276SZO74.js?v=2cd0586c:16915
+commitPassiveMountOnFiber @ chunk-276SZO74.js?v=2cd0586c:18156
+commitPassiveMountEffects_complete @ chunk-276SZO74.js?v=2cd0586c:18129
+commitPassiveMountEffects_begin @ chunk-276SZO74.js?v=2cd0586c:18119
+commitPassiveMountEffects @ chunk-276SZO74.js?v=2cd0586c:18109
+flushPassiveEffectsImpl @ chunk-276SZO74.js?v=2cd0586c:19490
+flushPassiveEffects @ chunk-276SZO74.js?v=2cd0586c:19447
+(anonymous) @ chunk-276SZO74.js?v=2cd0586c:19328
+workLoop @ chunk-276SZO74.js?v=2cd0586c:197
+flushWork @ chunk-276SZO74.js?v=2cd0586c:176
+performWorkUntilDeadline @ chunk-276SZO74.js?v=2cd0586c:384Understand this error
+PortalErrorBoundary.tsx:32 [PortalErrorBoundary] Portal error captured: TypeError: Cannot read properties of undefined (reading 'x')
+    at reactflow.js?v=2cd0586c:4850:26
+    at Array.forEach (<anonymous>)
+    at createNodeInternals (reactflow.js?v=2cd0586c:4843:9)
+    at setNodes (reactflow.js?v=2cd0586c:7101:27)
+    at reactflow.js?v=2cd0586c:4630:7
+    at commitHookEffectListMount (chunk-276SZO74.js?v=2cd0586c:16915:34)
+    at commitPassiveMountOnFiber (chunk-276SZO74.js?v=2cd0586c:18156:19)
+    at commitPassiveMountEffects_complete (chunk-276SZO74.js?v=2cd0586c:18129:17)
+    at commitPassiveMountEffects_begin (chunk-276SZO74.js?v=2cd0586c:18119:15)
+    at commitPassiveMountEffects (chunk-276SZO74.js?v=2cd0586c:18109:11)
+getDerivedStateFromError @ PortalErrorBoundary.tsx:32
+update.payload @ chunk-276SZO74.js?v=2cd0586c:14063
+getStateFromUpdate @ chunk-276SZO74.js?v=2cd0586c:11089
+processUpdateQueue @ chunk-276SZO74.js?v=2cd0586c:11191
+updateClassInstance @ chunk-276SZO74.js?v=2cd0586c:13928
+updateClassComponent @ chunk-276SZO74.js?v=2cd0586c:14662
+beginWork @ chunk-276SZO74.js?v=2cd0586c:15930
+beginWork$1 @ chunk-276SZO74.js?v=2cd0586c:19753
+performUnitOfWork @ chunk-276SZO74.js?v=2cd0586c:19198
+workLoopSync @ chunk-276SZO74.js?v=2cd0586c:19137
+renderRootSync @ chunk-276SZO74.js?v=2cd0586c:19116
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=2cd0586c:18874
+flushSyncCallbacks @ chunk-276SZO74.js?v=2cd0586c:9119
+flushPassiveEffectsImpl @ chunk-276SZO74.js?v=2cd0586c:19506
+flushPassiveEffects @ chunk-276SZO74.js?v=2cd0586c:19447
+(anonymous) @ chunk-276SZO74.js?v=2cd0586c:19328
+workLoop @ chunk-276SZO74.js?v=2cd0586c:197
+flushWork @ chunk-276SZO74.js?v=2cd0586c:176
+performWorkUntilDeadline @ chunk-276SZO74.js?v=2cd0586c:384Understand this error
+chunk-276SZO74.js?v=2cd0586c:14032 The above error occurred in the <StoreUpdater> component:
 
+    at StoreUpdater (http://localhost:8080/node_modules/.vite/deps/reactflow.js?v=2cd0586c:4641:23)
+    at Wrapper (http://localhost:8080/node_modules/.vite/deps/reactflow.js?v=2cd0586c:7315:28)
+    at div
+    at http://localhost:8080/node_modules/.vite/deps/reactflow.js?v=2cd0586c:7346:50
+    at div
+    at div
+    at FlowBuilderContent (http://localhost:8080/src/pages/ai-agents/FlowBuilder.tsx?t=1759937215402:509:22)
+    at ReactFlowProvider (http://localhost:8080/node_modules/.vite/deps/reactflow.js?v=2cd0586c:7307:38)
+    at FlowBuilder
+    at Suspense
+    at div
+    at div
+    at main
+    at div
+    at AppLayout (http://localhost:8080/src/components/layout/AppLayout.tsx:29:29)
+    at RoleGuard (http://localhost:8080/src/components/auth/RoleGuard.tsx:395:29)
+    at AdminGuard (http://localhost:8080/src/components/auth/AdminGuard.tsx:519:30)
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=2cd0586c:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=2cd0586c:4558:5)
+    at AppLayoutRoutes
+    at http://localhost:8080/src/components/auth/ProtectedRoute.tsx:26:63
+    at RenderedRoute (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=2cd0586c:4088:5)
+    at Routes (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=2cd0586c:4558:5)
+    at SidebarProvider (http://localhost:8080/src/contexts/SidebarContext.tsx:33:35)
+    at RoleProvider (http://localhost:8080/src/contexts/RoleContext.tsx:31:32)
+    at AuthProvider (http://localhost:8080/src/contexts/AuthContext.tsx:38:32)
+    at Router (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=2cd0586c:4501:15)
+    at BrowserRouter (http://localhost:8080/node_modules/.vite/deps/react-router-dom.js?v=2cd0586c:5247:5)
+    at PortalErrorBoundary (http://localhost:8080/src/components/error/PortalErrorBoundary.tsx:68:9)
+    at QueryClientProvider (http://localhost:8080/node_modules/.vite/deps/@tanstack_react-query.js?v=2cd0586c:2933:3)
+    at App (http://localhost:8080/src/App.tsx?t=1759937215402:1310:5)
 
-[
-  {
-    "trigger_name": "RI_ConstraintTrigger_a_17571",
-    "function_name": "RI_FKey_noaction_del",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_del$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_a_17572",
-    "function_name": "RI_FKey_noaction_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_upd$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_a_431939",
-    "function_name": "RI_FKey_cascade_del",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_del$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_a_431940",
-    "function_name": "RI_FKey_cascade_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_upd$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_a_779441",
-    "function_name": "RI_FKey_cascade_del",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_del$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_a_779442",
-    "function_name": "RI_FKey_noaction_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_upd$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_a_779461",
-    "function_name": "RI_FKey_cascade_del",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_del$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_a_779462",
-    "function_name": "RI_FKey_noaction_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_upd$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_a_779481",
-    "function_name": "RI_FKey_cascade_del",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_del$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_a_779482",
-    "function_name": "RI_FKey_noaction_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_upd$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_a_779491",
-    "function_name": "RI_FKey_cascade_del",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_del$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_a_779492",
-    "function_name": "RI_FKey_noaction_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_upd$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_423248",
-    "function_name": "RI_FKey_check_ins",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_423249",
-    "function_name": "RI_FKey_check_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_431951",
-    "function_name": "RI_FKey_check_ins",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_431952",
-    "function_name": "RI_FKey_check_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_484435",
-    "function_name": "RI_FKey_check_ins",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_484436",
-    "function_name": "RI_FKey_check_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_691066",
-    "function_name": "RI_FKey_check_ins",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_691067",
-    "function_name": "RI_FKey_check_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_779408",
-    "function_name": "RI_FKey_check_ins",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_779409",
-    "function_name": "RI_FKey_check_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_779413",
-    "function_name": "RI_FKey_check_ins",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_779414",
-    "function_name": "RI_FKey_check_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_779418",
-    "function_name": "RI_FKey_check_ins",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_779419",
-    "function_name": "RI_FKey_check_upd",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
-  },
-  {
-    "trigger_name": "update_leads_updated_at",
-    "function_name": "update_updated_at_column",
-    "trigger_function_code": "CREATE OR REPLACE FUNCTION public.update_updated_at_column()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO 'public'\nAS $function$\r\nBEGIN\r\n  NEW.updated_at = NOW();\r\n  RETURN NEW;\r\nEND;\r\n$function$\n"
-  }
-]
-
-
+React will try to recreate this component tree from scratch using the error boundary you provided, PortalErrorBoundary.
+logCapturedError @ chunk-276SZO74.js?v=2cd0586c:14032
+callback @ chunk-276SZO74.js?v=2cd0586c:14078
+callCallback @ chunk-276SZO74.js?v=2cd0586c:11248
+commitUpdateQueue @ chunk-276SZO74.js?v=2cd0586c:11265
+commitLayoutEffectOnFiber @ chunk-276SZO74.js?v=2cd0586c:17075
+commitLayoutMountEffects_complete @ chunk-276SZO74.js?v=2cd0586c:17980
+commitLayoutEffects_begin @ chunk-276SZO74.js?v=2cd0586c:17969
+commitLayoutEffects @ chunk-276SZO74.js?v=2cd0586c:17920
+commitRootImpl @ chunk-276SZO74.js?v=2cd0586c:19353
+commitRoot @ chunk-276SZO74.js?v=2cd0586c:19277
+performSyncWorkOnRoot @ chunk-276SZO74.js?v=2cd0586c:18895
+flushSyncCallbacks @ chunk-276SZO74.js?v=2cd0586c:9119
+flushPassiveEffectsImpl @ chunk-276SZO74.js?v=2cd0586c:19506
+flushPassiveEffects @ chunk-276SZO74.js?v=2cd0586c:19447
+(anonymous) @ chunk-276SZO74.js?v=2cd0586c:19328
+workLoop @ chunk-276SZO74.js?v=2cd0586c:197
+flushWork @ chunk-276SZO74.js?v=2cd0586c:176
+performWorkUntilDeadline @ chunk-276SZO74.js?v=2cd0586c:384Understand this error
+PortalErrorBoundary.tsx:56 [PortalErrorBoundary] Uncaught error: TypeError: Cannot read properties of undefined (reading 'x')
+    at reactflow.js?v=2cd0586c:4850:26
+    at Array.forEach (<anonymous>)
+    at createNodeInternals (reactflow.js?v=2cd0586c:4843:9)
+    at setNodes (reactflow.js?v=2cd0586c:7101:27)
+    at reactflow.js?v=2cd0586c:4630:7
+    at commitHookEffectListMount (chunk-276SZO74.js?v=2cd0586c:16915:34)
+    at commitPassiveMountOnFiber (chunk-276SZO74.js?v=2cd0586c:18156:19)
+    at commitPassiveMountEffects_complete (chunk-276SZO74.js?v=2cd0586c:18129:17)
+    at commitPassiveMountEffects_begin (chunk-276SZO74.js?v=2cd0586c:18119:15)
+    at commitPassiveMountEffects (chunk-276SZO74.js?v=2cd0586c:18109:11) {componentStack: '\n    at StoreUpdater (http://localhost:8080/node_m…ocalhost:8080/src/App.tsx?t=1759937215402:1310:5)'}
