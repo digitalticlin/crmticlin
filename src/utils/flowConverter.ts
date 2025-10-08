@@ -79,43 +79,34 @@ export function convertReactFlowToStructured(
         variacao_id: isStartStep ? 'INÍCIO' : `${stepLetter}${varIdx + 1}`,
         variacao_nome: node.data.label || `Variação ${varIdx + 1}`,
 
-        // Validação (se existir)
-        ...(node.data.validation?.check_context && {
-          validacao: {
-            verificar_antes_de_executar: node.data.validation.check_context,
-            verificar_no_contexto: node.data.validation.check_field,
-            ...(node.data.validation.skip_if_done && {
-              se_ja_feito: {
-                pular_para: node.data.validation.skip_to_step || '',
-                motivo: 'já executado anteriormente'
-              }
-            })
-          }
-        }),
+        // Validação (sempre presente - pelo menos básica)
+        validacao: node.data.validation?.check_context ? {
+          verificar_antes_de_executar: node.data.validation.check_context,
+          verificar_no_contexto: node.data.validation.check_field || '',
+          ...(node.data.validation.skip_if_done && {
+            se_ja_feito: {
+              pular_para: node.data.validation.skip_to_step || '',
+              motivo: 'já executado anteriormente'
+            }
+          })
+        } : {
+          verificar_antes_de_executar: false,
+          verificar_no_contexto: '',
+          se_ja_feito: undefined
+        },
 
         instrucoes: {
           objetivo: node.data.description || '',
           o_que_fazer: getOQueFazer(node.data.type),
 
-          // Para bloco INÍCIO: múltiplas mensagens
-          ...(isStartStep && {
+          // 🆕 MENSAGENS DA IA (UNIFICADO - todos os blocos usam)
+          ...(node.data.messages && node.data.messages.length > 0 && {
             mensagens_da_ia: (node.data.messages || []).map((m: any) => ({
-              tipo: m.type === 'text' ? 'texto' : m.type === 'media' ? 'midia' : m.type,
+              tipo: getTipoMensagem(node.data.type),
               conteudo: m.content || '',
-              aguardar_segundos: m.delay || 0,
               ...(m.media_id && { media_id: m.media_id }),
               ...(m.link_url && { link_url: m.link_url })
             }))
-          }),
-
-          // Para ask_question: pergunta única
-          ...(node.data.type === 'ask_question' && node.data.messages?.[0] && {
-            pergunta: node.data.messages[0].content
-          }),
-
-          // Para send_message: mensagem única
-          ...(node.data.type === 'send_message' && node.data.messages?.[0] && {
-            mensagem_principal: node.data.messages[0].content
           }),
 
           // Decisões
@@ -128,6 +119,10 @@ export function convertReactFlowToStructured(
               tipo: d.type === 'if_user_says' ? 'resposta_usuario' : d.type === 'timeout' ? 'timeout' : 'condicao'
             }))
           }),
+
+          // Regras (todos os blocos devem ter)
+          regra_critica: node.data.regra_critica || 'Seguir instruções do objetivo',
+          importante: node.data.importante || 'Manter contexto da conversa',
 
           // Dados extras do bloco
           ...(node.data.block_data && Object.keys(node.data.block_data).length > 0 && {
@@ -232,6 +227,26 @@ function getOQueFazer(blockType: string): string {
   };
 
   return mapeamento[blockType] || 'executar_acao';
+}
+
+// 🆕 NOVA: Mapear block_type para tipo de mensagem
+function getTipoMensagem(blockType: string): string {
+  const mapeamento: Record<string, string> = {
+    'start': 'apresentacao',
+    'ask_question': 'pergunta',
+    'send_message': 'explicacao',
+    'request_document': 'solicitacao',
+    'validate_document': 'confirmacao',
+    'send_link': 'explicacao',
+    'send_media': 'explicacao',
+    'update_lead_data': 'confirmacao',
+    'move_lead_in_funnel': 'confirmacao',
+    'end_conversation': 'despedida',
+    'transfer_human': 'explicacao',
+    'teach': 'explicacao'
+  };
+
+  return mapeamento[blockType] || 'explicacao';
 }
 
 // 🆕 NOVA: Determinar action.type baseado no block_type
