@@ -101,12 +101,27 @@ export function convertReactFlowToStructured(
 
           // 🆕 MENSAGENS DA IA (UNIFICADO - todos os blocos usam)
           ...(node.data.messages && node.data.messages.length > 0 && {
-            mensagens_da_ia: (node.data.messages || []).map((m: any) => ({
-              tipo: getTipoMensagem(node.data.type),
-              conteudo: m.content || '',
-              ...(m.media_id && { media_id: m.media_id }),
-              ...(m.link_url && { link_url: m.link_url })
-            }))
+            mensagens_da_ia: (node.data.messages || []).map((m: any) => {
+              const mensagem: any = {
+                tipo: getTipoMensagem(node.data.type),
+                conteudo: m.content || ''
+              };
+
+              // Bloco ENVIAR MÍDIA: incluir media_id
+              if (m.media_id) {
+                mensagem.media_id = m.media_id;
+              }
+
+              // Bloco ENVIAR LINK: garantir https:// no link_url
+              if (m.link_url) {
+                const linkUrl = m.link_url.trim();
+                mensagem.link_url = linkUrl.startsWith('http://') || linkUrl.startsWith('https://')
+                  ? linkUrl
+                  : `https://${linkUrl}`;
+              }
+
+              return mensagem;
+            })
           }),
 
           // Decisões
@@ -120,13 +135,104 @@ export function convertReactFlowToStructured(
             }))
           }),
 
-          // Regras (todos os blocos devem ter)
-          regra_critica: node.data.regra_critica || 'Seguir instruções do objetivo',
-          importante: node.data.importante || 'Manter contexto da conversa',
+          // Regras específicas por tipo de bloco
+          regra_critica: node.data.regra_critica || getRegraCritica(node.data.type),
+          importante: node.data.importante || getImportante(node.data.type),
 
           // Dados extras do bloco
           ...(node.data.block_data && Object.keys(node.data.block_data).length > 0 && {
-            dados_extras: node.data.block_data
+            dados_extras: (() => {
+              const extras = { ...node.data.block_data };
+
+              // BLOCO TRANSFER_TO_HUMAN: processar notificação
+              if (node.data.type === 'transfer_to_human') {
+                extras.modo_ia = 'tool_execution';
+                extras.tool_name = 'update_lead_data';
+
+                // Field updates para mover no funil
+                extras.field_updates = [
+                  {
+                    fieldName: 'funnel_id',
+                    fieldValue: `{{${extras.funnelId}}}`
+                  },
+                  {
+                    fieldName: 'kanban_stage_id',
+                    fieldValue: `{{${extras.kanbanStageId}}}`
+                  },
+                  {
+                    fieldName: 'notes',
+                    fieldValue: `Transferido via automação - {{timestamp}}`
+                  }
+                ];
+
+                // Configuração de notificação
+                if (extras.notifyEnabled) {
+                  extras.transfer_to_human = {
+                    enabled: true,
+                    phone: extras.notifyPhone || null,
+                    group_id: extras.notifyGroupId || null,
+                    message: `🔔 Novo lead aguardando atendimento humano na etapa ${extras.kanbanStageId}`
+                  };
+                }
+
+                // Limpar campos temporários do modal
+                delete extras.funnelId;
+                delete extras.kanbanStageId;
+                delete extras.notifyEnabled;
+                delete extras.notifyPhone;
+                delete extras.notifyGroupId;
+              }
+
+              // BLOCO PROVIDE_INSTRUCTIONS: processar ensino
+              if (node.data.type === 'provide_instructions') {
+                extras.modo_ia = 'knowledge_storage';
+                extras.tipo_conhecimento = extras.knowledgeType || 'geral';
+                extras.topico = node.data.label || 'Conhecimento geral';
+                extras.conteudo_para_aprender = extras.teachingContent || '';
+                extras.contexto_de_uso = node.data.description || 'Usar quando cliente perguntar sobre este tópico';
+
+                // Limpar campos temporários do modal
+                delete extras.teachingContent;
+                delete extras.knowledgeType;
+              }
+
+              // BLOCO BRANCH_DECISION: processar lógica de decisão
+              if (node.data.type === 'branch_decision') {
+                extras.modo_ia = 'decision_logic';
+                extras.tipo_decisao = 'baseada_em_contexto';
+                extras.campos_analisados = extras.analyzedFields || ['contexto_geral'];
+
+                // Lógica fallback
+                extras.logica_fallback = {
+                  se_nenhuma_condicao_atendida: extras.fallbackStep || 'FIM',
+                  motivo: 'Nenhuma condição foi satisfeita'
+                };
+
+                // Limpar campos temporários do modal
+                delete extras.analyzedFields;
+                delete extras.fallbackStep;
+              }
+
+              // BLOCO CHECK_IF_DONE: processar verificação
+              if (node.data.type === 'check_if_done') {
+                extras.modo_ia = 'validation_check';
+                extras.campo_para_verificar = extras.checkField || '';
+                extras.bloco_referencia_id = extras.referenceBlockId || null;
+                extras.tipo_verificacao = 'campo_contexto';
+                extras.criterio_validacao = {
+                  campo_existe: true,
+                  campo_nao_vazio: true,
+                  valor_especifico: null
+                };
+
+                // Limpar campos temporários do modal
+                delete extras.checkField;
+                delete extras.referenceBlockId;
+// BLOCO RETRY_WITH_VARIATION: processar repetição com variação              if (node.data.type === 'retry_with_variation') {                extras.modo_ia = 'retry_variation';                extras.bloco_original_id = extras.retryBlockId || null;                extras.numero_tentativa = extras.attemptNumber || 1;                extras.maximo_tentativas = node.data.control?.max_attempts || 3;                extras.estrategia_variacao = 'mudar_tom';                extras.variacoes_disponiveis = [                  'Deixa eu reformular...',                  'De outro jeito...',                  'Explicando melhor...'                ];                // Limpar campos temporários do modal                delete extras.retryBlockId;                delete extras.attemptNumber;              }
+              }
+
+              return extras;
+            })()
           })
         },
 
@@ -218,11 +324,13 @@ function getOQueFazer(blockType: string): string {
     'send_media': 'enviar_midia',
     'update_lead_data': 'atualizar_dados_do_lead',
     'move_lead_in_funnel': 'mover_lead_no_funil',
+    'transfer_to_human': 'notificar_equipe_e_mover_lead',
     'branch_decision': 'tomar_decisao_baseada_em_condicoes',
     'check_if_done': 'verificar_se_etapa_foi_concluida',
     'retry_with_variation': 'tentar_novamente_com_variacao',
     'end_conversation': 'finalizar_conversa',
     'transfer_human': 'transferir_para_atendente_humano',
+    'provide_instructions': 'ensinar_informacao_ao_agente',
     'teach': 'ensinar_informacao_ao_agente'
   };
 
@@ -241,19 +349,72 @@ function getTipoMensagem(blockType: string): string {
     'send_media': 'explicacao',
     'update_lead_data': 'confirmacao',
     'move_lead_in_funnel': 'confirmacao',
+    'transfer_to_human': 'despedida',
+    'branch_decision': 'nenhum',
+    'check_if_done': 'nenhum',
+    'retry_with_variation': 'pergunta',
     'end_conversation': 'despedida',
     'transfer_human': 'explicacao',
+    'provide_instructions': 'explicacao',
     'teach': 'explicacao'
   };
 
   return mapeamento[blockType] || 'explicacao';
 }
 
+// 🆕 NOVA: Regras críticas específicas por tipo de bloco
+function getRegraCritica(blockType: string): string {
+  const mapeamento: Record<string, string> = {
+    'start': 'Sempre cumprimentar com educação e apresentar objetivo',
+    'ask_question': 'Nunca repetir pergunta se já foi respondida',
+    'send_message': 'Enviar mensagem clara e objetiva',
+    'request_document': 'Especificar formato e tipo de documento solicitado',
+    'validate_document': 'Verificar legibilidade, formato e dados corretos',
+    'send_link': 'SEMPRE incluir https:// antes do link',
+    'send_media': 'Verificar se URL da mídia está acessível',
+    'update_lead_data': 'Confirmar dados antes de atualizar',
+    'move_lead_in_funnel': 'Verificar se funil e etapa existem',
+    'transfer_to_human': 'Avisar lead antes de transferir e notificar equipe',
+    'branch_decision': 'Avaliar TODAS as condições na ordem de prioridade antes de decidir',
+    'check_if_done': 'SEMPRE verificar no contexto antes de solicitar novamente',
+    'retry_with_variation': 'Variar abordagem sem repetir texto anterior exatamente',
+    'end_conversation': 'Sempre despedir educadamente',
+    'transfer_human': 'Avisar lead sobre transferência',
+    'provide_instructions': 'Garantir que informação seja compreensível e armazenável',
+    'teach': 'Garantir que informação seja compreensível'
+  };
+  return mapeamento[blockType] || 'Seguir instruções do objetivo';
+}
+
+// 🆕 NOVA: Observações importantes por tipo de bloco
+function getImportante(blockType: string): string {
+  const mapeamento: Record<string, string> = {
+    'start': 'Criar primeiro contato positivo',
+    'ask_question': 'Aguardar resposta antes de prosseguir',
+    'send_message': 'Manter contexto da conversa',
+    'request_document': 'Explicar por que documento é necessário',
+    'validate_document': 'Dar feedback claro sobre validação',
+    'send_link': 'Link deve ser clicável no WhatsApp',
+    'send_media': 'Mídia deve carregar corretamente no WhatsApp',
+    'update_lead_data': 'Dados atualizados devem refletir no CRM',
+    'move_lead_in_funnel': 'Movimentação deve ser registrada no histórico',
+    'transfer_to_human': 'Equipe deve ser notificada imediatamente no WhatsApp',
+    'branch_decision': 'Decisão deve ser tomada com base em dados do contexto da conversa',
+    'check_if_done': 'Evitar repetir ações que o lead já realizou',
+    'retry_with_variation': 'Manter mesmo objetivo mas com palavras e tom diferentes',
+    'end_conversation': 'Deixar canal aberto para futuro contato',
+    'transfer_human': 'Garantir que equipe foi notificada',
+    'provide_instructions': 'Informação deve ser armazenada para uso futuro em conversas',
+    'teach': 'Informação deve ser armazenada para uso futuro'
+  };
+  return mapeamento[blockType] || 'Manter contexto da conversa';
+}
+
 // 🆕 NOVA: Determinar action.type baseado no block_type
 function getActionType(blockType: string): 'send_and_wait' | 'send_only' | 'decision' | 'update_data' | 'end' {
   const sendAndWait = ['ask_question', 'request_document', 'validate_document', 'start'];
   const decision = ['branch_decision', 'check_if_done', 'retry_with_variation'];
-  const updateData = ['update_lead_data', 'move_lead_in_funnel'];
+  const updateData = ['update_lead_data', 'move_lead_in_funnel', 'transfer_to_human'];
   const end = ['end_conversation'];
 
   if (sendAndWait.includes(blockType)) return 'send_and_wait';

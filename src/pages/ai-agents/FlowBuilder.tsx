@@ -54,7 +54,7 @@ const BLOCK_TYPES = [
 
 // Blocos Premium (bloqueados)
 const PREMIUM_BLOCKS = [
-  { type: 'transfer_to_human', icon: <FaWhatsapp className="h-4 w-4" />, label: 'Notificar Equipe no WhatsApp', color: 'bg-green-600', category: 'Premium', isPremium: true },
+  { type: 'transfer_to_human', icon: <FaWhatsapp className="h-4 w-4" />, label: 'Transferir para Humano', color: 'bg-green-600', category: 'Premium', isPremium: true },
   { type: 'follow_up', icon: <RefreshCw className="h-4 w-4" />, label: 'Follow Up', color: 'bg-violet-500', category: 'Premium', isPremium: true },
   { type: 'schedule_meeting', icon: <Calendar className="h-4 w-4" />, label: 'Marcar Reunião', color: 'bg-rose-500', category: 'Premium', isPremium: true },
   { type: 'schedule_time', icon: <CalendarClock className="h-4 w-4" />, label: 'Agendar Horário', color: 'bg-sky-500', category: 'Premium', isPremium: true },
