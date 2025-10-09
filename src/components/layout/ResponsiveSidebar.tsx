@@ -85,7 +85,9 @@ export default function ResponsiveSidebar() {
       icon: Bot,
       label: "Agentes IA",
       href: "/ai-agents",
-      comingSoon: false,
+      comingSoon: true,
+      badgeIcon: Wrench,
+      disabledReason: 'Estamos melhorando esta área. Volte em breve.',
       requiredPermission: 'canManageFunnels' // Apenas gestores e admins
     }
   ];
