@@ -3,7 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Bot, Target, Workflow, MessageCircle, ChevronDown, Check } from "lucide-react";
+import { Sparkles, Target, Workflow, MessageCircle, ChevronDown, Check, Pen, ChevronUp } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -19,7 +20,9 @@ interface Step1BasicProps {
     name: string;
     objective: { name: string; description: string };
     funnel_id: string | null;
+    communication_style: { name: string; description: string };
     instance_phone: string | null;
+    message_signature_enabled: boolean;
   };
   onChange: (field: string, value: any) => void;
 }
@@ -28,6 +31,9 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
   const [funnels, setFunnels] = useState<any[]>([]);
   const [whatsappInstances, setWhatsappInstances] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [nameExpanded, setNameExpanded] = useState(false);
+  const [funnelExpanded, setFunnelExpanded] = useState(false);
+  const [whatsappExpanded, setWhatsappExpanded] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,122 +113,170 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
     },
   ];
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-4 relative z-20">
-      {/* Card 1: Objetivo - PRIMEIRO (Reordenado) */}
-      <div>
-        {/* Título único simplificado */}
-        <div className="text-center mb-6">
-          <h2 className="text-xl font-extrabold text-gray-900">
-            Qual o objetivo principal desse funcionário?
-          </h2>
-        </div>
+  const communicationStyles = [
+    {
+      value: {
+        name: 'Formal',
+        description: 'Use linguagem formal e respeitosa. Trate o cliente com "Senhor(a)" ou "Você" de forma educada. Evite gírias, abreviações ou emojis. Seja objetivo, claro e mantenha tom profissional em todas as interações. Use vocabulário técnico quando necessário e sempre demonstre seriedade.'
+      },
+      icon: '👔',
+      title: 'FORMAL',
+      subtitle: 'Sério e profissional',
+      preview: 'Prezado(a) cliente, como posso auxiliá-lo(a) hoje?',
+      gradient: 'from-gray-600 to-gray-700'
+    },
+    {
+      value: {
+        name: 'Normal',
+        description: 'Use linguagem natural e acessível. Seja cordial sem ser formal demais. Pode usar "você" de forma amigável. Evite gírias excessivas, mas pode usar termos cotidianos. Seja claro, direto e mantenha equilíbrio entre profissionalismo e proximidade. Emojis ocasionais são aceitáveis.'
+      },
+      icon: '💼',
+      title: 'NORMAL',
+      subtitle: 'Profissional e acessível',
+      preview: 'Olá! Como posso ajudar você hoje?',
+      gradient: 'from-blue-500 to-blue-600'
+    },
+    {
+      value: {
+        name: 'Descontraído',
+        description: 'Seja amigável e próximo como um amigo. Use linguagem casual, gírias leves e emojis para transmitir emoção. Trate o cliente de forma pessoal e descontraída. Faça a conversa fluir naturalmente, com bom humor quando apropriado. Evite ser excessivamente informal a ponto de perder credibilidade.'
+      },
+      icon: '😄',
+      title: 'DESCONTRAÍDO',
+      subtitle: 'Amigável e próximo',
+      preview: 'E aí! Tudo certo? Como posso te ajudar? 😊',
+      gradient: 'from-yellow-400 to-orange-500'
+    },
+  ];
 
-        {/* Cards reduzidos para 70% da largura */}
-        <div className="max-w-[70%] mx-auto grid grid-cols-1 md:grid-cols-3 gap-3">
+  return (
+    <div className="max-w-4xl mx-auto space-y-6 relative z-20">
+      {/* Seção Objetivo - MINIMALISTA */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium text-gray-600">Selecione o objetivo deste Funcionário</Label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {objectives.map((obj) => (
             <button
               key={obj.value.name}
               onClick={() => onChange('objective', obj.value)}
               className={cn(
-                "relative overflow-hidden p-4 rounded-2xl border-2 transition-all duration-300 text-center group",
-                "hover:shadow-xl hover:scale-105",
+                "flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-300 backdrop-blur-sm",
                 data.objective?.name === obj.value.name
-                  ? `bg-gradient-to-br ${obj.gradient} border-transparent shadow-xl scale-105`
-                  : 'bg-white/40 backdrop-blur-sm border-white/50 hover:bg-white/60'
+                  ? 'border-2 border-ticlin bg-ticlin/10 shadow-md'
+                  : 'border border-white/30 bg-white/10 hover:bg-white/20 hover:border-white/40'
               )}
             >
-              <div className="text-4xl mb-2 transition-transform duration-300 group-hover:scale-110">
-                {obj.icon}
+              <span className="text-xl">{obj.icon}</span>
+              <div className="flex-1 text-left">
+                <p className={cn(
+                  "font-semibold text-sm",
+                  data.objective?.name === obj.value.name ? 'text-gray-900' : 'text-gray-700'
+                )}>
+                  {obj.title}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {obj.preview}
+                </p>
               </div>
-              <h3 className={cn(
-                "font-bold text-base mb-1 transition-colors",
-                data.objective?.name === obj.value.name ? 'text-white' : 'text-gray-900'
-              )}>
-                {obj.title}
-              </h3>
-              <p className={cn(
-                "text-xs transition-colors",
-                data.objective?.name === obj.value.name ? 'text-white/90' : 'text-gray-600'
-              )}>
-                {obj.preview}
-              </p>
-
-              {/* Efeito visual */}
-              {data.objective?.name === obj.value.name && (
-                <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 rounded-full -translate-y-8 translate-x-8" />
-              )}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Card 2: Nome do Agente - SEGUNDO (Reordenado) */}
+      {/* Card: Nome do Agente */}
       <Card className={cn(
-        "relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.01]",
-        "rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl"
+        "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
+        "rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-white/15"
       )}>
         <CardContent className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500">
-              <Bot className="h-6 w-6 text-white" />
+          <button
+            onClick={() => setNameExpanded(!nameExpanded)}
+            className="w-full flex items-center justify-between text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 shadow-md">
+                <Sparkles className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <Label className="text-base font-bold text-gray-900 cursor-pointer">
+                  Qual o nome desse funcionário?
+                </Label>
+                <p className="text-xs text-gray-600">
+                  {data.name ? data.name : 'Escolha um nome descritivo para identificá-lo'}
+                </p>
+              </div>
             </div>
-            <div>
-              <Label htmlFor="name" className="text-lg font-bold text-gray-900">
-                Qual o nome desse funcionário?
-              </Label>
-              <p className="text-sm text-gray-600">Escolha um nome descritivo para identificá-lo</p>
+            {nameExpanded ? (
+              <ChevronUp className="h-5 w-5 text-gray-600" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-gray-600" />
+            )}
+          </button>
+
+          {nameExpanded && (
+            <div className="mt-4">
+              <Input
+                id="name"
+                value={data.name}
+                onChange={(e) => onChange('name', e.target.value)}
+                placeholder="Ex: Atendente Virtual João"
+                className="h-12 text-base bg-white/40 border border-white/40 focus:border-yellow-500 focus:bg-white/50 rounded-xl transition-all"
+                required
+              />
             </div>
-          </div>
-
-          <Input
-            id="name"
-            value={data.name}
-            onChange={(e) => onChange('name', e.target.value)}
-            placeholder="Ex: Atendente Virtual João"
-            className="h-12 text-base bg-white/60 border-2 border-white/50 focus:border-yellow-500 rounded-xl transition-all"
-            required
-          />
-
-          {/* Efeito visual decorativo */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400/10 rounded-full -translate-y-16 translate-x-16" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-orange-500/10 rounded-full translate-y-12 -translate-x-12" />
+          )}
         </CardContent>
       </Card>
 
-      {/* Card 3: Funil - Estilo KPI Dashboard */}
+      {/* Card: Funil */}
       <Card className={cn(
-        "relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.01]",
-        "rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl"
+        "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
+        "rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-white/15"
       )}>
         <CardContent className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600">
-              <Workflow className="h-6 w-6 text-white" />
+          <button
+            onClick={() => setFunnelExpanded(!funnelExpanded)}
+            className="w-full flex items-center justify-between text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-md">
+                <Workflow className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <Label className="text-base font-bold text-gray-900 cursor-pointer">
+                  Escolha o funil para ele atender (Opcional)
+                </Label>
+                <p className="text-xs text-gray-600">
+                  {data.funnel_id && data.funnel_id !== 'none'
+                    ? funnels.find(f => f.id === data.funnel_id)?.name || 'Funil selecionado'
+                    : 'Conecte a um funil de vendas'}
+                </p>
+              </div>
             </div>
-            <div>
-              <Label className="text-lg font-bold text-gray-900">
-                Escolha o funil para ele atender
-              </Label>
-              <p className="text-sm text-gray-600">Conecte a um funil de vendas (opcional)</p>
-            </div>
-          </div>
+            {funnelExpanded ? (
+              <ChevronUp className="h-5 w-5 text-gray-600" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-gray-600" />
+            )}
+          </button>
 
-          <Select
+          {funnelExpanded && (
+            <div className="mt-4">
+              <Select
             value={data.funnel_id || undefined}
             onValueChange={(value) => onChange('funnel_id', value)}
             disabled={isLoading}
           >
             <SelectTrigger className={cn(
-              "h-12 w-full bg-white/60 backdrop-blur-sm border-2 border-white/50 rounded-xl px-4 text-base font-medium",
-              "hover:bg-white/80 hover:border-purple-400 transition-all duration-200",
-              "focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500",
+              "h-12 w-full bg-white/40 backdrop-blur-sm border border-white/40 rounded-xl px-4 text-base font-medium",
+              "hover:bg-white/50 hover:border-purple-400 transition-all duration-200",
+              "focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500",
               "data-[placeholder]:text-gray-500",
               isLoading && 'opacity-50 cursor-not-allowed'
             )}>
               <SelectValue placeholder="Selecione um funil (opcional)" />
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-2 border-white/50 bg-white/95 backdrop-blur-lg shadow-2xl">
+            <SelectContent className="rounded-xl border border-white/40 bg-white/95 backdrop-blur-lg shadow-xl">
               <SelectItem
                 value="none"
                 className="rounded-lg hover:bg-purple-50 focus:bg-purple-100 cursor-pointer transition-colors"
@@ -243,47 +297,93 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
                 </SelectItem>
               ))}
             </SelectContent>
-          </Select>
+              </Select>
 
-          {funnels.length === 0 && !isLoading && (
-            <p className="text-sm text-gray-500 mt-3">
-              Nenhum funil encontrado. Crie um funil primeiro.
-            </p>
+              {funnels.length === 0 && !isLoading && (
+                <p className="text-xs text-gray-500 mt-3">
+                  Nenhum funil encontrado. Crie um funil primeiro.
+                </p>
+              )}
+            </div>
           )}
-
-          {/* Efeito visual decorativo */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full -translate-y-16 translate-x-16" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-600/10 rounded-full translate-y-12 -translate-x-12" />
         </CardContent>
       </Card>
 
-      {/* Card 4: WhatsApp - Estilo KPI Dashboard */}
+      {/* Seção Estilo de Comunicação - MINIMALISTA */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium text-gray-600">Estilo de comunicação</Label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {communicationStyles.map((style) => (
+            <button
+              key={style.value.name}
+              onClick={() => onChange('communication_style', style.value)}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-300 backdrop-blur-sm",
+                data.communication_style?.name === style.value.name
+                  ? 'border-2 border-ticlin bg-ticlin/10 shadow-md'
+                  : 'border border-white/30 bg-white/10 hover:bg-white/20 hover:border-white/40'
+              )}
+            >
+              <span className="text-xl">{style.icon}</span>
+              <div className="flex-1 text-left">
+                <p className={cn(
+                  "font-semibold text-sm",
+                  data.communication_style?.name === style.value.name ? 'text-gray-900' : 'text-gray-700'
+                )}>
+                  {style.title}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {style.subtitle}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Card: WhatsApp */}
       <Card className={cn(
-        "relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.01]",
-        "rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl"
+        "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
+        "rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-white/15"
       )}>
         <CardContent className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-green-500 to-green-600">
-              <MessageCircle className="h-6 w-6 text-white" />
+          <button
+            onClick={() => setWhatsappExpanded(!whatsappExpanded)}
+            className="w-full flex items-center justify-between text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-md">
+                <MessageCircle className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <Label className="text-base font-bold text-gray-900 cursor-pointer">
+                  Escolha o número que vai responder (Opcional)
+                </Label>
+                <p className="text-xs text-gray-600">
+                  {data.instance_phone && data.instance_phone !== 'none'
+                    ? formatPhone(data.instance_phone)
+                    : 'Selecione a instância do WhatsApp'}
+                </p>
+              </div>
             </div>
-            <div>
-              <Label className="text-lg font-bold text-gray-900">
-                Escolha o número que vai responder
-              </Label>
-              <p className="text-sm text-gray-600">Selecione a instância do WhatsApp (opcional)</p>
-            </div>
-          </div>
+            {whatsappExpanded ? (
+              <ChevronUp className="h-5 w-5 text-gray-600" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-gray-600" />
+            )}
+          </button>
 
-          <Select
+          {whatsappExpanded && (
+            <div className="mt-4">
+              <Select
             value={data.instance_phone || undefined}
             onValueChange={(value) => onChange('instance_phone', value)}
             disabled={isLoading}
           >
             <SelectTrigger className={cn(
-              "h-12 w-full bg-white/60 backdrop-blur-sm border-2 border-white/50 rounded-xl px-4 text-base font-medium",
-              "hover:bg-white/80 hover:border-green-400 transition-all duration-200",
-              "focus:ring-2 focus:ring-green-500/30 focus:border-green-500",
+              "h-12 w-full bg-white/40 backdrop-blur-sm border border-white/40 rounded-xl px-4 text-base font-medium",
+              "hover:bg-white/50 hover:border-green-400 transition-all duration-200",
+              "focus:ring-2 focus:ring-green-500/20 focus:border-green-500",
               "data-[placeholder]:text-gray-500",
               isLoading && 'opacity-50 cursor-not-allowed'
             )}>
@@ -295,7 +395,7 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
                 <span className="text-gray-500">Selecione um número (opcional)</span>
               )}
             </SelectTrigger>
-            <SelectContent className="rounded-xl border-2 border-white/50 bg-white/95 backdrop-blur-lg shadow-2xl">
+            <SelectContent className="rounded-xl border border-white/40 bg-white/95 backdrop-blur-lg shadow-xl">
               <SelectItem
                 value="none"
                 className="rounded-lg hover:bg-green-50 focus:bg-green-100 cursor-pointer transition-colors"
@@ -316,17 +416,43 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
                 </SelectItem>
               ))}
             </SelectContent>
-          </Select>
+              </Select>
 
-          {whatsappInstances.length === 0 && !isLoading && (
-            <p className="text-sm text-gray-500 mt-3">
-              Nenhum número encontrado. Configure uma instância primeiro.
-            </p>
+              {whatsappInstances.length === 0 && !isLoading && (
+                <p className="text-xs text-gray-500 mt-3">
+                  Nenhum número encontrado. Configure uma instância primeiro.
+                </p>
+              )}
+            </div>
           )}
+        </CardContent>
+      </Card>
 
-          {/* Efeito visual decorativo */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full -translate-y-16 translate-x-16" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-green-600/10 rounded-full translate-y-12 -translate-x-12" />
+      {/* Card: Assinatura de Mensagens */}
+      <Card className={cn(
+        "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
+        "rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-white/15"
+      )}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md">
+                <Pen className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <Label className="text-base font-bold text-gray-900">
+                  Assinatura de mensagens
+                </Label>
+                <p className="text-xs text-gray-600">
+                  Adiciona "Agente diz:" antes de cada mensagem
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={data.message_signature_enabled || false}
+              onCheckedChange={(value) => onChange('message_signature_enabled', value)}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

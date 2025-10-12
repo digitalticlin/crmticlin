@@ -455,8 +455,8 @@ serve(async (req)=>{
         }
       });
     }
-    // 🎯 INCREMENTAR CONTADOR DE USO
-    console.log('[AI Messaging Service] 📊 Incrementando contador de uso...');
+    // 🎯 INCREMENTAR CONTADOR DE USO DO PLANO
+    console.log('[AI Messaging Service] 📊 Incrementando contador de uso do plano...');
 
     const { data: incrementResult, error: incrementError } = await supabase.rpc(
       'check_and_increment_ai_usage',
@@ -467,13 +467,57 @@ serve(async (req)=>{
     );
 
     if (incrementError) {
-      console.error('[AI Messaging Service] ⚠️ Erro ao incrementar uso:', incrementError);
+      console.error('[AI Messaging Service] ⚠️ Erro ao incrementar uso do plano:', incrementError);
     } else {
-      console.log('[AI Messaging Service] ✅ Uso incrementado com sucesso:', {
+      console.log('[AI Messaging Service] ✅ Uso do plano incrementado com sucesso:', {
         used: incrementResult?.used,
         limit: incrementResult?.limit,
         remaining: incrementResult?.remaining
       });
+    }
+
+    // 🎯 NOVO: INCREMENTAR CONTADOR DE MENSAGENS DO AGENTE
+    if (agentId) {
+      console.log('[AI Messaging Service] 📊 Incrementando contador de mensagens do agente...', {
+        agentId: agentId
+      });
+
+      // SELECT atual + UPDATE (compatível com Supabase JS v2)
+      const { data: currentAgent, error: selectError } = await supabase
+        .from('ai_agents')
+        .select('messages_count')
+        .eq('id', agentId)
+        .eq('created_by_user_id', createdByUserId)
+        .single();
+
+      if (selectError) {
+        console.error('[AI Messaging Service] ⚠️ Erro ao buscar agente:', selectError);
+      } else if (currentAgent) {
+        const newCount = (currentAgent.messages_count || 0) + 1;
+
+        const { data: agentUpdate, error: agentUpdateError } = await supabase
+          .from('ai_agents')
+          .update({
+            messages_count: newCount,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', agentId)
+          .eq('created_by_user_id', createdByUserId)
+          .select('messages_count')
+          .single();
+
+        if (agentUpdateError) {
+          console.error('[AI Messaging Service] ⚠️ Erro ao incrementar contador do agente:', agentUpdateError);
+        } else {
+          console.log('[AI Messaging Service] ✅ Contador do agente incrementado:', {
+            agentId: agentId,
+            oldCount: currentAgent.messages_count || 0,
+            newCount: agentUpdate?.messages_count
+          });
+        }
+      }
+    } else {
+      console.warn('[AI Messaging Service] ⚠️ agentId não fornecido, contador do agente não será incrementado');
     }
 
     console.log('[AI Messaging Service] ✅ Mensagem enviada com sucesso pela VPS:', {

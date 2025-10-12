@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Funnel, KanbanStage } from '@/types/funnel';
 import type { MessageText } from '@/types/flowBuilder';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 interface MoveFunnelEditorProps {
   isOpen: boolean;
@@ -112,12 +113,34 @@ export function MoveFunnelEditor({
       ? [{ type: 'text', content: message, delay: 0 }]
       : [];
 
+    console.log('🟢 MoveFunnelEditor - handleSave:', {
+      message,
+      messages,
+      hasMessage: message.trim().length > 0
+    });
+
+    // Obter nomes para referência
+    const selectedFunnel = funnels.find(f => f.id === funnelId);
+    const selectedStage = stages.find(s => s.id === kanbanStageId);
+
     onSave({
       label,
       description,
-      funnelId,
-      kanbanStageId,
-      messages
+      messages,
+      block_data: {
+        field_updates: [
+          {
+            fieldName: 'funnel_id',
+            fieldValue: funnelId
+          },
+          {
+            fieldName: 'kanban_stage_id',
+            fieldValue: kanbanStageId
+          }
+        ],
+        funnel_name: selectedFunnel?.name || '',
+        stage_name: selectedStage?.title || ''
+      }
     });
 
     onClose();
@@ -126,6 +149,13 @@ export function MoveFunnelEditor({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] p-0 gap-0 glass rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden">
+        <VisuallyHidden>
+          <DialogTitle>{label}</DialogTitle>
+          <DialogDescription>
+            Configure para qual funil e etapa o lead será movido
+          </DialogDescription>
+        </VisuallyHidden>
+
         <div className="overflow-y-auto max-h-[90vh] kanban-horizontal-scroll">
           <div className="px-8 pt-8 pb-6">
             <div className="flex items-center gap-4">

@@ -472,17 +472,19 @@ O agente de IA receberá esta estrutura e deve identificar qual bloco executar b
 
       "dados_extras": {
         "modo_ia": "tool_execution",
-        "tool_name": "update_lead_data",
+        "tool_name": "move_lead_in_funnel",
         "field_updates": [
           {
             "fieldName": "funnel_id",
-            "fieldValue": "{{uuid_do_funil}}"
+            "fieldValue": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
           },
           {
             "fieldName": "kanban_stage_id",
-            "fieldValue": "{{uuid_da_etapa}}"
+            "fieldValue": "f9e8d7c6-b5a4-3210-9876-543210fedcba"
           }
-        ]
+        ],
+        "funnel_name": "Funil de Vendas Principal",
+        "stage_name": "Negociação"
       }
     },
 
@@ -499,6 +501,25 @@ O agente de IA receberá esta estrutura e deve identificar qual bloco executar b
   }]
 }
 ```
+
+**⚠️ IMPORTANTE PARA O CODE NODE N8N:**
+
+Para extrair os UUIDs do funil e etapa, use o seguinte caminho:
+
+```javascript
+// Caminho correto no JSONB
+variacao.instrucoes.dados_extras.field_updates[]
+
+// Extrair UUIDs
+const newKanbanStageId = fieldUpdates.find(f => f.fieldName === 'kanban_stage_id')?.fieldValue;
+const newFunnelId = fieldUpdates.find(f => f.fieldName === 'funnel_id')?.fieldValue;
+```
+
+**Estrutura garantida:**
+- ✅ `field_updates` sempre existe em `dados_extras`
+- ✅ Contém array com `{fieldName, fieldValue}`
+- ✅ `tool_name` é `"move_lead_in_funnel"` (não `update_lead_data`)
+- ✅ Campos opcionais: `funnel_name` e `stage_name` (para referência)
 
 ---
 
@@ -761,19 +782,29 @@ O agente de IA receberá esta estrutura e deve identificar qual bloco executar b
 
 ---
 
-## 📋 BLOCO 11 - TRANSFERIR PARA HUMANO (transfer_to_human) 👑 PREMIUM
+## 📋 BLOCO 11 - AVISAR HUMANO (transfer_to_human)
 
 **Identificação:** `_metadata.tipo_tecnico = "transfer_to_human"`
 **Modo IA:** `tool_execution`
-**Tipo Mensagem:** `despedida`
+**Tipo Mensagem:** `confirmacao`
+**Categoria:** `Controle`
+**Cor:** `Roxo (bg-purple-600)`
+
+### 🎯 **FUNCIONALIDADES:**
+1. ✅ **Notificar atendente no WhatsApp** (obrigatório)
+2. ⚙️ **Mover lead no funil** (opcional - configurável no modal)
+
+---
+
+### **EXEMPLO 1: Apenas Notificar (SEM mover lead)**
 
 ```json
 {
   "passo_id": "PASSO J",
-  "passo_nome": "Transferir para atendente",
+  "passo_nome": "Avisar atendente",
   "variacoes": [{
     "variacao_id": "J1",
-    "variacao_nome": "Transferir para time comercial",
+    "variacao_nome": "Avisar time comercial",
 
     "validacao": {
       "verificar_antes_de_executar": false,
@@ -782,47 +813,32 @@ O agente de IA receberá esta estrutura e deve identificar qual bloco executar b
     },
 
     "instrucoes": {
-      "objetivo": "Avisar lead sobre transferência e mover para etapa de atendimento humano",
-      "o_que_fazer": "notificar_equipe_e_mover_lead",
+      "objetivo": "Avisar atendente humano no WhatsApp sobre novo lead",
+      "o_que_fazer": "notificar_atendente_whatsapp",
 
       "mensagens_da_ia": [{
-        "tipo": "despedida",
-        "conteudo": "Vou transferir você para um especialista da nossa equipe. Em breve alguém entrará em contato! 🙋‍♂️"
+        "tipo": "confirmacao",
+        "conteudo": "Vou avisar nossa equipe para entrar em contato com você! 🙋‍♂️"
       }],
 
       "decisoes_diretas": [{
         "numero": 1,
         "comportamento": "ENVIAR_MENSAGEM_E_EXECUTAR_TOOL",
-        "entao_ir_para": "FIM",
+        "entao_ir_para": "PASSO K",
         "prioridade": "alta",
         "tipo": "automatico"
       }],
 
-      "regra_critica": "Avisar lead antes de transferir e notificar equipe",
-      "importante": "Equipe deve ser notificada imediatamente no WhatsApp",
+      "regra_critica": "Avisar lead antes de notificar equipe",
+      "importante": "Atendente deve ser notificado imediatamente no WhatsApp",
 
       "dados_extras": {
         "modo_ia": "tool_execution",
-        "tool_name": "update_lead_data",
-        "field_updates": [
-          {
-            "fieldName": "funnel_id",
-            "fieldValue": "{{uuid_do_funil}}"
-          },
-          {
-            "fieldName": "kanban_stage_id",
-            "fieldValue": "{{uuid_da_etapa}}"
-          },
-          {
-            "fieldName": "notes",
-            "fieldValue": "Transferido via automação - {{timestamp}}"
-          }
-        ],
+        "tool_name": "transfer_to_human",
         "transfer_to_human": {
-          "enabled": true,
-          "phone": "556299999999",
-          "group_id": null,
-          "message": "🔔 Novo lead aguardando atendimento humano na etapa Negociação"
+          "notify_enabled": true,
+          "phone": "5511999999999",
+          "notification_message": "🔔 Novo lead: {{nome_do_lead}} ({{numero_do_lead}})"
         }
       }
     },
@@ -835,13 +851,188 @@ O agente de IA receberá esta estrutura e deve identificar qual bloco executar b
 
     "_metadata": {
       "posicao_canvas": { "x": 800, "y": 300 },
-      "tipo_tecnico": "transfer_to_human",
-      "grupo": "premium",
-      "bloqueado": true
+      "tipo_tecnico": "transfer_to_human"
     }
   }]
 }
 ```
+
+---
+
+### **EXEMPLO 2: Notificar + Mover Lead no Funil**
+
+```json
+{
+  "passo_id": "PASSO J",
+  "passo_nome": "Avisar atendente e mover lead",
+  "variacoes": [{
+    "variacao_id": "J1",
+    "variacao_nome": "Avisar time e mover para Negociação",
+
+    "validacao": {
+      "verificar_antes_de_executar": false,
+      "verificar_no_contexto": "",
+      "se_ja_feito": null
+    },
+
+    "instrucoes": {
+      "objetivo": "Avisar atendente e mover lead para etapa de Negociação",
+      "o_que_fazer": "notificar_atendente_e_mover_lead",
+
+      "mensagens_da_ia": [{
+        "tipo": "confirmacao",
+        "conteudo": "Vou avisar nossa equipe e organizar seu atendimento! 🙋‍♂️"
+      }],
+
+      "decisoes_diretas": [{
+        "numero": 1,
+        "comportamento": "ENVIAR_MENSAGEM_E_EXECUTAR_TOOL",
+        "entao_ir_para": "PASSO K",
+        "prioridade": "alta",
+        "tipo": "automatico"
+      }],
+
+      "regra_critica": "Avisar lead, mover no funil e notificar equipe",
+      "importante": "Lead deve ser movido ANTES de notificar atendente",
+
+      "dados_extras": {
+        "modo_ia": "tool_execution",
+        "tool_name": "transfer_to_human",
+
+        "transfer_to_human": {
+          "notify_enabled": true,
+          "phone": "5511999999999",
+          "notification_message": "🔔 Novo lead: {{nome_do_lead}} ({{numero_do_lead}}) movido para Negociação"
+        },
+
+        "field_updates": [
+          {
+            "fieldName": "funnel_id",
+            "fieldValue": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          {
+            "fieldName": "kanban_stage_id",
+            "fieldValue": "f9e8d7c6-b5a4-3210-9876-543210fedcba"
+          }
+        ],
+
+        "funnel_name": "Funil de Vendas Principal",
+        "stage_name": "Negociação"
+      }
+    },
+
+    "controle": {
+      "tentativas_maximas": 1,
+      "campo_obrigatorio": true,
+      "timeout_segundos": null
+    },
+
+    "_metadata": {
+      "posicao_canvas": { "x": 800, "y": 300 },
+      "tipo_tecnico": "transfer_to_human"
+    }
+  }]
+}
+```
+
+---
+
+## ⚠️ **IMPORTANTE PARA O CODE NODE N8N:**
+
+### **Estrutura de dados:**
+
+```javascript
+// 1. EXTRAIR VARIÁVEIS DO FLUXO
+const currentStepId = $json.current_step_id;
+const currentVariationId = $json.current_variation_id;
+const tipoTecnico = $json.tipo_tecnico_variation;
+const leadId = $json.lead_id;
+const flow = JSON.parse($json.flow);
+
+// 2. ENCONTRAR VARIATION ATUAL
+const variation = flow.variacoes.find(v => v.variacao_id === currentVariationId);
+const dadosExtras = variation.instrucoes.dados_extras;
+
+// 3. NOTIFICAÇÃO (sempre obrigatório)
+const transferData = dadosExtras.transfer_to_human;
+const phone = transferData.phone;
+const notificationMessage = transferData.notification_message;
+
+// 4. MOVIMENTAÇÃO (opcional - verificar SE existe)
+const needsMove = dadosExtras.field_updates && dadosExtras.field_updates.length > 0;
+let newFunnelId = null;
+let newKanbanStageId = null;
+
+if (needsMove) {
+  newFunnelId = dadosExtras.field_updates.find(f => f.fieldName === 'funnel_id')?.fieldValue;
+  newKanbanStageId = dadosExtras.field_updates.find(f => f.fieldName === 'kanban_stage_id')?.fieldValue;
+}
+
+// 5. BUSCAR DADOS DO LEAD (do Supabase node anterior)
+const leadName = $input.first().json.name || 'Nome não informado';
+const leadPhone = $input.first().json.phone || 'Número não informado';
+
+// 6. SUBSTITUIR VARIÁVEIS na mensagem
+let finalMessage = notificationMessage;
+if (finalMessage.includes('{{nome_do_lead}}') || finalMessage.includes('{{numero_do_lead}}')) {
+  finalMessage = finalMessage
+    .replace(/\{\{nome_do_lead\}\}/g, leadName)
+    .replace(/\{\{numero_do_lead\}\}/g, leadPhone);
+}
+
+// 7. OUTPUT
+return {
+  lead_id: leadId,
+  needs_move: needsMove,
+  new_funnel_id: newFunnelId,
+  new_kanban_stage_id: newKanbanStageId,
+  notification_phone: phone,
+  notification_message: finalMessage
+};
+```
+
+---
+
+### **⚠️ IMPORTANTE - Configuração do Fluxo N8N:**
+
+**Pré-requisito obrigatório:**
+Antes do Code Node "ORGANIZA AVISAR HUMANO", você DEVE adicionar um **Supabase node** para buscar os dados do lead (nome e telefone). Isso é necessário para substituir as variáveis {{nome_do_lead}} e {{numero_do_lead}} na mensagem de notificação.
+
+**Configuração do Supabase node:**
+- Table: `leads`
+- Operation: `Get Row(s)`
+- Filter: `id = {{ $json.lead_id }}`
+- Output: Certifique-se que campos `name` e `phone` estão disponíveis
+
+---
+
+### **Lógica N8N recomendada:**
+
+```
+1. Supabase Node "GET LEAD DATA" (busca nome e telefone do lead)
+   ↓
+2. Code Node "ORGANIZA AVISAR HUMANO" (extrai dados do JSONB + substitui variáveis)
+   ↓
+3. Switch Node: needs_move?
+   ├─ TRUE → Supabase UPDATE (mover lead) → WhatsApp (notificar)
+   └─ FALSE → WhatsApp (notificar apenas)
+```
+
+---
+
+### **Variáveis disponíveis:**
+- `{{nome_do_lead}}` - Nome completo do lead
+- `{{numero_do_lead}}` - Telefone do lead
+
+---
+
+### **Garantias da estrutura:**
+- ✅ `transfer_to_human` sempre existe em `dados_extras` (obrigatório)
+- ✅ `notify_enabled` sempre será `true`
+- ✅ `phone` é obrigatório (validado no front)
+- ✅ `notification_message` é obrigatório (validado no front)
+- ⚙️ `field_updates` é OPCIONAL (só existe se usuário marcar no modal)
+- ⚙️ `funnel_name` e `stage_name` são OPCIONAIS (apenas para referência)
 
 ---
 

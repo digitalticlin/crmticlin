@@ -11,9 +11,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const WIZARD_STEPS = [
-  { number: 1, title: 'Básico', subtitle: '' },
-  { number: 2, title: 'Personalidade', subtitle: '' },
-  { number: 3, title: 'Conhecimento', subtitle: '' },
+  { number: 1, title: 'Configuração', subtitle: '' },
+  { number: 2, title: 'Comportamento', subtitle: '' },
+  { number: 3, title: 'Informações', subtitle: '' },
 ];
 
 export default function CreateAgent() {
@@ -41,6 +41,8 @@ export default function CreateAgent() {
     agent_function: "",
     prohibitions: [] as string[],
     signature: "",
+    message_signature_enabled: false,
+    knowledge_base_enabled: false,
 
     // Step 3 - Conhecimento
     company_info: "",
@@ -83,6 +85,8 @@ export default function CreateAgent() {
           agent_function: formData.agent_function,
           prohibitions: formData.prohibitions,
           signature: formData.signature,
+          message_signature_enabled: formData.message_signature_enabled,
+          knowledge_base_enabled: formData.knowledge_base_enabled,
           company_info: formData.company_info,
           faq: formData.faq,
           flow: {
@@ -143,6 +147,7 @@ export default function CreateAgent() {
             agent_function: formData.agent_function,
             prohibitions: formData.prohibitions,
             signature: formData.signature,
+            knowledge_base_enabled: formData.knowledge_base_enabled,
             company_info: formData.company_info,
             faq: formData.faq,
             updated_at: new Date().toISOString()
@@ -163,6 +168,7 @@ export default function CreateAgent() {
             agent_function: formData.agent_function,
             prohibitions: formData.prohibitions,
             signature: formData.signature,
+            knowledge_base_enabled: formData.knowledge_base_enabled,
             company_info: formData.company_info,
             faq: formData.faq,
             flow: {
@@ -223,45 +229,48 @@ export default function CreateAgent() {
           )}
 
           {currentStep === 2 && (
-            <Step2Personality data={formData} onChange={handleFieldChange} />
+            <Step2Personality data={formData} onChange={handleFieldChange} agentId={createdAgentId || undefined} />
           )}
 
           {currentStep === 3 && (
             <Step3Knowledge data={formData} onChange={handleFieldChange} agentId={createdAgentId || undefined} />
           )}
-        </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between items-center mt-8 pt-6 border-t border-white/20 relative z-30">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentStep === 1}
-            className="h-12 px-6 bg-white/40 backdrop-blur-sm border-2 border-white/50 hover:bg-white/60 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-semibold transition-all duration-200"
-          >
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            Anterior
-          </Button>
+          {/* Navigation Buttons - Logo após os cards */}
+          <div className="flex justify-between items-center mt-6 relative z-30 max-w-4xl mx-auto">
+          {currentStep > 1 ? (
+            <Button
+              variant="ghost"
+              onClick={handlePrevious}
+              className="h-10 px-4 text-gray-700 hover:bg-white/20 rounded-lg font-medium transition-all"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Anterior
+            </Button>
+          ) : (
+            <div />
+          )}
 
           <div className="flex gap-3">
             {currentStep < 3 ? (
               <Button
                 onClick={handleNext}
-                className="h-12 px-8 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold rounded-xl shadow-lg transition-all duration-200"
+                className="h-10 px-6 bg-white/40 backdrop-blur-sm border border-white/50 hover:bg-white/60 text-gray-900 font-medium rounded-lg transition-all"
               >
                 Próximo
-                <ArrowRight className="h-5 w-5 ml-2" />
+                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
               <Button
                 onClick={handleSave}
                 disabled={isSaving || !formData.name}
-                className="h-12 px-8 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold rounded-xl shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="h-10 px-6 bg-white/40 backdrop-blur-sm border border-white/50 hover:bg-white/60 text-gray-900 font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save className="h-5 w-5 mr-2" />
-                {isSaving ? "Salvando..." : "Salvar Agente"}
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? "Salvando..." : "Salvar"}
               </Button>
             )}
+          </div>
           </div>
         </div>
       </div>

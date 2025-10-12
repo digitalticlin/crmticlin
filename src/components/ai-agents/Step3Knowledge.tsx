@@ -4,7 +4,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Building, Lightbulb, ChevronDown, ChevronUp, Plus, X, GitBranch } from "lucide-react";
+import { Lightbulb, ChevronDown, ChevronUp, Plus, X, GitBranch, Package, Workflow } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
@@ -15,8 +18,8 @@ interface QAPair {
 
 interface Step3KnowledgeProps {
   data: {
-    company_info: string;
     faq: QAPair[];
+    knowledge_base_enabled: boolean;
   };
   onChange: (field: string, value: any) => void;
   agentId?: string;
@@ -28,6 +31,22 @@ export const Step3Knowledge = ({ data, onChange, agentId }: Step3KnowledgeProps)
   const [newQuestion, setNewQuestion] = useState("");
   const [newAnswer, setNewAnswer] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [productCount, setProductCount] = useState(0);
+
+  useEffect(() => {
+    if (agentId) {
+      loadProductCount();
+    }
+  }, [agentId]);
+
+  const loadProductCount = async () => {
+    if (!agentId) return;
+    const { count } = await supabase
+      .from('ai_agent_products')
+      .select('*', { count: 'exact', head: true })
+      .eq('agent_id', agentId);
+    setProductCount(count || 0);
+  };
 
   const handleAddFaq = () => {
     if (newQuestion.trim() && newAnswer.trim()) {
@@ -64,57 +83,12 @@ export const Step3Knowledge = ({ data, onChange, agentId }: Step3KnowledgeProps)
     navigate(`/ai-agents/flow-builder/${agentId}`);
   };
 
-  const companyInfoPlaceholder = `Descreva sua empresa para o agente conhecer bem o negócio:
-
-• Nome da empresa:
-• CNPJ: (se aplicável)
-• Segmento de atuação:
-• Principais produtos/serviços:
-• Diferenciais competitivos:
-• Missão e valores:
-• Localização/Área de atuação:
-
-Exemplo:
-"Somos a TicLin, uma empresa de tecnologia especializada em automação comercial para pequenas e médias empresas. Atuamos há 5 anos no mercado, oferecendo CRM, automação de WhatsApp e IA conversacional. Nosso diferencial é a simplicidade e suporte dedicado."`;
-
   return (
-    <div className="max-w-4xl mx-auto space-y-4 relative z-20">
-      {/* Informações da Empresa - Estilo KPI */}
+    <div className="max-w-4xl mx-auto space-y-6 relative z-20">
+      {/* FAQ */}
       <Card className={cn(
-        "relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.01]",
-        "rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl"
-      )}>
-        <CardContent className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600">
-              <Building className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <Label className="text-lg font-bold text-gray-900">
-                O que ele precisa saber sobre sua empresa?
-              </Label>
-              <p className="text-sm text-gray-600">Conte tudo sobre seu negócio</p>
-            </div>
-          </div>
-
-          <Textarea
-            value={data.company_info}
-            onChange={(e) => onChange('company_info', e.target.value)}
-            placeholder={companyInfoPlaceholder}
-            className="min-h-[180px] text-base bg-white/60 border-2 border-white/50 focus:border-blue-500 rounded-xl transition-all"
-            required
-          />
-
-          {/* Efeito visual decorativo */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -translate-y-16 translate-x-16" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-600/10 rounded-full translate-y-12 -translate-x-12" />
-        </CardContent>
-      </Card>
-
-      {/* FAQ - Estilo KPI */}
-      <Card className={cn(
-        "relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.01]",
-        "rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl"
+        "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
+        "rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-white/15"
       )}>
         <CardContent className="p-6">
           <button
@@ -122,45 +96,45 @@ Exemplo:
             className="w-full flex items-center justify-between text-left group"
           >
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 transition-transform group-hover:scale-110">
-                <Lightbulb className="h-6 w-6 text-white" />
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 shadow-md">
+                <Lightbulb className="h-5 w-5 text-white" />
               </div>
               <div>
-                <Label className="text-lg font-bold text-gray-900 cursor-pointer">
-                  Ele já sabe responder perguntas? (Opcional)
+                <Label className="text-base font-bold text-gray-900 cursor-pointer">
+                  Perguntas Frequentes (Opcional)
                 </Label>
-                <p className="text-sm text-gray-600">
-                  {data.faq.length > 0 ? `${data.faq.length} respostas prontas` : 'Adicione perguntas frequentes'}
+                <p className="text-xs text-gray-600">
+                  {data.faq.length > 0 ? `${data.faq.length} perguntas cadastradas` : 'Adicione as perguntas que seus clientes mais fazem, e um exemplo de resposta para a IA'}
                 </p>
               </div>
             </div>
             {faqExpanded ? (
-              <ChevronUp className="h-5 w-5 text-gray-600 transition-transform group-hover:scale-110" />
+              <ChevronUp className="h-5 w-5 text-gray-600" />
             ) : (
-              <ChevronDown className="h-5 w-5 text-gray-600 transition-transform group-hover:scale-110" />
+              <ChevronDown className="h-5 w-5 text-gray-600" />
             )}
           </button>
 
           {faqExpanded && (
             <div className="mt-4 space-y-3">
               {/* Formulário de Adição */}
-              <div className="p-4 bg-white/60 border-2 border-white/50 rounded-xl space-y-2">
+              <div className="space-y-2">
                 <Input
                   value={newQuestion}
                   onChange={(e) => setNewQuestion(e.target.value)}
                   placeholder="Ex: Qual o horário de funcionamento?"
-                  className="h-11 text-base bg-white/80 border-white/50 focus:border-orange-500 rounded-lg transition-all"
+                  className="h-12 text-base bg-white/40 border border-white/40 focus:border-orange-500 focus:bg-white/50 rounded-xl transition-all"
                 />
                 <Textarea
                   value={newAnswer}
                   onChange={(e) => setNewAnswer(e.target.value)}
                   placeholder="Ex: Nosso horário é de segunda a sexta, das 8h às 18h"
-                  className="min-h-[70px] text-base bg-white/80 border-white/50 focus:border-orange-500 rounded-lg transition-all"
+                  className="min-h-[80px] text-base bg-white/40 border border-white/40 focus:border-orange-500 focus:bg-white/50 rounded-xl transition-all"
                 />
                 <div className="flex gap-2">
                   <Button
                     onClick={handleAddFaq}
-                    className="flex-1 h-11 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold rounded-lg transition-all"
+                    className="flex-1 h-10 bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-semibold rounded-lg transition-all"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     {editingIndex !== null ? 'Atualizar' : 'Adicionar'}
@@ -172,8 +146,8 @@ Exemplo:
                         setNewQuestion("");
                         setNewAnswer("");
                       }}
-                      variant="outline"
-                      className="h-11 bg-white/60 border-white/50 hover:bg-white/80 rounded-lg"
+                      variant="ghost"
+                      className="h-10 hover:bg-white/40 rounded-lg"
                     >
                       Cancelar
                     </Button>
@@ -182,16 +156,16 @@ Exemplo:
               </div>
 
               {/* Lista de P&R */}
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              <div className="space-y-2 max-h-[200px] overflow-y-auto kanban-column-scrollbar">
                 {data.faq.map((item, index) => (
                   <div
                     key={index}
-                    className="p-3 bg-orange-50 border border-orange-200 rounded-lg transition-all hover:bg-orange-100"
+                    className="p-2.5 bg-white/20 border border-white/30 rounded-lg transition-all hover:bg-white/30"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 text-sm mb-1 flex items-center gap-2">
-                          <span className="text-orange-500">💡</span>
+                        <p className="font-medium text-gray-900 text-sm mb-1 flex items-center gap-2">
+                          <span>💬</span>
                           {item.question}
                         </p>
                         <p className="text-xs text-gray-700 pl-6">
@@ -203,7 +177,7 @@ Exemplo:
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditFaq(index)}
-                          className="h-7 w-7 p-0 hover:bg-orange-200 rounded-lg"
+                          className="h-7 w-7 p-0 hover:bg-white/40 rounded-lg"
                           title="Editar"
                         >
                           ✏️
@@ -212,67 +186,147 @@ Exemplo:
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveFaq(index)}
-                          className="h-7 w-7 p-0 hover:bg-red-200 rounded-lg"
+                          className="h-7 w-7 p-0 hover:bg-white/40 rounded-lg"
                           title="Remover"
                         >
-                          <X className="h-3 w-3 text-red-600" />
+                          <X className="h-3.5 w-3.5 text-gray-700" />
                         </Button>
                       </div>
                     </div>
                   </div>
                 ))}
                 {data.faq.length === 0 && (
-                  <p className="text-center text-sm text-gray-500 py-3">
-                    Nenhuma resposta pronta ainda. Clique em \"Adicionar\" para criar.
+                  <p className="text-center text-xs text-gray-500 py-4">
+                    Nenhuma pergunta cadastrada. Clique em "Adicionar" para criar.
                   </p>
                 )}
               </div>
             </div>
           )}
 
-          {/* Efeito visual decorativo */}
-          <div className="absolute top-0 right-0 w-28 h-28 bg-yellow-400/10 rounded-full -translate-y-14 translate-x-14" />
-          <div className="absolute bottom-0 left-0 w-20 h-20 bg-orange-500/10 rounded-full translate-y-10 -translate-x-10" />
         </CardContent>
       </Card>
 
-      {/* Card 3: Fluxo de Atendimento - ATUALIZADO */}
+      {/* Card: Base de Conhecimento */}
       <Card className={cn(
-        "relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.01]",
-        "rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl"
+        "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
+        "rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-white/15"
       )}>
         <CardContent className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600">
-              <GitBranch className="h-6 w-6 text-white" />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
+                  <Package className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <Label className="text-base font-bold text-gray-900">
+                    Base de Conhecimento (Opcional)
+                  </Label>
+                  <p className="text-xs text-gray-600">
+                    Se você tem muitos produtos ou serviços diferentes, adicione na base de conhecimento
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={data.knowledge_base_enabled || false}
+                onCheckedChange={(value) => onChange('knowledge_base_enabled', value)}
+              />
             </div>
+
+            {data.knowledge_base_enabled && agentId && (
+              <Button
+                type="button"
+                onClick={() => navigate(`/ai-agents/${agentId}/products`)}
+                className="w-full h-10 bg-white/40 backdrop-blur-sm border border-white/50 hover:bg-white/60 text-gray-900 font-medium rounded-lg transition-all"
+              >
+                <Package className="h-4 w-4 mr-2" />
+                {productCount > 0 ? `Editar Base (${productCount} ${productCount === 1 ? 'item' : 'itens'})` : 'Adicionar Produtos e Serviços'}
+              </Button>
+            )}
+
+            {data.knowledge_base_enabled && !agentId && (
+              <p className="text-xs text-gray-500 text-center py-2">
+                Salve o agente primeiro para adicionar produtos e serviços
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Card: Fluxo de Atendimento */}
+      <Card className={cn(
+        "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
+        "rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-white/15"
+      )}>
+        <CardContent className="p-6">
+          <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <Label className="text-xl font-bold text-gray-900">
-                {data.company_info ? 'Editar fluxo de atendimento' : 'Criar fluxo de atendimento'}
-              </Label>
-              <p className="text-sm text-gray-600">Configure etapas personalizadas de atendimento</p>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-md">
+                  <GitBranch className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <Label className="text-base font-bold text-gray-900">
+                    Fluxo de Atendimento
+                  </Label>
+                  <p className="text-xs text-gray-600">Crie o passo a passo do atendimento do funcionário para ele seguir</p>
+                </div>
+              </div>
+
+              {/* Botão */}
+              <Button
+                onClick={handleFlowBuilder}
+                className="w-3/4 h-11 bg-white/40 backdrop-blur-sm border border-white/50 hover:bg-white/60 text-gray-900 font-medium rounded-lg transition-all"
+              >
+                <GitBranch className="h-4 w-4 mr-2" />
+                Editar Fluxo de Atendimento
+              </Button>
+            </div>
+
+            {/* Ícone ilustrativo à direita */}
+            <div className="flex items-center justify-center">
+              <svg width="200" height="110" viewBox="0 0 200 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                    <path d="M 0 0 L 5 3 L 0 6" stroke="#4B5563" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  </marker>
+                </defs>
+
+                {/* Linhas de conexão com setas minimalistas */}
+                <path d="M 32 55 L 48 24" stroke="#4B5563" strokeWidth="1.5" strokeLinecap="round" markerEnd="url(#arrowhead)"/>
+                <path d="M 32 55 L 48 86" stroke="#4B5563" strokeWidth="1.5" strokeLinecap="round" markerEnd="url(#arrowhead)"/>
+                <path d="M 88 24 L 106 48" stroke="#4B5563" strokeWidth="1.5" strokeLinecap="round" markerEnd="url(#arrowhead)"/>
+                <path d="M 88 86 L 106 62" stroke="#4B5563" strokeWidth="1.5" strokeLinecap="round" markerEnd="url(#arrowhead)"/>
+                <path d="M 144 55 L 160 55" stroke="#4B5563" strokeWidth="1.5" strokeLinecap="round" markerEnd="url(#arrowhead)"/>
+
+                {/* Bloco 1 */}
+                <rect x="5" y="45" width="27" height="20" rx="2" fill="#4B5563" fillOpacity="0.15" stroke="#4B5563" strokeWidth="2">
+                  <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2s" repeatCount="indefinite"/>
+                </rect>
+
+                {/* Bloco 2 (superior) */}
+                <rect x="52" y="14" width="36" height="20" rx="2" fill="#4B5563" fillOpacity="0.15" stroke="#4B5563" strokeWidth="2">
+                  <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2s" begin="0.3s" repeatCount="indefinite"/>
+                </rect>
+
+                {/* Bloco 3 (inferior) */}
+                <rect x="52" y="76" width="36" height="20" rx="2" fill="#4B5563" fillOpacity="0.15" stroke="#4B5563" strokeWidth="2">
+                  <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2s" begin="0.3s" repeatCount="indefinite"/>
+                </rect>
+
+                {/* Bloco 4 (convergência) */}
+                <rect x="108" y="45" width="36" height="20" rx="2" fill="#4B5563" fillOpacity="0.15" stroke="#4B5563" strokeWidth="2">
+                  <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2s" begin="0.6s" repeatCount="indefinite"/>
+                </rect>
+
+                {/* Bloco 5 (final) */}
+                <rect x="164" y="45" width="27" height="20" rx="2" fill="#4B5563" fillOpacity="0.15" stroke="#4B5563" strokeWidth="2">
+                  <animate attributeName="opacity" values="0.3;0.7;0.3" dur="2s" begin="0.9s" repeatCount="indefinite"/>
+                </rect>
+              </svg>
             </div>
           </div>
-
-          <div className="p-5 bg-cyan-50/50 border-2 border-cyan-200/50 rounded-xl">
-            <p className="text-sm text-gray-700 mb-4 flex items-center gap-2">
-              <span className="text-xl">🔄</span>
-              <span>Monte o fluxo de conversa para guiar o atendimento do agente de forma personalizada.</span>
-            </p>
-
-            <Button
-              onClick={handleFlowBuilder}
-              className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold border-0 rounded-xl transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-lg"
-            >
-              <GitBranch className="h-5 w-5" />
-              {data.company_info ? 'Editar Fluxo' : 'Criar Fluxo'}
-              <span className="text-xs opacity-90">(Em breve)</span>
-            </Button>
-          </div>
-
-          {/* Efeito visual decorativo */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full -translate-y-16 translate-x-16" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-600/10 rounded-full translate-y-12 -translate-x-12" />
         </CardContent>
       </Card>
     </div>

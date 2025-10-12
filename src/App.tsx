@@ -27,6 +27,7 @@ const AIAgentsPage = lazy(() => import('./pages/AIAgents'));
 const AIAgentsCreatePage = lazy(() => import('./pages/ai-agents/CreateAgent'));
 const AIAgentsEditPage = lazy(() => import('./pages/ai-agents/EditAgent'));
 const AIAgentsFlowBuilderPage = lazy(() => import('./pages/ai-agents/FlowBuilder'));
+const AIAgentsProductsPage = lazy(() => import('./pages/ai-agents/ProductsManager'));
 const PlansPage = lazy(() => import('./pages/Plans'));
 const PlansUpgradePage = lazy(() => import('./pages/PlansUpgrade'));
 const Checkout = lazy(() => import('./pages/Checkout'));
@@ -173,6 +174,18 @@ function AppLayoutRoutes() {
             <AppLayout fullHeight>
               <Suspense fallback={<PageLoader />}>
                 <AIAgentsFlowBuilderPage />
+              </Suspense>
+            </AppLayout>
+          </AdminGuard>
+        }
+      />
+      <Route
+        path="/ai-agents/:agentId/products"
+        element={
+          <AdminGuard>
+            <AppLayout>
+              <Suspense fallback={<PageLoader />}>
+                <AIAgentsProductsPage />
               </Suspense>
             </AppLayout>
           </AdminGuard>

@@ -92,7 +92,7 @@ const colorMap = {
   move_lead_in_funnel: 'border-emerald-600 text-emerald-700',
 
   // Controle
-  transfer_to_human: 'border-green-600 text-green-600',
+  transfer_to_human: 'border-purple-600 text-purple-600',
   end_conversation: 'border-green-500 text-green-600',
 };
 
@@ -119,7 +119,7 @@ const bgMap = {
   move_lead_in_funnel: 'from-emerald-600/20 to-emerald-600/5',
 
   // Controle
-  transfer_to_human: 'from-green-600/20 to-green-600/5',
+  transfer_to_human: 'from-purple-600/20 to-purple-600/5',
   end_conversation: 'from-green-500/20 to-green-500/5',
 };
 
@@ -139,7 +139,7 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
     console.log('✅ CustomNode - handleSave chamado:', {
       nodeId: id,
       nodeType: data.type,
-      savedData
+      savedData: JSON.parse(JSON.stringify(savedData)) // Deep copy para ver no console
     });
 
     // Atualizar o nó no ReactFlow com os novos dados
@@ -155,7 +155,7 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
               decisions: savedData.decisions || node.data.decisions || []
             }
           };
-          console.log('✅ Node atualizado:', updatedNode);
+          console.log('✅ Node atualizado (data completo):', JSON.parse(JSON.stringify(updatedNode.data)));
           return updatedNode;
         }
         return node;
@@ -286,10 +286,9 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
                 const topPosition = baseOffsetPx + (index * minSpacingPx);
 
                 return (
-                  <>
+                  <div key={`decision-output-${index}`}>
                     {/* Linha conectora DO BLOCO até o OUTPUT */}
                     <div
-                      key={`connector-${index}`}
                       style={{
                         position: 'absolute',
                         right: '0px',
@@ -302,7 +301,6 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
                       className={`${colorClass.split(' ')[1]} opacity-30`}
                     />
                     <Handle
-                      key={`output-${index}`}
                       type="source"
                       position={Position.Right}
                       id={`output-${index}`}
@@ -327,7 +325,7 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
                         {index + 1}
                       </span>
                     </Handle>
-                  </>
+                  </div>
                 );
               })
             ) : (
@@ -549,34 +547,55 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
         />
       )}
 
-      {data.type === 'move_lead_in_funnel' && (
-        <MoveFunnelEditor
-          isOpen={isEditOpen}
-          onClose={() => setIsEditOpen(false)}
-          initialData={{
-            label: data.label,
-            description: data.description,
-            funnelId: data.funnelId,
-            kanbanStageId: data.kanbanStageId,
-            messages: data.messages
-          }}
-          onSave={handleSave}
-        />
-      )}
+      {data.type === 'move_lead_in_funnel' && (() => {
+        const initData = {
+          label: data.label,
+          description: data.description,
+          funnelId: data.funnelId,
+          kanbanStageId: data.kanbanStageId,
+          messages: data.messages
+        };
+        console.log('🟢 MoveFunnelEditor - initialData sendo passado:', {
+          messages: initData.messages,
+          hasMessages: !!initData.messages,
+          messagesLength: initData.messages?.length
+        });
+        return (
+          <MoveFunnelEditor
+            isOpen={isEditOpen}
+            onClose={() => setIsEditOpen(false)}
+            initialData={initData}
+            onSave={handleSave}
+          />
+        );
+      })()}
 
 
-      {data.type === 'transfer_to_human' && (
-        <TransferHumanEditor
-          isOpen={isEditOpen}
-          onClose={() => setIsEditOpen(false)}
-          initialData={{
-            label: data.label,
-            messages: data.messages || [],
-            description: data.description
-          }}
-          onSave={handleSave}
-        />
-      )}
+      {data.type === 'transfer_to_human' && (() => {
+        const initData = {
+          label: data.label,
+          messages: data.messages || [],
+          description: data.description,
+          phone: data.phone,
+          notificationMessage: data.notificationMessage,
+          moveEnabled: data.moveEnabled,
+          funnelId: data.funnelId,
+          kanbanStageId: data.kanbanStageId
+        };
+        console.log('🔵 TransferHumanEditor - initialData sendo passado:', {
+          messages: initData.messages,
+          hasMessages: !!initData.messages,
+          messagesLength: initData.messages?.length
+        });
+        return (
+          <TransferHumanEditor
+            isOpen={isEditOpen}
+            onClose={() => setIsEditOpen(false)}
+            initialData={initData}
+            onSave={handleSave}
+          />
+        );
+      })()}
 
       {data.type === 'end_conversation' && (
         <EndConversationEditor

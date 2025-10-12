@@ -49,12 +49,12 @@ const BLOCK_TYPES = [
   { type: 'move_lead_in_funnel', icon: <Target className="h-4 w-4" />, label: 'Mover Lead no Funil', color: 'bg-emerald-600', category: 'CRM' },
 
   // CONTROLE
+  { type: 'transfer_to_human', icon: <FaWhatsapp className="h-4 w-4" />, label: 'Avisar Humano', color: 'bg-purple-600', category: 'Controle' },
   { type: 'end_conversation', icon: <CheckCircle className="h-4 w-4" />, label: 'Finalizar Conversa', color: 'bg-green-500', category: 'Controle' },
 ];
 
 // Blocos Premium (bloqueados)
 const PREMIUM_BLOCKS = [
-  { type: 'transfer_to_human', icon: <FaWhatsapp className="h-4 w-4" />, label: 'Transferir para Humano', color: 'bg-green-600', category: 'Premium', isPremium: true },
   { type: 'follow_up', icon: <RefreshCw className="h-4 w-4" />, label: 'Follow Up', color: 'bg-violet-500', category: 'Premium', isPremium: true },
   { type: 'schedule_meeting', icon: <Calendar className="h-4 w-4" />, label: 'Marcar Reunião', color: 'bg-rose-500', category: 'Premium', isPremium: true },
   { type: 'schedule_time', icon: <CalendarClock className="h-4 w-4" />, label: 'Agendar Horário', color: 'bg-sky-500', category: 'Premium', isPremium: true },
@@ -101,7 +101,26 @@ function FlowBuilderContent() {
   const [isLoading, setIsLoading] = useState(true);
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => {
+      setEdges((eds) => {
+        // Verificar se já existe uma conexão do mesmo source + sourceHandle para o mesmo target
+        const isDuplicate = eds.some(
+          (edge) =>
+            edge.source === params.source &&
+            edge.sourceHandle === params.sourceHandle &&
+            edge.target === params.target
+        );
+
+        // Se for duplicada, não adicionar
+        if (isDuplicate) {
+          console.warn('⚠️ Conexão duplicada bloqueada:', params);
+          return eds;
+        }
+
+        // Adicionar nova conexão
+        return addEdge(params, eds);
+      });
+    },
     [setEdges]
   );
 

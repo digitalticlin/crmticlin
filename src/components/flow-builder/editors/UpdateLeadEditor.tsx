@@ -68,7 +68,12 @@ export function UpdateLeadEditor({
     onSave({
       label,
       description,
-      fieldUpdates: validUpdates
+      fieldUpdates: validUpdates,
+      block_data: {
+        field_updates: validUpdates,
+        modo_ia: 'tool_execution',
+        tool_name: 'update_lead_data'
+      }
     });
 
     onClose();

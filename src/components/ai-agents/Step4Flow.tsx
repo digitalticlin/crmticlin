@@ -87,8 +87,8 @@ const BLOCK_TYPES = [
   { type: 'move_lead_in_funnel', icon: <Target className="h-4 w-4" />, label: 'Mover Lead no Funil', color: 'bg-emerald-600', category: 'CRM' },
 
   // CONTROLE
+  { type: 'transfer_to_human', icon: <FaWhatsapp className="h-4 w-4" />, label: 'Avisar Humano', color: 'bg-purple-600', category: 'Controle' },
   { type: 'wait_for_action', icon: <Clock className="h-4 w-4" />, label: 'Aguardar Ação', color: 'bg-gray-500', category: 'Controle' },
-  { type: 'transfer_to_human', icon: <Phone className="h-4 w-4" />, label: 'Encaminhar para Humano', color: 'bg-orange-600', category: 'Controle' },
   { type: 'end_conversation', icon: <CheckCircle className="h-4 w-4" />, label: 'Finalizar Conversa', color: 'bg-green-500', category: 'Controle' },
 ];
 

@@ -144,43 +144,28 @@ export function convertReactFlowToStructured(
             dados_extras: (() => {
               const extras = { ...node.data.block_data };
 
-              // BLOCO TRANSFER_TO_HUMAN: processar notificação
-              if (node.data.type === 'transfer_to_human') {
+              // BLOCO UPDATE_LEAD_DATA: processar atualização de dados
+              if (node.data.type === 'update_lead_data') {
                 extras.modo_ia = 'tool_execution';
                 extras.tool_name = 'update_lead_data';
+                // field_updates já vem do modal, manter como está
+              }
 
-                // Field updates para mover no funil
-                extras.field_updates = [
-                  {
-                    fieldName: 'funnel_id',
-                    fieldValue: `{{${extras.funnelId}}}`
-                  },
-                  {
-                    fieldName: 'kanban_stage_id',
-                    fieldValue: `{{${extras.kanbanStageId}}}`
-                  },
-                  {
-                    fieldName: 'notes',
-                    fieldValue: `Transferido via automação - {{timestamp}}`
-                  }
-                ];
+              // BLOCO MOVE_LEAD_IN_FUNNEL: processar movimentação no funil
+              if (node.data.type === 'move_lead_in_funnel') {
+                extras.modo_ia = 'tool_execution';
+                extras.tool_name = 'move_lead_in_funnel';
+                // field_updates já vem do modal em block_data.field_updates
+              }
 
-                // Configuração de notificação
-                if (extras.notifyEnabled) {
-                  extras.transfer_to_human = {
-                    enabled: true,
-                    phone: extras.notifyPhone || null,
-                    group_id: extras.notifyGroupId || null,
-                    message: `🔔 Novo lead aguardando atendimento humano na etapa ${extras.kanbanStageId}`
-                  };
-                }
+              // BLOCO TRANSFER_TO_HUMAN: processar notificação e movimentação opcional
+              if (node.data.type === 'transfer_to_human') {
+                extras.modo_ia = 'tool_execution';
+                extras.tool_name = 'transfer_to_human';
 
-                // Limpar campos temporários do modal
-                delete extras.funnelId;
-                delete extras.kanbanStageId;
-                delete extras.notifyEnabled;
-                delete extras.notifyPhone;
-                delete extras.notifyGroupId;
+                // transfer_to_human já vem do modal em block_data.transfer_to_human (sempre obrigatório)
+                // field_updates já vem do modal em block_data.field_updates (opcional - só se moveEnabled = true)
+                // funnel_name e stage_name já vem do modal (opcional)
               }
 
               // BLOCO PROVIDE_INSTRUCTIONS: processar ensino
@@ -228,7 +213,24 @@ export function convertReactFlowToStructured(
                 // Limpar campos temporários do modal
                 delete extras.checkField;
                 delete extras.referenceBlockId;
-// BLOCO RETRY_WITH_VARIATION: processar repetição com variação              if (node.data.type === 'retry_with_variation') {                extras.modo_ia = 'retry_variation';                extras.bloco_original_id = extras.retryBlockId || null;                extras.numero_tentativa = extras.attemptNumber || 1;                extras.maximo_tentativas = node.data.control?.max_attempts || 3;                extras.estrategia_variacao = 'mudar_tom';                extras.variacoes_disponiveis = [                  'Deixa eu reformular...',                  'De outro jeito...',                  'Explicando melhor...'                ];                // Limpar campos temporários do modal                delete extras.retryBlockId;                delete extras.attemptNumber;              }
+              }
+
+              // BLOCO RETRY_WITH_VARIATION: processar repetição com variação
+              if (node.data.type === 'retry_with_variation') {
+                extras.modo_ia = 'retry_variation';
+                extras.bloco_original_id = extras.retryBlockId || null;
+                extras.numero_tentativa = extras.attemptNumber || 1;
+                extras.maximo_tentativas = node.data.control?.max_attempts || 3;
+                extras.estrategia_variacao = 'mudar_tom';
+                extras.variacoes_disponiveis = [
+                  'Deixa eu reformular...',
+                  'De outro jeito...',
+                  'Explicando melhor...'
+                ];
+
+                // Limpar campos temporários do modal
+                delete extras.retryBlockId;
+                delete extras.attemptNumber;
               }
 
               return extras;
@@ -256,10 +258,31 @@ export function convertReactFlowToStructured(
   });
 
   // 🆕 Criar conexões no formato PT
-  const conexoes: ConexaoFluxo[] = edges.map((e, idx) => ({
+  console.log(`🔗 Salvando ${edges.length} edges:`, edges.map(e => ({
+    id: e.id,
+    source: e.source,
+    target: e.target,
+    sourceHandle: e.sourceHandle
+  })));
+
+  // Deduplicar edges baseado em source + sourceHandle + target
+  const uniqueEdges = Array.from(
+    new Map(
+      edges.map(e => {
+        const key = `${e.source}-${e.sourceHandle || 'default'}-${e.target}`;
+        return [key, e];
+      })
+    ).values()
+  );
+
+  console.log(`✅ Após deduplicação: ${uniqueEdges.length} edges únicas`);
+
+  const conexoes: ConexaoFluxo[] = uniqueEdges.map((e, idx) => ({
     id: e.id || `c${idx}`,
     origem: e.source,
     destino: e.target,
+    sourceHandle: e.sourceHandle,
+    targetHandle: e.targetHandle,
     tipo: 'fluxo_principal'
   }));
 
@@ -457,12 +480,25 @@ export function convertStructuredToReactFlow(
   let nodeIdCounter = 0;
   const oldIdToNewId = new Map<string, string>();
 
+  // ✅ PROTEÇÃO: verificar se steps existe e é array
+  if (!steps || !Array.isArray(steps)) {
+    console.error('❌ Flow inválido: steps/passos não existe ou não é array', structuredFlow);
+    return { nodes: [], edges: [] };
+  }
+
   // Converter variações para nodes
-  steps?.forEach((step: any, stepIdx: number) => {
+  steps.forEach((step: any, stepIdx: number) => {
     console.log(`📝 Processando passo: ${step.passo_id || step.step_id}`, step);
 
     const variations = isNovoFormato ? step.variacoes : step.variations;
-    variations?.forEach((variation: any, varIdx: number) => {
+
+    // ✅ PROTEÇÃO: verificar se variations existe e é array
+    if (!variations || !Array.isArray(variations)) {
+      console.warn(`⚠️ Passo ${step.passo_id || step.step_id} não possui variações válidas`);
+      return;
+    }
+
+    variations.forEach((variation: any, varIdx: number) => {
       nodeIdCounter++;
       const nodeId = `${nodeIdCounter}`;
 
@@ -480,20 +516,35 @@ export function convertStructuredToReactFlow(
         // Reconstruir messages baseado no tipo de bloco
         let messages: any[] = [];
 
-        if (variation.instrucoes.mensagens_da_ia) {
-          // Bloco INÍCIO: múltiplas mensagens
-          messages = variation.instrucoes.mensagens_da_ia.map((m: any) => ({
-            type: m.tipo === 'texto' ? 'text' : m.tipo === 'midia' ? 'media' : m.tipo,
-            content: m.conteudo,
-            delay: m.aguardar_segundos || 0,
-            ...(m.media_id && { media_id: m.media_id }),
-            ...(m.link_url && { link_url: m.link_url })
-          }));
-        } else if (variation.instrucoes.pergunta) {
-          // Bloco ask_question: pergunta única
+        // PRIORIDADE 1: mensagens_da_ia (campo unificado usado por TODOS os blocos)
+        if (variation.instrucoes.mensagens_da_ia && Array.isArray(variation.instrucoes.mensagens_da_ia) && variation.instrucoes.mensagens_da_ia.length > 0) {
+          console.log('🟦 Reconstruindo messages de mensagens_da_ia:', JSON.stringify(variation.instrucoes.mensagens_da_ia, null, 2));
+          messages = variation.instrucoes.mensagens_da_ia.map((m: any) => {
+            // Determinar o type correto
+            let messageType = 'text';
+            if (m.tipo === 'midia' || m.tipo === 'media') {
+              messageType = 'media';
+            } else if (m.tipo === 'link') {
+              messageType = 'link';
+            }
+            // Todos os outros tipos (apresentacao, confirmacao, despedida, pergunta, etc) viram 'text'
+
+            return {
+              type: messageType,
+              content: m.conteudo,
+              delay: m.aguardar_segundos || 0,
+              ...(m.media_id && { media_id: m.media_id }),
+              ...(m.link_url && { link_url: m.link_url })
+            };
+          });
+          console.log('✅ Messages reconstruídas:', JSON.stringify(messages, null, 2));
+        }
+        // PRIORIDADE 2: pergunta (bloco ask_question - legado)
+        else if (variation.instrucoes.pergunta) {
           messages = [{ type: 'text', content: variation.instrucoes.pergunta, delay: 0 }];
-        } else if (variation.instrucoes.mensagem_principal) {
-          // Bloco send_message: mensagem única
+        }
+        // PRIORIDADE 3: mensagem_principal (bloco send_message - legado)
+        else if (variation.instrucoes.mensagem_principal) {
           const msg = variation.instrucoes.mensagem_principal;
           const content = typeof msg === 'string' ? msg : msg.sem_nome || '';
           messages = [{ type: 'text', content, delay: 0 }];
@@ -513,7 +564,7 @@ export function convertStructuredToReactFlow(
           priority: d.prioridade === 'alta' ? 0 : d.prioridade === 'média' ? 1 : 2
         }));
 
-        const nodeData = {
+        const nodeData: any = {
           label: variation.variacao_nome || variation.passo?.nome || 'Node',
           type: variation._metadata.tipo_tecnico,
           description: variation.instrucoes.objetivo,
@@ -533,6 +584,43 @@ export function convertStructuredToReactFlow(
           },
           designStyle: 'glass'
         };
+
+        // BLOCO MOVE_LEAD_IN_FUNNEL: Extrair funnelId e kanbanStageId de field_updates para o editor
+        if (variation._metadata.tipo_tecnico === 'move_lead_in_funnel' && variation.instrucoes.dados_extras?.field_updates) {
+          const fieldUpdates = variation.instrucoes.dados_extras.field_updates;
+          nodeData.funnelId = fieldUpdates.find((f: any) => f.fieldName === 'funnel_id')?.fieldValue;
+          nodeData.kanbanStageId = fieldUpdates.find((f: any) => f.fieldName === 'kanban_stage_id')?.fieldValue;
+        }
+
+        // BLOCO TRANSFER_TO_HUMAN: Extrair dados de notificação e movimentação (se existir)
+        if (variation._metadata.tipo_tecnico === 'transfer_to_human' && variation.instrucoes.dados_extras) {
+          const dadosExtras = variation.instrucoes.dados_extras;
+
+          // Extrair dados de notificação (sempre obrigatórios)
+          if (dadosExtras.transfer_to_human) {
+            nodeData.phone = dadosExtras.transfer_to_human.phone;
+            nodeData.notificationMessage = dadosExtras.transfer_to_human.notification_message;
+          }
+
+          // Extrair dados de movimentação (opcionais)
+          if (dadosExtras.field_updates && dadosExtras.field_updates.length > 0) {
+            nodeData.moveEnabled = true;
+            nodeData.funnelId = dadosExtras.field_updates.find((f: any) => f.fieldName === 'funnel_id')?.fieldValue;
+            nodeData.kanbanStageId = dadosExtras.field_updates.find((f: any) => f.fieldName === 'kanban_stage_id')?.fieldValue;
+          } else {
+            nodeData.moveEnabled = false;
+          }
+        }
+
+        // BLOCO UPDATE_LEAD_DATA: Extrair campos para atualização
+        if (variation._metadata.tipo_tecnico === 'update_lead_data' && variation.instrucoes.dados_extras) {
+          const dadosExtras = variation.instrucoes.dados_extras;
+
+          // Extrair field_updates
+          if (dadosExtras.field_updates && Array.isArray(dadosExtras.field_updates)) {
+            nodeData.fieldUpdates = dadosExtras.field_updates;
+          }
+        }
 
         const position = variation._metadata?.posicao_canvas || { x: 100, y: 100 };
 
@@ -582,6 +670,8 @@ export function convertStructuredToReactFlow(
 
   // Reconstruir edges usando mapeamento de IDs
   if (conexoes && Array.isArray(conexoes)) {
+    const uniqueEdgeMap = new Map<string, any>(); // Deduplicar por source + sourceHandle + target
+
     conexoes.forEach((edgeData: any, idx: number) => {
       const source = edgeData.origem || edgeData.source;
       const target = edgeData.destino || edgeData.target;
@@ -589,16 +679,35 @@ export function convertStructuredToReactFlow(
       const sourceId = oldIdToNewId.get(source) || source;
       const targetId = oldIdToNewId.get(target) || target;
 
-      edges.push({
-        id: edgeData.id || `e${idx}`,
+      const sourceHandle = edgeData.sourceHandle || null;
+      const targetHandle = edgeData.targetHandle || null;
+
+      // Chave única para deduplicação
+      const uniqueKey = `${sourceId}-${sourceHandle || 'null'}-${targetId}`;
+
+      // Se já existe essa conexão, pular
+      if (uniqueEdgeMap.has(uniqueKey)) {
+        console.warn(`⚠️ Conexão duplicada ignorada ao carregar: ${uniqueKey}`);
+        return;
+      }
+
+      // Gerar ID único
+      const uniqueId = `reactflow__edge-${sourceId}${sourceHandle || ''}-${targetId}`;
+
+      const edge = {
+        id: uniqueId,
         source: sourceId,
         target: targetId,
-        sourceHandle: edgeData.sourceHandle,
-        targetHandle: edgeData.targetHandle,
+        sourceHandle: sourceHandle,
+        targetHandle: targetHandle,
         type: 'default'
-      });
+      };
+
+      uniqueEdgeMap.set(uniqueKey, edge);
+      edges.push(edge);
     });
-    console.log(`🔗 Reconstruídas ${edges.length} conexões`);
+
+    console.log(`🔗 Reconstruídas ${edges.length} conexões (${conexoes.length - edges.length} duplicadas removidas)`);
   }
 
   console.log(`✅ Reconstrução completa: ${nodes.length} nodes, ${edges.length} edges`);
