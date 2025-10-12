@@ -22,7 +22,7 @@ interface Step1BasicProps {
     funnel_id: string | null;
     communication_style: { name: string; description: string };
     instance_phone: string | null;
-    message_signature_enabled: boolean;
+    signature: boolean;
   };
   onChange: (field: string, value: any) => void;
 }
@@ -449,8 +449,8 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
               </div>
             </div>
             <Switch
-              checked={data.message_signature_enabled || false}
-              onCheckedChange={(value) => onChange('message_signature_enabled', value)}
+              checked={data.signature || false}
+              onCheckedChange={(value) => onChange('signature', value)}
             />
           </div>
         </CardContent>

@@ -180,7 +180,7 @@ function AppLayoutRoutes() {
         }
       />
       <Route
-        path="/ai-agents/:agentId/products"
+        path="/ai-agents/:agentId/base-conhecimento"
         element={
           <AdminGuard>
             <AppLayout>

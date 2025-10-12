@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, ChevronDown, ChevronUp, Plus, X, GitBranch, Package, Workflow } from "lucide-react";
+import { Lightbulb, ChevronDown, ChevronUp, Plus, X, GitBranch, Package, Workflow, GraduationCap } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -216,8 +216,8 @@ export const Step3Knowledge = ({ data, onChange, agentId }: Step3KnowledgeProps)
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
-                  <Package className="h-5 w-5 text-white" />
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-md">
+                  <GraduationCap className="h-5 w-5 text-white" />
                 </div>
                 <div>
                   <Label className="text-base font-bold text-gray-900">
@@ -237,10 +237,10 @@ export const Step3Knowledge = ({ data, onChange, agentId }: Step3KnowledgeProps)
             {data.knowledge_base_enabled && agentId && (
               <Button
                 type="button"
-                onClick={() => navigate(`/ai-agents/${agentId}/products`)}
+                onClick={() => navigate(`/ai-agents/${agentId}/base-conhecimento`)}
                 className="w-full h-10 bg-white/40 backdrop-blur-sm border border-white/50 hover:bg-white/60 text-gray-900 font-medium rounded-lg transition-all"
               >
-                <Package className="h-4 w-4 mr-2" />
+                <GraduationCap className="h-4 w-4 mr-2" />
                 {productCount > 0 ? `Editar Base (${productCount} ${productCount === 1 ? 'item' : 'itens'})` : 'Adicionar Produtos e Serviços'}
               </Button>
             )}

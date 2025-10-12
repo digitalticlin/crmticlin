@@ -9,16 +9,6 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 const WIZARD_STEPS = [
   { number: 1, title: 'Configuração', subtitle: '' },
@@ -151,6 +141,7 @@ export default function EditAgent() {
           prohibitions: formData.prohibitions,
           signature: formData.signature,
           knowledge_base_enabled: formData.knowledge_base_enabled,
+          signature: formData.signature,
           company_info: formData.company_info,
           faq: formData.faq,
           updated_at: new Date().toISOString()

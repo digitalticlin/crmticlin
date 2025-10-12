@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ interface ProductFormModalProps {
   onClose: () => void;
   product?: any;
   agentId: string;
-  onSuccess: () => void;
+  onSuccess: (newProduct?: any) => void;
 }
 
 export const ProductFormModal = ({
@@ -83,7 +84,7 @@ export const ProductFormModal = ({
       const fileName = `${agentId}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('agent-products')
+        .from('agent-knowledge')
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false
@@ -92,11 +93,11 @@ export const ProductFormModal = ({
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
-        .from('agent-products')
+        .from('agent-knowledge')
         .getPublicUrl(fileName);
 
       setFormData(prev => ({ ...prev, image_url: publicUrl }));
-      toast.success('Imagem enviada!');
+      toast.success('Imagem enviada com sucesso!');
     } catch (error: any) {
       console.error('Erro ao fazer upload:', error);
       toast.error('Erro ao enviar imagem');
@@ -139,26 +140,27 @@ export const ProductFormModal = ({
       if (product) {
         // UPDATE
         const { error } = await supabase
-          .from('ai_agent_products')
+          .from('ai_agent_knowledge')
           .update(productData)
           .eq('id', product.id);
 
         if (error) throw error;
-        toast.success('Produto atualizado!');
+        toast.success('Item atualizado com sucesso!');
       } else {
         // INSERT
         const { error } = await supabase
-          .from('ai_agent_products')
+          .from('ai_agent_knowledge')
           .insert(productData);
 
         if (error) throw error;
-        toast.success('Produto adicionado!');
+        toast.success('Item adicionado à Base de Conhecimento!');
       }
 
       onSuccess();
+      onClose();
     } catch (error: any) {
-      console.error('Erro ao salvar produto:', error);
-      toast.error(error.message || 'Erro ao salvar produto');
+      console.error('Erro ao salvar:', error);
+      toast.error(error.message || 'Erro ao salvar item');
     } finally {
       setSaving(false);
     }
@@ -166,11 +168,14 @@ export const ProductFormModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white/10 backdrop-blur-xl border-white/20">
         <DialogHeader>
           <DialogTitle>
             {product ? `Editar ${formData.type === 'product' ? 'Produto' : 'Serviço'}` : 'Adicionar à Base de Conhecimento'}
           </DialogTitle>
+          <DialogDescription>
+            Preencha as informações do produto ou serviço para adicionar à base de conhecimento do agente.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -184,7 +189,7 @@ export const ProductFormModal = ({
                 className={cn(
                   "flex-1 h-12 transition-all",
                   formData.type === 'product'
-                    ? "bg-ticlin/20 border-ticlin text-gray-900 font-semibold"
+                    ? "bg-white/40 border-white/60 text-gray-900 font-semibold"
                     : "bg-white/10 border-white/30 text-gray-600 hover:bg-white/20"
                 )}
                 onClick={() => setFormData(prev => ({ ...prev, type: 'product' }))}
@@ -198,7 +203,7 @@ export const ProductFormModal = ({
                 className={cn(
                   "flex-1 h-12 transition-all",
                   formData.type === 'service'
-                    ? "bg-blue-500/20 border-blue-500 text-gray-900 font-semibold"
+                    ? "bg-white/40 border-white/60 text-gray-900 font-semibold"
                     : "bg-white/10 border-white/30 text-gray-600 hover:bg-white/20"
                 )}
                 onClick={() => setFormData(prev => ({ ...prev, type: 'service' }))}

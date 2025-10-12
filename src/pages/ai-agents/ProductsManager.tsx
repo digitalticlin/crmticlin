@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, Package, Briefcase } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, ArrowLeft, Package, Briefcase, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ProductCard } from "@/components/ai-agents/products/ProductCard";
@@ -20,6 +21,7 @@ export default function ProductsManager() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [agentName, setAgentName] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'product' | 'service'>('all');
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (agentId) {
@@ -46,7 +48,7 @@ export default function ProductsManager() {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('ai_agent_products')
+        .from('ai_agent_knowledge')
         .select('*')
         .eq('agent_id', agentId)
         .order('created_at', { ascending: false });
@@ -71,7 +73,7 @@ export default function ProductsManager() {
 
     try {
       const { error } = await supabase
-        .from('ai_agent_products')
+        .from('ai_agent_knowledge')
         .delete()
         .eq('id', productId);
 
@@ -95,10 +97,23 @@ export default function ProductsManager() {
     handleModalClose();
   };
 
-  // Filtrar produtos baseado no tipo selecionado
+  // Filtrar produtos baseado no tipo e busca
   const filteredProducts = products.filter(product => {
-    if (filterType === 'all') return true;
-    return product.type === filterType;
+    // Filtro por tipo
+    if (filterType !== 'all' && product.type !== filterType) return false;
+
+    // Filtro por busca
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      return (
+        product.name?.toLowerCase().includes(query) ||
+        product.description?.toLowerCase().includes(query) ||
+        product.category?.toLowerCase().includes(query) ||
+        product.price?.toString().includes(query)
+      );
+    }
+
+    return true;
   });
 
   // Contar produtos e serviços
@@ -114,7 +129,7 @@ export default function ProductsManager() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate(`/ai-agents/edit/${agentId}?step=2`)}
+            onClick={() => navigate(`/ai-agents/edit/${agentId}?step=3`)}
             className="h-10 w-10 rounded-lg hover:bg-white/40 transition-all"
           >
             <ArrowLeft className="h-5 w-5 text-gray-900" />
@@ -123,22 +138,23 @@ export default function ProductsManager() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 relative z-10">
-        {/* Header com Botão e Filtros */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-20">
-          <Button
-            onClick={() => {
-              setEditingProduct(null);
-              setIsModalOpen(true);
-            }}
-            className="h-11 px-6 bg-ticlin hover:bg-ticlin/90 text-white font-semibold rounded-lg transition-all shadow-lg relative z-30 cursor-pointer"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Adicionar à Base de Conhecimento
-          </Button>
+        {/* Busca e Filtros */}
+        {products.length > 0 && (
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            {/* Campo de Busca */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Input
+                type="text"
+                placeholder="Buscar por nome, categoria, preço..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-10 bg-white/40 backdrop-blur-sm border border-white/50 rounded-lg focus:bg-white/60 transition-all"
+              />
+            </div>
 
-          {/* Tabs de Filtro - Só aparecem quando há produtos */}
-          {products.length > 0 && (
-            <Tabs value={filterType} onValueChange={(value: any) => setFilterType(value)} className="relative z-30">
+            {/* Tabs de Filtro */}
+            <Tabs value={filterType} onValueChange={(value: any) => setFilterType(value)}>
               <TabsList className="bg-white/20 backdrop-blur-xl border border-white/30">
                 <TabsTrigger value="all" className="data-[state=active]:bg-white/40 cursor-pointer">
                   Todos ({products.length})
@@ -153,10 +169,23 @@ export default function ProductsManager() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-          )}
-        </div>
 
-        {/* Grid de Produtos */}
+            {/* Botão Adicionar */}
+            <Button
+              onClick={() => {
+                setEditingProduct(null);
+                setIsModalOpen(true);
+              }}
+              variant="ghost"
+              className="h-10 px-4 bg-white/40 hover:bg-white/60 backdrop-blur-xl border border-white/50 rounded-lg text-gray-900 font-medium transition-all cursor-pointer"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar
+            </Button>
+          </div>
+        )}
+
+        {/* Lista de Produtos */}
         {isLoading ? (
           <div className="text-center py-12">
             <p className="text-gray-600">Carregando produtos...</p>
@@ -173,7 +202,7 @@ export default function ProductsManager() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="space-y-3">
             {filteredProducts.map((product) => (
               <ProductCard
                 key={product.id}

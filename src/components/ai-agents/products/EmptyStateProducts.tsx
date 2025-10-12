@@ -23,7 +23,8 @@ export const EmptyStateProducts = ({ onAddProduct }: EmptyStateProductsProps) =>
 
       <Button
         onClick={onAddProduct}
-        className="h-10 px-6 bg-ticlin hover:bg-ticlin/90 text-white font-medium rounded-lg"
+        variant="ghost"
+        className="h-10 px-6 bg-white/40 hover:bg-white/60 border border-white/50 text-gray-900 font-medium rounded-lg transition-all cursor-pointer"
       >
         <Plus className="h-4 w-4 mr-2" />
         Adicionar Primeiro Item

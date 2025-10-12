@@ -108,6 +108,7 @@ export default function CreateAgent() {
           agent_function: formData.agent_function,
           prohibitions: formData.prohibitions,
           signature: formData.signature,
+          signature: formData.signature,
           knowledge_base_enabled: formData.knowledge_base_enabled,
           company_info: formData.company_info,
           faq: formData.faq,
@@ -149,15 +150,7 @@ export default function CreateAgent() {
     }
   };
 
-  const handleBackClick = () => {
-    if (hasUnsavedChanges) {
-      setShowExitDialog(true);
-    } else {
-      navigate('/ai-agents');
-    }
-  };
-
-  const handleSave = async (shouldNavigate: boolean = true) => {
+  const handleSave = async () => {
     setIsSaving(true);
 
     try {
@@ -178,6 +171,7 @@ export default function CreateAgent() {
             prohibitions: formData.prohibitions,
             signature: formData.signature,
             knowledge_base_enabled: formData.knowledge_base_enabled,
+            signature: formData.signature,
             company_info: formData.company_info,
             faq: formData.faq,
             updated_at: new Date().toISOString()
@@ -197,6 +191,7 @@ export default function CreateAgent() {
             communication_style: formData.communication_style,
             agent_function: formData.agent_function,
             prohibitions: formData.prohibitions,
+            signature: formData.signature,
             signature: formData.signature,
             knowledge_base_enabled: formData.knowledge_base_enabled,
             company_info: formData.company_info,
@@ -221,27 +216,13 @@ export default function CreateAgent() {
       }
 
       toast.success("Agente salvo com sucesso!");
-      setHasUnsavedChanges(false);
-
-      if (shouldNavigate) {
-        navigate('/ai-agents');
-      }
+      navigate('/ai-agents');
     } catch (error: any) {
       console.error('Erro ao salvar agente:', error);
       toast.error(error.message || "Erro ao salvar agente");
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleExitWithoutSaving = () => {
-    setShowExitDialog(false);
-    navigate('/ai-agents');
-  };
-
-  const handleSaveAndExit = async () => {
-    setShowExitDialog(false);
-    await handleSave(true);
   };
 
   return (
@@ -252,7 +233,7 @@ export default function CreateAgent() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleBackClick}
+            onClick={() => navigate('/ai-agents')}
             className="h-10 w-10 rounded-lg hover:bg-white/40 transition-all"
           >
             <ArrowLeft className="h-5 w-5 text-gray-900" />
@@ -296,16 +277,6 @@ export default function CreateAgent() {
           )}
 
           <div className="flex gap-3">
-            {/* Botão Salvar - presente em todas as etapas */}
-            <Button
-              onClick={() => handleSave(false)}
-              disabled={isSaving || !formData.name}
-              className="h-10 px-6 bg-white/20 hover:bg-white/30 border border-white/40 text-gray-900 font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? "Salvando..." : "Salvar"}
-            </Button>
-
             {currentStep < 3 ? (
               <Button
                 onClick={handleNext}
@@ -316,38 +287,18 @@ export default function CreateAgent() {
               </Button>
             ) : (
               <Button
-                onClick={() => handleSave(true)}
+                onClick={handleSave}
                 disabled={isSaving || !formData.name}
                 className="h-10 px-6 bg-white/40 backdrop-blur-sm border border-white/50 hover:bg-white/60 text-gray-900 font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Salvar e Sair
+                {isSaving ? "Salvando..." : "Salvar"}
               </Button>
             )}
           </div>
           </div>
         </div>
       </div>
-
-      {/* Modal de confirmação ao sair */}
-      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Você tem alterações não salvas</AlertDialogTitle>
-            <AlertDialogDescription>
-              Deseja salvar as alterações antes de sair?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleExitWithoutSaving}>
-              Sair sem salvar
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleSaveAndExit}>
-              Salvar e Sair
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
