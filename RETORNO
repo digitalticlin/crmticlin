@@ -1,1196 +1,842 @@
-{
-  "nodes": [
-    {
-      "parameters": {
-        "options": {}
-      },
-      "id": "1fc626b8-372f-49cd-bd8d-1ef9b006a292",
-      "name": "OpenAI",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1,
-      "position": [
-        1984,
-        688
-      ],
-      "credentials": {
-        "openAiApi": {
-          "id": "A83zRW9mK2KfT7hh",
-          "name": "OpenAi account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=Whatsapp message to be splitted and formated: {{ $json.output }}",
-        "hasOutputParser": true,
-        "messages": {
-          "messageValues": [
-            {
-              "message": "=Sua tarefa é transformar a resposta do agente em um JSON com 1 até 4 mensagens bem estruturadas**, seguindo o estilo de uma conversa real no WhatsApp.\n\nNão fique limitidado a 4 mensagens, pode gerar 1, 2, 3 ou 4, sempre prezando para o mínimo possível.\n\nSó ultrapasse o numero de 4 mensagens, se precisar listar ou enumerar ítens que excedem.\n\n---\n\n### 🎯 OBJETIVO:\nDivida a resposta de forma **natural**, mantendo frases completas e fluidez de leitura, como se um humano estivesse digitando.\n\n---\n\n### 📦 FORMATO EXATO:\n```json\n{\n  \"messages\": [\n    \"mensagem1\",\n    \"mensagem2\",\n    \"mensagem3\"\n  ]\n}\n"
-            }
-          ]
-        }
-      },
-      "id": "cf727b09-3783-4695-a2ae-ffa97171e4ef",
-      "name": "Parser  Chain",
-      "type": "@n8n/n8n-nodes-langchain.chainLlm",
-      "typeVersion": 1.4,
-      "position": [
-        1984,
-        512
-      ],
-      "onError": "continueRegularOutput"
-    },
-    {
-      "parameters": {
-        "fieldToSplitOut": "output.messages",
-        "options": {
-          "destinationFieldName": "output"
-        }
-      },
-      "id": "13535350-a56b-4df6-a0c8-1fc3f2b040d4",
-      "name": "Split de Mensagem",
-      "type": "n8n-nodes-base.splitOut",
-      "typeVersion": 1,
-      "position": [
-        2304,
-        512
-      ]
-    },
-    {
-      "parameters": {
-        "amount": 1.5
-      },
-      "id": "db8d3093-3d39-4dc3-ab36-63a8d55c8199",
-      "name": "1 segundo",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        2880,
-        608
-      ],
-      "webhookId": "d2840e73-f9b4-439f-90a8-3166cfcd6a33"
-    },
-    {
-      "parameters": {
-        "model": {
-          "__rl": true,
-          "value": "gpt-4o-mini",
-          "mode": "list",
-          "cachedResultName": "gpt-4o-mini"
-        },
-        "options": {
-          "maxTokens": 500,
-          "temperature": 0.7
-        }
-      },
-      "id": "3b1888fd-1575-465e-a2f7-d5c0250a759a",
-      "name": "OpenAI Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.2,
-      "position": [
-        1680,
-        688
-      ],
-      "credentials": {
-        "openAiApi": {
-          "id": "A83zRW9mK2KfT7hh",
-          "name": "OpenAi account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "schemaType": "manual",
-        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"messages\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      }\n    }\n  },\n  \"required\": [\"messages\"]\n}\n"
-      },
-      "id": "7feaf03d-8ed9-4c9e-895d-de550556b696",
-      "name": "OutputParser",
-      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
-      "typeVersion": 1.2,
-      "position": [
-        2128,
-        688
-      ]
-    },
-    {
-      "parameters": {
-        "batchSize": "=1",
-        "options": {}
-      },
-      "id": "fb79903e-75d2-4d0e-9757-642ae543dff6",
-      "name": "Envia em fila",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        2512,
-        512
-      ]
-    },
-    {
-      "parameters": {
-        "model": {
-          "__rl": true,
-          "value": "gpt-4o-mini",
-          "mode": "list",
-          "cachedResultName": "gpt-4o-mini"
-        },
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.2,
-      "position": [
-        3760,
-        704
-      ],
-      "id": "94097141-b43a-48b7-8a3b-86231e8ac228",
-      "name": "OpenAI Chat Model1",
-      "credentials": {
-        "openAiApi": {
-          "id": "A83zRW9mK2KfT7hh",
-          "name": "OpenAi account"
-        }
-      }
-    },
-    {
-      "parameters": {},
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        4672,
-        608
-      ],
-      "id": "b5317551-7e9d-4418-adc8-3b6c7c416c59",
-      "name": "No Operation, do nothing"
-    },
-    {
-      "parameters": {
-        "amount": 1
-      },
-      "id": "51a22f75-d121-48a6-9d3e-25b922c2c42a",
-      "name": "1 segundo2",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        5648,
-        656
-      ],
-      "webhookId": "135534f1-0d87-44e4-ae7f-7b24f8c758dc"
-    },
-    {
-      "parameters": {
-        "batchSize": "=1",
-        "options": {}
-      },
-      "id": "3682b340-9df2-44f1-b5dd-3cbb444fc9dc",
-      "name": "Envia em fila1",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        5264,
-        480
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/ai_messaging_service",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "leadId",
-              "value": "={{ $('Organiza para Agente').item.json.lead.id }}"
-            },
-            {
-              "name": "instanceId",
-              "value": "={{ $('Organiza para Agente').item.json.instance.supabaseId }}"
-            },
-            {
-              "name": "createdByUserId",
-              "value": "={{ $('Organiza para Agente').item.json.instance.created_by_user_id }}"
-            },
-            {
-              "name": "phone",
-              "value": "={{ $('Organiza Aviso').item.json.phoneNotification }}"
-            },
-            {
-              "name": "message",
-              "value": "={{ $json.output }}"
-            }
-          ]
-        },
-        "options": {
-          "timeout": 30000
-        }
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        5488,
-        656
-      ],
-      "id": "f27bbf87-650c-4391-9232-f99baf56c896",
-      "name": "Envia Supabase1",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "nmn2TR2dHNO7Vq0u",
-          "name": "AI_AGENT_API_KEY SUPABASE"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "model": {
-          "__rl": true,
-          "mode": "list",
-          "value": "gpt-4.1-mini"
-        },
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.2,
-      "position": [
-        4848,
-        688
-      ],
-      "id": "0b49146c-1747-4c14-bd65-bce206327e8c",
-      "name": "OpenAI Chat Model2",
-      "credentials": {
-        "openAiApi": {
-          "id": "A83zRW9mK2KfT7hh",
-          "name": "OpenAi account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "4c630353-e65d-41c3-97dc-ad67fa1203fb",
-              "name": "stages_formatted",
-              "value": "={{ $json.stages_formatted }}",
-              "type": "string"
-            },
-            {
-              "id": "91137538-80b8-421f-9117-d1f648c015bf",
-              "name": "instance.created_by_user_id",
-              "value": "={{ $('Organiza para Agente').item.json.instance.created_by_user_id }}",
-              "type": "string"
-            },
-            {
-              "id": "bf95f0a3-ea0c-4064-8cf5-dc71b7f89781",
-              "name": "instance.vpsId",
-              "value": "={{ $('Organiza para Agente').item.json.instance.vpsId }}",
-              "type": "string"
-            },
-            {
-              "id": "95b1d693-45d1-48e9-a32b-4ff3c5e42882",
-              "name": "instance.phone",
-              "value": "={{ $('Organiza para Agente').item.json.instance.phone }}",
-              "type": "string"
-            },
-            {
-              "id": "4cdc9175-7aab-4aa5-8255-5c3c962cece7",
-              "name": "instance.supabaseId",
-              "value": "={{ $('Organiza para Agente').item.json.instance.supabaseId }}",
-              "type": "string"
-            },
-            {
-              "id": "1007ac81-a45f-4199-ba79-fc1eedd2b456",
-              "name": "lead.id",
-              "value": "={{ $('TAB LEADS').item.json.id }}",
-              "type": "string"
-            },
-            {
-              "id": "17e6c133-f3ae-40b2-b1b4-a3d8ba4480ca",
-              "name": "lead.name",
-              "value": "={{ $('TAB LEADS').item.json.name }}",
-              "type": "string"
-            },
-            {
-              "id": "317f86a2-790a-42a2-894f-5b031203e8e6",
-              "name": "lead.phone",
-              "value": "={{ $('TAB LEADS').item.json.phone }}",
-              "type": "string"
-            },
-            {
-              "id": "638adcce-0590-4ee1-b384-5633c33131c0",
-              "name": "lead.email",
-              "value": "={{ $('TAB LEADS').item.json.email }}",
-              "type": "string"
-            },
-            {
-              "id": "8c24cc8d-d47a-4a70-a8d4-82f245bbe398",
-              "name": "lead.company",
-              "value": "={{ $('TAB LEADS').item.json.company }}",
-              "type": "string"
-            },
-            {
-              "id": "f2f7e2a9-3c9f-42a3-9f06-1534ead76264",
-              "name": "lead.document_id",
-              "value": "={{ $('TAB LEADS').item.json.document_id }}",
-              "type": "string"
-            },
-            {
-              "id": "20827527-86e1-430f-a275-cc51ce9720f5",
-              "name": "lead.notes",
-              "value": "={{ $('TAB LEADS').item.json.notes }}",
-              "type": "string"
-            },
-            {
-              "id": "6cc23ce0-7a52-48af-b9c3-0c7fc1f1f1d0",
-              "name": "lead.purchase_value",
-              "value": "={{ $('TAB LEADS').item.json.purchase_value }}",
-              "type": "number"
-            },
-            {
-              "id": "dad12f76-9024-41b5-ac6c-67670f5e3e8d",
-              "name": "lead.owner_id",
-              "value": "={{ $('TAB LEADS').item.json.owner_id }}",
-              "type": "string"
-            },
-            {
-              "id": "d5669ddb-7cd5-4bd3-abcc-570113a39e36",
-              "name": "lead.kanban_stage_id",
-              "value": "={{ $('TAB LEADS').item.json.kanban_stage_id }}",
-              "type": "string"
-            },
-            {
-              "id": "e77a79a2-b84f-468b-87fd-ea8f96ed8710",
-              "name": "lead.funnel_id",
-              "value": "={{ $('TAB LEADS').item.json.funnel_id }}",
-              "type": "string"
-            },
-            {
-              "id": "1c01b5d4-35bb-49b1-b3e7-3ece9ab3dc16",
-              "name": "lead.address",
-              "value": "={{ $('TAB LEADS').item.json.address }}",
-              "type": "string"
-            },
-            {
-              "id": "f2049084-2aef-4b91-a156-b48685ad7464",
-              "name": "lead.neighborhood",
-              "value": "={{ $('TAB LEADS').item.json.neighborhood }}",
-              "type": "string"
-            },
-            {
-              "id": "13036790-f38e-4327-a6c8-a007e6300e78",
-              "name": "lead.city",
-              "value": "={{ $('TAB LEADS').item.json.city }}",
-              "type": "string"
-            },
-            {
-              "id": "8be71529-a6a5-4d88-a07f-d79796647f45",
-              "name": "lead.state",
-              "value": "={{ $('TAB LEADS').item.json.state }}",
-              "type": "string"
-            },
-            {
-              "id": "08a4979b-19e1-495d-b55d-7986bb14fca9",
-              "name": "lead.zip_code",
-              "value": "={{ $('TAB LEADS').item.json.zip_code }}",
-              "type": "string"
-            },
-            {
-              "id": "863f58fa-4754-41d6-bd95-892ea960d31c",
-              "name": "lead.country",
-              "value": "={{ $('TAB LEADS').item.json.country }}",
-              "type": "string"
-            },
-            {
-              "id": "190f1aa3-178f-4633-9469-ba7fcc27e9ad",
-              "name": "message.lead",
-              "value": "={{ $('Organiza para Agente').item.json.messages.atual }}",
-              "type": "string"
-            },
-            {
-              "id": "a44792f1-48e4-4c2f-ab90-642654c2f79d",
-              "name": "message.agent",
-              "value": "={{ $('AI Agent Conversa').item.json.output }}",
-              "type": "string"
-            },
-            {
-              "id": "19aefcde-0131-4b58-817a-a3f6def5a5f7",
-              "name": "messages.context",
-              "value": "={{ $('Organiza para Agente').item.json.messages.context }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        3584,
-        496
-      ],
-      "id": "2f63f558-7e23-4c61-a6de-a51ab916ff28",
-      "name": "Organiza para atualizar"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "97da8618-3798-4e7c-9096-83b9ec93397c",
-              "name": "=instance.created_by_user_id",
-              "value": "={{ $('Organiza Inicio').item.json.created_by_user_id }}",
-              "type": "string"
-            },
-            {
-              "id": "74c0f3b2-3128-42b6-bf8f-99dfb451b395",
-              "name": "instance.vpsId",
-              "value": "={{ $('Organiza Inicio').item.json.instance.vpsId }}",
-              "type": "string"
-            },
-            {
-              "id": "9a9a21d8-24f1-428c-9d46-76ad9794f1da",
-              "name": "instance.phone",
-              "value": "={{ $('Organiza Inicio').item.json.instance.phone }}",
-              "type": "string"
-            },
-            {
-              "id": "db6a9513-efea-4de1-b563-9941ef4e8388",
-              "name": "instance.supabaseId",
-              "value": "={{ $('TAB LEADS').item.json.whatsapp_number_id }}",
-              "type": "string"
-            },
-            {
-              "id": "bc1f50a4-2fe5-46bb-be9a-9acf383b57ba",
-              "name": "lead.id",
-              "value": "={{ $('TAB LEADS').item.json.id }}",
-              "type": "string"
-            },
-            {
-              "id": "db75de49-5b5d-4801-8dd5-1038a66d3532",
-              "name": "lead.name",
-              "value": "={{ $('TAB LEADS').item.json.name }}",
-              "type": "string"
-            },
-            {
-              "id": "2901f349-a60f-4b30-a647-613f132d40be",
-              "name": "lead.phone",
-              "value": "={{ $('TAB LEADS').item.json.phone }}",
-              "type": "string"
-            },
-            {
-              "id": "ea6d7f9d-fc5c-43b1-9a41-9a8cc1fe1e8f",
-              "name": "messages.atual",
-              "value": "={{ $('Deleta').item.json.List_array.join('\\n') }}",
-              "type": "string"
-            },
-            {
-              "id": "4e7182f1-539e-47c9-a1a0-8711f809adbc",
-              "name": "messages.context",
-              "value": "={{ $json.messages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).map((item, index) => `MESSAGE ${index + 1}: ${item.fromMe ? 'ENVIADA' : 'RECEBIDA'}; Type: ${item.type}; Text: ${item.text || ''}; Descrição: ${item.base64url || ''};\\n\\n`).join('') }}",
-              "type": "string"
-            },
-            {
-              "id": "236337f4-f54a-40d1-9b7c-8730c5915349",
-              "name": "agent.id",
-              "value": "={{ $('Organiza Inicio').item.json.agent.id }}",
-              "type": "string"
-            },
-            {
-              "id": "4155d826-92b3-4335-a327-7fae965b6511",
-              "name": "agent.name",
-              "value": "={{ $('Organiza Inicio').item.json.agent.name }}",
-              "type": "string"
-            },
-            {
-              "id": "1fc5b194-6cf5-49f1-a27d-7ae074c1a4fb",
-              "name": "agent.funnel_id",
-              "value": "={{ $('Organiza Inicio').item.json.agent.funnel_id }}",
-              "type": "string"
-            },
-            {
-              "id": "a6d6cf09-d525-4992-ab87-8bf8ceda840c",
-              "name": "agent.prompt.agent_function",
-              "value": "={{ $('Organiza Inicio').item.json.agent.prompt.agent_function }}",
-              "type": "string"
-            },
-            {
-              "id": "13086175-afb6-4a9c-a645-750c55ced309",
-              "name": "agent.prompt.agent_objective",
-              "value": "={{ $('Organiza Inicio').item.json.agent.prompt.agent_objective }}",
-              "type": "string"
-            },
-            {
-              "id": "0e65d339-dcc2-4587-b065-19826d073e1e",
-              "name": "agent.prompt.communication_style",
-              "value": "={{ $('Organiza Inicio').item.json.agent.prompt.communication_style }}",
-              "type": "string"
-            },
-            {
-              "id": "c652bd5b-8c46-4579-a520-27beb342e850",
-              "name": "agent.prompt.communication_style_examples",
-              "value": "={{ $('Organiza Inicio').item.json.agent.prompt.communication_style_examples }}",
-              "type": "string"
-            },
-            {
-              "id": "a24dae9f-41fb-47df-a45d-a2e2d8c918a1",
-              "name": "agent.prompt.company_info",
-              "value": "={{ $('Organiza Inicio').item.json.agent.prompt.company_info }}",
-              "type": "string"
-            },
-            {
-              "id": "45a541cd-06ca-4a35-8cf1-129f7172534a",
-              "name": "agent.prompt.products_services",
-              "value": "={{ $('Organiza Inicio').item.json.agent.prompt.products_services }}",
-              "type": "string"
-            },
-            {
-              "id": "9f8ed8db-f642-444e-9ef8-14438ddc51e3",
-              "name": "agent.prompt.rules_guidelines",
-              "value": "={{ $('Organiza Inicio').item.json.agent.prompt.rules_guidelines }}",
-              "type": "string"
-            },
-            {
-              "id": "de8dc877-61ff-40c9-a839-37314d4659a9",
-              "name": "agent.prompt.client_objections",
-              "value": "={{ $('Organiza Inicio').item.json.agent.prompt.client_objections }}",
-              "type": "string"
-            },
-            {
-              "id": "ecd20fd9-9b32-45a7-9a95-e247f0304fee",
-              "name": "agent.prompt.flow",
-              "value": "={{ $('Organiza Inicio').item.json.agent.prompt.flow }}",
-              "type": "string"
-            },
-            {
-              "id": "ee01b67b-5445-43e7-a002-50577fd50b2c",
-              "name": "agent.prompt.prohibitions",
-              "value": "={{ $('Organiza Inicio').item.json.agent.prompt.prohibitions }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        1488,
-        512
-      ],
-      "id": "71e9a1b9-d6e2-4ede-b13f-24a105380634",
-      "name": "Organiza para Agente"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "d77040d4-f125-4769-b91b-c6e6080b2f3b",
-              "name": "Notification",
-              "value": "={{ JSON.parse($json.output).needs_notification }}",
-              "type": "string"
-            },
-            {
-              "id": "8f48b0df-8818-4b85-93fb-e6c0c25dcce1",
-              "name": "phoneNotification",
-              "value": "={{ JSON.parse($json.output).phone_notification }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        4304,
-        496
-      ],
-      "id": "ca422bae-0c4a-41bf-952e-c2234469259e",
-      "name": "Organiza Aviso"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": false,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "ada4cb43-948a-415a-9e6e-9ca7c1b4aa02",
-              "leftValue": "={{ $json.Notification }}",
-              "rightValue": "true",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {
-          "ignoreCase": true
-        }
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        4480,
-        496
-      ],
-      "id": "c9c3aaec-8deb-4801-a022-8a461723a579",
-      "name": "Precisa Avisar?"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=# AGENTE DE NOTIFICAÇÃO DE LEADS\n\nVocê é responsável por enviar notificações humanizadas quando um lead é movido para uma nova etapa que requer atenção.\n\n## 📊 DADOS DISPONÍVEIS\n\n### Informações do Lead\n- **Nome**: {{ $('Organiza para atualizar').item.json.lead.name }}\n- **Telefone**: {{ $('Organiza para atualizar').item.json.lead.phone }}\n\n### Status da Atualização\n\n- **Output do Agente Anterior**: {{ $('AI Agent Gestor de Lead').item.json.output }}\n\n---\n\n## 🎯 SUA MISSÃO\n\nVocê deve:\n\n1. **Extrair** o nome da nova etapa do output do agente anterior\n2. **Criar** uma mensagem humanizada e pessoal\n3. **Informar** sobre o lead que precisa de atenção\n\n---\n\n## 📝 FORMATO DA MENSAGEM\n\n**Use EXATAMENTE este template:**\n\n``\nOi! Acabei de mover um lead para a etapa de [NOME_DA_ETAPA]! \n\nÉ o [NOME_DO_LEAD] [TELEFONE_DO_LEAD]. \nEle já passou pela qualificação e está pronto para o próximo contato.\n\nPode dar uma olhada quando conseguir? 😊\n```\n---\n\n## 🔧 INSTRUÇÕES ESPECÍFICAS\n\n### 1. Extração da Etapa\n- **Analise** o campo `message` no output do agente anterior\n- **Procure** por texto como: \\\"movido para a etapa 'X'\\\", \\\"avançou para 'X'\\\", etc.\n- **Extraia** apenas o nome da etapa entre aspas\n\n### 2. Formatação do Telefone\n- **Use** o telefone exatamente como fornecido\n- **Adicione** entre parênteses: `([TELEFONE])`\n---\n\n## ⚠️ IMPORTANTE\n\n- **Retorne APENAS** o texto da mensagem, sem formatação adicional\n- **Não adicione** ```markdown ou outros formatos\n- **Mantenha** o tom humanizado e pessoal\n- **Use** emoji apenas o 😊 no final\n- **Substitua** corretamente [NOME_DA_ETAPA], [NOME_DO_LEAD] e [TELEFONE_DO_LEAD]\"\n  }\n]",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 2.1,
-      "position": [
-        4848,
-        480
-      ],
-      "id": "6e248cd1-a28b-4eff-a55d-19c82deb39db",
-      "name": "AI Agent Transbordo"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=## 🧠 SISTEMA DE ANÁLISE CONTEXTUAL (EXECUTAR PRIMEIRO)\n\n### ETAPA 1: ANÁLISE DA MENSAGEM ATUAL\n**Mensagem a responder:** {{ $json.messages.atual }}\n\n### ETAPA 2: ANÁLISE DO HISTÓRICO COMPLETO\n**Contexto das últimas mensagens:** {{ $json.messages.context }}\n\n**INSTRUÇÕES PARA ANÁLISE:**\n1. **LEIA TODAS as mensagens do contexto** da mais antiga para a mais recente\n2. **IDENTIFIQUE** quais mensagens são \"RECEBIDA\" (do lead) e \"ENVIADA\" (do agente)\n3. **DETERMINE** qual foi a ÚLTIMA pergunta feita pelo agente\n4. **VERIFIQUE** se a mensagem atual do lead responde essa pergunta\n5. **IDENTIFIQUE** em qual PASSO da árvore o lead está atualmente\n\n### ETAPA 3: MAPEAMENTO DO ESTADO ATUAL\n**ANTES DE QUALQUER RESPOSTA, determine:**\n\n```\nESTADO_ATUAL = {\n  nome_capturado: [true/false - verificar se lead já disse o nome],\n  ultima_pergunta_agente: \"[qual foi a última pergunta feita]\",\n  resposta_lead_para_pergunta: \"[o que o lead respondeu]\",\n  apresentacao_feita: [true/false - verificar se já se apresentou],\n  extrato_status: \"[tem/não tem/vai conseguir/já enviou]\",\n  pdf_ja_recebido: [true/false - CRÍTICO: verificar se há menção de PDF recebido/enviado no contexto],\n  encaminhamento_feito: [true/false - verificar se já disse \"vou encaminhar para jurídico\"],\n  passo_atual_na_arvore: \"[identificar A, B, C, D, E, F, G, H]\",\n  proxima_acao_logica: \"[qual deve ser o próximo passo]\"\n}\n```\n\n### ETAPA 4: DECISÃO INTELIGENTE\n**COM BASE NA ANÁLISE ACIMA:**\n\n**VERIFICAÇÃO DE ESTADO TERMINAL CRÍTICA:**\n- **SE no contexto há evidência de PDF recebido + \"vou encaminhar ao jurídico\" → USAR APENAS PASSO H2**\n- **NUNCA voltar para PASSO F se já executou PASSO H1**\n- **SE lead responde após encaminhamento → SEMPRE H2, nunca outros passos**\n\n**DETECÇÃO DE PERGUNTAS DO CLIENTE:**\n- **SE cliente fez pergunta específica (como?, onde?, quando?, preciso de ajuda?) → RESPONDER pergunta ANTES de continuar fluxo**\n- **NUNCA ignorar perguntas diretas do cliente**\n\n**REGRA ANTI-ROBÓTICA CRÍTICA:**\n- **JAMAIS começar resposta com \"Entendi que...\", \"Compreendi que...\", \"Vejo que...\"**\n- **IR DIRETO ao ponto da resposta SEM confirmações desnecessárias**\n- **NUNCA repetir o que o cliente acabou de dizer**\n\n**DECISÕES NORMAIS:**\n- Se a mensagem atual **RESPONDE** a última pergunta → Prosseguir para próximo passo\n- Se a mensagem atual **NÃO RESPONDE** → Reformular pergunta sem repetir\n- Se o lead **JÁ FORNECEU** a informação antes → Reconhecer e avançar\n- Se há **CONTRADIÇÃO** → Esclarecer educadamente\n\n---\n\n## 📋 CONTEXTO DA CONVERSA\n- **{{ $json.messages.atual }}** → Responder apenas a ESTA mensagem  \n- Histórico das últimas mensagens: **{{ $json.messages.context }}**  \n  - MENSAGENS \"RECEBIDA\" = Lead falou\n  - MENSAGENS \"ENVIADA\" = Agente falou\n  - Analisar sequência cronológica para entender o fluxo\n- **{{ $json.lead.name }}** → Nome do lead (usar apenas se ainda não foi usado recentemente)\n\n## 👤 AGENTE\n{\n  \"nome\": \"Amanda\",\n  \"personalidade\": \"Acolhedora, empática e objetiva. Especialista em recuperar valores pagos em consórcios. Conduz o atendimento com clareza e foco em obter o extrato do cliente para análise.\",\n  \"empresa\": \"SolucionaCon\",\n  \"objetivo\": \"Explicar como funciona o processo de recuperação dos valores pagos em consórcios de qualquer administradora do Brasil, podendo ser através de processo judicial ou venda da cota, solicitar o extrato do consórcio e repassar o atendimento para o jurídico realizar o cálculo de recuperação.\",\n  \"pense_como\": \"Uma SDR especialista que entende de processos jurídicos para consórcios e conduz o lead com perguntas simples e diretas até conseguir o extrato para análise.\"\n}\n\n---\n\n# 🌳 ÁRVORE DE DECISÃO COM VALIDAÇÃO CONTEXTUAL\n\n## PASSO A - PRIMEIRO CONTATO\n**Condição:** Primeira interação da conversa\n**VALIDAÇÃO:** Verificar se já se apresentou em mensagens \"ENVIADA\" anteriores\n\n### A1: CUMPRIMENTO + CAPTURA NOME\n**ANTES DE EXECUTAR:** \n- Verificar no contexto se já se apresentou\n- **SE já se apresentou → PULAR para PASSO B**\n- **SE primeira vez → EXECUTAR normalmente**\n\n- **MENSAGEM PRINCIPAL:** \"Oi! Sou a Amanda, da SolucionaCon. Qual o seu nome?\"\n- **DECISÕES:**\n  - SE lead fornece nome → IR PARA PASSO B\n  - SE lead ignora nome MAS fala sobre consórcio → IR PARA PASSO B (sem nome)\n  - SE lead faz pergunta → RESPONDER brevemente + IR PARA PASSO B\n- **CONTROLE:** Apenas 1 tentativa - nome é bonus, não obrigatório\n\n## PASSO B - APRESENTAÇÃO DO SERVIÇO\n**Condição:** Após primeiro contato\n**VALIDAÇÃO:** Verificar se apresentação do serviço já foi feita em mensagens \"ENVIADA\"\n\n### B1: EXPLICAÇÃO DA SOLUCIONACON\n**ANTES DE EXECUTAR:**\n- Verificar no contexto se já explicou o serviço\n- **SE já explicou o serviço → PULAR para PASSO C**\n- **SE não explicou → EXECUTAR normalmente**\n\n- **MENSAGEM PRINCIPAL:**\n  - **COM NOME:** \"Prazer [NOME]! A gente ajuda pessoas com questões de consórcio.\"\n  - **SEM NOME:** \"A SolucionaCon ajuda pessoas com questões de consórcio.\"\n- **PERGUNTA:** \"Você cancelou, parou de pagar ou ainda está pagando algum consórcio?\"\n\n- **DECISÕES DIRETAS (SEM SUB-PERGUNTAS):**\n  - SE \"cancelei\" → **IR IMEDIATAMENTE PARA PASSO C - SOLICITAR EXTRATO**\n  - SE \"parei de pagar\" → **IR IMEDIATAMENTE PARA PASSO C - SOLICITAR EXTRATO**\n  - SE \"ainda estou pagando\" → **IR IMEDIATAMENTE PARA PASSO C - SOLICITAR EXTRATO**\n  - SE \"quero vender consórcio\" → IR PARA PASSO G\n  - SE \"tenho dúvidas\" → EXPLICAR brevemente + IR PARA PASSO C\n  - SE confirma qualquer situação de consórcio → **IR IMEDIATAMENTE PARA PASSO C**\n\n**REGRA CRÍTICA ABSOLUTA:** \n- **\"CANCELEI\" = RESPOSTA COMPLETA → IR DIRETO PARA \"Preciso do extrato do consórcio em PDF...\"**\n- **\"PAREI DE PAGAR\" = RESPOSTA COMPLETA → IR DIRETO PARA \"Preciso do extrato do consórcio em PDF...\"**\n- **NUNCA REPETIR PERGUNTA SOBRE SITUAÇÃO DO CONSÓRCIO SE JÁ RESPONDEU**\n\n**IMPORTANTE:** NUNCA fazer confirmações robóticas como \"Entendi que...\", \"Perfeito! Você mencionou...\", \"Parece que você...\". Ir DIRETO ao próximo passo.\n\n## PASSO C - SOLICITAÇÃO DO EXTRATO\n**Condição:** Lead confirmou ter consórcio\n**VALIDAÇÃO:** Verificar se extrato já foi solicitado e qual foi a resposta\n\n### C1: SOLICITAÇÃO PRINCIPAL\n**ANTES DE EXECUTAR:**\n- Verificar se já perguntou sobre extrato nas mensagens \"ENVIADA\"\n- Verificar qual foi a resposta do lead nas mensagens \"RECEBIDA\"\n- **SE lead já respondeu sobre ter/não ter → IR DIRETAMENTE para próximo passo lógico**\n- **SE não perguntou ainda → EXECUTAR normalmente**\n\n- **MENSAGEM:** \"Preciso do extrato do consórcio em PDF para nosso time jurídico analisar sua situação.\"\n- **ORIENTAÇÃO:** \"Se não tiver, posso te orientar como pedir à administradora.\"\n- **DECISÕES:**\n  - SE \"tenho o extrato\" → IR PARA PASSO F (aguardar envio)\n  - SE \"não tenho extrato\" → IR PARA PASSO D (orientação)\n  - SE \"tenho em outro formato\" → IR PARA PASSO E (formato incorreto)\n  - SE \"quero vender consórcio\" → IR PARA PASSO G\n  - SE não responde → USAR FALLBACK C1.1\n\n### C1.1: FALLBACK SOLICITAÇÃO\n**ANTES DE EXECUTAR:** Verificar se já usou este fallback\n- **MENSAGEM:** \"Consegue solicitar o extrato? É só pedir à administradora o extrato com valores pagos.\"\n- **AÇÃO:** REPETIR DECISÕES DO C1\n\n## PASSO D - ORIENTAÇÃO PARA CONSEGUIR EXTRATO\n**Condição:** Lead não tem extrato\n**VALIDAÇÃO:** Verificar se já deu orientação para conseguir extrato\n\n### D1: ORIENTAÇÃO GERAL\n**ANTES DE EXECUTAR:**\n- Verificar no contexto se já orientou como conseguir extrato\n- **SE já orientou → PULAR para PASSO F**\n- **SE não orientou → EXECUTAR normalmente**\n\n- **MENSAGEM PRINCIPAL:** \"Sem problema! É só você solicitar o extrato do consórcio diretamente à administradora.\"\n- **COMPLEMENTO:** \"Pode ser pelo aplicativo, site ou 0800 deles. Peça o extrato detalhado em PDF com os valores pagos.\"\n- **DICA:** \"Não precisa explicar o motivo, só peça o extrato detalhado mesmo.\"\n- **DECISÕES:**\n  - SE \"vou conseguir\" → IR PARA PASSO F (aguardar envio)\n  - SE \"como faço isso?\" → IR PARA D1.1 (orientação detalhada)\n  - SE \"não sei como\" → IR PARA D1.1\n  - SE resiste → IR PARA D1.2 (fallback)\n\n### D1.1: ORIENTAÇÃO DETALHADA\n- **EXPLICAÇÃO:** \"É bem simples! Você liga no 0800 da administradora ou acessa o site/app.\"\n- **INSTRUÇÃO:** \"Fala que quer o 'extrato detalhado do consórcio em PDF' e pronto!\"\n- **AÇÃO:** IR PARA PASSO F\n\n### D1.2: FALLBACK RESISTÊNCIA\n- **MOTIVAÇÃO:** \"Sei que pode parecer chato, mas é essencial para calcularmos quanto você pode recuperar.\"\n- **FACILIDADE:** \"É rapidinho, e assim conseguimos te ajudar melhor!\"\n- **AÇÃO:** IR PARA PASSO F\n\n## PASSO E - FORMATO/DOCUMENTO INCORRETO\n**Condição:** Lead enviou documento que não é extrato PDF\n\n### E1: VALIDAÇÃO DO DOCUMENTO ENVIADO\n**ANTES DE EXECUTAR:** Analisar o que foi enviado\n\n### E1.1: EXTRATO EM FORMATO ERRADO\n**SE enviou foto/imagem do extrato:**\n- **MENSAGEM:** \"Você me enviou uma foto do extrato, mas vou precisar dele em PDF, pois contém todos os detalhes.\"\n- **ORIENTAÇÃO:** \"Consegue solicitar o extrato em PDF diretamente à administradora?\"\n- **AÇÃO:** IR PARA PASSO F (aguardar novo envio)\n\n### E1.2: DOCUMENTO TOTALMENTE INCORRETO\n**SE enviou documento que não é extrato:**\n- **IDENTIFICAR:** \"Você me enviou [TIPO_DOCUMENTO], isso não é o extrato do consórcio.\"\n- **EXPLICAR:** \"Vou precisar do extrato detalhado em PDF para conseguir passar ao time jurídico.\"\n- **ORIENTAÇÃO:** \"É só solicitar à administradora o extrato detalhado do consórcio em PDF.\"\n- **AÇÃO:** IR PARA PASSO F (aguardar extrato correto)\n\n### E1.3: DOCUMENTO PDF VÁLIDO (EXTRATO)\n**SE enviou extrato em PDF:**\n- **AÇÃO:** IR DIRETAMENTE PARA PASSO H (encaminhar ao jurídico)\n\n### E1.4: LINK OU ARQUIVO ONLINE\n**SE enviou link (https://, drive, dropbox, etc.):**\n- **MENSAGEM:** \"Não consigo acessar links externos. Preciso que você envie o extrato do consórcio diretamente como arquivo PDF.\"\n- **ORIENTAÇÃO:** \"É só baixar o arquivo e enviar aqui mesmo na conversa.\"\n- **AÇÃO:** AGUARDAR novo envio → VOLTAR PARA PASSO F\n\n## PASSO F - AGUARDANDO ENVIO\n**Condição:** Lead confirmou que vai conseguir/enviar extrato\n\n### F1: CONFIRMAÇÃO DE ESPERA\n**ANTES DE EXECUTAR:**\n- Verificar no contexto se já confirmou espera anteriormente\n- **SE já confirmou espera → NÃO REPETIR, apenas aguardar**\n- **SE não confirmou → EXECUTAR normalmente**\n\n- **MENSAGEM:** \"Perfeito! Fico aguardando o extrato em PDF aqui.\"\n- **COMPLEMENTO:** \"Assim que eu receber, encaminho para nosso time fazer a análise.\"\n- **AÇÃO:** AGUARDAR DOCUMENTO\n\n### F2: QUANDO RECEBER DOCUMENTO\n**DECISÕES:**\n- SE é extrato PDF → IR PARA PASSO H\n- SE é foto/imagem do extrato → IR PARA PASSO E1.1\n- SE é documento incorreto → IR PARA PASSO E1.2\n\n## PASSO G - VENDA DE CONSÓRCIO\n**Condição:** Lead menciona interesse em vender\n\n### G1: INFORMAÇÃO SOBRE COMPRA\n- **RESPOSTA:** \"A SolucionaCon também realiza compra de cotas de consórcio!\"\n- **PROCESSO:** \"Fazemos a avaliação da sua cota mediante análise do extrato.\"\n- **NECESSIDADE:** \"Para isso, também vou precisar do extrato do consórcio em PDF.\"\n- **AÇÃO:** IR PARA PASSO C (solicitar extrato - mesmo processo)\n\n## PASSO H - ENCAMINHAMENTO JURÍDICO\n**Condição:** Extrato PDF válido recebido\n\n### H1: CONFIRMAÇÃO E ENCAMINHAMENTO\n**ANTES DE EXECUTAR:** \n- **CRÍTICO:** Verificar no contexto se há menção de PDF recebido/enviado pelo lead\n- Verificar se já fez encaminhamento nas mensagens \"ENVIADA\" anteriores\n- **SE já encaminhou → IR PARA H2 (pós-encaminhamento)**\n- **SE não encaminhou mas PDF foi recebido → EXECUTAR H1**\n\n- **AGRADECIMENTO:** \"Perfeito! Recebi o extrato aqui.\"\n- **ENCAMINHAMENTO:** \"Agora vou encaminhar para o time jurídico fazer a análise.\"\n- **ORIENTAÇÃO:** \"Eles entrarão em contato com você em breve, pode aguardar?\"\n- **AÇÃO:** MARCAR como ENCAMINHAMENTO_FEITO\n\n### H2: PÓS-ENCAMINHAMENTO (ESTADO TERMINAL)\n**CONDIÇÃO:** Já fez encaminhamento e lead responde qualquer coisa\n**VALIDAÇÃO CRÍTICA:** Se no contexto há evidência de PDF recebido + encaminhamento feito\n\n- **SE lead agradece:** \"De nada! Já está com nossa equipe jurídica.\"\n- **SE lead pergunta algo:** \"Sua documentação já está com o time jurídico, eles entrarão em contato em breve.\"  \n- **SE lead envia mais documentos:** \"Obrigada! Vou repassar também para a equipe.\"\n- **SE lead fala qualquer coisa:** \"Perfeito! Sua situação já está com o time jurídico, eles entrarão em contato.\"\n- **AÇÃO:** MANTER status FINALIZADO - NUNCA voltar aos passos anteriores\n\n---\n\n# 🛡️ REGRAS ANTI-LOOP INTELIGENTES\n\n## PROTOCOLO DE VERIFICAÇÃO OBRIGATÓRIO\n**EXECUTAR ANTES DE QUALQUER RESPOSTA:**\n\n```\n1. LER todo o {{ $json.messages.context }} cronologicamente\n2. IDENTIFICAR última pergunta do agente (mensagem \"ENVIADA\")\n3. VERIFICAR se mensagem atual ({{ $json.messages.atual }}) responde essa pergunta\n4. EXTRAIR informações já fornecidas pelo lead:\n   - Nome mencionado?\n   - Apresentação já feita?\n   - Extrato já solicitado?\n   - Status do extrato mencionado?\n   - **CRÍTICO: PDF já foi enviado/recebido? (buscar por menções de arquivo, documento, PDF no contexto)**\n   - **Encaminhamento ao jurídico já foi feito? (buscar por \"vou encaminhar\", \"time jurídico\" nas mensagens ENVIADAS)**\n   - Documentos já enviados?\n5. DETERMINAR próximo passo lógico baseado no histórico completo\n6. NUNCA repetir pergunta se resposta já foi dada\n7. SEMPRE reconhecer informações já fornecidas\n```\n\n## FRASES DE RECONHECIMENTO\n**Usar quando lead já forneceu informação:**\n- \"Ah sim, você mencionou que [SITUAÇÃO], perfeito!\"\n- \"Certo, você disse que [INFORMAÇÃO], então...\"\n- \"Ok, entendi que você [AÇÃO], agora só preciso...\"\n\n## CONTROLE DE ESTADO\n**Manter registro mental:**\n- ✅ Nome capturado: [sim/não]\n- ✅ Apresentação feita: [sim/não]\n- ✅ Extrato solicitado: [sim/não]\n- ✅ Status extrato: [tem/não tem/vai conseguir/já enviou]\n- ✅ **PDF recebido: [sim/não - CRÍTICO para não repetir solicitações]**\n- ✅ **Encaminhamento feito: [sim/não - ESTADO TERMINAL]**\n- ✅ Último passo executado: [A, B, C, D, E, F, G, H]\n\n## LIMITES DE TENTATIVAS\n- MÁXIMO 1 tentativa de captura de nome\n- MÁXIMO 2 fallbacks por passo\n- SE exceder limites: avançar ou adaptar abordagem\n- NUNCA insistir se informação já foi fornecida\n\n---\n\n# 📝 REGRAS DE ATUAÇÃO\n\n## PROIBIÇÕES ABSOLUTAS\n- ❌ JAMAIS repetir pergunta se lead já respondeu no contexto\n- ❌ JAMAIS ignorar informações já fornecidas pelo lead\n- ❌ JAMAIS voltar ao início se já passou dessa etapa\n- ❌ Não oferecer suporte jurídico direto ou prometer valores/prazos\n- ❌ Não repetir o nome do lead se já usado no histórico recente\n- ❌ Não repetir frases já utilizadas → sempre reformular\n\n## OBRIGAÇÕES\n- ✅ SEMPRE analisar contexto completo antes de responder\n- ✅ SEMPRE reconhecer informações já fornecidas\n- ✅ SEMPRE prosseguir logicamente baseado no histórico\n- ✅ Encaminhar para jurídico assim que extrato PDF for recebido\n- ✅ Se formato incorreto, solicitar PDF especificamente\n- ✅ Manter análise gratuita como diferencial\n\n---\n\n# 🏢 SOBRE A SOLUCIONACON\n- Especialista em recuperação de valores pagos em consórcios\n- Equipe jurídica profissional e experiente\n- Análise do extrato é gratuita e sem compromisso\n- Cliente decide após conhecer valor estimado de recuperação\n- Localizada em Goiânia-GO, atendendo todo o Brasil\n\n---\n\n# 🎯 ESTRATÉGIA DE VENDAS (GATILHOS)\n- Segurança: \"Nosso time jurídico cuida de tudo, com total transparência\"\n- Prova social: \"Já ajudamos milhares de pessoas a recuperar valores de consórcios\"\n- Facilidade: \"É só enviar o extrato em PDF que cuidamos de tudo\"\n\n---\n\n# 💬 ESTILO DE COMUNICAÇÃO NATURAL\n\n## REGRAS CRÍTICAS DE LINGUAGEM:\n### PROIBIÇÕES ABSOLUTAS (LINGUAGEM ROBÓTICA):\n- ❌ NUNCA começar respostas com \"Entendi que...\", \"Compreendi que...\", \"Vejo que...\"\n- ❌ NUNCA usar \"Entendi que você está perguntando...\", \"Entendi que você cancelou...\"\n- ❌ NUNCA usar \"Compreendo sua situação...\", \"Vejo que você precisa...\"\n- ❌ NUNCA repetir/parafrasear o que o lead acabou de dizer\n- ❌ NUNCA confirmar óbvio antes de responder\n- ❌ NUNCA usar \"Olá! Entendi que...\" ou similares\n- ❌ NUNCA fazer confirmações desnecessárias\n\n### EXEMPLOS ESPECÍFICOS PROIBIDOS:\n- ❌ \"Entendi que você está perguntando se nós compramos consórcios...\"\n- ❌ \"Entendi que você cancelou o consórcio...\"\n- ❌ \"Compreendo que você precisa de ajuda...\"\n- ❌ \"Vejo que você tem dúvidas sobre...\"\n- ❌ \"Parece que você está buscando...\"\n\n### COMUNICAÇÃO DIRETA E NATURAL:\n- ✅ IR DIRETO AO PONTO sem confirmações desnecessárias\n- ✅ RESPONDER como humano falaria naturalmente\n- ✅ USAR linguagem fluida: \"Sem problema!\", \"Perfeito!\", \"É simples!\"\n- ✅ FOCAR na SOLUÇÃO, não na confirmação\n\n### EXEMPLOS CORRETOS:\n❌ \"Entendi que você está perguntando se compramos consórcios. A SolucionaCon também realiza...\"\n✅ \"A SolucionaCon também realiza compra de cotas de consórcio!\"\n\n❌ \"Entendi que você cancelou o consórcio. Para prosseguir...\"\n✅ \"Preciso do extrato do consórcio em PDF para analisar sua situação.\"\n\n❌ \"Compreendo sua situação. Vou te ajudar...\"\n✅ \"Sem problemas! Posso te orientar...\"\n\n### COMUNICAÇÃO DIRETA E NATURAL:\n- ✅ IR DIRETO AO PONTO sem confirmações desnecessárias\n- ✅ RESPONDER como humano falaria naturalmente\n- ✅ USAR linguagem fluida: \"Sem problema!\", \"Perfeito!\", \"É simples!\"\n- ✅ FOCAR na SOLUÇÃO, não na confirmação do problema\n\n### EXEMPLOS CORRETOS:\n❌ \"Entendi que você não tem o extrato. Sem problemas! É só solicitar...\"\n✅ \"Sem problemas! É só você solicitar o extrato diretamente à administradora.\"\n\n❌ \"Olá! Entendi que você está pagando e quer saber como funciona...\"  \n✅ \"A gente pode analisar sua situação atual mesmo você ainda pagando.\"\n\n### DIRETRIZES COMPLEMENTARES:\n- Usar nome do cliente moderadamente (não repetir em excesso)\n- Validar frustrações: \"Sei como é frustrante pagar e ficar no prejuízo...\"\n- Elogiar iniciativa: \"Foi ótimo você buscar seus direitos!\"\n- Usar emojis moderados 😊😉\n- Ser direto, simpático e claro\n- Nunca enviar mais de 2 mensagens seguidas sem resposta\n- SEMPRE demonstrar que entendeu o que o lead falou (através da resposta adequada, não confirmação verbal)",
-        "options": {
-          "systemMessage": "="
-        }
-      },
-      "id": "d3c98ae0-ad7f-4f35-b393-cc1d21c9c937",
-      "name": "AI Agent Conversa",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.9,
-      "position": [
-        1680,
-        512
-      ]
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=\n    \"content\": \"Você é um agente responsável por atualizar dados de leads usando a TOOL ATUALIZA_LEAD.\n\nSeu objetivo principal é mover o lead conforme exclpiado abaixo para os proximos estagios do funiL. \n\n### DADOS ATUAIS DO LEAD\n- ID: {{ $json.lead.id }}\n- Nome: {{ $json.lead.name }}\n- Email: {{ $json.lead.email }}\n- Empresa: {{ $json.lead.company }}\n- CPF/CNPJ: {{ $json.lead.document_id }}\n- Endereço: {{ $json.lead.address }}\n- Cidade: {{ $json.lead.city }}\n- Estado: {{ $json.lead.state }}\n- Estágio: {{ $json.lead.kanban_stage_id }}\n\n### CONVERSA\n- Histórico: {{ $('Organiza para Agente').item.json.messages.context }}\n- Mensagem atual: {{ $('Organiza para Agente').item.json.messages.atual }}\n\n### ⚠️ VALIDAÇÕES OBRIGATÓRIAS ANTES DE ATUALIZAR\n\n#### 1. VERIFICAÇÃO DE DADOS EXISTENTES\n- **Se o campo JÁ TEM VALOR**, só atualize se o lead EXPLICITAMENTE pediu correção\n- **Exemplo**: Se nome atual é \\\"João Silva\\\", NÃO mude só porque o agente disse \\\"olá João\\\"\n- **Atualizar apenas quando**: \\\"Na verdade meu nome correto é...\\\" ou \\\"Preciso corrigir meu email...\\\"\n\n#### 2. INTELIGÊNCIA CONTEXTUAL - DADOS PESSOAIS vs MENÇÕES\n**ATUALIZE quando o lead fornece SEUS dados:**\n- ✅ \\\"Meu nome é João Silva\\\"\n- ✅ \\\"Trabalho na empresa TechCorp\\\"  \n- ✅ \\\"Meu email é joao@empresa.com\\\"\n\n**NÃO ATUALIZE quando são apenas menções:**\n- ❌ \\\"Conversei com João da TechCorp ontem\\\"\n- ❌ \\\"A empresa do meu amigo se chama XYZ\\\"\n- ❌ \\\"Recebi email de fulano@teste.com\\\"\n\n#### 3. GESTÃO DE ESTÁGIOS DO FUNIL\nAqui está o os estágios do funil, e a descrição de cada estágio para você analisar se o lead precisa ser movimentado, de acordo com sua análise da conversa do lead: {{ $json.stages_formatted }}\n- **SEMPRE** Que o lead estiver na Posição no funil 1 (Entrada de leads), altere sua posição para a para a etapa 2, imadiatamente.\n\n- **SEMPRE** Se no contexto de conversa conter o EXTRATO DE CONSÓRCIO em PDF, mova o lead para a etapa 3 - EM CÁLCULO. \n- **APENAS AVANCE** para próximo estágio (nunca retroceda)\n- **SÓ MOVA** se houver evidência clara de progressão no funil\n\n\n**PROCESSO OBRIGATÓRIO quando mover estágio:**\n1. Identifique o ID do novo estágio\n2. Localize esse ID na string stages_formatted\n\n**EXEMPLO CORRETO:**\n- Lead movido para \\\"Em negociação\\\" (ID: 6e57b62e-4a14-4a8c-b828-6ec2b405b3d0)\n- Na string: \\\"...ID: 6e57b62e-4a14-4a8c-b828-6ec2b405b3d0...Telefone: 5562986440002...\\\"\n\n#### 4. REGRA DE SEGURANÇA\n**NA DÚVIDA, NÃO ATUALIZE**\n- Se não tiver certeza absoluta de que é dado pessoal do lead → não altere\n- Se não tiver certeza de que houve progressão no funil → não mova estágio\n- Prefira ser conservador a fazer atualizações incorretas\n\n### COMO USAR ATUALIZA_LEAD\n\nQuando o lead fornecer informações novas, use a tool ATUALIZA_LEAD.\nA tool aceita estes parâmetros numerados:\n\n- **lead_id**: ID do lead (sempre use: {{ $json.lead.id }})\n- **fieldValues1_Field_Value**: Email\n- **fieldValues2_Field_Value**: Empresa\n- **fieldValues3_Field_Value**: CPF/CNPJ\n- **fieldValues4_Field_Value**: Endereço\n- **fieldValues5_Field_Value**: Bairro\n- **fieldValues6_Field_Value**: Cidade\n- **fieldValues7_Field_Value**: Estado\n- **fieldValues8_Field_Value**: CEP\n- **fieldValues9_Field_Value**: País\n- **fieldValues10_Field_Value**: Observações\n- **fieldValues11_Field_Value**: ID do estágio\n\n### REGRAS\n1. **SEMPRE inclua lead_id** com {{ $json.lead.id }}\n2. **Só inclua campos que precisam ser atualizados**\n3. **Use string vazia \\\"\\\"** para campos que não devem ser alterados\n4. **Não deixe campos undefined ou null**\n\n### EXEMPLOS\n\n**Lead informou nome:**\nATUALIZA_LEAD({\n\\\"lead_id\\\": \\\"{{ $json.lead.id }}\\\",\n\\\"fieldValues0_Field_Value\\\": \\\"João Silva\\\",\n\\\"fieldValues1_Field_Value\\\": \\\"\\\",\n\\\"fieldValues2_Field_Value\\\": \\\"\\\"\n})\n\n**Lead informou nome e email:**\nATUALIZA_LEAD({\n\\\"lead_id\\\": \\\"{{ $json.lead.id }}\\\",\n\\\"fieldValues0_Field_Value\\\": \\\"João Silva\\\",\n\\\"fieldValues1_Field_Value\\\": \\\"joao@empresa.com\\\",\n\\\"fieldValues2_Field_Value\\\": \\\"\\\"\n})\n\n### OUTPUT OBRIGATÓRIO\n**CRÍTICO**: Retorne APENAS o objeto JSON puro, sem formatação markdown, sem ```json, sem texto adicional.\n\nFormato exato:\n{\n\\\"needs_notification\\\": false,\n\\\"updated_fields\\\": [\\\"name\\\"],\n\\\"message\\\": \\\"Atualizei o nome para 'João Silva'.\\\",\n\\\"action_taken\\\": \\\"update\\\",\n\\\"lead_id\\\": \\\"{{ $json.lead.id }}\\\",\n}\n\nExemplos de outputs corretos:\n\n**Se atualizou campos SEM mudança de estágio:**\n{\n\\\"needs_notification\\\": false,\n\\\"updated_fields\\\": [\\\"name\\\", \\\"email\\\"],\n\\\"message\\\": \\\"Atualizei nome para 'João Silva' e email para 'joao@empresa.com'.\\\",\n\\\"action_taken\\\": \\\"update\\\",\n\\\"lead_id\\\": \\\"{{ $json.lead.id }}\\\",\n}\n\n**Se MOVEU o lead para novo estágio COM notificação:**\n{\n\\\"needs_notification\\\": true,\n\\\"updated_fields\\\": [\\\"stage\\\"],\n\\\"message\\\": \\\"Lead movido para estágio 'Em negociação'.\\\",\n\\\"action_taken\\\": \\\"stage_update\\\",\n\\\"lead_id\\\": \\\"{{ $json.lead.id }}\\\",\n}\n\n**Se MOVEU o lead para novo estágio SEM notificação:**\n{\n\\\"needs_notification\\\": false,\n\\\"updated_fields\\\": [\\\"stage\\\"],\n\\\"message\\\": \\\"Lead movido para estágio 'Entrada de Leads'.\\\",\n\\\"action_taken\\\": \\\"stage_update\\\",\n\\\"lead_id\\\": \\\"{{ $json.lead.id }}\\\",\n}\n\n**Se NÃO atualizou nada:**\n{\n\\\"needs_notification\\\": false,\n\\\"updated_fields\\\": [],\n\\\"message\\\": \\\"Nenhuma atualização necessária.\\\",\n\\\"action_taken\\\": \\\"no_action\\\",\n\\\"lead_id\\\": \\\"{{ $json.lead.id }}\\\",\n}\n\n\n**EXEMPLO DE EXTRAÇÃO CORRETA:**\n- Lead movido para \\\"Em negociação\\\" (ID: 6e57b62e-4a14-4a8c-b828-6ec2b405b3d0)\n- Buscar na string stages_formatted: \\\"...Nome: Em negociação...Telefone: 5562986440002...ID: 6e57b62e-4a14-4a8c-b828-6ec2b405b3d0\\\"\n- Extrair: \\\"5562986440002\\\" ← ESTE é o correto para phone_notification\n- **NUNCA use**: \\\"556299212484\\\" ← Este é o telefone do LEAD, não da empresa!\n\n**IMPORTANTE**: \n- NÃO use ```json\n- NÃO adicione texto antes ou depois\n- Retorne APENAS o objeto JSON\n- O objeto deve ser válido para parsing\n  }\n]\n```",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 2.1,
-      "position": [
-        3760,
-        496
-      ],
-      "id": "b99de27a-e380-429c-b41d-5e957184beaf",
-      "name": "AI Agent Gestor de Lead",
-      "retryOnFail": false,
-      "executeOnce": false,
-      "alwaysOutputData": false
-    },
-    {
-      "parameters": {
-        "operation": "get",
-        "tableId": "kanban_stages",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "funnel_id",
-              "keyValue": "={{ $('Organiza para Agente').item.json.agent.funnel_id }}"
-            },
-            {
-              "keyName": "created_by_user_id",
-              "keyValue": "={{ $('Organiza para Agente').item.json.instance.created_by_user_id }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        3200,
-        496
-      ],
-      "id": "7f85d23a-123f-4865-b51b-6d4df96225d5",
-      "name": "TAB KANBAN STAGE1",
-      "credentials": {
-        "supabaseApi": {
-          "id": "c3TNu8WqG6V2l999",
-          "name": "APP TICLIN GERAL"
-        }
-      }
-    },
-    {
-      "parameters": {},
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        5504,
-        464
-      ],
-      "id": "287bd8cc-47a4-463d-a032-4f8c5c09c075",
-      "name": "No Operation, do nothing2"
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "tableId": "leads",
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $json.lead.id }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "name",
-              "fieldValue": "={{ $fromAI('fieldValues0_Field_Value', `Nome completo do lead`, 'string') }}"
-            },
-            {
-              "fieldId": "email",
-              "fieldValue": "={{ $fromAI('fieldValues1_Field_Value', 'Email do lead', 'string') }}"
-            },
-            {
-              "fieldId": "company",
-              "fieldValue": "={{ $fromAI('fieldValues2_Field_Value', 'Nome da empresa do lead', 'string') }}"
-            },
-            {
-              "fieldId": "document_id",
-              "fieldValue": "={{ $fromAI('fieldValues3_Field_Value', 'CPF ou CNPJ do lead', 'string') }}"
-            },
-            {
-              "fieldId": "address",
-              "fieldValue": "={{ $fromAI('fieldValues4_Field_Value', 'Endereço completo do lead', 'string') }}"
-            },
-            {
-              "fieldId": "neighborhood",
-              "fieldValue": "={{ $fromAI('fieldValues5_Field_Value', 'Bairro do lead', 'string') }}"
-            },
-            {
-              "fieldId": "city",
-              "fieldValue": "={{ $fromAI('fieldValues6_Field_Value', 'Cidade do lead', 'string') }}"
-            },
-            {
-              "fieldId": "state",
-              "fieldValue": "={{ $fromAI('fieldValues7_Field_Value', 'Estado do lead', 'string') }}"
-            },
-            {
-              "fieldId": "zip_code",
-              "fieldValue": "={{ $fromAI('fieldValues8_Field_Value', 'CEP do lead', 'string') }}"
-            },
-            {
-              "fieldId": "country",
-              "fieldValue": "={{ $fromAI('fieldValues9_Field_Value', 'País do lead', 'string') }}"
-            },
-            {
-              "fieldId": "notes",
-              "fieldValue": "={{ $fromAI('fieldValues10_Field_Value', 'Observações sobre o lead', 'string') }}"
-            },
-            {
-              "fieldId": "kanban_stage_id",
-              "fieldValue": "={{ $fromAI('fieldValues11_Field_Value', 'ID do estágio do funil para o lead', 'string') }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabaseTool",
-      "typeVersion": 1,
-      "position": [
-        3904,
-        704
-      ],
-      "id": "e680bd85-fba6-42a1-a7f1-1d86284b5f40",
-      "name": "Update a row in Supabase",
-      "credentials": {
-        "supabaseApi": {
-          "id": "c3TNu8WqG6V2l999",
-          "name": "APP TICLIN GERAL"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/ai_messaging_service",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"apiKey\": \"N8N_AI_AGENT_2025_bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1_SECURE\",\n  \"leadId\": \"{{ $('Organiza para Agente').item.json.lead.id }}\",\n  \"instanceId\": \"{{ $('Organiza para Agente').item.json.instance.supabaseId }}\",\n  \"createdByUserId\": \"{{ $('Organiza para Agente').item.json.instance.created_by_user_id }}\",\n  \"phone\": \"{{ $('Organiza para Agente').item.json.lead.phone }}\",\n  \"message\": \"{{ $('Split de Mensagem').item.json.output }}\",\n  \"mediaType\": \"text\",\n  \"agentId\": \"{{ $('Organiza para Agente').item.json.agent.id }}\"\n}",
-        "options": {
-          "timeout": 30000
-        }
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        2720,
-        608
-      ],
-      "id": "fe9333da-69df-4166-bd1e-a665451bae35",
-      "name": "Envia AI_MESSAGING",
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "nmn2TR2dHNO7Vq0u",
-          "name": "AI_AGENT_API_KEY SUPABASE"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// Pega todos os dados de entrada do node anterior (estágios do funil)\nconst inputData = $input.all();\n\n// Preserva o primeiro item de entrada para manter o \"pairing\" com nodes anteriores\nconst firstInputItem = inputData[0];\n\n// Remove duplicatas baseado no ID (caso existam)\nconst uniqueStages = [];\nconst seenIds = new Set();\n\nfor (const item of inputData) {\n  if (!seenIds.has(item.json.id)) {\n    seenIds.add(item.json.id);\n    uniqueStages.push(item.json);\n  }\n}\n\n// Ordena os estágios pela order_position (crescente)\nconst sortedStages = uniqueStages.sort((a, b) => a.order_position - b.order_position);\n\n// Cria array com as linhas formatadas\nconst stageLines = [];\n\nsortedStages.forEach((stage) => {\n  // Monta a linha com nomes descritivos\n  let stageLine = `Posição no Funil: ${stage.order_position} - Nome: ${stage.title}`;\n  \n  // Adiciona descrição se existir, senão deixa vazio\n  if (stage.ai_stage_description && stage.ai_stage_description.trim()) {\n    stageLine += ` - Motivo do lead estar: ${stage.ai_stage_description}`;\n  } else {\n    stageLine += ` - Motivo do lead estar: -`;\n  }\n  \n  // Adiciona informações de notificação\n  const notifyEnabled = stage.ai_notify_enabled ? \"True\" : \"False\";\n  stageLine += ` - Notificar: ${notifyEnabled}`;\n  \n  // Adiciona o telefone de notificação (se existir)\n  if (stage.notify_phone && stage.notify_phone.trim()) {\n    stageLine += ` - Telefone: ${stage.notify_phone}`;\n  } else {\n    stageLine += ` - Telefone: -`;\n  }\n  \n  // Adiciona o ID da etapa\n  stageLine += ` - ID: ${stage.id}`;\n  \n  stageLines.push(stageLine);\n});\n\n// Junta tudo com \\n\nconst finalString = stageLines.join('\\n');\n\n// Retorna apenas stages_formatted, mas mantém o contexto do primeiro item para pairing\nconst result = [{\n  json: {\n    stages_formatted: finalString\n  }\n}];\n\n// Mantém o contexto do primeiro item de entrada para que o N8N possa fazer o pairing correto\nif (firstInputItem) {\n  result[0].pairedItem = firstInputItem.pairedItem;\n}\n\nreturn result;"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        3392,
-        496
-      ],
-      "id": "50b678ae-2e33-49e5-9719-e668c3911070",
-      "name": "LIMPA DADOS KANBAN"
-    },
-    {
-      "parameters": {
-        "operation": "getAll",
-        "tableId": "clients-products"
-      },
-      "type": "n8n-nodes-base.supabaseTool",
-      "typeVersion": 1,
-      "position": [
-        1840,
-        720
-      ],
-      "id": "ed6ca2a8-9eab-42f6-8c75-ebbcaf71b6db",
-      "name": "Get many rows in Supabase",
-      "credentials": {
-        "supabaseApi": {
-          "id": "elD0HF4q2SBRy2aU",
-          "name": "Supa - CARLOS FARMS"
-        }
-      }
-    }
-  ],
-  "connections": {
-    "OpenAI": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Parser  Chain",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parser  Chain": {
-      "main": [
-        [
-          {
-            "node": "Split de Mensagem",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split de Mensagem": {
-      "main": [
-        [
-          {
-            "node": "Envia em fila",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "1 segundo": {
-      "main": [
-        [
-          {
-            "node": "Envia em fila",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenAI Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent Conversa",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OutputParser": {
-      "ai_outputParser": [
-        [
-          {
-            "node": "Parser  Chain",
-            "type": "ai_outputParser",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Envia em fila": {
-      "main": [
-        [
-          {
-            "node": "TAB KANBAN STAGE1",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Envia AI_MESSAGING",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenAI Chat Model1": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent Gestor de Lead",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "1 segundo2": {
-      "main": [
-        [
-          {
-            "node": "Envia em fila1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Envia em fila1": {
-      "main": [
-        [
-          {
-            "node": "No Operation, do nothing2",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Envia Supabase1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Envia Supabase1": {
-      "main": [
-        [
-          {
-            "node": "1 segundo2",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenAI Chat Model2": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent Transbordo",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Organiza para atualizar": {
-      "main": [
-        [
-          {
-            "node": "AI Agent Gestor de Lead",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Organiza para Agente": {
-      "main": [
-        [
-          {
-            "node": "AI Agent Conversa",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Organiza Aviso": {
-      "main": [
-        [
-          {
-            "node": "Precisa Avisar?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Precisa Avisar?": {
-      "main": [
-        [
-          {
-            "node": "AI Agent Transbordo",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "No Operation, do nothing",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Agent Transbordo": {
-      "main": [
-        [
-          {
-            "node": "Envia em fila1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Agent Conversa": {
-      "main": [
-        [
-          {
-            "node": "Parser  Chain",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "AI Agent Gestor de Lead": {
-      "main": [
-        [
-          {
-            "node": "Organiza Aviso",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "TAB KANBAN STAGE1": {
-      "main": [
-        [
-          {
-            "node": "LIMPA DADOS KANBAN",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Update a row in Supabase": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent Gestor de Lead",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Envia AI_MESSAGING": {
-      "main": [
-        [
-          {
-            "node": "1 segundo",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "LIMPA DADOS KANBAN": {
-      "main": [
-        [
-          {
-            "node": "Organiza para atualizar",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get many rows in Supabase": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent Conversa",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    }
+[
+  {
+    "resource_type": "TABLE",
+    "schemaname": "public",
+    "resource_name": "broadcast_campaigns",
+    "owner": "postgres"
   },
-  "pinData": {},
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "cb27e590cfea67be2437604762d4b2d1739feefa94866ddc22960ec59cca891f"
+  {
+    "resource_type": "TABLE",
+    "schemaname": "public",
+    "resource_name": "broadcast_history",
+    "owner": "postgres"
+  },
+  {
+    "resource_type": "TABLE",
+    "schemaname": "public",
+    "resource_name": "broadcast_queue",
+    "owner": "postgres"
+  },
+  {
+    "resource_type": "TABLE",
+    "schemaname": "public",
+    "resource_name": "broadcast_rate_limits",
+    "owner": "postgres"
   }
-}
+]
+
+
+COMANDO 2 SEM RETORNO
+
+[
+  {
+    "resource_type": "FUNCTION",
+    "schema": "pg_catalog",
+    "resource_name": "broadcast",
+    "arguments": "inet",
+    "definition": "CREATE OR REPLACE FUNCTION pg_catalog.broadcast(inet)\n RETURNS inet\n LANGUAGE internal\n IMMUTABLE PARALLEL SAFE STRICT\nAS $function$network_broadcast$function$\n"
+  },
+  {
+    "resource_type": "FUNCTION",
+    "schema": "realtime",
+    "resource_name": "broadcast_changes",
+    "arguments": "topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text",
+    "definition": "CREATE OR REPLACE FUNCTION realtime.broadcast_changes(topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text DEFAULT 'ROW'::text)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    -- Declare a variable to hold the JSONB representation of the row\n    row_data jsonb := '{}'::jsonb;\nBEGIN\n    IF level = 'STATEMENT' THEN\n        RAISE EXCEPTION 'function can only be triggered for each row, not for each statement';\n    END IF;\n    -- Check the operation type and handle accordingly\n    IF operation = 'INSERT' OR operation = 'UPDATE' OR operation = 'DELETE' THEN\n        row_data := jsonb_build_object('old_record', OLD, 'record', NEW, 'operation', operation, 'table', table_name, 'schema', table_schema);\n        PERFORM realtime.send (row_data, event_name, topic_name);\n    ELSE\n        RAISE EXCEPTION 'Unexpected operation type: %', operation;\n    END IF;\nEXCEPTION\n    WHEN OTHERS THEN\n        RAISE EXCEPTION 'Failed to process the row: %', SQLERRM;\nEND;\n\n$function$\n"
+  },
+  {
+    "resource_type": "FUNCTION",
+    "schema": "public",
+    "resource_name": "create_broadcast_queue",
+    "arguments": "p_campaign_id uuid, p_user_id uuid",
+    "definition": "CREATE OR REPLACE FUNCTION public.create_broadcast_queue(p_campaign_id uuid, p_user_id uuid)\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_campaign RECORD;\r\n  v_recipient_count INTEGER := 0;\r\n  v_whatsapp_instance_id UUID;\r\nBEGIN\r\n  SELECT * INTO v_campaign\r\n  FROM public.broadcast_campaigns\r\n  WHERE id = p_campaign_id \r\n    AND created_by_user_id = p_user_id;\r\n    \r\n  IF v_campaign IS NULL THEN\r\n    RAISE EXCEPTION 'Campaign not found or access denied';\r\n  END IF;\r\n  \r\n  SELECT id INTO v_whatsapp_instance_id\r\n  FROM public.whatsapp_instances\r\n  WHERE created_by_user_id = p_user_id\r\n    AND connection_status = 'connected'\r\n  ORDER BY created_at DESC\r\n  LIMIT 1;\r\n  \r\n  IF v_whatsapp_instance_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active WhatsApp instance found';\r\n  END IF;\r\n  \r\n  -- Inserir na fila baseado no target_type\r\n  IF v_campaign.target_type = 'all' THEN\r\n    INSERT INTO public.broadcast_queue (\r\n      campaign_id,\r\n      whatsapp_instance_id,\r\n      lead_id,\r\n      phone,\r\n      contact_name,\r\n      message_text,\r\n      media_type,\r\n      media_url,\r\n      scheduled_for\r\n    )\r\n    SELECT \r\n      p_campaign_id,\r\n      v_whatsapp_instance_id,\r\n      l.id,\r\n      l.phone,\r\n      l.name,\r\n      v_campaign.message_text,\r\n      v_campaign.media_type,\r\n      v_campaign.media_url,\r\n      COALESCE(v_campaign.scheduled_at, NOW())\r\n    FROM public.leads l\r\n    WHERE l.created_by_user_id = p_user_id\r\n      AND l.phone IS NOT NULL \r\n      AND l.phone != '';\r\n      \r\n    GET DIAGNOSTICS v_recipient_count = ROW_COUNT;\r\n  END IF;\r\n  \r\n  UPDATE public.broadcast_campaigns\r\n  SET \r\n    status = 'running',\r\n    total_recipients = v_recipient_count,\r\n    updated_at = NOW()\r\n  WHERE id = p_campaign_id;\r\n  \r\n  RETURN v_recipient_count;\r\nEND;\r\n$function$\n"
+  },
+  {
+    "resource_type": "FUNCTION",
+    "schema": "public",
+    "resource_name": "get_user_broadcast_campaigns",
+    "arguments": "p_user_id uuid",
+    "definition": "CREATE OR REPLACE FUNCTION public.get_user_broadcast_campaigns(p_user_id uuid)\n RETURNS TABLE(id uuid, name text, message_text text, media_type text, media_url text, target_type text, target_config jsonb, schedule_type text, scheduled_at timestamp with time zone, status text, total_recipients integer, sent_count integer, failed_count integer, rate_limit_per_minute integer, business_hours_only boolean, timezone text, created_at timestamp with time zone, updated_at timestamp with time zone)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nBEGIN\n  RETURN QUERY\n  SELECT \n    bc.id,\n    bc.name,\n    bc.message_text,\n    bc.media_type,\n    bc.media_url,\n    bc.target_type,\n    bc.target_config,\n    bc.schedule_type,\n    bc.scheduled_at,\n    bc.status,\n    bc.total_recipients,\n    bc.sent_count,\n    bc.failed_count,\n    bc.rate_limit_per_minute,\n    bc.business_hours_only,\n    bc.timezone,\n    bc.created_at,\n    bc.updated_at\n  FROM public.broadcast_campaigns bc\n  WHERE bc.created_by_user_id = p_user_id\n  ORDER BY bc.created_at DESC;\nEND;\n$function$\n"
+  }
+]
+
+
+[
+  {
+    "resource_type": "TRIGGER",
+    "trigger_schema": "public",
+    "resource_name": "update_broadcast_campaigns_updated_at",
+    "table_name": "broadcast_campaigns",
+    "action_statement": "EXECUTE FUNCTION update_updated_at_column()"
+  },
+  {
+    "resource_type": "TRIGGER",
+    "trigger_schema": "public",
+    "resource_name": "update_broadcast_queue_updated_at",
+    "table_name": "broadcast_queue",
+    "action_statement": "EXECUTE FUNCTION update_updated_at_column()"
+  }
+]
+
+
+
+[
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_campaigns",
+    "resource_name": "Service role can access all campaigns",
+    "permissive": "PERMISSIVE",
+    "roles": "{service_role}",
+    "cmd": "ALL",
+    "qual": "true",
+    "with_check": "true"
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_campaigns",
+    "resource_name": "Users can manage their own campaigns",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "ALL",
+    "qual": "(created_by_user_id = auth.uid())",
+    "with_check": "(created_by_user_id = auth.uid())"
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_history",
+    "resource_name": "Service role can manage all history",
+    "permissive": "PERMISSIVE",
+    "roles": "{service_role}",
+    "cmd": "ALL",
+    "qual": "true",
+    "with_check": "true"
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_history",
+    "resource_name": "Users can view their campaign history",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(campaign_id IN ( SELECT broadcast_campaigns.id\n   FROM broadcast_campaigns\n  WHERE (broadcast_campaigns.created_by_user_id = auth.uid())))",
+    "with_check": null
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_queue",
+    "resource_name": "Service role can manage all queue",
+    "permissive": "PERMISSIVE",
+    "roles": "{service_role}",
+    "cmd": "ALL",
+    "qual": "true",
+    "with_check": "true"
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_queue",
+    "resource_name": "Users can view their campaign queue",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(campaign_id IN ( SELECT broadcast_campaigns.id\n   FROM broadcast_campaigns\n  WHERE (broadcast_campaigns.created_by_user_id = auth.uid())))",
+    "with_check": null
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_rate_limits",
+    "resource_name": "Service role can manage all rate limits",
+    "permissive": "PERMISSIVE",
+    "roles": "{service_role}",
+    "cmd": "ALL",
+    "qual": "true",
+    "with_check": "true"
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_rate_limits",
+    "resource_name": "Users can manage their own rate limits",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "ALL",
+    "qual": "(user_id = auth.uid())",
+    "with_check": "(user_id = auth.uid())"
+  }
+]
+
+
+
+[
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_campaigns",
+    "resource_name": "Service role can access all campaigns",
+    "permissive": "PERMISSIVE",
+    "roles": "{service_role}",
+    "cmd": "ALL",
+    "qual": "true",
+    "with_check": "true"
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_campaigns",
+    "resource_name": "Users can manage their own campaigns",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "ALL",
+    "qual": "(created_by_user_id = auth.uid())",
+    "with_check": "(created_by_user_id = auth.uid())"
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_history",
+    "resource_name": "Service role can manage all history",
+    "permissive": "PERMISSIVE",
+    "roles": "{service_role}",
+    "cmd": "ALL",
+    "qual": "true",
+    "with_check": "true"
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_history",
+    "resource_name": "Users can view their campaign history",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(campaign_id IN ( SELECT broadcast_campaigns.id\n   FROM broadcast_campaigns\n  WHERE (broadcast_campaigns.created_by_user_id = auth.uid())))",
+    "with_check": null
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_queue",
+    "resource_name": "Service role can manage all queue",
+    "permissive": "PERMISSIVE",
+    "roles": "{service_role}",
+    "cmd": "ALL",
+    "qual": "true",
+    "with_check": "true"
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_queue",
+    "resource_name": "Users can view their campaign queue",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "SELECT",
+    "qual": "(campaign_id IN ( SELECT broadcast_campaigns.id\n   FROM broadcast_campaigns\n  WHERE (broadcast_campaigns.created_by_user_id = auth.uid())))",
+    "with_check": null
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_rate_limits",
+    "resource_name": "Service role can manage all rate limits",
+    "permissive": "PERMISSIVE",
+    "roles": "{service_role}",
+    "cmd": "ALL",
+    "qual": "true",
+    "with_check": "true"
+  },
+  {
+    "resource_type": "POLICY",
+    "schemaname": "public",
+    "tablename": "broadcast_rate_limits",
+    "resource_name": "Users can manage their own rate limits",
+    "permissive": "PERMISSIVE",
+    "roles": "{public}",
+    "cmd": "ALL",
+    "qual": "(user_id = auth.uid())",
+    "with_check": "(user_id = auth.uid())"
+  }
+]
+
+
+[
+  {
+    "resource_type": "FOREIGN_KEY",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "resource_name": "broadcast_campaigns_created_by_user_id_fkey",
+    "column_name": "created_by_user_id",
+    "foreign_table_name": "profiles",
+    "foreign_column_name": "id"
+  },
+  {
+    "resource_type": "FOREIGN_KEY",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "resource_name": "broadcast_history_campaign_id_fkey",
+    "column_name": "campaign_id",
+    "foreign_table_name": "broadcast_campaigns",
+    "foreign_column_name": "id"
+  },
+  {
+    "resource_type": "FOREIGN_KEY",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "resource_name": "broadcast_history_lead_id_fkey",
+    "column_name": "lead_id",
+    "foreign_table_name": "leads",
+    "foreign_column_name": "id"
+  },
+  {
+    "resource_type": "FOREIGN_KEY",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "resource_name": "broadcast_history_queue_id_fkey",
+    "column_name": "queue_id",
+    "foreign_table_name": "broadcast_queue",
+    "foreign_column_name": "id"
+  },
+  {
+    "resource_type": "FOREIGN_KEY",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "resource_name": "broadcast_queue_campaign_id_fkey",
+    "column_name": "campaign_id",
+    "foreign_table_name": "broadcast_campaigns",
+    "foreign_column_name": "id"
+  },
+  {
+    "resource_type": "FOREIGN_KEY",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "resource_name": "broadcast_queue_whatsapp_instance_id_fkey",
+    "column_name": "whatsapp_instance_id",
+    "foreign_table_name": "whatsapp_instances",
+    "foreign_column_name": "id"
+  },
+  {
+    "resource_type": "FOREIGN_KEY",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "resource_name": "broadcast_queue_lead_id_fkey",
+    "column_name": "lead_id",
+    "foreign_table_name": "leads",
+    "foreign_column_name": "id"
+  }
+]
+
+
+[
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "business_hours_only",
+    "data_type": "boolean"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "created_by_user_id",
+    "data_type": "uuid"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "failed_count",
+    "data_type": "integer"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "media_type",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "media_url",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "message_text",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "name",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "rate_limit_per_minute",
+    "data_type": "integer"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "schedule_type",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "scheduled_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "sent_count",
+    "data_type": "integer"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "status",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "target_config",
+    "data_type": "jsonb"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "target_type",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "timezone",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "total_recipients",
+    "data_type": "integer"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_campaigns",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "column_name": "campaign_id",
+    "data_type": "uuid"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "column_name": "error_message",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "column_name": "external_message_id",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "column_name": "lead_id",
+    "data_type": "uuid"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "column_name": "phone",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "column_name": "queue_id",
+    "data_type": "uuid"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "column_name": "sent_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_history",
+    "column_name": "status",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "campaign_id",
+    "data_type": "uuid"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "contact_name",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "external_message_id",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "last_error",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "lead_id",
+    "data_type": "uuid"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "max_retries",
+    "data_type": "integer"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "media_type",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "media_url",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "message_text",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "phone",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "priority",
+    "data_type": "integer"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "retry_count",
+    "data_type": "integer"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "scheduled_for",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "sent_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "status",
+    "data_type": "text"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_queue",
+    "column_name": "whatsapp_instance_id",
+    "data_type": "uuid"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_rate_limits",
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_rate_limits",
+    "column_name": "current_date_value",
+    "data_type": "date"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_rate_limits",
+    "column_name": "current_minute",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_rate_limits",
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_rate_limits",
+    "column_name": "messages_sent_current_minute",
+    "data_type": "integer"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_rate_limits",
+    "column_name": "total_messages_today",
+    "data_type": "integer"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_rate_limits",
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "resource_type": "COLUMN_REFERENCE",
+    "table_schema": "public",
+    "table_name": "broadcast_rate_limits",
+    "column_name": "user_id",
+    "data_type": "uuid"
+  }
+]
+
+
+
+
+[
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "broadcast_campaigns",
+    "referenced_object": "2200",
+    "deptype": "n"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "pg_toast.pg_toast_573997",
+    "referenced_object": "broadcast_campaigns",
+    "deptype": "i"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "broadcast_campaigns_pkey",
+    "referenced_object": "574019",
+    "deptype": "i"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "broadcast_queue",
+    "referenced_object": "2200",
+    "deptype": "n"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "pg_toast.pg_toast_574020",
+    "referenced_object": "broadcast_queue",
+    "deptype": "i"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "broadcast_queue_pkey",
+    "referenced_object": "574036",
+    "deptype": "i"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "broadcast_history",
+    "referenced_object": "2200",
+    "deptype": "n"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "pg_toast.pg_toast_574052",
+    "referenced_object": "broadcast_history",
+    "deptype": "i"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "broadcast_history_pkey",
+    "referenced_object": "574062",
+    "deptype": "i"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "broadcast_rate_limits",
+    "referenced_object": "2200",
+    "deptype": "n"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "broadcast_rate_limits_pkey",
+    "referenced_object": "574089",
+    "deptype": "i"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "idx_broadcast_rate_limits_unique",
+    "referenced_object": "broadcast_rate_limits",
+    "deptype": "a"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "idx_broadcast_campaigns_user",
+    "referenced_object": "broadcast_campaigns",
+    "deptype": "a"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "idx_broadcast_campaigns_status",
+    "referenced_object": "broadcast_campaigns",
+    "deptype": "a"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "idx_broadcast_queue_campaign",
+    "referenced_object": "broadcast_queue",
+    "deptype": "a"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "idx_broadcast_queue_status",
+    "referenced_object": "broadcast_queue",
+    "deptype": "a"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "idx_broadcast_queue_scheduled",
+    "referenced_object": "broadcast_queue",
+    "deptype": "a"
+  },
+  {
+    "resource_type": "DEPENDENCY",
+    "dependent_object": "idx_broadcast_history_campaign",
+    "referenced_object": "broadcast_history",
+    "deptype": "a"
+  }
+]
+
