@@ -50,13 +50,17 @@
   --sidebar-border: 0 0% 100% / 0.2;
   --sidebar-ring: 222.2 84% 4.9%;
 
-  /* Flow Builder Glassmorphism Variables */
-  --flow-glass-bg: rgba(255, 255, 255, 0.4);
-  --flow-glass-border: rgba(255, 255, 255, 0.18);
-  --flow-glass-shadow: 0 8px 32px 0 rgba(139, 92, 246, 0.15);
+  /* Flow Builder Glassmorphism Variables - Grayscale Liquid */
+  --flow-glass-bg: rgba(40, 40, 40, 0.65);
+  --flow-glass-border: rgba(255, 255, 255, 0.08);
+  --flow-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
   --flow-gradient-primary: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(220 100% 66%) 100%);
-  --flow-gradient-canvas: linear-gradient(135deg, hsl(250 100% 97%) 0%, hsl(220 70% 95%) 100%);
+  --flow-gradient-canvas: linear-gradient(135deg, hsl(0 0% 6%) 0%, hsl(0 0% 10%) 25%, hsl(0 0% 15%) 50%, hsl(0 0% 12%) 75%, hsl(0 0% 8%) 100%);
+  --flow-gradient-node: linear-gradient(135deg, rgba(50, 50, 50, 0.95) 0%, rgba(30, 30, 30, 0.95) 100%);
   --flow-accent-glow: 0 0 20px rgba(139, 92, 246, 0.3);
+  --neon-green: 149 193 31;
+  --neon-lemon: 222 220 0;
+  --neon-glow: 0 0 15px rgba(149, 193, 31, 0.5);
   }
 
   .dark {
@@ -132,7 +136,22 @@ body {
     background: rgba(0, 0, 0, 0.1);
   }
   
-  /* Flow Builder Glassmorphism */
+  /* Flow Builder Glassmorphism - Grayscale */
+  .flow-glass-gray {
+    background: var(--flow-glass-bg);
+    backdrop-filter: blur(20px) saturate(120%);
+    -webkit-backdrop-filter: blur(20px) saturate(120%);
+    border: 1px solid var(--flow-glass-border);
+    box-shadow: var(--flow-glass-shadow);
+  }
+  
+  /* Safari/Windows fallback */
+  @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .flow-glass-gray {
+      background: rgba(40, 40, 40, 0.95);
+    }
+  }
+  
   .flow-glass {
     background: var(--flow-glass-bg);
     backdrop-filter: blur(12px) saturate(180%);
@@ -142,10 +161,10 @@ body {
   }
   
   .flow-glass-dark {
-    background: rgba(139, 92, 246, 0.1);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid rgba(139, 92, 246, 0.2);
+    background: rgba(60, 60, 60, 0.5);
+    backdrop-filter: blur(16px) saturate(120%);
+    -webkit-backdrop-filter: blur(16px) saturate(120%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
   
   .flow-gradient-primary {
@@ -168,20 +187,72 @@ body {
     transform: translateY(-2px);
   }
   
-  .flow-canvas-bg {
+  /* Liquid Gradient Background */
+  .flow-liquid-bg {
     background: var(--flow-gradient-canvas);
+    background-size: 300% 300%;
+    animation: flow-liquid 12s ease-in-out infinite;
     position: relative;
   }
   
-  .flow-canvas-bg::before {
+  .flow-liquid-bg::before {
     content: '';
     position: absolute;
     inset: 0;
     background: 
-      radial-gradient(circle at 20% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
-    animation: flow-pulse 8s ease-in-out infinite;
+      radial-gradient(circle at 20% 30%, rgba(60, 60, 60, 0.4) 0%, transparent 60%),
+      radial-gradient(circle at 80% 70%, rgba(80, 80, 80, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(40, 40, 40, 0.2) 0%, transparent 70%);
+    animation: flow-liquid-blobs 15s ease-in-out infinite alternate;
     pointer-events: none;
+  }
+  
+  /* Neon Accents */
+  .neon-green-accent {
+    color: rgb(var(--neon-green));
+    text-shadow: 0 0 8px rgba(149, 193, 31, 0.6);
+  }
+  
+  .neon-lemon-accent {
+    color: rgb(var(--neon-lemon));
+    text-shadow: 0 0 8px rgba(222, 220, 0, 0.6);
+  }
+  
+  .neon-border-glow {
+    border-color: rgb(var(--neon-green));
+    box-shadow: 0 0 15px rgba(149, 193, 31, 0.4), inset 0 0 8px rgba(149, 193, 31, 0.2);
+  }
+  
+  .neon-hover-glow {
+    transition: all 0.3s ease;
+  }
+  
+  .neon-hover-glow:hover {
+    box-shadow: 
+      0 0 20px rgba(149, 193, 31, 0.5),
+      0 8px 32px rgba(0, 0, 0, 0.4);
+    border-color: rgb(var(--neon-green));
+  }
+  
+  @keyframes flow-liquid {
+    0%, 100% { background-position: 0% 50%; }
+    33% { background-position: 100% 30%; }
+    66% { background-position: 50% 100%; }
+  }
+  
+  @keyframes flow-liquid-blobs {
+    0% { 
+      opacity: 0.7;
+      transform: scale(1) rotate(0deg);
+    }
+    50% { 
+      opacity: 0.9;
+      transform: scale(1.1) rotate(180deg);
+    }
+    100% { 
+      opacity: 0.7;
+      transform: scale(1) rotate(360deg);
+    }
   }
   
   @keyframes flow-pulse {

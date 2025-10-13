@@ -147,6 +147,16 @@ export default {
                 'flow-glow': {
                     '0%, 100%': { boxShadow: '0 0 20px rgba(139, 92, 246, 0.3)' },
                     '50%': { boxShadow: '0 0 30px rgba(139, 92, 246, 0.5)' }
+                },
+                'flow-liquid': {
+                    '0%, 100%': { backgroundPosition: '0% 50%' },
+                    '33%': { backgroundPosition: '100% 30%' },
+                    '66%': { backgroundPosition: '50% 100%' }
+                },
+                'flow-liquid-blobs': {
+                    '0%': { opacity: '0.7', transform: 'scale(1) rotate(0deg)' },
+                    '50%': { opacity: '0.9', transform: 'scale(1.1) rotate(180deg)' },
+                    '100%': { opacity: '0.7', transform: 'scale(1) rotate(360deg)' }
                 }
 			},
 			animation: {
@@ -156,7 +166,9 @@ export default {
                 'scale-in': 'scale-in 0.3s ease-out',
                 'flow-pulse': 'flow-pulse 8s ease-in-out infinite',
                 'flow-float': 'flow-float 3s ease-in-out infinite',
-                'flow-glow': 'flow-glow 2s ease-in-out infinite'
+                'flow-glow': 'flow-glow 2s ease-in-out infinite',
+                'flow-liquid': 'flow-liquid 12s ease-in-out infinite',
+                'flow-liquid-blobs': 'flow-liquid-blobs 15s ease-in-out infinite alternate'
 			},
 			fontFamily: {
 				inter: ['Inter', 'sans-serif'],
@@ -170,8 +182,8 @@ export default {
 				'glass-dark': "linear-gradient(135deg, rgba(30,30,30,0.76) 80%, rgba(18,18,18,0.9) 100%)",
 				'pulse-gradient': 'linear-gradient(180deg, rgba(222, 220, 0, 0.8) 0%, rgba(149, 193, 31, 0) 100%)',
 				'flow-gradient-primary': 'linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(220 100% 66%) 100%)',
-				'flow-gradient-canvas': 'linear-gradient(135deg, hsl(250 100% 97%) 0%, hsl(220 70% 95%) 100%)',
-				'flow-gradient-node': 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 250, 252, 0.9) 100%)',
+				'flow-gradient-canvas': 'linear-gradient(135deg, hsl(0 0% 6%) 0%, hsl(0 0% 10%) 25%, hsl(0 0% 15%) 50%, hsl(0 0% 12%) 75%, hsl(0 0% 8%) 100%)',
+				'flow-gradient-node': 'linear-gradient(135deg, rgba(50, 50, 50, 0.95) 0%, rgba(30, 30, 30, 0.95) 100%)',
 			},
 		}
 	},
