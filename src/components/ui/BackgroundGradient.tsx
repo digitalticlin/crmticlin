@@ -8,57 +8,37 @@ interface BackgroundGradientProps {
 
 export function BackgroundGradient({ className, children }: BackgroundGradientProps) {
   return (
-    <div className={cn("relative overflow-hidden", className)}>
-      {/* Novo gradiente baseado no RETORNO - Sistema de 5 camadas */}
+    <div className={cn("relative overflow-hidden flow-liquid-bg", className)}>
+      {/* Gradiente líquido grayscale com animação - compatível Safari/Windows */}
       <div 
         className="absolute inset-0"
         style={{
           background: `
-            radial-gradient(ellipse at 20% 50%, rgba(222, 220, 0, 0.4) 0%, transparent 50%),
-            radial-gradient(ellipse at 80% 30%, rgba(149, 193, 31, 0.3) 0%, transparent 50%),
-            radial-gradient(ellipse at 40% 80%, rgba(222, 220, 0, 0.2) 0%, transparent 60%),
             linear-gradient(135deg, 
-              rgba(222, 220, 0, 0.1) 0%, 
-              rgba(255, 238, 102, 0.15) 25%, 
-              rgba(149, 193, 31, 0.2) 50%, 
-              rgba(123, 160, 24, 0.15) 75%, 
-              rgba(222, 220, 0, 0.1) 100%
-            ),
-            linear-gradient(45deg, 
-              rgba(45, 56, 8, 0.05) 0%, 
-              rgba(98, 128, 18, 0.1) 50%, 
-              rgba(45, 56, 8, 0.05) 100%
+              hsl(0, 0%, 6%) 0%,
+              hsl(0, 0%, 10%) 25%,
+              hsl(0, 0%, 15%) 50%,
+              hsl(0, 0%, 12%) 75%,
+              hsl(0, 0%, 8%) 100%
             )
           `,
-          backgroundPosition: 'center 30%',
-          backgroundColor: '#fffef0' // pulse-50 fallback
+          backgroundSize: '300% 300%',
+          animation: 'flow-liquid 12s ease-in-out infinite'
         }}
       />
       
-      {/* Elementos de profundidade com gradiente pulse */}
-      <div className="absolute inset-0 overflow-hidden">
-        {/* Elemento blur principal com gradiente pulse */}
-        <div className="absolute -top-[10%] -right-[5%] w-1/2 h-[70%] opacity-20 blur-3xl rounded-full"
-             style={{
-               background: 'linear-gradient(180deg, rgba(222, 220, 0, 0.8) 0%, rgba(149, 193, 31, 0) 100%)'
-             }}></div>
-        
-        {/* Elemento parallax de fundo */}
-        <div className="hidden lg:block absolute bottom-0 left-1/4 w-64 h-64 rounded-full blur-3xl -z-10"
-             style={{
-               backgroundColor: 'rgba(255, 250, 204, 0.3)' // pulse-100/30
-             }}></div>
-        
-        {/* Elementos flutuantes adicionais */}
-        <div className="absolute top-1/4 left-10 w-48 h-48 rounded-full blur-2xl animate-pulse"
-             style={{
-               backgroundColor: 'rgba(222, 220, 0, 0.1)'
-             }}></div>
-        <div className="absolute bottom-1/3 right-1/4 w-36 h-36 rounded-full blur-xl animate-pulse delay-700"
-             style={{
-               backgroundColor: 'rgba(149, 193, 31, 0.15)'
-             }}></div>
-      </div>
+      {/* Elementos "blobs" líquidos grayscale com animação */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none"
+           style={{
+             background: `
+               radial-gradient(circle at 20% 30%, rgba(60, 60, 60, 0.4) 0%, transparent 60%),
+               radial-gradient(circle at 80% 70%, rgba(80, 80, 80, 0.3) 0%, transparent 50%),
+               radial-gradient(circle at 50% 50%, rgba(40, 40, 40, 0.2) 0%, transparent 70%)
+             `,
+             animation: 'flow-liquid-blobs 15s ease-in-out infinite alternate',
+             opacity: 0.7
+           }}
+      />
       
       {/* Conteúdo */}
       {children && (
