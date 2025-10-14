@@ -49,7 +49,7 @@ export default function Dashboard() {
       <DashboardHeader />
 
       {/* Seção de Performance com layout mobile otimizado */}
-      <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-4 sm:p-6 lg:p-8 shadow-md mb-6">
+      <div className="rounded-2xl bg-white border border-gray-200 p-4 sm:p-6 lg:p-8 shadow-md mb-6">
         <div className="flex flex-col gap-4">
           {/* Título e descrição */}
           <div className="flex-1">
