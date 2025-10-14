@@ -21,21 +21,6 @@ export function BackgroundGradient({ className, children }: BackgroundGradientPr
         animation: 'flow-liquid 12s ease-in-out infinite'
       }}
     >
-      {/* Elementos "blobs" líquidos grayscale médio com animação */}
-      <div 
-        className="absolute inset-0 overflow-hidden pointer-events-none"
-        style={{
-          background: `
-            radial-gradient(circle at 20% 30%, rgba(100, 100, 100, 0.3) 0%, transparent 60%),
-            radial-gradient(circle at 80% 70%, rgba(120, 120, 120, 0.25) 0%, transparent 50%),
-            radial-gradient(circle at 50% 50%, rgba(80, 80, 80, 0.2) 0%, transparent 70%)
-          `,
-          animation: 'flow-liquid-blobs 15s ease-in-out infinite alternate',
-          opacity: 0.6,
-          transform: 'scale(1)',
-          willChange: 'transform, opacity'
-        }}
-      />
       
       {/* Conteúdo */}
       {children && (
