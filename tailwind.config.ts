@@ -182,8 +182,8 @@ export default {
 				'glass-dark': "linear-gradient(135deg, rgba(30,30,30,0.76) 80%, rgba(18,18,18,0.9) 100%)",
 				'pulse-gradient': 'linear-gradient(180deg, rgba(222, 220, 0, 0.8) 0%, rgba(149, 193, 31, 0) 100%)',
 				'flow-gradient-primary': 'linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(220 100% 66%) 100%)',
-				'flow-gradient-canvas': 'linear-gradient(135deg, hsl(0 0% 6%) 0%, hsl(0 0% 10%) 25%, hsl(0 0% 15%) 50%, hsl(0 0% 12%) 75%, hsl(0 0% 8%) 100%)',
-				'flow-gradient-node': 'linear-gradient(135deg, rgba(50, 50, 50, 0.95) 0%, rgba(30, 30, 30, 0.95) 100%)',
+				'flow-gradient-canvas': 'linear-gradient(135deg, hsl(0 0% 20%) 0%, hsl(0 0% 25%) 25%, hsl(0 0% 35%) 50%, hsl(0 0% 30%) 75%, hsl(0 0% 22%) 100%)',
+				'flow-gradient-node': 'linear-gradient(135deg, rgba(90, 90, 90, 0.95) 0%, rgba(70, 70, 70, 0.95) 100%)',
 			},
 		}
 	},

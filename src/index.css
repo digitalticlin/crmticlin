@@ -50,13 +50,13 @@
   --sidebar-border: 0 0% 100% / 0.2;
   --sidebar-ring: 222.2 84% 4.9%;
 
-  /* Flow Builder Glassmorphism Variables - Grayscale Liquid */
-  --flow-glass-bg: rgba(40, 40, 40, 0.65);
-  --flow-glass-border: rgba(255, 255, 255, 0.08);
-  --flow-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
+  /* Flow Builder Glassmorphism Variables - Grayscale Liquid Médio (Opção B) */
+  --flow-glass-bg: rgba(80, 80, 80, 0.5);
+  --flow-glass-border: rgba(255, 255, 255, 0.12);
+  --flow-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
   --flow-gradient-primary: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(220 100% 66%) 100%);
-  --flow-gradient-canvas: linear-gradient(135deg, hsl(0 0% 6%) 0%, hsl(0 0% 10%) 25%, hsl(0 0% 15%) 50%, hsl(0 0% 12%) 75%, hsl(0 0% 8%) 100%);
-  --flow-gradient-node: linear-gradient(135deg, rgba(50, 50, 50, 0.95) 0%, rgba(30, 30, 30, 0.95) 100%);
+  --flow-gradient-canvas: linear-gradient(135deg, hsl(0 0% 20%) 0%, hsl(0 0% 25%) 25%, hsl(0 0% 35%) 50%, hsl(0 0% 30%) 75%, hsl(0 0% 22%) 100%);
+  --flow-gradient-node: linear-gradient(135deg, rgba(90, 90, 90, 0.95) 0%, rgba(70, 70, 70, 0.95) 100%);
   --flow-accent-glow: 0 0 20px rgba(139, 92, 246, 0.3);
   --neon-green: 149 193 31;
   --neon-lemon: 222 220 0;
@@ -148,7 +148,7 @@ body {
   /* Safari/Windows fallback */
   @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
     .flow-glass-gray {
-      background: rgba(40, 40, 40, 0.95);
+      background: rgba(80, 80, 80, 0.92);
     }
   }
   
