@@ -139,6 +139,11 @@ export function convertReactFlowToStructured(
           regra_critica: node.data.regra_critica || getRegraCritica(node.data.type),
           importante: node.data.importante || getImportante(node.data.type),
 
+          // 🆕 FALLBACK (opcional - apenas blocos que aguardam resposta)
+          ...(node.data.fallback && {
+            fallback: node.data.fallback
+          }),
+
           // Dados extras do bloco
           ...(node.data.block_data && Object.keys(node.data.block_data).length > 0 && {
             dados_extras: (() => {
@@ -582,6 +587,8 @@ export function convertStructuredToReactFlow(
             is_required: variation.controle?.campo_obrigatorio || variation.configuracoes?.campo_obrigatorio || false,
             timeout_seconds: variation.controle?.timeout_segundos || variation.configuracoes?.timeout_segundos || null
           },
+          // 🆕 FALLBACK (restaurar se existir)
+          fallback: variation.instrucoes.fallback || undefined,
           designStyle: 'glass'
         };
 

@@ -18,14 +18,19 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, MessageSquare, FileText, Send, GitBranch, CheckCircle, Phone, GraduationCap, Search, RotateCcw, UserCog, Target, Play, Link as LinkIcon, Image, MousePointer2, Hand, MessageCircleQuestion, Crown, RefreshCw, Calendar, CalendarClock, Images, Globe, Package, Wand2 } from "lucide-react";
+import { ArrowLeft, MessageSquare, FileText, Send, GitBranch, CheckCircle, Phone, GraduationCap, Search, RotateCcw, UserCog, Target, Play, Link as LinkIcon, Image, MousePointer2, Hand, MessageCircleQuestion, Crown, RefreshCw, Calendar, CalendarClock, Images, Globe, Package, Wand2, ShoppingCart, ListChecks, Trash2 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { CustomNode } from '@/components/flow-builder/CustomNode';
 import { MobileBlockDrawer } from '@/components/flow-builder/MobileBlockDrawer';
+import DeleteButtonEdge from '@/components/flow-builder/DeleteButtonEdge';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const nodeTypes = {
   custom: CustomNode,
+};
+
+const edgeTypes = {
+  default: DeleteButtonEdge,
 };
 
 // Blocos organizados por categoria (15 tipos da flow-builder-test)
@@ -47,6 +52,11 @@ const BLOCK_TYPES = [
   // CRM
   { type: 'update_lead_data', icon: <UserCog className="h-4 w-4" />, label: 'Atualizar Dados do Lead', color: 'bg-cyan-500', category: 'CRM' },
   { type: 'move_lead_in_funnel', icon: <Target className="h-4 w-4" />, label: 'Mover Lead no Funil', color: 'bg-emerald-600', category: 'CRM' },
+
+  // LISTA/PEDIDOS (novos blocos para gerenciar pedidos e listas)
+  { type: 'add_to_list', icon: <ShoppingCart className="h-4 w-4" />, label: 'Adicionar Item ao Pedido', color: 'bg-rose-500', category: 'Lista/Pedidos' },
+  { type: 'confirm_list', icon: <ListChecks className="h-4 w-4" />, label: 'Confirmar Pedido Completo', color: 'bg-amber-500', category: 'Lista/Pedidos' },
+  { type: 'remove_from_list', icon: <Trash2 className="h-4 w-4" />, label: 'Remover Item do Pedido', color: 'bg-slate-500', category: 'Lista/Pedidos' },
 
   // CONTROLE
   { type: 'transfer_to_human', icon: <FaWhatsapp className="h-4 w-4" />, label: 'Avisar Humano', color: 'bg-purple-600', category: 'Controle' },
@@ -100,6 +110,12 @@ function FlowBuilderContent() {
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Função para deletar edge
+  const onDeleteEdge = useCallback((edgeId: string) => {
+    setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
+    toast.success('Conexão removida');
+  }, [setEdges]);
+
   const onConnect = useCallback(
     (params: Connection) => {
       setEdges((eds) => {
@@ -117,11 +133,15 @@ function FlowBuilderContent() {
           return eds;
         }
 
-        // Adicionar nova conexão
-        return addEdge(params, eds);
+        // Adicionar nova conexão com callback de delete
+        const newEdge = {
+          ...params,
+          data: { onDelete: onDeleteEdge }
+        };
+        return addEdge(newEdge, eds);
       });
     },
-    [setEdges]
+    [setEdges, onDeleteEdge]
   );
 
   // Proteção: redirecionar se agentId for "new"
@@ -158,7 +178,13 @@ function FlowBuilderContent() {
 
           if (loadedNodes.length > 0) {
             setNodes(loadedNodes);
-            setEdges(loadedEdges);
+
+            // Adicionar callback onDelete às edges carregadas
+            const edgesWithCallback = loadedEdges.map(edge => ({
+              ...edge,
+              data: { ...edge.data, onDelete: onDeleteEdge }
+            }));
+            setEdges(edgesWithCallback);
 
             // Atualizar nodeIdCounter para o maior ID existente + 1
             const maxId = Math.max(...loadedNodes.map(n => parseInt(n.id) || 0));
@@ -174,7 +200,7 @@ function FlowBuilderContent() {
     };
 
     loadFlow();
-  }, [agentId]);
+  }, [agentId, onDeleteEdge, setNodes, setEdges]);
 
   const handleSave = async () => {
     if (!agentId || agentId === 'new') {
@@ -282,6 +308,7 @@ function FlowBuilderContent() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           fitView
           fitViewOptions={{
             padding: 0.3,
@@ -404,6 +431,28 @@ function FlowBuilderContent() {
               </div>
               <div className="space-y-1">
                 {BLOCK_TYPES.filter(b => b.category === 'CRM').map((block) => (
+                  <Button
+                    key={block.type}
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start gap-1.5 text-[10.5px] h-8 px-2 glass hover:bg-white/40 border-white/40 transition-all hover:scale-[1.02]"
+                    onClick={() => addNode(block.type)}
+                  >
+                    <div className={`p-1 rounded-md ${block.color} text-white flex-shrink-0 shadow-sm`}>{block.icon}</div>
+                    <span className="truncate font-medium">{block.label}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Lista/Pedidos */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-1.5 px-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                <h3 className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide">Lista/Pedidos</h3>
+              </div>
+              <div className="space-y-1">
+                {BLOCK_TYPES.filter(b => b.category === 'Lista/Pedidos').map((block) => (
                   <Button
                     key={block.type}
                     variant="outline"

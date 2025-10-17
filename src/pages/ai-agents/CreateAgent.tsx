@@ -97,35 +97,38 @@ export default function CreateAgent() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      // Preparar dados para salvar - campos JSONB devem ser stringificados
+      const dataToSave = {
+        name: formData.name || 'Novo Agente',
+        objective: JSON.stringify(formData.objective),
+        funnel_id: formData.funnel_id,
+        instance_phone: formData.instance_phone,
+        communication_style: JSON.stringify(formData.communication_style),
+        agent_function: formData.agent_function,
+        prohibitions: JSON.stringify(formData.prohibitions),
+        signature: formData.signature,
+        knowledge_base_enabled: formData.knowledge_base_enabled,
+        company_info: formData.company_info,
+        faq: JSON.stringify(formData.faq),
+        flow: JSON.stringify({
+          flow_metadata: {
+            version: "1.0",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          },
+          steps: [],
+          canvas: {
+            nodes: [],
+            edges: []
+          }
+        }),
+        status: 'inactive',
+        created_by_user_id: user.id
+      };
+
       const { data: newAgent, error: agentError } = await supabase
         .from('ai_agents')
-        .insert({
-          name: formData.name || 'Novo Agente',
-          objective: formData.objective,
-          funnel_id: formData.funnel_id,
-          instance_phone: formData.instance_phone,
-          communication_style: formData.communication_style,
-          agent_function: formData.agent_function,
-          prohibitions: formData.prohibitions,
-          signature: formData.signature,
-          knowledge_base_enabled: formData.knowledge_base_enabled,
-          company_info: formData.company_info,
-          faq: formData.faq,
-          flow: {
-            flow_metadata: {
-              version: "1.0",
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            },
-            steps: [],
-            canvas: {
-              nodes: [],
-              edges: []
-            }
-          },
-          status: 'inactive',
-          created_by_user_id: user.id
-        })
+        .insert(dataToSave)
         .select('id')
         .single();
 
@@ -164,24 +167,27 @@ export default function CreateAgent() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
+      // Preparar dados para salvar - campos JSONB devem ser stringificados
+      const dataToSave = {
+        name: formData.name,
+        objective: JSON.stringify(formData.objective),
+        funnel_id: formData.funnel_id,
+        instance_phone: formData.instance_phone,
+        communication_style: JSON.stringify(formData.communication_style),
+        agent_function: formData.agent_function,
+        prohibitions: JSON.stringify(formData.prohibitions),
+        signature: formData.signature,
+        knowledge_base_enabled: formData.knowledge_base_enabled,
+        company_info: formData.company_info,
+        faq: JSON.stringify(formData.faq),
+        updated_at: new Date().toISOString()
+      };
+
       // Se já existe um agente criado (rascunho), atualizar ao invés de inserir
       if (createdAgentId) {
         const { error: updateError } = await supabase
           .from('ai_agents')
-          .update({
-            name: formData.name,
-            objective: formData.objective,
-            funnel_id: formData.funnel_id,
-            instance_phone: formData.instance_phone,
-            communication_style: formData.communication_style,
-            agent_function: formData.agent_function,
-            prohibitions: formData.prohibitions,
-            signature: formData.signature,
-            knowledge_base_enabled: formData.knowledge_base_enabled,
-            company_info: formData.company_info,
-            faq: formData.faq,
-            updated_at: new Date().toISOString()
-          })
+          .update(dataToSave)
           .eq('id', createdAgentId);
 
         if (updateError) throw updateError;
@@ -190,18 +196,8 @@ export default function CreateAgent() {
         const { error: agentError } = await supabase
           .from('ai_agents')
           .insert({
-            name: formData.name,
-            objective: formData.objective,
-            funnel_id: formData.funnel_id,
-            instance_phone: formData.instance_phone,
-            communication_style: formData.communication_style,
-            agent_function: formData.agent_function,
-            prohibitions: formData.prohibitions,
-            signature: formData.signature,
-            knowledge_base_enabled: formData.knowledge_base_enabled,
-            company_info: formData.company_info,
-            faq: formData.faq,
-            flow: {
+            ...dataToSave,
+            flow: JSON.stringify({
               flow_metadata: {
                 version: "1.0",
                 created_at: new Date().toISOString(),
@@ -212,7 +208,7 @@ export default function CreateAgent() {
                 nodes: [],
                 edges: []
               }
-            },
+            }),
             status: 'inactive',
             created_by_user_id: user.id
           });

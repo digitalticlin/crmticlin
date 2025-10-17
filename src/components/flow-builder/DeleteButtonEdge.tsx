@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import { EdgeProps, getBezierPath, BaseEdge } from 'reactflow';
-import { X } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 
 const DeleteButtonEdge: FC<EdgeProps> = ({
   id,
@@ -33,22 +33,32 @@ const DeleteButtonEdge: FC<EdgeProps> = ({
   return (
     <>
       <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
-      <foreignObject
-        width={24}
-        height={24}
-        x={labelX - 12}
-        y={labelY - 12}
-        className="edgebutton-foreignobject"
-        requiredExtensions="http://www.w3.org/1999/xhtml"
-      >
-        <button
-          className="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 border-2 border-white"
-          onClick={(event) => onEdgeClick(event, id)}
-          title="Deletar conexão"
+      <g className="edge-delete-button-group">
+        <foreignObject
+          width={28}
+          height={28}
+          x={labelX - 14}
+          y={labelY - 14}
+          className="edgebutton-foreignobject"
+          requiredExtensions="http://www.w3.org/1999/xhtml"
         >
-          <X className="h-3 w-3" />
-        </button>
-      </foreignObject>
+          <button
+            className="w-full h-full bg-white/95 backdrop-blur-sm hover:bg-red-50 text-red-500 hover:text-red-600 rounded-md flex items-center justify-center shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 border border-red-200/50 opacity-0 hover:opacity-100"
+            onClick={(event) => onEdgeClick(event, id)}
+            title="Deletar conexão"
+            style={{
+              transition: 'all 0.2s ease-in-out'
+            }}
+          >
+            <Trash2 className="h-3.5 w-3.5" strokeWidth={2} />
+          </button>
+        </foreignObject>
+      </g>
+      <style>{`
+        .react-flow__edge:hover .edge-delete-button-group button {
+          opacity: 1 !important;
+        }
+      `}</style>
     </>
   );
 };

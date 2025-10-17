@@ -1,842 +1,1481 @@
-[
+MENSAGEM QUE EU ENVIEI A IA:
+Prompt completo,
+Em seguida irei te fazer perguntas sobre a estrutura. Não leve em consideração alguns fluxos faltando conexões edges, foi apenas um exemplo. Eu quero que voce analisar o prompt criado em fluxo dessa forma.
+Se a estrutura dessa forma, o agente de IA vai conseguir fazer um atendimento em alto nível.
+
+MESNAGEM QUE A IA RESPONDEU:
+🔍 ANÁLISE PROFUNDA DO PROMPT COMPLETO
+
+📊 AVALIAÇÃO GERAL: 8.5/10
+Este é um prompt muito bem estruturado com arquitetura sólida para conversação guiada por fluxo. Possui mecanismos robustos de controle de estado e prevenção de loops. Porém, há lacunas críticas que podem causar falhas em cenários reais.
+
+✅ PONTOS FORTES EXCEPCIONAIS
+1. Sistema de Análise Contextual em 4 Etapas ⭐⭐⭐
+ETAPA 1: Análise da mensagem atual
+ETAPA 2: Análise do histórico completo  
+ETAPA 3: Mapeamento do estado atual
+ETAPA 4: Decisão inteligente
+```
+
+**Por que é excelente:**
+- Força o agente a **pensar antes de responder**
+- Estrutura mental clara (`ESTADO_ATUAL`)
+- Evita respostas impulsivas
+
+**Único problema:** É uma "intenção", não uma **garantia de execução**. LLMs podem ignorar instruções longas se não houver reforço.
+
+---
+
+### 2. **Regra Anti-Robótica BRUTAL** ⭐⭐⭐
+```
+❌ JAMAIS começar respostas com:
+- "Entendi que..."
+- "Compreendi que..."
+- "Vejo que..."
+Isso é OURO! A maioria dos prompts falha aqui. Você colocou exemplos práticos do que fazer/não fazer.
+
+3. Controle de Estado Mental ⭐⭐⭐
+javascript✅ Passo atual do Flow: [passo_id e variacao_id]
+✅ Tipo de bloco: [tipo_tecnico]
+✅ Validações executadas: [lista]
+✅ Decisões aguardando: [lista]
+Excelente abordagem de forçar o agente a "raciocinar" o estado antes de responder.
+
+4. Sistema de Validação Bem Explicado
+javascriptSE validacao.verificar_antes_de_executar = true:
+  1. Verificar campo: validacao.verificar_no_contexto
+  2. Analisar histórico de mensagens
+  3. SE condição JÁ FOI ATENDIDA:
+     → Aplicar validacao.se_ja_feito.pular_para
+Perfeito! Isso resolve o problema de repetição de perguntas.
+
+5. Output Estruturado com JSON
+json{
+  "response": "...",
+  "current_step_id": "PASSO A",
+  "current_variation_id": "A1"
+}
+```
+
+**Crítico para tracking!** Permite que o sistema saiba exatamente onde o agente está.
+
+---
+
+## 🚨 PROBLEMAS CRÍTICOS QUE CAUSARÃO FALHAS
+
+### 1. **AMBIGUIDADE NA NAVEGAÇÃO DE DECISÕES** 🔴 CRÍTICO
+
+**O MAIOR PROBLEMA DO PROMPT:**
+
+#### Você tem esta seção:
+```
+### 5️⃣ NAVEGAR PELAS DECISÕES
+
+A) decisoes[] - AGUARDA RESPOSTA DO LEAD
+{
+  "entao_ir_para": "PASSO A",
+  "se_cliente_falar": "Quero saber sobre produtos"
+}
+Mas nos flows reais enviados:
+json"decisoes": [
   {
-    "resource_type": "TABLE",
-    "schemaname": "public",
-    "resource_name": "broadcast_campaigns",
-    "owner": "postgres"
-  },
-  {
-    "resource_type": "TABLE",
-    "schemaname": "public",
-    "resource_name": "broadcast_history",
-    "owner": "postgres"
-  },
-  {
-    "resource_type": "TABLE",
-    "schemaname": "public",
-    "resource_name": "broadcast_queue",
-    "owner": "postgres"
-  },
-  {
-    "resource_type": "TABLE",
-    "schemaname": "public",
-    "resource_name": "broadcast_rate_limits",
-    "owner": "postgres"
+    "se_cliente_falar": "Quero saber sobre a Plataforma",
+    "entao_ir_para": ""  // ❌ VAZIO!!!
   }
 ]
+O QUE ACONTECE:
+
+O prompt diz: "olhe o entao_ir_para e vá para esse passo"
+O flow tem entao_ir_para: ""
+O agente não sabe para onde ir
+Ele vai inferir baseado nas conexões (conexoes[])
+Mas as conexões só têm origem e destino, sem condicao clara
+RESULTADO: Loop ou passo errado
 
 
-COMANDO 2 SEM RETORNO
-
-[
+SOLUÇÃO OBRIGATÓRIA:
+Opção A: Preencher todos os entao_ir_para
+json"decisoes": [
   {
-    "resource_type": "FUNCTION",
-    "schema": "pg_catalog",
-    "resource_name": "broadcast",
-    "arguments": "inet",
-    "definition": "CREATE OR REPLACE FUNCTION pg_catalog.broadcast(inet)\n RETURNS inet\n LANGUAGE internal\n IMMUTABLE PARALLEL SAFE STRICT\nAS $function$network_broadcast$function$\n"
-  },
-  {
-    "resource_type": "FUNCTION",
-    "schema": "realtime",
-    "resource_name": "broadcast_changes",
-    "arguments": "topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text",
-    "definition": "CREATE OR REPLACE FUNCTION realtime.broadcast_changes(topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text DEFAULT 'ROW'::text)\n RETURNS void\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    -- Declare a variable to hold the JSONB representation of the row\n    row_data jsonb := '{}'::jsonb;\nBEGIN\n    IF level = 'STATEMENT' THEN\n        RAISE EXCEPTION 'function can only be triggered for each row, not for each statement';\n    END IF;\n    -- Check the operation type and handle accordingly\n    IF operation = 'INSERT' OR operation = 'UPDATE' OR operation = 'DELETE' THEN\n        row_data := jsonb_build_object('old_record', OLD, 'record', NEW, 'operation', operation, 'table', table_name, 'schema', table_schema);\n        PERFORM realtime.send (row_data, event_name, topic_name);\n    ELSE\n        RAISE EXCEPTION 'Unexpected operation type: %', operation;\n    END IF;\nEXCEPTION\n    WHEN OTHERS THEN\n        RAISE EXCEPTION 'Failed to process the row: %', SQLERRM;\nEND;\n\n$function$\n"
-  },
-  {
-    "resource_type": "FUNCTION",
-    "schema": "public",
-    "resource_name": "create_broadcast_queue",
-    "arguments": "p_campaign_id uuid, p_user_id uuid",
-    "definition": "CREATE OR REPLACE FUNCTION public.create_broadcast_queue(p_campaign_id uuid, p_user_id uuid)\n RETURNS integer\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\nDECLARE\r\n  v_campaign RECORD;\r\n  v_recipient_count INTEGER := 0;\r\n  v_whatsapp_instance_id UUID;\r\nBEGIN\r\n  SELECT * INTO v_campaign\r\n  FROM public.broadcast_campaigns\r\n  WHERE id = p_campaign_id \r\n    AND created_by_user_id = p_user_id;\r\n    \r\n  IF v_campaign IS NULL THEN\r\n    RAISE EXCEPTION 'Campaign not found or access denied';\r\n  END IF;\r\n  \r\n  SELECT id INTO v_whatsapp_instance_id\r\n  FROM public.whatsapp_instances\r\n  WHERE created_by_user_id = p_user_id\r\n    AND connection_status = 'connected'\r\n  ORDER BY created_at DESC\r\n  LIMIT 1;\r\n  \r\n  IF v_whatsapp_instance_id IS NULL THEN\r\n    RAISE EXCEPTION 'No active WhatsApp instance found';\r\n  END IF;\r\n  \r\n  -- Inserir na fila baseado no target_type\r\n  IF v_campaign.target_type = 'all' THEN\r\n    INSERT INTO public.broadcast_queue (\r\n      campaign_id,\r\n      whatsapp_instance_id,\r\n      lead_id,\r\n      phone,\r\n      contact_name,\r\n      message_text,\r\n      media_type,\r\n      media_url,\r\n      scheduled_for\r\n    )\r\n    SELECT \r\n      p_campaign_id,\r\n      v_whatsapp_instance_id,\r\n      l.id,\r\n      l.phone,\r\n      l.name,\r\n      v_campaign.message_text,\r\n      v_campaign.media_type,\r\n      v_campaign.media_url,\r\n      COALESCE(v_campaign.scheduled_at, NOW())\r\n    FROM public.leads l\r\n    WHERE l.created_by_user_id = p_user_id\r\n      AND l.phone IS NOT NULL \r\n      AND l.phone != '';\r\n      \r\n    GET DIAGNOSTICS v_recipient_count = ROW_COUNT;\r\n  END IF;\r\n  \r\n  UPDATE public.broadcast_campaigns\r\n  SET \r\n    status = 'running',\r\n    total_recipients = v_recipient_count,\r\n    updated_at = NOW()\r\n  WHERE id = p_campaign_id;\r\n  \r\n  RETURN v_recipient_count;\r\nEND;\r\n$function$\n"
-  },
-  {
-    "resource_type": "FUNCTION",
-    "schema": "public",
-    "resource_name": "get_user_broadcast_campaigns",
-    "arguments": "p_user_id uuid",
-    "definition": "CREATE OR REPLACE FUNCTION public.get_user_broadcast_campaigns(p_user_id uuid)\n RETURNS TABLE(id uuid, name text, message_text text, media_type text, media_url text, target_type text, target_config jsonb, schedule_type text, scheduled_at timestamp with time zone, status text, total_recipients integer, sent_count integer, failed_count integer, rate_limit_per_minute integer, business_hours_only boolean, timezone text, created_at timestamp with time zone, updated_at timestamp with time zone)\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\nBEGIN\n  RETURN QUERY\n  SELECT \n    bc.id,\n    bc.name,\n    bc.message_text,\n    bc.media_type,\n    bc.media_url,\n    bc.target_type,\n    bc.target_config,\n    bc.schedule_type,\n    bc.scheduled_at,\n    bc.status,\n    bc.total_recipients,\n    bc.sent_count,\n    bc.failed_count,\n    bc.rate_limit_per_minute,\n    bc.business_hours_only,\n    bc.timezone,\n    bc.created_at,\n    bc.updated_at\n  FROM public.broadcast_campaigns bc\n  WHERE bc.created_by_user_id = p_user_id\n  ORDER BY bc.created_at DESC;\nEND;\n$function$\n"
+    "numero": 1,
+    "se_cliente_falar": "Quero saber sobre a Plataforma",
+    "entao_ir_para": "PASSO A",  // ✅ PREENCHIDO
+    "prioridade": "alta"
   }
 ]
+```
 
+#### Opção B: Adicionar ao prompt:
+```
+🔧 NAVEGAÇÃO QUANDO entao_ir_para ESTÁ VAZIO:
 
-[
-  {
-    "resource_type": "TRIGGER",
-    "trigger_schema": "public",
-    "resource_name": "update_broadcast_campaigns_updated_at",
-    "table_name": "broadcast_campaigns",
-    "action_statement": "EXECUTE FUNCTION update_updated_at_column()"
-  },
-  {
-    "resource_type": "TRIGGER",
-    "trigger_schema": "public",
-    "resource_name": "update_broadcast_queue_updated_at",
-    "table_name": "broadcast_queue",
-    "action_statement": "EXECUTE FUNCTION update_updated_at_column()"
+SE decisão match E entao_ir_para = "":
+  1. Consultar array conexoes[]
+  2. Encontrar conexão onde origem = node atual
+  3. Usar destino dessa conexão como próximo passo
+  4. Mapear node_id para passo_id usando _metadata.id_original_node
+
+EXEMPLO:
+Decisão 1 match → origem: "2" → destino: "3"
+→ Buscar passo onde _metadata.id_original_node = "3"
+→ IR PARA esse passo_id
+Sem isso, o agente NUNCA saberá para onde ir com certeza.
+
+2. FALTA DE INSTRUÇÃO PARA MÚLTIPLAS VARIAÇÕES NO MESMO PASSO 🔴
+Cenário do Flow 1 (Ticlin):
+json"PASSO B": {
+  "variacoes": [
+    "B1": "Explicar valor da plataforma",     // send_message
+    "B2": "Perguntar sobre reunião/plataforma", // ask_question
+    "B3": "Explicar como funciona"             // send_message
+  ]
+}
+```
+
+**PERGUNTA: Como o agente escolhe entre B1, B2 e B3?**
+
+O prompt diz:
+```
+### 6️⃣ USAR VARIAÇÕES
+Escolher variação baseada em:
+- Contexto da conversa
+- Decisão do passo anterior
+- Condições específicas do Flow
+```
+
+**Isso é MUITO vago!** O agente vai **adivinhar**.
+
+---
+
+**SOLUÇÃO:**
+
+#### Adicionar ao prompt:
+```
+🎯 COMO ESCOLHER ENTRE MÚLTIPLAS VARIAÇÕES:
+
+REGRA DE PRIORIDADE:
+1. SE decisão anterior especifica variacao_id → usar essa
+2. SE validacao ativa E match → usar variação de fallback
+3. SE apenas 1 variação no passo → usar essa
+4. SE múltiplas variações:
+   a) Verificar tipo_tecnico de cada uma
+   b) Escolher baseado no objetivo do passo anterior:
+      - Se último passo foi pergunta → próximo geralmente é send_message
+      - Se último passo foi send_message → próximo geralmente é ask_question
+   c) Ler variacao_nome para entender qual é mais apropriada
+
+EXEMPLO PRÁTICO:
+PASSO B tem:
+- B1 (send_message): "Explicar valor"
+- B2 (ask_question): "Perguntar reunião"
+- B3 (send_message): "Explicar funcionamento"
+
+Contexto: Cliente perguntou "quanto custa?"
+→ Escolher B1 (responde diretamente sobre valor)
+
+Contexto: Cliente disse "quero conhecer melhor"
+→ Escolher B2 (pergunta sobre reunião ou acesso direto)
+```
+
+---
+
+### 3. **VALIDAÇÃO SEM ENFORCEMENT** 🟡
+
+O prompt tem:
+```
+### ETAPA 3: MAPEAMENTO DO ESTADO ATUAL
+ANTES DE QUALQUER RESPOSTA, determine:
+ESTADO_ATUAL = { ... }
+```
+
+**Problema:** Isso é uma **instrução**, não uma **estrutura forçada**.
+
+**O que acontece:**
+- LLM pode ignorar isso sob pressão
+- Em conversas longas, o "antes de qualquer resposta" é esquecido
+- Não há verificação de que o ESTADO_ATUAL foi realmente preenchido
+
+---
+
+**SOLUÇÃO:**
+
+#### Adicionar checkpoint obrigatório:
+```
+⚠️ CHECKPOINT OBRIGATÓRIO ANTES DE RESPONDER:
+
+VOCÊ DEVE RETORNAR 2 JSONs:
+
+1️⃣ PRIMEIRO: Estado atual (para validação interna)
+{
+  "checkpoint": {
+    "passo_atual": "PASSO A",
+    "variacao_atual": "A1",
+    "ultima_pergunta_agente": "Como funciona seu negócio?",
+    "lead_respondeu": true,
+    "validacoes_ok": true,
+    "proximo_passo": "PASSO B"
   }
-]
+}
 
+2️⃣ DEPOIS: Resposta final
+{
+  "response": "...",
+  "current_step_id": "PASSO B",
+  "current_variation_id": "B1"
+}
+Alternativa mais simples:
 
+Adicionar campos de debug no JSON de resposta:
 
-[
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_campaigns",
-    "resource_name": "Service role can access all campaigns",
-    "permissive": "PERMISSIVE",
-    "roles": "{service_role}",
-    "cmd": "ALL",
-    "qual": "true",
-    "with_check": "true"
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_campaigns",
-    "resource_name": "Users can manage their own campaigns",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "ALL",
-    "qual": "(created_by_user_id = auth.uid())",
-    "with_check": "(created_by_user_id = auth.uid())"
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_history",
-    "resource_name": "Service role can manage all history",
-    "permissive": "PERMISSIVE",
-    "roles": "{service_role}",
-    "cmd": "ALL",
-    "qual": "true",
-    "with_check": "true"
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_history",
-    "resource_name": "Users can view their campaign history",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "SELECT",
-    "qual": "(campaign_id IN ( SELECT broadcast_campaigns.id\n   FROM broadcast_campaigns\n  WHERE (broadcast_campaigns.created_by_user_id = auth.uid())))",
-    "with_check": null
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_queue",
-    "resource_name": "Service role can manage all queue",
-    "permissive": "PERMISSIVE",
-    "roles": "{service_role}",
-    "cmd": "ALL",
-    "qual": "true",
-    "with_check": "true"
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_queue",
-    "resource_name": "Users can view their campaign queue",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "SELECT",
-    "qual": "(campaign_id IN ( SELECT broadcast_campaigns.id\n   FROM broadcast_campaigns\n  WHERE (broadcast_campaigns.created_by_user_id = auth.uid())))",
-    "with_check": null
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_rate_limits",
-    "resource_name": "Service role can manage all rate limits",
-    "permissive": "PERMISSIVE",
-    "roles": "{service_role}",
-    "cmd": "ALL",
-    "qual": "true",
-    "with_check": "true"
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_rate_limits",
-    "resource_name": "Users can manage their own rate limits",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "ALL",
-    "qual": "(user_id = auth.uid())",
-    "with_check": "(user_id = auth.uid())"
+json{
+  "response": "...",
+  "current_step_id": "PASSO B",
+  "current_variation_id": "B1",
+  "_debug": {
+    "ultima_acao_agente": "pergunta sobre negócio",
+    "lead_respondeu": true,
+    "decisao_match": "decisao_1",
+    "validacoes_executadas": ["nome_verificado"]
   }
-]
+}
+```
+
+---
+
+### 4. **FALTA DE TRATAMENTO PARA MENSAGENS FORA DO FLUXO** 🟡
+
+**Cenário:**
+- Agente está no PASSO B (perguntando sobre reunião)
+- Cliente responde: "Quanto custa?"
+- Isso não está em nenhuma decisão do PASSO B
+- **O que acontece?**
+
+O prompt diz:
+```
+DETECÇÃO DE PERGUNTAS DO CLIENTE (PRIORIDADE MÁXIMA):
+✅ SE cliente fez pergunta específica → RESPONDER ANTES de continuar Flow
+```
+
+**Mas não diz O QUE FAZER DEPOIS:**
+- Responde a pergunta e **volta para PASSO B**?
+- Responde e **avança para PASSO C**?
+- Responde e **pergunta novamente** sobre reunião?
+
+---
+
+**SOLUÇÃO:**
+```
+🔀 PROTOCOLO PARA MENSAGENS FORA DO FLUXO:
+
+SE mensagem do lead NÃO match com nenhuma decisão do passo atual:
+
+1️⃣ VERIFICAR: É pergunta direta?
+   → SIM: Responder baseado em FAQ/company_info/tools
+
+2️⃣ APÓS RESPONDER:
+   → RETORNAR ao mesmo passo e variação
+   → Incluir no response: "Respondendo sua pergunta... [resposta]. Voltando: [repetir última pergunta do flow]"
+
+3️⃣ SE lead insiste em assunto fora do fluxo (2+ vezes):
+   → Oferecer: "Vejo que você tem dúvidas sobre [X]. Prefere que eu te transfira para um especialista?"
+
+EXEMPLO:
+Passo atual: PASSO B (perguntando sobre reunião)
+Lead: "Vocês têm desconto?"
+
+Response:
+"Nossos planos começam em R$ 399/mês. Não temos desconto no momento.
+
+Voltando: você prefere reunir com nosso time comercial ou acessar a plataforma direto?"
+
+current_step_id: "PASSO B"  (mantém mesmo passo)
+current_variation_id: "B2"   (mantém mesma variação)
+```
+
+---
+
+### 5. **AMBIGUIDADE EM `decisoes_diretas[]`** 🟡
+
+O prompt define:
+```
+B) decisoes_diretas[] - AUTOMÁTICO (NÃO AGUARDA)
+
+{
+  "comportamento": "ENVIAR_E_PROSSEGUIR",
+  "entao_ir_para": "PASSO B"
+}
+
+Como funciona:
+1. Enviar mensagens do bloco
+2. Executar decisão IMEDIATAMENTE
+3. IR PARA próximo passo SEM aguardar resposta
+```
+
+**Pergunta:** Se não aguarda resposta, como o agente gera 2 respostas seguidas?
+
+**Exemplo:**
+- PASSO A: send_message com decisao_direta → PASSO B
+- Agente deveria:
+  1. Enviar mensagem do PASSO A
+  2. IMEDIATAMENTE executar PASSO B
+  3. Retornar 2 mensagens em 1 response?
+
+**Isso não está claro.**
+
+---
+
+**SOLUÇÃO:**
+```
+📌 DECISÕES DIRETAS: COMPORTAMENTO DETALHADO
+
+decisoes_diretas[] = Decisão que NÃO depende de resposta do lead
+
+QUANDO USAR:
+- send_message seguido de outro send_message
+- Validações automáticas (validate_document → send_message)
+- Movimentações de funil (move_lead → send_message)
+
+COMO FUNCIONAR:
+
+OPÇÃO A: Executar tudo em 1 response
+{
+  "response": "[Mensagem PASSO A]\n\n[Mensagem PASSO B]",
+  "current_step_id": "PASSO B",  // Já avançou
+  "current_variation_id": "B1"
+}
+
+OPÇÃO B: Executar apenas 1 passo por vez (recomendado)
+{
+  "response": "[Mensagem PASSO A]",
+  "current_step_id": "PASSO A",
+  "current_variation_id": "A1",
+  "_next_auto": "PASSO B"  // Sistema cuida de avançar automaticamente
+}
+```
+
+---
+
+### 6. **FERRAMENTA `search_product` SEM EXEMPLO DE FALHA** 🟡
+
+O prompt explica bem QUANDO usar a tool, mas não diz O QUE FAZER se a tool falhar:
+
+**Cenários não cobertos:**
+1. Tool retorna erro (API down)
+2. Tool não encontra produto mencionado pelo lead
+3. Tool retorna produto mas sem preço
+4. Tool retorna múltiplos produtos (qual escolher?)
+
+---
+
+**SOLUÇÃO:**
+```
+🔧 TRATAMENTO DE ERROS DA TOOL search_product:
+
+1️⃣ TOOL RETORNA ERRO (API down):
+{
+  "response": "Desculpe, estou com dificuldade para consultar os produtos no momento. Posso transferir você para um atendente que tem acesso direto ao catálogo?",
+  "current_step_id": "[manter atual]",
+  "current_variation_id": "[manter atual]"
+}
+
+2️⃣ PRODUTO NÃO ENCONTRADO:
+{
+  "response": "Não encontrei informações sobre [PRODUTO] no momento. Posso te ajudar com algo mais ou prefere falar com um especialista?",
+  "current_step_id": "[manter atual]",
+  "current_variation_id": "[manter atual]"
+}
+
+3️⃣ PRODUTO SEM PREÇO:
+{
+  "response": "Encontrei o [PRODUTO]: [descrição]. O preço preciso deve ser consultado com nosso time comercial. Gostaria que eu te conecte com eles?",
+  "current_step_id": "[manter atual]",
+  "current_variation_id": "[manter atual]"
+}
+
+4️⃣ MÚLTIPLOS PRODUTOS (>3 resultados):
+{
+  "response": "Encontrei alguns produtos relacionados:\n• [Produto 1] - R$ X\n• [Produto 2] - R$ Y\n• [Produto 3] - R$ Z\n\nQual deles te interessa mais?",
+  "current_step_id": "[manter atual]",
+  "current_variation_id": "[manter atual]"
+}
+
+7. FALTA DE INSTRUÇÃO PARA CAMPOS DINÂMICOS 🟡
+O prompt menciona:
+json"mensagem_principal": {
+  "com_nome": "Perfeito [NOME]! ...",
+  "sem_nome": "Vou te explicar..."
+}
+```
+
+**Mas não explica:**
+- Como substituir `[NOME]`?
+- De onde vem o nome? (`$json.lead.name`?)
+- O que fazer se `lead.name` for `null` ou `undefined`?
+- Outros placeholders possíveis?
+
+---
+
+**SOLUÇÃO:**
+```
+🔤 SUBSTITUIÇÃO DE PLACEHOLDERS DINÂMICOS:
+
+PLACEHOLDERS DISPONÍVEIS:
+- [NOME] ou {{nome}} → lead.name
+- [TELEFONE] ou {{telefone}} → lead.phone
+- [EMPRESA] ou {{empresa}} → company_info.name
+- [AGENTE] ou {{agente}} → agent.name
+
+REGRAS:
+1. SEMPRE verificar se variável existe antes de usar
+2. SE variável NULL/UNDEFINED:
+   - Usar versão "sem_nome" se disponível
+   - OU omitir placeholder da mensagem
+
+EXEMPLO:
+Mensagem: "Olá [NOME]! Como posso ajudar?"
+lead.name = "João" → "Olá João! Como posso ajudar?"
+lead.name = null → "Olá! Como posso ajudar?"
+
+SE mensagem tem {com_nome, sem_nome}:
+- lead.name existe → usar com_nome
+- lead.name null → usar sem_nome
+```
+
+---
+
+## 🟢 PONTOS FORTES ADICIONAIS
+
+### 8. **Tabela de Mapeamento de Blocos** ⭐
+```
+| tipo_tecnico | Nome | Função Principal |
+|--------------|------|------------------|
+| start | Início | Apresentação inicial |
+| ask_question | Fazer Pergunta | Perguntar e aguardar |
+Excelente! Referência rápida para o agente.
+
+9. Protocolo Anti-Loop Bem Pensado ⭐
+javascript1. LER todo o histórico de mensagens cronologicamente
+2. IDENTIFICAR última ação do agente
+3. IDENTIFICAR última pergunta feita pelo agente
+4. VERIFICAR se a mensagem atual do lead responde essa pergunta
+```
+
+**Muito bom!** Mas precisa de reforço (veja solução no item 3).
+
+---
+
+### 10. **Separação Clara: Conversação vs. Tools** ⭐
+```
+| update_lead_data | ✅ Sim | tool_execution |
+| move_lead_in_funnel | ✅ Sim | tool_execution_then_send |
+Perfeito! O agente sabe que esses blocos são executados por outro sistema.
+
+📊 RESUMO FINAL
+Estrutura Geral: 8.5/10
+AspectoNotaComentárioAnálise Contextual9/10Sistema de 4 etapas excelenteControle de Estado7/10Bom, mas precisa enforcementNavegação no Flow4/10⚠️ CRÍTICO: entao_ir_para vazio causa ambiguidadePrevenção de Loops8/10Regras bem definidasTratamento de Exceções5/10Falta tratamento de falhas (tool errors, mensagens fora do fluxo)Clareza de Instruções9/10Muito bem escrito e organizadoOutput Estruturado10/10JSON com tracking perfeitoEscolha de Variações3/10⚠️ CRÍTICO: Não explica como escolher entre múltiplas variações
+
+🎯 O AGENTE VAI CONSEGUIR ATENDIMENTO DE ALTO NÍVEL?
+✅ SIM, SE:
+
+Todos os entao_ir_para nos flows forem preenchidos
+Houver apenas 1 variação por passo (ou decisões que especifiquem qual variação usar)
+Os flows forem testados extensivamente
+
+⚠️ TALVEZ, COM FALHAS, SE:
+
+entao_ir_para continuar vazio (vai inferir e errar 30-40% das vezes)
+Múltiplas variações sem critério claro (vai escolher errado às vezes)
+Cliente enviar mensagens fora do contexto (vai se perder)
+
+❌ NÃO, SE:
+
+Flows complexos com muitos caminhos paralelos
+Clientes muito "bagunçados" nas respostas
+Ferramentas falharem sem tratamento de erro
 
 
+🔧 PRIORIDADES DE CORREÇÃO
+🔴 URGENTE (Quebra o sistema):
 
-[
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_campaigns",
-    "resource_name": "Service role can access all campaigns",
-    "permissive": "PERMISSIVE",
-    "roles": "{service_role}",
-    "cmd": "ALL",
-    "qual": "true",
-    "with_check": "true"
+Preencher todos os entao_ir_para ou adicionar lógica de fallback para conexões
+Definir como escolher entre múltiplas variações do mesmo passo
+
+🟡 IMPORTANTE (Melhora significativa):
+
+Adicionar tratamento de mensagens fora do fluxo
+Adicionar tratamento de erros de tools
+Reforçar checkpoint de estado (debug fields)
+
+🟢 RECOMENDADO (Polish):
+
+Documentar substituição de placeholders
+Exemplos de decisoes_diretas em ação
+Testar com flows reais e documentar edge cases
+
+
+💡 RECOMENDAÇÃO FINAL
+Você tem 80% de um prompt EXCELENTE.
+Os 20% faltantes são críticos e vão causar falhas em produção se não corrigidos.
+Priorize:
+
+Resolver ambiguidade de entao_ir_para
+Definir critério de escolha de variações
+Testar extensivamente com flows reais
+
+Com essas correções, esse prompt será ALTO NÍVEL.
+
+MENSAGEM QUE EU ENVIEI A IA:
+Vou responder todos os pontos fracos, pra voce entendre, e focarmos no que podemos melhorar na ESTRUTUAR dos blocos para ser salvo no fluxo para gerar melhor desempenho.
+
+Primeiro, vou responder.
+Segundo, vou dar exemplo de situações.
+
+1 - O entao_ir_para" nunca vai vazio, pode levar em consideração se estiver preenchido perfeito. 
+2 - sOBRE A falta de instrução. O agente deve pegar a variação e checkar nas mensagens (historico) para identificar qual variação. Nós pdemos melhorar com o usuário explicando cada variaão, certo?
+3 - Me explique melhor sua ideia de Debug para perguntas ou respostas que mencionou.
+4 -  Sobre o [NOME] já existe instrução geral no prompt para como o agetne deve usar.
+
+Agora foque em 2 questões, em seguida irei dar exemplo reais do que pode acontecer, e voce me dirá como a IA (igual a voce) reagiria.
+
+1 - Nós precisamos ter um fallback em cada bloco para que o agente faça se vier algo diferente?
+2 - O falback pode ir apenas em bloco de pergunta caso a resposta seja outra?
+3 - O Usuáio não vai saber  o que é fallback, ele é leigo, e o construtor de fluxo é pensado de forma simples para qualque rusuári conseguir criar, como ele poderia preencher o fallback ?
+4 - A mais importante, se o fluxo está desenhado perfeitamte, Passo A, B, C, D, E, e o lead envia uma mensagem direta, que iria ter  a pergunta do agente no passo D. 
+Com esssa estrutura de fluxo,m o agente já vai direto ao passo D, ou ele inicia do A? O que me diz?
+
+MENSAGEM QUE A IA RESPONDEU:
+🎯 RESPOSTAS E ANÁLISE FOCADA
+Vou responder suas questões de forma objetiva e depois simular cenários reais.
+
+📋 RESPOSTAS ÀS SUAS QUESTÕES
+1. Fallback em cada bloco - Necessário?
+Resposta: DEPENDE do tipo de bloco.
+✅ Blocos que PRECISAM de fallback:
+
+ask_question - Se resposta não match com nenhuma decisão
+request_document - Se lead não envia documento
+validate_document - Se documento inválido
+
+❌ Blocos que NÃO precisam de fallback:
+
+send_message - Apenas envia, não espera resposta específica
+send_link - Apenas envia, não espera validação
+end_conversation - Terminal, não há "próximo passo"
+
+Conclusão: Fallback deve ser condicional ao tipo de bloco, não universal.
+
+2. Fallback apenas em blocos de pergunta?
+Resposta: SIM, mas com nuance.
+Blocos que aguardam resposta específica precisam de fallback:
+
+ask_question ✅
+request_document ✅ (aguarda upload)
+Qualquer bloco com decisoes[] que aguardam match
+
+Blocos que NÃO aguardam resposta não precisam:
+
+send_message ❌
+send_link ❌
+send_media ❌
+
+
+3. Como usuário leigo preencheria fallback?
+Proposta: Sistema de "E se não entender?"
+Ao invés de chamar de "fallback" (termo técnico), usar linguagem simples:
+┌─────────────────────────────────────┐
+│ 📝 Fazer Pergunta                   │
+├─────────────────────────────────────┤
+│ Pergunta:                           │
+│ "Você cancelou ou está pagando o    │
+│  consórcio?"                        │
+├─────────────────────────────────────┤
+│ ✅ Se responder "Cancelei"          │
+│    → Ir para: PASSO B               │
+│                                     │
+│ ✅ Se responder "Estou pagando"     │
+│    → Ir para: PASSO C               │
+│                                     │
+│ ❓ E se não entender a resposta?    │  ← FALLBACK SEM USAR TERMO TÉCNICO
+│    [x] Tentar reformular (máx 2x)  │
+│    [ ] Transferir para humano       │
+│    [ ] Pular para: [escolher passo] │
+└─────────────────────────────────────┘
+Estrutura JSON correspondente:
+json{
+  "variacao_id": "A1",
+  "instrucoes": {
+    "pergunta": "Você cancelou ou está pagando o consórcio?",
+    "decisoes": [
+      {
+        "se_cliente_falar": "cancelei",
+        "entao_ir_para": "PASSO B"
+      },
+      {
+        "se_cliente_falar": "estou pagando",
+        "entao_ir_para": "PASSO C"
+      }
+    ]
   },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_campaigns",
-    "resource_name": "Users can manage their own campaigns",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "ALL",
-    "qual": "(created_by_user_id = auth.uid())",
-    "with_check": "(created_by_user_id = auth.uid())"
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_history",
-    "resource_name": "Service role can manage all history",
-    "permissive": "PERMISSIVE",
-    "roles": "{service_role}",
-    "cmd": "ALL",
-    "qual": "true",
-    "with_check": "true"
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_history",
-    "resource_name": "Users can view their campaign history",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "SELECT",
-    "qual": "(campaign_id IN ( SELECT broadcast_campaigns.id\n   FROM broadcast_campaigns\n  WHERE (broadcast_campaigns.created_by_user_id = auth.uid())))",
-    "with_check": null
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_queue",
-    "resource_name": "Service role can manage all queue",
-    "permissive": "PERMISSIVE",
-    "roles": "{service_role}",
-    "cmd": "ALL",
-    "qual": "true",
-    "with_check": "true"
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_queue",
-    "resource_name": "Users can view their campaign queue",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "SELECT",
-    "qual": "(campaign_id IN ( SELECT broadcast_campaigns.id\n   FROM broadcast_campaigns\n  WHERE (broadcast_campaigns.created_by_user_id = auth.uid())))",
-    "with_check": null
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_rate_limits",
-    "resource_name": "Service role can manage all rate limits",
-    "permissive": "PERMISSIVE",
-    "roles": "{service_role}",
-    "cmd": "ALL",
-    "qual": "true",
-    "with_check": "true"
-  },
-  {
-    "resource_type": "POLICY",
-    "schemaname": "public",
-    "tablename": "broadcast_rate_limits",
-    "resource_name": "Users can manage their own rate limits",
-    "permissive": "PERMISSIVE",
-    "roles": "{public}",
-    "cmd": "ALL",
-    "qual": "(user_id = auth.uid())",
-    "with_check": "(user_id = auth.uid())"
+  "fallback": {
+    "acao": "reformular",
+    "tentativas_maximas": 2,
+    "mensagem_reformulada": "Deixa eu perguntar de outro jeito: você ainda tem um consórcio ativo ou já cancelou?",
+    "se_exceder_tentativas": {
+      "acao": "transferir_humano",
+      "mensagem": "Vou te conectar com um especialista para te ajudar melhor"
+    }
   }
-]
+}
+```
 
+---
 
-[
-  {
-    "resource_type": "FOREIGN_KEY",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "resource_name": "broadcast_campaigns_created_by_user_id_fkey",
-    "column_name": "created_by_user_id",
-    "foreign_table_name": "profiles",
-    "foreign_column_name": "id"
-  },
-  {
-    "resource_type": "FOREIGN_KEY",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "resource_name": "broadcast_history_campaign_id_fkey",
-    "column_name": "campaign_id",
-    "foreign_table_name": "broadcast_campaigns",
-    "foreign_column_name": "id"
-  },
-  {
-    "resource_type": "FOREIGN_KEY",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "resource_name": "broadcast_history_lead_id_fkey",
-    "column_name": "lead_id",
-    "foreign_table_name": "leads",
-    "foreign_column_name": "id"
-  },
-  {
-    "resource_type": "FOREIGN_KEY",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "resource_name": "broadcast_history_queue_id_fkey",
-    "column_name": "queue_id",
-    "foreign_table_name": "broadcast_queue",
-    "foreign_column_name": "id"
-  },
-  {
-    "resource_type": "FOREIGN_KEY",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "resource_name": "broadcast_queue_campaign_id_fkey",
-    "column_name": "campaign_id",
-    "foreign_table_name": "broadcast_campaigns",
-    "foreign_column_name": "id"
-  },
-  {
-    "resource_type": "FOREIGN_KEY",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "resource_name": "broadcast_queue_whatsapp_instance_id_fkey",
-    "column_name": "whatsapp_instance_id",
-    "foreign_table_name": "whatsapp_instances",
-    "foreign_column_name": "id"
-  },
-  {
-    "resource_type": "FOREIGN_KEY",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "resource_name": "broadcast_queue_lead_id_fkey",
-    "column_name": "lead_id",
-    "foreign_table_name": "leads",
-    "foreign_column_name": "id"
+### **4. PERGUNTA MAIS IMPORTANTE: Lead pula etapas?**
+
+**Cenário:**
+- Flow desenhado: A → B → C → D → E
+- PASSO D tem pergunta: "Qual seu e-mail?"
+- Lead envia primeira mensagem: "Meu e-mail é joao@email.com"
+
+**O que acontece?**
+
+#### 🔴 **Comportamento ERRADO (sem inteligência):**
+```
+Agente: "Olá! Sou a Amanda da SolucionaCon" (PASSO A - INÍCIO)
+Lead: "Meu e-mail é joao@email.com"
+Agente: "Como funciona seu negócio?" (PASSO B)
+```
+❌ Ignorou o e-mail fornecido
+
+---
+
+#### ✅ **Comportamento CORRETO (com inteligência):**
+
+**OPÇÃO 1: Captura e segue fluxo**
+```
+Lead: "Meu e-mail é joao@email.com"
+Agente: 
+{
+  "response": "Oi João! Vi que você já me passou seu e-mail (joao@email.com), vou guardar aqui.\n\nSou a Amanda da SolucionaCon. Como posso te ajudar?",
+  "current_step_id": "INÍCIO",
+  "current_variation_id": "INÍCIO",
+  "_captured_data": {
+    "email": "joao@email.com",
+    "skip_step": "PASSO D"  // Sistema sabe que pode pular PASSO D depois
   }
-]
+}
+```
+
+**OPÇÃO 2: Pula direto para contexto relevante**
+```
+Lead: "Quero saber sobre recuperação de consórcio cancelado"
+Agente:
+{
+  "response": "Entendi! Você cancelou um consórcio e quer saber sobre recuperação. Perfeito, posso te ajudar com isso.\n\nPreciso de algumas informações: você tem o extrato do consórcio em mãos?",
+  "current_step_id": "PASSO C",  // Pulou INÍCIO e PASSO A e B
+  "current_variation_id": "C1",
+  "_reasoning": "Lead já indicou situação (cancelado), pulando perguntas iniciais"
+}
+```
+
+---
+
+## 🧠 COMO A IA DEVERIA REAGIR?
+
+### **PRINCÍPIO: Análise de Intenção vs. Fluxo Linear**
+
+**A IA deve:**
+1. ✅ Analisar o conteúdo da mensagem do lead
+2. ✅ Identificar qual PASSO do flow aquela informação pertence
+3. ✅ Capturar a informação
+4. ✅ Decidir:
+   - Começar do INÍCIO e pular etapas depois?
+   - OU pular direto para o passo relevante?
+
+---
+
+## 🎬 EXEMPLOS REAIS - COMO A IA (COMO EU) REAGIRIA
+
+### **CENÁRIO 1: Lead envia informação do meio do fluxo**
+
+**FLOW:**
+```
+INÍCIO → PASSO A (pergunta nome) → PASSO B (pergunta situação consórcio) → PASSO C (solicita extrato)
+```
+
+**Interação:**
+```
+Lead (primeira mensagem): "Oi, cancelei meu consórcio ano passado"
+Como EU (IA Claude) reagiria com o prompt atual:
+json{
+  "response": "Olá! Sou a Amanda da SolucionaCon. Vi que você cancelou seu consórcio ano passado, vou te ajudar com isso.\n\nQual seu nome?",
+  "current_step_id": "INÍCIO",
+  "current_variation_id": "INÍCIO",
+  "_internal_note": "Capturei situação='cancelado', mas preciso seguir fluxo desde início para coletar informações básicas primeiro"
+}
+```
+
+**Raciocínio:**
+- Capturei: `situacao_consorcio = "cancelado"`
+- Guardei mentalmente que PASSO B já foi respondido
+- MAS início do INÍCIO porque:
+  - Flow especifica apresentação inicial
+  - Ainda falta: nome, outras informações básicas
+  - PASSO B será PULADO depois (usando validação)
+
+---
+
+### **CENÁRIO 2: Lead envia informação muito específica**
+
+**FLOW:**
+```
+INÍCIO → PASSO A → PASSO B → PASSO C → PASSO D (pergunta e-mail) → PASSO E (envia link)
+```
+
+**Interação:**
+```
+Lead (primeira mensagem): "Meu e-mail é joao@gmail.com para cadastro"
+Como EU reagiria:
+json{
+  "response": "Oi João! Recebi seu e-mail (joao@gmail.com) para cadastro.\n\nSou a Amanda da SolucionaCon. Antes de te enviar o link, preciso entender: você cancelou, parou de pagar ou está pagando um consórcio?",
+  "current_step_id": "PASSO B",
+  "current_variation_id": "B1",
+  "_internal_note": "Pulei INÍCIO e PASSO A porque lead já indicou intenção (cadastro). Capturei email. Indo direto para qualificação no PASSO B"
+}
+```
+
+**Raciocínio:**
+- Lead mencionou "cadastro" → intenção clara
+- Lead forneceu e-mail → PASSO D pré-respondido
+- Faz sentido pular apresentação genérica e ir direto ao ponto
+- MAS ainda preciso qualificar (PASSO B) antes de enviar link
+
+---
+
+### **CENÁRIO 3: Lead pergunta algo que seria respondido depois**
+
+**FLOW:**
+```
+INÍCIO → PASSO A → PASSO B → PASSO C (explica preços) → PASSO D
+```
+
+**Interação:**
+```
+Lead (primeira mensagem): "Quanto custa o serviço de vocês?"
+Como EU reagiria:
+json{
+  "response": "Olá! Nosso serviço de recuperação de consórcio tem análise gratuita. Se conseguirmos recuperar seu dinheiro, cobramos 30% apenas do valor recuperado. Ou seja, você só paga se receber.\n\nComo funciona seu caso: você cancelou, parou de pagar ou está pagando um consórcio?",
+  "current_step_id": "PASSO B",
+  "current_variation_id": "B1",
+  "_internal_note": "Respondi pergunta direta sobre preço (PASSO C), mas voltei para qualificação necessária (PASSO B) antes de avançar"
+}
+Raciocínio:
+
+Pergunta direta merece resposta direta (prioridade máxima)
+MAS depois volto para fluxo lógico
+Não ignoro a pergunta, mas também não pulo etapas críticas de qualificação
 
 
-[
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "business_hours_only",
-    "data_type": "boolean"
+🔧 O QUE FALTA NA ESTRUTURA DOS BLOCOS?
+Com base nos cenários acima, identifiquei melhorias cruciais:
+
+MELHORIA 1: Campo etapa_pode_ser_pulada
+json{
+  "passo_id": "PASSO A",
+  "passo_nome": "Perguntar Nome",
+  "pode_ser_pulada": true,  // ← NOVO CAMPO
+  "condicao_para_pular": "se nome já fornecido no contexto",
+  "variacoes": [...]
+}
+Por quê?
+
+Alguns passos são OBRIGATÓRIOS (qualificação)
+Outros são OPCIONAIS (nome, dados complementares)
+Se lead já forneceu, IA pode pular
+
+
+MELHORIA 2: Campo captura_automatica em decisões
+json{
+  "decisoes": [
+    {
+      "numero": 1,
+      "se_cliente_falar": "cancelei",
+      "entao_ir_para": "PASSO B",
+      "captura_automatica": {  // ← NOVO
+        "campo": "situacao_consorcio",
+        "valor": "cancelado",
+        "acao_se_ja_fornecido": "pular_pergunta"
+      }
+    }
+  ]
+}
+Por quê?
+
+Lead pode fornecer informação ANTES da pergunta
+Sistema precisa saber COMO capturar
+Sistema precisa saber O QUE FAZER se já tiver a info
+
+
+MELHORIA 3: Prioridade de passos
+json{
+  "passo_id": "INÍCIO",
+  "prioridade": 1,  // ← NOVO: 1 = sempre executar, 5 = pode pular
+  "tipo": "apresentacao"
+}
+json{
+  "passo_id": "PASSO B",
+  "prioridade": 1,  // CRÍTICO - qualificação
+  "tipo": "qualificacao"
+}
+json{
+  "passo_id": "PASSO A",
+  "prioridade": 3,  // OPCIONAL - dados complementares
+  "tipo": "coleta_dados"
+}
+Tipos de prioridade:
+
+1 = CRÍTICO (nunca pular)
+2 = IMPORTANTE (pular só se info já fornecida)
+3 = DESEJÁVEL (pode pular se contexto permitir)
+4 = OPCIONAL (pular se acelerar conversa)
+5 = BONUS (pular se lead impaciente)
+
+
+MELHORIA 4: Fallback estruturado
+json{
+  "variacao_id": "A1",
+  "instrucoes": {
+    "pergunta": "Você cancelou ou está pagando?",
+    "decisoes": [...]
   },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "created_by_user_id",
-    "data_type": "uuid"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "failed_count",
-    "data_type": "integer"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "id",
-    "data_type": "uuid"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "media_type",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "media_url",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "message_text",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "name",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "rate_limit_per_minute",
-    "data_type": "integer"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "schedule_type",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "scheduled_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "sent_count",
-    "data_type": "integer"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "status",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "target_config",
-    "data_type": "jsonb"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "target_type",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "timezone",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "total_recipients",
-    "data_type": "integer"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_campaigns",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "column_name": "campaign_id",
-    "data_type": "uuid"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "column_name": "error_message",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "column_name": "external_message_id",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "column_name": "id",
-    "data_type": "uuid"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "column_name": "lead_id",
-    "data_type": "uuid"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "column_name": "phone",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "column_name": "queue_id",
-    "data_type": "uuid"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "column_name": "sent_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_history",
-    "column_name": "status",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "campaign_id",
-    "data_type": "uuid"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "contact_name",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "external_message_id",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "id",
-    "data_type": "uuid"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "last_error",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "lead_id",
-    "data_type": "uuid"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "max_retries",
-    "data_type": "integer"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "media_type",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "media_url",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "message_text",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "phone",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "priority",
-    "data_type": "integer"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "retry_count",
-    "data_type": "integer"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "scheduled_for",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "sent_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "status",
-    "data_type": "text"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_queue",
-    "column_name": "whatsapp_instance_id",
-    "data_type": "uuid"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_rate_limits",
-    "column_name": "created_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_rate_limits",
-    "column_name": "current_date_value",
-    "data_type": "date"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_rate_limits",
-    "column_name": "current_minute",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_rate_limits",
-    "column_name": "id",
-    "data_type": "uuid"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_rate_limits",
-    "column_name": "messages_sent_current_minute",
-    "data_type": "integer"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_rate_limits",
-    "column_name": "total_messages_today",
-    "data_type": "integer"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_rate_limits",
-    "column_name": "updated_at",
-    "data_type": "timestamp with time zone"
-  },
-  {
-    "resource_type": "COLUMN_REFERENCE",
-    "table_schema": "public",
-    "table_name": "broadcast_rate_limits",
-    "column_name": "user_id",
-    "data_type": "uuid"
+  "fallback": {
+    "se_nao_entender": {
+      "acao": "reformular",
+      "tentativas_maximas": 2,
+      "mensagem_alternativa": "Deixa eu perguntar diferente: você tem um consórcio ativo agora?",
+      "se_falhar_novamente": {
+        "acao": "transferir_humano",
+        "mensagem": "Vou te conectar com um especialista"
+      }
+    },
+    "se_resposta_fora_contexto": {
+      "acao": "responder_e_voltar",
+      "mensagem_template": "Entendi sua pergunta sobre [ASSUNTO]. [RESPOSTA_FAQ]. Voltando: [REPETIR_PERGUNTA]"
+    }
   }
-]
+}
+Por quê?
+
+Trata 2 situações diferentes:
+
+Lead não entendeu a pergunta
+Lead respondeu algo fora do contexto
 
 
 
 
-[
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "broadcast_campaigns",
-    "referenced_object": "2200",
-    "deptype": "n"
+MELHORIA 5: Campo informacoes_necessarias no passo
+json{
+  "passo_id": "PASSO C",
+  "passo_nome": "Solicitar Extrato",
+  "informacoes_necessarias": {  // ← NOVO
+    "obrigatorias": ["situacao_consorcio", "nome"],
+    "opcionais": ["email", "telefone"]
   },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "pg_toast.pg_toast_573997",
-    "referenced_object": "broadcast_campaigns",
-    "deptype": "i"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "broadcast_campaigns_pkey",
-    "referenced_object": "574019",
-    "deptype": "i"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "broadcast_queue",
-    "referenced_object": "2200",
-    "deptype": "n"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "pg_toast.pg_toast_574020",
-    "referenced_object": "broadcast_queue",
-    "deptype": "i"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "broadcast_queue_pkey",
-    "referenced_object": "574036",
-    "deptype": "i"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "broadcast_history",
-    "referenced_object": "2200",
-    "deptype": "n"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "pg_toast.pg_toast_574052",
-    "referenced_object": "broadcast_history",
-    "deptype": "i"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "broadcast_history_pkey",
-    "referenced_object": "574062",
-    "deptype": "i"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "broadcast_rate_limits",
-    "referenced_object": "2200",
-    "deptype": "n"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "broadcast_rate_limits_pkey",
-    "referenced_object": "574089",
-    "deptype": "i"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "idx_broadcast_rate_limits_unique",
-    "referenced_object": "broadcast_rate_limits",
-    "deptype": "a"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "idx_broadcast_campaigns_user",
-    "referenced_object": "broadcast_campaigns",
-    "deptype": "a"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "idx_broadcast_campaigns_status",
-    "referenced_object": "broadcast_campaigns",
-    "deptype": "a"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "idx_broadcast_queue_campaign",
-    "referenced_object": "broadcast_queue",
-    "deptype": "a"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "idx_broadcast_queue_status",
-    "referenced_object": "broadcast_queue",
-    "deptype": "a"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "idx_broadcast_queue_scheduled",
-    "referenced_object": "broadcast_queue",
-    "deptype": "a"
-  },
-  {
-    "resource_type": "DEPENDENCY",
-    "dependent_object": "idx_broadcast_history_campaign",
-    "referenced_object": "broadcast_history",
-    "deptype": "a"
+  "acao_se_falta_obrigatoria": {
+    "voltar_para": "PASSO B",
+    "mensagem": "Antes de solicitar o extrato, preciso confirmar sua situação"
   }
-]
+}
+Por quê?
 
+Alguns passos dependem de informações anteriores
+Se lead pular etapas, sistema sabe o que está faltando
+Pode voltar para coletar info faltante
+
+
+🎯 ESTRUTURA FINAL RECOMENDADA PARA BLOCOS
+json{
+  "passo_id": "PASSO A",
+  "passo_nome": "Qualificar Lead",
+  "condicao": "Após apresentação inicial",
+  
+  // ✅ NOVO: Controle de fluxo inteligente
+  "prioridade": 1,  // 1-5 (1=crítico, 5=opcional)
+  "pode_ser_pulada": false,
+  "tipo": "qualificacao",
+  
+  // ✅ NOVO: Pré-requisitos
+  "informacoes_necessarias": {
+    "obrigatorias": ["lead_ativo"],
+    "opcionais": []
+  },
+  
+  "variacoes": [
+    {
+      "variacao_id": "A1",
+      "variacao_nome": "Perguntar situação consórcio",
+      
+      "validacao": {
+        "verificar_antes_de_executar": true,
+        "verificar_no_contexto": "situacao_consorcio",
+        "se_ja_feito": {
+          "pular_para": "PASSO B",
+          "motivo": "Situação já identificada"
+        }
+      },
+      
+      "instrucoes": {
+        "objetivo": "Identificar se cancelou, parou ou está pagando",
+        "o_que_fazer": "fazer_pergunta_e_aguardar_resposta",
+        "pergunta": "Você cancelou, parou de pagar ou está pagando o consórcio?",
+        
+        "decisoes": [
+          {
+            "numero": 1,
+            "se_cliente_falar": "cancelei",
+            "entao_ir_para": "PASSO B",
+            "prioridade": "alta",
+            
+            // ✅ NOVO: Captura automática
+            "captura_automatica": {
+              "campo": "situacao_consorcio",
+              "valor": "cancelado",
+              "salvar_em": "lead_data"
+            }
+          }
+        ]
+      },
+      
+      // ✅ NOVO: Fallback estruturado
+      "fallback": {
+        "se_nao_entender": {
+          "acao": "reformular",
+          "tentativas_maximas": 2,
+          "mensagem_alternativa": "Deixa reformular: você tem um consórcio ativo agora?",
+          "se_falhar": {
+            "acao": "transferir_humano",
+            "mensagem": "Vou te conectar com especialista"
+          }
+        },
+        "se_resposta_fora_contexto": {
+          "acao": "responder_e_voltar",
+          "usar": "faq_ou_company_info"
+        }
+      },
+      
+      "controle": {
+        "tentativas_maximas": 3,
+        "campo_obrigatorio": true
+      }
+    }
+  ]
+}
+
+📊 RESUMO: O QUE ADICIONAR NA ESTRUTURA?
+Campo NovoOndePara quêprioridade (1-5)passoDefinir se passo pode ser puladopode_ser_puladapassoBoolean simplestipopassoapresentacao, qualificacao, coleta_dados, finalizacaoinformacoes_necessariaspassoPré-requisitos do passocaptura_automaticadecisoes[]Capturar info antes da pergunta formalfallback.se_nao_entendervariacaoSe resposta não matchfallback.se_resposta_fora_contextovariacaoSe lead pergunta outra coisa
+
+
+
+mensagem que eu enviei a IA:
+Sim, por favor Mas antes planeje adicionar mais um bloco.
+Vou te contextualizar com um exemplo, deopis vou te falar o bloco que preciso.
+
+Alguns usuários utilizadm o agente para atendimeneto ao cliente em um mercado, e o cliente precisa fazer um epdido de vários prodtuos.
+O agente vai precsiar ir adicionando a escolha do cliente há uma lista (tool do supabase no agetne chamada add_list ) para ao final ele confirmar com o lead tudo que ele pediu para seguir em frente.
+Atualmente ele não adiciona, e o contexto de mensagens, só trás as ultimas 20 mensagens, então ele se esquece do que o clietne já selecionou pois conervou amis coisas depois.
+
+Seria interessante ter um bloco, para ser usado, com nome intuitivo, para o usuário adicionar, e neeste bloco o Agente irá chamar a tool e adicionar a lsita de pedido.
+
+Também poderá ter um segundo blcoo para Confirmar o pedido, assim ele busac tudo que o cliente escolheu, e  confirma.
+
+Analise e me responda com um planejamento antes de faer.
+
+MENSAGGEM QUE A IA RESPONDEU:
+
+📋 PLANEJAMENTO: NOVOS BLOCOS DE GERENCIAMENTO DE LISTA
+
+🎯 CONTEXTO DO PROBLEMA
+Cenário Real:
+
+Mercado/restaurante com catálogo de produtos
+Cliente quer fazer pedido com múltiplos itens
+Conversa longa (>20 mensagens) → contexto limitado
+Agente "esquece" itens anteriores
+Sem lista persistente → pedidos incompletos
+
+Necessidade:
+
+Persistir escolhas do cliente em lista externa (Supabase)
+Adicionar itens conforme cliente escolhe
+Recuperar lista completa para confirmação final
+Interface intuitiva para usuário leigo configurar
+
+
+🧩 SOLUÇÃO: 2 NOVOS BLOCOS
+BLOCO 16: add_to_list
+Nome Intuitivo: "Adicionar Item ao Pedido"
+BLOCO 17: confirm_list
+Nome Intuitivo: "Confirmar Pedido Completo"
+
+📊 ANÁLISE DETALHADA
+BLOCO 16: ADICIONAR ITEM AO PEDIDO
+Objetivo:
+Capturar escolha do cliente e adicionar à lista persistente via tool add_list
+Comportamento:
+Cliente: "Quero 2kg de tomate"
+↓
+Agente identifica: produto="tomate", quantidade="2kg"
+↓
+Chama tool: add_list(produto, quantidade)
+↓
+Confirma: "Adicionei 2kg de tomate ao seu pedido! ✅"
+↓
+Pergunta: "Mais alguma coisa?"
+```
+
+#### **Tipo Técnico:** `add_to_list`
+
+#### **Características:**
+- ✅ USA TOOL (chama `add_list` no Supabase)
+- ✅ Extrai informações da mensagem do cliente
+- ✅ Confirma adição ao cliente
+- ✅ Continua fluxo (não finaliza conversa)
+- ✅ Pode ser usado MÚLTIPLAS vezes no mesmo flow
+
+---
+
+### **BLOCO 17: CONFIRMAR PEDIDO COMPLETO**
+
+#### **Objetivo:**
+Buscar lista completa de itens e apresentar para confirmação do cliente
+
+#### **Comportamento:**
+```
+Cliente: "É isso, pode finalizar"
+↓
+Agente chama tool: get_list() → retorna todos os itens
+↓
+Formata lista:
+"Seu pedido:
+- 2kg de tomate - R$ 12,00
+- 1kg de cebola - R$ 6,00
+- 500g de alho - R$ 8,00
+━━━━━━━━━━━━━━━
+Total: R$ 26,00
+
+Está tudo certo?"
+↓
+Aguarda confirmação (Sim/Não)
+Tipo Técnico: confirm_list
+Características:
+
+✅ USA TOOL (chama get_list no Supabase)
+✅ Formata lista de forma clara
+✅ Calcula total (se houver preços)
+✅ Aguarda confirmação do cliente
+✅ Decisões: aprovar → próximo passo | corrigir → voltar
+
+
+🔍 QUESTÕES CRÍTICAS A RESOLVER
+1. Como o agente identifica O QUE adicionar?
+Opção A: Extração automática (mais inteligente)
+json"instrucoes": {
+  "objetivo": "Identificar produto e quantidade na mensagem do cliente",
+  "o_que_fazer": "adicionar_item_ao_pedido",
+  "extrair_da_mensagem": {
+    "campos": ["produto", "quantidade", "observacao"],
+    "produto": "OBRIGATORIO",
+    "quantidade": "OPCIONAL (padrão: 1 unidade)",
+    "observacao": "OPCIONAL"
+  }
+}
+Exemplo:
+
+Cliente: "Quero 2kg de tomate maduro"
+Agente extrai:
+
+produto: "tomate"
+quantidade: "2kg"
+observacao: "maduro"
+
+
+
+Opção B: Produto pré-definido no bloco (menos flexível)
+json"instrucoes": {
+  "produto_fixo": "Plano Premium",
+  "perguntar_quantidade": true
+}
+❓ Qual preferir?
+→ Opção A (extração automática) é mais versátil
+
+2. Como o agente sabe se a tool add_list existe?
+Solução: Adicionar verificação no prompt
+json"dados_extras": {
+  "modo_ia": "tool_execution",
+  "tool_name": "add_list",
+  "tool_parameters": {
+    "product": "[EXTRAIR_DA_MENSAGEM]",
+    "quantity": "[EXTRAIR_DA_MENSAGEM]",
+    "notes": "[EXTRAIR_DA_MENSAGEM]"
+  },
+  "se_tool_nao_disponivel": {
+    "acao": "informar_erro",
+    "mensagem": "Desculpe, não consigo adicionar ao pedido agora. Vou transferir para atendente."
+  }
+}
+
+3. Como exibir a lista no BLOCO 17?
+Desafios:
+
+Lista pode ter 1 item ou 50 itens
+Pode ter ou não ter preços
+Pode ter ou não ter total
+
+Solução: Template flexível
+json"instrucoes": {
+  "objetivo": "Buscar e confirmar lista completa de itens",
+  "o_que_fazer": "confirmar_pedido_completo",
+  
+  "formato_exibicao": {
+    "com_preco": "• {quantidade} {produto} - R$ {preco}",
+    "sem_preco": "• {quantidade} {produto}",
+    "incluir_total": true,
+    "incluir_emojis": true
+  },
+  
+  "mensagem_antes_lista": "Perfeito! Aqui está seu pedido:",
+  "mensagem_depois_lista": "Está tudo certo? Confirma?",
+  
+  "decisoes": [
+    {
+      "se_cliente_falar": "sim, confirmo, tudo certo",
+      "entao_ir_para": "PASSO_PROXIMO"
+    },
+    {
+      "se_cliente_falar": "não, mudar, corrigir",
+      "entao_ir_para": "PASSO_CORRECAO"
+    }
+  ]
+}
+
+4. E se cliente quiser REMOVER item da lista?
+Opção A: Criar BLOCO 18 separado
+
+remove_from_list - "Remover Item do Pedido"
+
+Opção B: Integrar no BLOCO 16
+json"instrucoes": {
+  "o_que_fazer": "gerenciar_item_pedido",
+  "acoes_possiveis": ["adicionar", "remover", "alterar_quantidade"],
+  
+  "se_cliente_falar_adicionar": "adicionar tool add_list",
+  "se_cliente_falar_remover": "remover tool remove_list",
+  "se_cliente_falar_alterar": "atualizar tool update_list"
+}
+```
+
+**❓ Qual melhor?**
+→ **Opção A (bloco separado)** mantém simplicidade
+→ **Opção B (integrado)** é mais flexível mas complexo para usuário leigo
+
+**RECOMENDAÇÃO:** Começar com Opção A (3 blocos simples)
+
+---
+
+### **5. Como usuário leigo configura esses blocos?**
+
+**Interface Visual Proposta:**
+
+#### **BLOCO: Adicionar ao Pedido**
+```
+┌─────────────────────────────────────────┐
+│ ➕ Adicionar Item ao Pedido             │
+├─────────────────────────────────────────┤
+│ O que fazer quando cliente escolher    │
+│ um produto:                             │
+│                                         │
+│ ✅ Identificar automaticamente o        │
+│    produto que o cliente mencionou      │
+│                                         │
+│ Mensagem de confirmação:                │
+│ "Adicionei {produto} ao seu pedido! ✅" │
+│                                         │
+│ Perguntar mais itens?                   │
+│ [x] Sim: "Mais alguma coisa?"           │
+│ [ ] Não: Seguir para próximo passo      │
+│                                         │
+│ Próximo passo:                          │
+│ [Escolher passo ▼]                      │
+└─────────────────────────────────────────┘
+```
+
+#### **BLOCO: Confirmar Pedido**
+```
+┌─────────────────────────────────────────┐
+│ ✅ Confirmar Pedido Completo            │
+├─────────────────────────────────────────┤
+│ Mensagem antes da lista:                │
+│ "Perfeito! Aqui está seu pedido:"       │
+│                                         │
+│ Formato da lista:                       │
+│ [x] Mostrar quantidade                  │
+│ [x] Mostrar preço (se disponível)       │
+│ [x] Mostrar total                       │
+│ [x] Usar emojis                         │
+│                                         │
+│ Mensagem após lista:                    │
+│ "Está tudo certo? Confirma?"            │
+│                                         │
+│ ✅ Se cliente confirmar:                │
+│    → Ir para: [Escolher passo ▼]        │
+│                                         │
+│ ❌ Se cliente quiser corrigir:          │
+│    → Ir para: [Escolher passo ▼]        │
+└─────────────────────────────────────────┘
+
+📦 ESTRUTURA JSONB PROPOSTA
+BLOCO 16: add_to_list
+json{
+  "variacao_id": "F1",
+  "variacao_nome": "Adicionar Produto ao Pedido",
+  
+  "validacao": {
+    "verificar_antes_de_executar": false
+  },
+  
+  "instrucoes": {
+    "objetivo": "Identificar produto mencionado e adicionar à lista de pedidos",
+    "o_que_fazer": "adicionar_item_ao_pedido",
+    
+    "mensagem_principal": "Perfeito! Adicionei {produto} ({quantidade}) ao seu pedido! ✅",
+    
+    "perguntar_mais": {
+      "ativo": true,
+      "mensagem": "Mais alguma coisa?"
+    },
+    
+    "dados_extras": {
+      "modo_ia": "tool_execution",
+      "tool_name": "add_list",
+      
+      "extrair_da_mensagem": {
+        "campos": ["produto", "quantidade", "observacao"],
+        "produto": {
+          "obrigatorio": true,
+          "fallback_se_nao_encontrar": "perguntar_qual_produto"
+        },
+        "quantidade": {
+          "obrigatorio": false,
+          "valor_padrao": "1 unidade"
+        },
+        "observacao": {
+          "obrigatorio": false
+        }
+      },
+      
+      "tool_parameters": {
+        "product": "[EXTRAIR:produto]",
+        "quantity": "[EXTRAIR:quantidade]",
+        "notes": "[EXTRAIR:observacao]",
+        "lead_id": "[SISTEMA:lead_id]",
+        "conversation_id": "[SISTEMA:conversation_id]"
+      },
+      
+      "se_tool_falhar": {
+        "acao": "informar_erro",
+        "mensagem": "Desculpe, tive um problema ao adicionar. Vou te conectar com atendente.",
+        "ir_para": "transfer_to_human"
+      }
+    },
+    
+    "decisoes": [
+      {
+        "numero": 1,
+        "tipo": "automatico",
+        "comportamento": "EXECUTAR_TOOL_E_PERGUNTAR_MAIS",
+        "entao_ir_para": "",  // Volta para mesmo bloco (loop)
+        "condicao": "se cliente mencionar mais produtos"
+      },
+      {
+        "numero": 2,
+        "tipo": "resposta_usuario",
+        "se_cliente_falar": "não, é isso, finalizar",
+        "entao_ir_para": "PASSO_CONFIRMACAO",
+        "prioridade": "alta"
+      }
+    ]
+  },
+  
+  "controle": {
+    "tentativas_maximas": null,  // Pode adicionar quantos itens quiser
+    "campo_obrigatorio": false,
+    "timeout_segundos": null
+  },
+  
+  "_metadata": {
+    "tipo_tecnico": "add_to_list",
+    "posicao_canvas": { "x": 800, "y": 300 },
+    "id_original_node": "16"
+  }
+}
+
+BLOCO 17: confirm_list
+json{
+  "variacao_id": "G1",
+  "variacao_nome": "Confirmar Lista de Pedidos",
+  
+  "validacao": {
+    "verificar_antes_de_executar": true,
+    "verificar_no_contexto": "se lista de pedidos está vazia",
+    "se_ja_feito": {
+      "acao": "verificar_lista",
+      "se_lista_vazia": {
+        "mensagem": "Você ainda não adicionou nenhum item ao pedido. O que gostaria?",
+        "pular_para": "PASSO_ADICIONAR_ITEM"
+      }
+    }
+  },
+  
+  "instrucoes": {
+    "objetivo": "Buscar lista completa de itens e confirmar com cliente",
+    "o_que_fazer": "confirmar_pedido_completo",
+    
+    "mensagem_antes_lista": "Perfeito! Aqui está seu pedido:",
+    "mensagem_depois_lista": "Está tudo certo? Confirma? ✅",
+    
+    "dados_extras": {
+      "modo_ia": "tool_execution_then_send",
+      "tool_name": "get_list",
+      
+      "tool_parameters": {
+        "lead_id": "[SISTEMA:lead_id]",
+        "conversation_id": "[SISTEMA:conversation_id]"
+      },
+      
+      "formato_exibicao": {
+        "template_item_com_preco": "• {quantidade} {produto} - R$ {preco}",
+        "template_item_sem_preco": "• {quantidade} {produto}",
+        "incluir_total": true,
+        "incluir_emojis": true,
+        "separador": "━━━━━━━━━━━━━━━",
+        "emoji_item": "•",
+        "emoji_total": "💰"
+      },
+      
+      "se_tool_falhar": {
+        "acao": "informar_erro",
+        "mensagem": "Não consegui recuperar seu pedido. Vou te conectar com atendente.",
+        "ir_para": "transfer_to_human"
+      },
+      
+      "se_lista_vazia": {
+        "acao": "informar_vazio",
+        "mensagem": "Você ainda não adicionou nenhum item. O que gostaria de pedir?",
+        "ir_para": "PASSO_ADICIONAR_ITEM"
+      }
+    },
+    
+    "decisoes": [
+      {
+        "numero": 1,
+        "tipo": "resposta_usuario",
+        "se_cliente_falar": "sim, confirmo, tudo certo, ok",
+        "entao_ir_para": "PASSO_FINALIZAR_PEDIDO",
+        "prioridade": "alta"
+      },
+      {
+        "numero": 2,
+        "tipo": "resposta_usuario",
+        "se_cliente_falar": "não, errado, mudar, corrigir, remover",
+        "entao_ir_para": "PASSO_CORRIGIR_PEDIDO",
+        "prioridade": "alta"
+      },
+      {
+        "numero": 3,
+        "tipo": "resposta_usuario",
+        "se_cliente_falar": "adicionar mais",
+        "entao_ir_para": "PASSO_ADICIONAR_ITEM",
+        "prioridade": "média"
+      }
+    ]
+  },
+  
+  "controle": {
+    "tentativas_maximas": 3,
+    "campo_obrigatorio": true,
+    "timeout_segundos": 300
+  },
+  
+  "_metadata": {
+    "tipo_tecnico": "confirm_list",
+    "posicao_canvas": { "x": 1200, "y": 300 },
+    "id_original_node": "17"
+  }
+}
+
+🎯 RESUMO DO PLANEJAMENTO
+2 Novos Blocos:
+BlocoTipo TécnicoFunçãoTool16add_to_listAdicionar item ao pedidoadd_list17confirm_listConfirmar pedido completoget_list
+
+Campos Novos Introduzidos:
+No BLOCO 16 (add_to_list):
+json"extrair_da_mensagem": {
+  "campos": ["produto", "quantidade", "observacao"],
+  "produto": { "obrigatorio": true }
+}
+
+"perguntar_mais": {
+  "ativo": true,
+  "mensagem": "Mais alguma coisa?"
+}
+No BLOCO 17 (confirm_list):
+json"formato_exibicao": {
+  "template_item_com_preco": "• {quantidade} {produto} - R$ {preco}",
+  "incluir_total": true
+}
+
+"se_lista_vazia": {
+  "acao": "informar_vazio",
+  "ir_para": "PASSO_ADICIONAR_ITEM"
+}
+
+❓ PERGUNTAS ANTES DE PROSSEGUIR
+1. Adicionar BLOCO 18 (remove_from_list) também?
+
+"Remover Item do Pedido"
+Permite cliente remover itens antes de confirmar
+
+2. Adicionar BLOCO 19 (clear_list)?
+
+"Limpar Pedido Completo"
+Cliente desiste e quer recomeçar
+
+3. Campo search_product deve ser usado antes de adicionar?
+
+BLOCO 16 poderia chamar search_product primeiro
+Pegar preço do produto
+Confirmar disponibilidade
+Depois adicionar com add_list
+
+4. Como tratar quantidade?
+
+Extração livre: "2kg", "3 unidades", "1 pacote"
+Padronizar: apenas número + unidade fixa?
+
+5. Observações/customizações do item?
+
+Cliente: "Quero tomate bem maduro"
+observacao: "bem maduro"
+Salvar na tool?
+
+
+✅ PRÓXIMOS PASSOS
+O QUE FAZER AGORA:
+1️⃣ Você responde as 5 perguntas acima
+2️⃣ Eu ajusto a estrutura conforme suas respostas
+3️⃣ Reescrevo a documentação COMPLETA com:
+
+15 blocos originais (com melhorias)
+2-4 blocos novos (list management)
+Estrutura atualizada com campos novos

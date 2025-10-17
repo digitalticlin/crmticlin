@@ -35,6 +35,9 @@ export default function EditAgent() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Estado inicial para detectar mudanças
+  const [initialFormData, setInitialFormData] = useState<any>(null);
+
   // Form data state
   const [formData, setFormData] = useState({
     // Step 1 - Básico
@@ -53,8 +56,7 @@ export default function EditAgent() {
     },
     agent_function: "",
     prohibitions: [] as string[],
-    signature: "",
-    message_signature_enabled: false,
+    signature: false,
     knowledge_base_enabled: false,
 
     // Step 3 - Conhecimento
@@ -91,20 +93,57 @@ export default function EditAgent() {
 
       if (agentError) throw agentError;
 
-      setFormData({
+      // Parse JSONB fields que vêm como string do banco
+      const parseJsonField = (field: any, fallback: any) => {
+        if (!field) return fallback;
+        if (typeof field === 'string') {
+          try {
+            return JSON.parse(field);
+          } catch (error) {
+            console.warn('Erro ao fazer parse de campo:', error);
+            return fallback;
+          }
+        }
+        return field;
+      };
+
+      const objective = parseJsonField(agent.objective, {
+        name: "Vendas",
+        description: "Seu objetivo é vender. Conduza a conversa para entender a necessidade do cliente, apresente soluções adequadas, contorne objeções de forma persuasiva e trabalhe ativamente para fechar a venda. Seja proativo em oferecer produtos/serviços e criar senso de urgência quando apropriado."
+      });
+
+      const communicationStyle = parseJsonField(agent.communication_style, {
+        name: "Normal",
+        description: "Use linguagem natural e acessível. Seja cordial sem ser formal demais. Pode usar \"você\" de forma amigável. Evite gírias excessivas, mas pode usar termos cotidianos. Seja claro, direto e mantenha equilíbrio entre profissionalismo e proximidade. Emojis ocasionais são aceitáveis."
+      });
+
+      const prohibitions = parseJsonField(agent.prohibitions, []);
+      const faq = parseJsonField(agent.faq, []);
+
+      // Debug para verificar os valores parseados
+      console.log('🔍 Dados carregados:', {
+        objective,
+        communicationStyle,
+        prohibitions: Array.isArray(prohibitions) ? `Array com ${prohibitions.length} itens` : typeof prohibitions,
+        faq: Array.isArray(faq) ? `Array com ${faq.length} itens` : typeof faq
+      });
+
+      const loadedData = {
         name: agent.name || "",
-        objective: agent.objective || { name: "Vendas", description: "Agente focado em converter leads em clientes, utilizando técnicas de persuasão e fechamento de vendas" },
+        objective: objective,
         funnel_id: agent.funnel_id,
         instance_phone: agent.instance_phone || null,
-        communication_style: agent.communication_style || { name: "Normal", description: "Comunicação equilibrada entre profissionalismo e acessibilidade, mantendo cordialidade sem excessos de formalidade" },
+        communication_style: communicationStyle,
         agent_function: agent.agent_function || "",
-        prohibitions: agent.prohibitions || [],
-        signature: agent.signature || "",
-        message_signature_enabled: agent.message_signature_enabled || false,
+        prohibitions: Array.isArray(prohibitions) ? prohibitions : [],
+        signature: agent.signature || false,
         knowledge_base_enabled: agent.knowledge_base_enabled || false,
         company_info: agent.company_info || "",
-        faq: agent.faq || [],
-      });
+        faq: Array.isArray(faq) ? faq : [],
+      };
+
+      setFormData(loadedData);
+      setInitialFormData(loadedData);
     } catch (error: any) {
       console.error('Erro ao carregar agente:', error);
       toast.error("Erro ao carregar dados do agente");
@@ -139,30 +178,49 @@ export default function EditAgent() {
     setIsSaving(true);
 
     try {
-      const { error: agentError } = await supabase
-        .from('ai_agents')
-        .update({
-          name: formData.name,
+      console.log('💾 Salvando agente...', {
+        id,
+        formData: {
+          ...formData,
           objective: formData.objective,
-          funnel_id: formData.funnel_id,
-          instance_phone: formData.instance_phone,
           communication_style: formData.communication_style,
-          agent_function: formData.agent_function,
           prohibitions: formData.prohibitions,
-          signature: formData.signature,
-          knowledge_base_enabled: formData.knowledge_base_enabled,
-          company_info: formData.company_info,
-          faq: formData.faq,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
+          faq: formData.faq
+        }
+      });
+
+      // Preparar dados para salvar - campos JSONB devem ser stringificados
+      const dataToSave = {
+        name: formData.name,
+        objective: JSON.stringify(formData.objective),
+        funnel_id: formData.funnel_id,
+        instance_phone: formData.instance_phone,
+        communication_style: JSON.stringify(formData.communication_style),
+        agent_function: formData.agent_function,
+        prohibitions: JSON.stringify(formData.prohibitions),
+        signature: formData.signature,
+        knowledge_base_enabled: formData.knowledge_base_enabled,
+        company_info: formData.company_info,
+        faq: JSON.stringify(formData.faq),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('📤 Dados serializados para envio:', dataToSave);
+
+      const { error: agentError, data: updatedData } = await supabase
+        .from('ai_agents')
+        .update(dataToSave)
+        .eq('id', id)
+        .select();
 
       if (agentError) throw agentError;
+
+      console.log('✅ Agente atualizado:', updatedData);
 
       toast.success("Agente atualizado com sucesso!");
       navigate('/ai-agents');
     } catch (error: any) {
-      console.error('Erro ao atualizar agente:', error);
+      console.error('❌ Erro ao atualizar agente:', error);
       toast.error(error.message || "Erro ao atualizar agente");
     } finally {
       setIsSaving(false);

@@ -151,6 +151,24 @@ export interface DecisaoIA {
   observacao?: string;           // "sem nome", "qualquer resposta"
 }
 
+// 🆕 Interface para sistema de Fallback (linguagem simples para usuário leigo)
+export interface FallbackConfig {
+  se_nao_entender?: {
+    acao: 'reformular' | 'transferir_humano' | 'pular_para' | 'nao_fazer_nada';
+    tentativas_maximas?: number;              // Quantas vezes tentar (padrão: 2)
+    mensagem_alternativa?: string;            // Como perguntar de forma diferente
+    se_falhar?: {
+      acao: 'transferir_humano' | 'pular_para' | 'seguir_fluxo';
+      mensagem?: string;                      // Mensagem ao transferir/pular
+      pular_para?: string;                    // PASSO B, PASSO C...
+    };
+  };
+  se_resposta_fora_contexto?: {
+    acao: 'responder_e_voltar' | 'transferir_humano' | 'ignorar';
+    usar?: 'faq' | 'company_info' | 'tools'; // De onde buscar resposta
+  };
+}
+
 export interface InstrucoesBloco {
   objetivo: string;                         // Descrição do que este bloco faz
   o_que_fazer: string;                      // "enviar_mensagem_e_aguardar_resposta"...
@@ -165,6 +183,7 @@ export interface InstrucoesBloco {
   regra_critica?: string;                  // Regra absoluta que não pode quebrar
   importante?: string;                     // Aviso importante
   dados_extras?: any;                      // Campos específicos de cada tipo
+  fallback?: FallbackConfig;               // 🆕 Sistema de fallback (opcional)
 }
 
 export interface ControleBloco {

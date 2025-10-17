@@ -18,7 +18,7 @@ serve(async (req)=>{
     });
   }
   try {
-    console.log('[AI Messaging Service] 🚀 Iniciando processamento - N8N AI Agent com suporte a áudio NATIVO corrigido');
+    console.log('[AI Messaging Service] 🚀 Iniciando processamento - v2.0 com suporte a IMAGENS e ÁUDIO');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const aiAgentApiKey = Deno.env.get('AI_AGENT_API_KEY');
@@ -40,7 +40,34 @@ serve(async (req)=>{
       });
     }
     // ✅ EXTRAIR DADOS DO PAYLOAD N8N
-    const { apiKey, instanceId, leadId, createdByUserId, phone, message, mediaType, mediaUrl, agentId, audioBase64, audioMetadata } = requestBody;
+    const {
+      instanceId,
+      leadId,
+      createdByUserId,
+      phone,
+      message,
+      mediaType,
+      mediaUrl,
+      agentId,
+      mediaBase64,      // ✅ NOVO: nome correto para qualquer mídia
+      audioBase64,      // 🔄 LEGADO: backward compatibility
+      audioMetadata,
+      // Legado (backward compatibility)
+      apiKey
+    } = requestBody;
+
+    // 🎯 FALLBACK: aceitar tanto mediaBase64 quanto audioBase64 (legado)
+    const base64Data = mediaBase64 || audioBase64;
+
+    console.log('[AI Messaging Service] 📦 Payload recebido:', {
+      hasMessage: message !== null && message !== undefined,
+      messageIsNull: message === null,
+      mediaType: mediaType,
+      hasMediaBase64: !!mediaBase64,
+      hasAudioBase64Legacy: !!audioBase64,
+      base64Length: base64Data?.length || 0,
+      usingField: mediaBase64 ? 'mediaBase64' : audioBase64 ? 'audioBase64 (legacy)' : 'none'
+    });
     // ✅ AUTENTICAÇÃO VIA .env COM FALLBACK FLEXÍVEL
     // - Aceita Authorization: Bearer <AI_AGENT_API_KEY>
     // - Aceita x-api-key / apikey no header
@@ -82,8 +109,7 @@ serve(async (req)=>{
         instanceId: !!instanceId,
         leadId: !!leadId,
         createdByUserId: !!createdByUserId,
-        phone: !!phone,
-        message: !!message
+        phone: !!phone
       });
       return new Response(JSON.stringify({
         success: false,
@@ -96,99 +122,136 @@ serve(async (req)=>{
         }
       });
     }
-    // ✅ PROCESSAR ÁUDIO COM DETECÇÃO INTELIGENTE DE FORMATO
+
+    // ✅ VALIDAR CONTEÚDO BASEADO NO TIPO DE MÍDIA
+    if (mediaType === 'text') {
+      if (!message || (typeof message === 'string' && message.trim().length === 0)) {
+        console.error('[AI Messaging Service] ❌ Mensagem de texto vazia');
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'message é obrigatório para mediaType=text'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else if (mediaType === 'image' || mediaType === 'audio') {
+      if (!base64Data || base64Data.trim().length === 0) {
+        console.error('[AI Messaging Service] ❌ Base64 vazio para mídia');
+        return new Response(JSON.stringify({
+          success: false,
+          error: `mediaBase64 ou audioBase64 é obrigatório para mediaType=${mediaType}`
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+    // ✅ PROCESSAR MÍDIA (IMAGEM, ÁUDIO ou TEXTO) COM DETECÇÃO INTELIGENTE
     let processedMediaUrl = mediaUrl;
     let processedMediaType = mediaType || 'text';
-    let messageText = message || '';
-    let vpsMessageText = message || ''; // ✅ SEPARAR TEXTO PARA VPS E BANCO
+    let messageText = message !== null && message !== undefined ? String(message) : '';
+    let vpsMessageText = messageText; // ✅ SEPARAR TEXTO PARA VPS E BANCO
     let isPTT = false;
     let audioFilename = null;
     let audioDuration = null;
     let finalMimeType = null;
-    if (audioBase64 && audioBase64.trim().length > 0) {
-      console.log('[AI Messaging Service] 🎵 Processando áudio Base64 NATIVO:', {
-        audioSize: audioBase64.length,
-        sizeKB: Math.round(audioBase64.length / 1024),
+
+    // 🎯 PROCESSAR BASE64 (IMAGEM ou ÁUDIO)
+    if (base64Data && base64Data.trim().length > 0) {
+      console.log('[AI Messaging Service] 📦 Processando Base64:', {
+        size: base64Data.length,
+        sizeKB: Math.round(base64Data.length / 1024),
+        mediaType: mediaType,
         hasMetadata: !!audioMetadata,
-        pttFlag: audioMetadata?.ptt,
-        originalMimeType: audioMetadata?.mimeType
+        mimeType: audioMetadata?.mimeType
       });
-      // ✅ CORREÇÃO CRÍTICA: DETECTAR FORMATO REAL DO ÁUDIO
-      let detectedMimeType = 'audio/ogg'; // padrão
-      if (audioMetadata?.mimeType) {
-        // 🎯 USAR MIME TYPE DO N8N SE DISPONÍVEL
-        detectedMimeType = audioMetadata.mimeType;
-        console.log('[AI Messaging Service] 🎯 Usando MIME type do N8N:', detectedMimeType);
-      } else {
-        // 🔍 FALLBACK: Detectar pelo header do Base64
+
+      // 🔍 DETECTAR MIME TYPE
+      let detectedMimeType = audioMetadata?.mimeType || 'image/jpeg';
+
+      if (!audioMetadata?.mimeType) {
+        // Tentar detectar pelo header do Base64
         try {
-          const audioBuffer = new Uint8Array(atob(audioBase64.substring(0, 100)).split('').map((c)=>c.charCodeAt(0)));
-          // Verificar headers de arquivo
-          if (audioBuffer[0] === 0xFF && audioBuffer[1] === 0xFB) {
+          const buffer = new Uint8Array(atob(base64Data.substring(0, 100)).split('').map(c => c.charCodeAt(0)));
+
+          // Detectar tipo de arquivo
+          if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) {
+            detectedMimeType = 'image/jpeg';
+          } else if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+            detectedMimeType = 'image/png';
+          } else if (buffer[0] === 0xFF && buffer[1] === 0xFB) {
             detectedMimeType = 'audio/mp3';
-          } else if (audioBuffer[0] === 0x4F && audioBuffer[1] === 0x67 && audioBuffer[2] === 0x67 && audioBuffer[3] === 0x53) {
+          } else if (buffer[0] === 0x4F && buffer[1] === 0x67 && buffer[2] === 0x67 && buffer[3] === 0x53) {
             detectedMimeType = 'audio/ogg';
-          } else {
-            // Padrão MP3 se não conseguir detectar (ElevenLabs usa MP3)
-            detectedMimeType = 'audio/mp3';
           }
-          console.log('[AI Messaging Service] 🔍 MIME type detectado automaticamente:', detectedMimeType);
+
+          console.log('[AI Messaging Service] 🔍 MIME type detectado:', detectedMimeType);
         } catch (detectError) {
-          console.log('[AI Messaging Service] ⚠️ Erro na detecção, usando MP3 como padrão');
-          detectedMimeType = 'audio/mp3';
+          console.log('[AI Messaging Service] ⚠️ Erro na detecção, usando padrão');
         }
       }
-      // ✅ VERIFICAR SE É ÁUDIO PTT NATIVO
-      if (audioMetadata && audioMetadata.ptt === true) {
-        console.log('[AI Messaging Service] 🎙️ Áudio PTT nativo detectado');
-        // 🎯 USAR FORMATO DETECTADO CORRETAMENTE
-        processedMediaUrl = `data:${detectedMimeType};base64,${audioBase64}`;
+
+      finalMimeType = detectedMimeType;
+
+      // 🖼️ PROCESSAR IMAGEM
+      if (mediaType === 'image' || detectedMimeType.startsWith('image/')) {
+        console.log('[AI Messaging Service] 🖼️ Processando IMAGEM:', {
+          mimeType: detectedMimeType,
+          fileName: audioMetadata?.filename
+        });
+
+        processedMediaUrl = `data:${detectedMimeType};base64,${base64Data}`;
+        processedMediaType = 'image';
+        messageText = '';
+        vpsMessageText = ' '; // VPS precisa de algo no campo message
+        audioFilename = audioMetadata?.filename || `image_${Date.now()}.${detectedMimeType.includes('png') ? 'png' : 'jpg'}`;
+
+        console.log('[AI Messaging Service] ✅ Imagem configurada:', {
+          filename: audioFilename,
+          mimeType: finalMimeType,
+          dataUrlLength: processedMediaUrl.length
+        });
+      }
+      // 🎵 PROCESSAR ÁUDIO
+      else if (mediaType === 'audio' || detectedMimeType.startsWith('audio/')) {
+        console.log('[AI Messaging Service] 🎵 Processando ÁUDIO:', {
+          mimeType: detectedMimeType,
+          isPTT: audioMetadata?.ptt
+        });
+
+        processedMediaUrl = `data:${detectedMimeType};base64,${base64Data}`;
         processedMediaType = 'audio';
-        isPTT = true;
-        audioFilename = audioMetadata.filename || `ptt_${Date.now()}.${detectedMimeType.includes('mp3') ? 'mp3' : 'ogg'}`;
-        audioDuration = audioMetadata.seconds || Math.ceil(audioBase64.length / 4000);
-        // ✅ CORREÇÃO PRINCIPAL: SEPARAR MENSAGEM VPS E BANCO
-        messageText = ''; // ❗ BANCO: vazio para áudio PTT
-        vpsMessageText = ' '; // ❗ VPS: espaço para passar validação mas não atrapalhar áudio
-        finalMimeType = detectedMimeType;
-        console.log('[AI Messaging Service] ✅ Áudio configurado como PTT nativo:', {
+
+        // Verificar se é PTT
+        if (audioMetadata && audioMetadata.ptt === true) {
+          isPTT = true;
+          audioFilename = audioMetadata.filename || `ptt_${Date.now()}.${detectedMimeType.includes('mp3') ? 'mp3' : 'ogg'}`;
+          audioDuration = audioMetadata.seconds || Math.ceil(audioBase64.length / 4000);
+          messageText = '';
+          vpsMessageText = ' ';
+        } else {
+          audioFilename = audioMetadata?.filename || `audio_${Date.now()}.${detectedMimeType.includes('mp3') ? 'mp3' : 'ogg'}`;
+          messageText = messageText || '';
+          vpsMessageText = messageText || ' ';
+        }
+
+        console.log('[AI Messaging Service] ✅ Áudio configurado:', {
           filename: audioFilename,
           duration: audioDuration,
-          isPTT: true,
-          mimeType: finalMimeType,
-          messageIsEmpty: messageText === '',
-          vpsMessage: vpsMessageText,
-          dataUrlPrefix: processedMediaUrl.substring(0, 50) + '...'
+          isPTT: isPTT,
+          mimeType: finalMimeType
         });
-      } else {
-        console.log('[AI Messaging Service] ⚠️ Áudio como encaminhamento (sem PTT)');
-        // Converter Base64 para DataURL no formato correto
-        processedMediaUrl = `data:${detectedMimeType};base64,${audioBase64}`;
-        processedMediaType = 'audio';
-        messageText = messageText || ''; // ✅ MANTER MENSAGEM ORIGINAL OU VAZIA
-        vpsMessageText = messageText || ' '; // ✅ VPS: espaço se vazio
-        finalMimeType = detectedMimeType;
       }
-      console.log('[AI Messaging Service] ✅ Áudio convertido para DataURL:', {
-        mediaType: processedMediaType,
-        dataUrlLength: processedMediaUrl.length,
-        isPTT: isPTT,
-        mimeTypeUsed: finalMimeType,
-        finalMessageText: messageText === '' ? 'EMPTY' : messageText,
-        vpsMessageText: vpsMessageText
-      });
     }
-    console.log('[AI Messaging Service] 📤 Processando mensagem do AI Agent:', {
+    console.log('[AI Messaging Service] 📤 Processando mensagem:', {
       instanceId,
       leadId,
-      createdByUserId,
       phone: phone.substring(0, 4) + '****',
-      messageLength: messageText.length,
       mediaType: processedMediaType,
-      hasAudio: !!audioBase64,
-      hasMediaUrl: !!processedMediaUrl,
-      isPTT: isPTT,
-      agentId: agentId || 'N/A'
+      hasBase64: !!base64Data,
+      messageLength: messageText.length,
+      isPTT: isPTT
     });
     // ✅ CLIENTE SUPABASE COM SERVICE ROLE (BYPASS RLS)
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -525,14 +588,14 @@ serve(async (req)=>{
       messageId: vpsData.messageId || 'N/A',
       timestamp: vpsData.timestamp,
       mediaType: processedMediaType,
-      hasAudio: !!audioBase64,
+      hasMedia: !!base64Data,
       isPTT: isPTT,
       finalMimeType: finalMimeType,
       agentId: agentId || 'N/A',
       vpsInstanceId: realVpsInstanceId,
       originalVpsInstanceId: vpsInstanceId,
       phone: phone.substring(0, 4) + '****',
-      messageTextSaved: messageText === '' ? 'EMPTY_FOR_AUDIO' : messageText,
+      messageTextSaved: messageText === '' ? 'EMPTY_FOR_MEDIA' : messageText,
       vpsMessageSent: vpsMessageText === ' ' ? 'SINGLE_SPACE_FOR_VALIDATION' : vpsMessageText
     });
     // ✅ SALVAR MENSAGEM NO BANCO COM RPC ISOLADA AI (FLUXO DIRETO)
@@ -562,7 +625,7 @@ serve(async (req)=>{
         p_profile_pic_url: null,
         p_base64_data: extractedBase64,  // ✅ Base64 para upload
         p_mime_type: extractedMimeType,
-        p_file_name: null,
+        p_file_name: audioFilename,
         p_whatsapp_number_id: instanceData?.id || null,
         p_source_edge: 'ai_messaging_service'
       });
@@ -573,7 +636,7 @@ serve(async (req)=>{
           messageId: saveResult.data?.message_id,
           leadId: saveResult.data?.lead_id,
           mediaType: processedMediaType,
-          hasAudio: !!audioBase64,
+          hasMedia: !!base64Data,
           isPTT: isPTT,
           savedText: messageText === '' ? 'EMPTY_STRING' : messageText,
           agentId: agentId || 'N/A',
@@ -598,7 +661,7 @@ serve(async (req)=>{
         leadId: leadData.id,
         phone: phone.replace(/\D/g, ''),
         mediaType: processedMediaType,
-        hasAudio: !!audioBase64,
+        hasMedia: !!base64Data,
         isPTT: isPTT,
         finalMimeType: finalMimeType,
         timestamp: vpsData.timestamp || new Date().toISOString(),

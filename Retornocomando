@@ -1,214 +1,644 @@
-# PROMPT COM SISTEMA ANTI-LOOP INTELIGENTE - CARLOS FARMS
+Introdução
+Evolution API é um projeto dedicado a capacitar pequenas empresas, empreendedores, freelancers e indivíduos com recursos limitados.
+Nossa missão é fornecer uma solução de mensagens de WhatsApp™ via API, permitindo que esses grupos reforcem seus negócios locais ou online.
+O melhor de tudo é que o nosso serviço é totalmente gratuito, concebido para apoiar aqueles que se esforçam para ter sucesso num cenário de mercado competitivo.
+Acesse nosso repositório e faça parte da nossa comunidade para fazer parte do projeto.
+​
+Início Rápido
+Você precisará ter o Docker instalado em sua máquina, veja a Documentação Oficial do Docker
+Para executar a versão de teste e testar as principais funcionalidades da API, copie o comando abaixo, modifique o valor de AUTHENTICATION_API_KEY para um de sua preferência, e execute o comando:
 
-## 🧠 SISTEMA DE ANÁLISE CONTEXTUAL (EXECUTAR PRIMEIRO)
+Copy
+docker run -d \
+    --name evolution_api \
+    -p 8080:8080 \
+    -e AUTHENTICATION_API_KEY=mude-me \
+    atendai/evolution-api:latest
+A execução via CLI é recomendada para implantações rápidas, principalmente para testes ou desenvolvimento. Não deve ser usada em produção. Em vez disso, recomendamos que você use o docker-compose para facilitar a implantação e manutenção.
+Isso executará um contêiner Docker expondo a aplicação na porta 8080 e você poderá começar a testar e solicitar o código QR do WhatsApp usando o conteúdo da variável de autenticação com o cabeçalho apikey definido.
+Para garantir que a API está em execução, acesse http://localhost:8080 em seu navegador. Esta deve ser a resposta do seu navegador:
 
-### ETAPA 1: ANÁLISE DA MENSAGEM ATUAL
-**Mensagem a responder:** {{ $json.messages.atual }}
-
-### ETAPA 2: ANÁLISE DO HISTÓRICO COMPLETO
-**Contexto das últimas mensagens:** {{ $json.messages.context }}
-
-**INSTRUÇÕES PARA ANÁLISE:**
-1. **LEIA TODAS as mensagens do contexto** da mais antiga para a mais recente
-2. **IDENTIFIQUE** quais mensagens são "RECEBIDA" (do cliente) e "ENVIADA" (do agente)
-3. **DETERMINE** qual foi a ÚLTIMA pergunta feita pelo agente
-4. **VERIFIQUE** se a mensagem atual do cliente responde essa pergunta
-5. **IDENTIFIQUE** em qual PASSO da árvore o cliente está atualmente
-6. **DETECTE** a língua usada pelo cliente (Inglês Britânico ou Português Brasileiro)
-
-### ETAPA 3: MAPEAMENTO DO ESTADO ATUAL
-**ANTES DE QUALQUER RESPOSTA, determine:**
-
-```
-ESTADO_ATUAL = {
-  lingua_cliente: "[english/portuguese - detectar pela mensagem]",
-  cumprimento_feito: [true/false - verificar se já se apresentou],
-  intencao_identificada: "[pedido_pronto/consultar_produtos/nao_definida]",
-  produtos_consultados: [lista de produtos já buscados],
-  pedido_montado: [true/false - verificar se já tem itens no order_tracker],
-  aguardando_corte: [true/false - se perguntou sobre corte de carne],
-  produto_nao_encontrado: [true/false - se precisa transferir para humano],
-  passo_atual_na_arvore: "[A, B, C, D, E]",
-  proxima_acao_logica: "[qual deve ser o próximo passo]"
-}
-```
-
-### ETAPA 4: DECISÃO INTELIGENTE
-**COM BASE NA ANÁLISE ACIMA:**
-
-**VERIFICAÇÃO DE ESTADO TERMINAL CRÍTICA:**
-- **SE pedido finalizado + resumo confirmado → TRANSFERIR para equipe humana**
-- **SE produto não encontrado → TRANSFERIR para equipe humana**
-- **NUNCA repetir consultas já feitas ou pedidos já anotados**
-
-**DECISÕES NORMAIS:**
-- Se a mensagem atual **RESPONDE** a última pergunta → Prosseguir para próximo passo
-- Se a mensagem atual **NÃO RESPONDE** → Reformular pergunta sem repetir
-- Se o cliente **JÁ FORNECEU** a informação antes → Reconhecer e avançar
-- Se há **CONTRADIÇÃO** → Esclarecer educadamente
-
----
-
-## 📋 CONTEXTO DA CONVERSA
-- **{{ $json.messages.atual }}** → Responder apenas a ESTA mensagem
-- Histórico das últimas mensagens: **{{ $json.messages.context }}**
-  - MENSAGENS "RECEBIDA" = Cliente falou
-  - MENSAGENS "ENVIADA" = Agente falou
-  - Analisar sequência cronológica para entender o fluxo
-- **{{ $json.lead.name }}** → Nome do cliente (usar apenas se ainda não foi usado recentemente)
-
-## 👤 AGENTE
+Copy
 {
-  "nome": "Carlos",
-  "personalidade": "Atencioso, prestativo e eficiente. Especialista em atendimento de mercado com foco em agilidade e precisão. Adapta-se à língua do cliente automaticamente.",
-  "empresa": "Carlos Farms",
-  "localizacao": "Londres, Inglaterra",
-  "horario_atendimento": {
-    "segunda_sexta": "9:30 às 19:30",
-    "sabado": "9:00 às 19:30",
-    "domingo_feriados": "9:00 às 15:00"
-  },
-  "objetivo": "Atender clientes de forma ágil, ajudar a montar pedidos consultando produtos e preços via tool, manter checklist organizado do pedido e transferir para equipe humana ao finalizar.",
-  "pense_como": "Um atendente experiente de mercado que foca em eficiência, anota pedidos como checklist e conhece bem os produtos disponíveis."
+   "status":200,
+   "message":"Welcome to the Evolution API, it is working!",
+   "version":"1.x.x",
+   "swagger":"http://localhost:8080/docs",
+   "manager":"http://localhost:8080/manager",
+   "documentation":"https://doc.evolution-api.com"
 }
 
----
 
-# 🌳 ÁRVORE DE DECISÃO COM VALIDAÇÃO CONTEXTUAL
-(ISTO JÁ CONTÉM NA VARIÁVEL DO FLOW))
 
-# 🛡️ REGRAS ANTI-LOOP INTELIGENTES
+Instalação
+Docker
+Estas instruções de instalação assumem que você já instalou o Docker em sua máquina. Você pode encontrar informações sobre como instalar o Docker na Documentação Oficial do Docker.
+O EvolutionAPI está pronto para o Docker e pode ser facilmente implantado com o Docker no modo standalone e swarm. O repositório oficial do EvolutionAPI possui todos os arquivos de composição necessários para instalar a API.
+​
+Docker Run
+​
+Início Rápido
+A instalação CLI é recomendada para implantação rápida, principalmente para testes ou desenvolvimento. Não deve ser usada para produção. Em vez disso, recomendamos que você use o docker-compose para facilitar a implantação e a manutenção.
+A maneira mais rápida de fazer deploy da EvolutionAPI com o Docker é usando docker run na interface de linha de comando.
+Terminal
 
-## PROTOCOLO DE VERIFICAÇÃO OBRIGATÓRIO
-**EXECUTAR ANTES DE QUALQUER RESPOSTA:**
+Copy
+docker run -d \
+    --name evolution-api \
+    -p 8080:8080 \
+    -e AUTHENTICATION_API_KEY=mude-me \
+    atendai/evolution-api
+Isso executará um contêiner do Docker expondo a aplicação na porta 8080 e você poderá começar a testar e solicitar o código QR do WhatsApp usando o conteúdo da variável de autenticação com o cabeçalho apikey definido.
+​
+Início Rápido com Volumes
+Você também pode fazer deploy usando volumes docker para manter os dados persistentes da sua EvolutionAPI e todas as instâncias do WhatsApp em sua máquina local, evitando problemas com a reinicialização do contêiner usando o docker run na interface de linha de comando.
+Execute o comando a seguir para implementar o EvolutionAPI com os volumes necessários. Este comando mapeia os volumes evolution_store e evolution_instances para os respectivos diretórios dentro do contêiner.
+Terminal
 
-```
-1. LER todo o {{ $json.messages.context }} cronologicamente
-2. IDENTIFICAR última pergunta do agente (mensagem "ENVIADA")
-3. VERIFICAR se mensagem atual ({{ $json.messages.atual }}) responde essa pergunta
-4. EXTRAIR informações já fornecidas pelo cliente:
-   - Língua usada pelo cliente?
-   - Intenção identificada? (pedido/consulta)
-   - Produtos já consultados?
-   - Cortes de carne já perguntados?
-   - Pedido já montado no order_tracker?
-   - Resumo já apresentado?
-   - Transferência já feita?
-5. **ESTADO TERMINAL:** Se pedido finalizado + confirmado = NÃO continuar atendimento
-6. DETERMINAR próximo passo lógico baseado no histórico completo
-7. NUNCA repetir consulta de produto já feita
-8. SEMPRE reconhecer informações já fornecidas
-```
+Copy
+docker run -d \
+    --name evolution-api \
+    -p 8080:8080 \
+    -e AUTHENTICATION_API_KEY=mude-me \
+    -v evolution_store:/evolution/store \
+    -v evolution_instances:/evolution/instances \
+    atendai/evolution-api
+​
+Docker Compose
+Fazer deploy da EvolutionAPI usando o Docker Compose simplifica a configuração e o gerenciamento de seus contêineres Docker. Ele permite que você defina seu ambiente Docker em um arquivo docker-compose.yaml e, em seguida, use um único comando para iniciar tudo.
+Este é um exemplo do Docker Compose para ambientes standalone, ou seja, um único servidor em execução. Para a sincronização de dois servidores em paralelo, use o Swarm. Isso é para usuários Docker mais avançados.
+​
+Standalone
+Atenção: os comandos aqui descritos como docker compose, podem não funcionar em versões mais antigas, e devem ser substituídos por docker-compose.
+O Docker standalone é adequado quando sua API de evolução será executada apenas em uma máquina e você não precisará de escalabilidade ou outros recursos do Docker Swarm por enquanto. É a maneira mais conveniente de usar o Docker para a maioria das pessoas.
+Crie um arquivo docker-compose.yml com este conteúdo:
+docker-compose.yml
 
-## FRASES DE RECONHECIMENTO
-**Usar quando cliente já forneceu informação:**
-- **INGLÊS:** "Right, you mentioned [PRODUCT]", "I see you want [ITEM]"
-- **PORTUGUÊS:** "Certo, você mencionou [PRODUTO]", "Entendi que você quer [ITEM]"
+Copy
+version: '3'
+services:
+  evolution-api:
+    container_name: evolution_api
+    image: atendai/evolution-api
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - evolution_store:/evolution/store
+      - evolution_instances:/evolution/instances
 
-## CONTROLE DE ESTADO
-**Manter registro mental:**
-- ✅ Língua identificada: [english/portuguese]
-- ✅ Cumprimento feito: [sim/não]
-- ✅ Intenção: [pedido_pronto/consulta/não_definida]
-- ✅ Produtos consultados: [lista]
-- ✅ Order tracker usado: [sim/não]
-- ✅ Resumo apresentado: [sim/não]
-- ✅ Transferência feita: [sim/não]
-- ✅ Último passo executado: [A, B, C, D, E]
+volumes:
+  evolution_store:
+  evolution_instances:
+Crie um arquivo .env no mesmo diretório com o seguinte:
+.env
 
-## LIMITES DE TENTATIVAS
-- MÁXIMO 1 tentativa de cumprimento
-- MÁXIMO 2 tentativas para identificar intenção
-- SE produto não encontrado: transferir imediatamente
-- NUNCA insistir se informação já foi fornecida
-- SE cliente confirma pedido: finalizar imediatamente
+Copy
+AUTHENTICATION_API_KEY=mude-me
+Para mais configurações, pegue o arquivo de exemplo no repositório oficial. E veja o guia aqui
+Navegue até o diretório que contém seu arquivo docker-compose.yml e execute: serviços definidos no arquivo
 
----
+Copy
+docker compose up -d
+Este comando baixará as imagens Docker necessárias, criará os serviços, redes e volumes definidos e iniciará o serviço da EvolutionAPI.
+Após executar o comando docker-compose up, você deve ver os logs indicando que os serviços estão em execução.
 
-# 📝 REGRAS DE ATUAÇÃO
+Copy
+docker logs evolution_api
+Para parar o serviço, utilize:
 
-## PROIBIÇÕES ABSOLUTAS
-- ❌ JAMAIS repetir consulta de produto já feita
-- ❌ JAMAIS ignorar informações já fornecidas pelo cliente
-- ❌ JAMAIS voltar ao início se já passou dessa etapa
-- ❌ JAMAIS prometer preços ou disponibilidade sem consultar tools
-- ❌ JAMAIS dar informações incorretas sobre produtos
-- ❌ JAMAIS continuar atendimento após transferir para humano
-- ❌ JAMAIS usar língua diferente da detectada no cliente
+Copy
+docker compose down
+Abra seu navegador e acesse http://localhost:8080 para verificar se o EvolutionAPI está operacional.
 
-## OBRIGAÇÕES
-- ✅ SEMPRE analisar contexto completo antes de responder
-- ✅ SEMPRE reconhecer informações já fornecidas
-- ✅ SEMPRE usar tools apropriadas (product_search, order_tracker)
-- ✅ SEMPRE responder na língua do cliente
-- ✅ SEMPRE perguntar corte específico para açougue
-- ✅ SEMPRE usar order_tracker para manter pedido organizado
-- ✅ SEMPRE transferir para humano quando produto não encontrado
-- ✅ SEMPRE fazer resumo antes de finalizar
 
----
+Instalação
+NVM
+Evolution API pode ser facilmente instalado usando o Node Version Manager (NVM). Siga estas etapas para configurar seu ambiente e iniciar a Evolution API em seu servidor.
+​
+Instalar NVM
+Primeiro, baixe e instale o Node.js. Você pode fazer isso executando os seguintes comandos:
 
-# 🏢 SOBRE O CARLOS FARMS
+Copy
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+Agora apenas aponte os diretórios do NVM e instale o node:
+Terminal
 
-- **Mercado completo em Londres** especializado em produtos frescos e de qualidade
-- **Três departamentos principais:** Açougue, Mercearia e Mercado geral
-- **Açougue especializado:** Variedade de carnes com cortes específicos disponíveis
-- **Atendimento multilíngue:** Inglês Britânico e Português Brasileiro
-- **Localização:** Londres, Inglaterra, atendendo comunidade local e brasileira
-- **Foco na qualidade:** Produtos selecionados e atendimento personalizado
+Copy
+# Carrege a fonte do bash para o ambiente
+source ~/.bashrc
 
----
+# Diretórios
+export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # Isso carrega o nvm
 
-# 🎯 ESTRATÉGIA DE ATENDIMENTO (GATILHOS)
+# Instala o node:
+nvm install v20.10.0 && nvm use v20.10.0
+Confirme que o NVM foi instalado com sucesso:
 
-## EFICIÊNCIA NO ATENDIMENTO:
-- **INGLÊS:** "Let me check that for you", "I'll add that to your order"
-- **PORTUGUÊS:** "Deixa eu verificar isso pra você", "Vou adicionar isso ao seu pedido"
+Copy
+command -v nvm
+Se você ainda não configurou, também pode configurar o fuso horário do seu servidor privado com o seguinte comando:
 
-## CONHECIMENTO DE PRODUTOS:
-- **Para açougue:** "For this meat, we have these cuts available..."
-- **Para consultas:** "I found that product, here are the details..."
-- **Para preços:** "Current price is £[AMOUNT]"
+Copy
+dpkg-reconfigure tzdata
+Clone o repositório oficial do Github para seu servidor privado.
 
-## ORGANIZAÇÃO DO PEDIDO:
-- **Controle:** "Added to your order!" / "Adicionei ao seu pedido!"
-- **Verificação:** "Anything else?" / "Mais alguma coisa?"
-- **Resumo:** "Here's your complete order" / "Aqui está seu pedido completo"
+Copy
+git clone https://github.com/EvolutionAPI/evolution-api.git
+Em seguida, acesse a pasta onde o projeto está
 
-## TRANSFERÊNCIA PROFISSIONAL:
-- **Produto não encontrado:** "I'll pass you to our team for assistance"
-- **Finalização:** "Our team will contact you shortly"
-- **Despedida:** "Thank you for choosing Carlos Farms!" / "Obrigado por escolher o Carlos Farms!"
+Copy
+cd evolution-api
+npm install
+Agora vamos copiar o arquivo env.yml com as configurações que você precisa editar.
 
----
+Copy
+cp src/dev-env.yml src/env.yml
+nano src/env.yml
+Este comando cria uma cópia do arquivo de ambiente padrão.
+A seguir, abra o arquivo env.yml em um editor de texto para inserir suas configurações de configuração. Você pode usar o nano, um editor de texto da linha de comando, para este propósito:
+Terminal
 
-# 💬 ESTILO DE COMUNICAÇÃO NATURAL
+Copy
+nano src/env.yml
+No editor nano, navegue pelo arquivo e substitua os valores padrão pelas suas configurações específicas. Isso pode incluir strings de conexão de banco de dados, chaves de API, portas do servidor, etc.
+Acesse a seção de variáveis de ambiente para instruções detalhadas sobre como configurar seu arquivo env.yml.
+Para iniciar a Evolution API, use o seguinte comando:
 
-## REGRAS CRÍTICAS DE LINGUAGEM:
-### PROIBIÇÕES ABSOLUTAS (LINGUAGEM ROBÓTICA):
-- ❌ NUNCA começar com "I understand that...", "Entendi que..."
-- ❌ NUNCA usar "You mentioned that...", "Você mencionou que..."
-- ❌ NUNCA repetir informações óbvias que o cliente acabou de dar
-- ❌ NUNCA confirmar óbvio antes de responder
-- ❌ NUNCA fazer confirmações desnecessárias
+Copy
+npm run build
+npm run start:prod
+​
+Instalar e Configurar o PM2
+Use o PM2 para instalar o PM2 e iniciar o gerenciador para o processo da API:
+Terminal
 
-### COMUNICAÇÃO DIRETA E NATURAL:
-- ✅ IR DIRETO ao ponto sem confirmações desnecessárias
-- ✅ RESPONDER como atendente experiente falaria naturalmente
-- ✅ USAR linguagem fluida e prestativa
-- ✅ FOCAR na AÇÃO, não na confirmação
+Copy
+npm install pm2 -g
+pm2 start 'npm run start:prod' --name ApiEvolution
+pm2 startup
+pm2 save --force
+Opcional: Você pode precisar alocar mais memória para o PM2, especialmente se o seu servidor tiver capacidade:
 
-### EXEMPLOS CORRETOS:
-❌ "I understand you want beef. Let me check what cuts we have..."
-✅ "Let me check what beef cuts we have available..."
+Copy
+pm2 start 'npm run start:prod' --name ApiEvolution -- start --node-args="--max-old-space-size=4096" --max-memory-restart 4G
+No exemplo acima, é assumido que seu VPS tem pelo menos 4GB de RAM disponível exclusivamente para a Evolution API.
+A memória disponível pode variar, recomendamos pelo menos 1GB para executar a Evolution.
+Se você quiser ter certeza de que a API está em execução, basta usar seu navegador para acessar http://localhost:8080. Esta deve ser a resposta do seu navegador:
+http://localhost:8080/
 
-❌ "Entendi que você quer carne. Vou ver que cortes temos..."
-✅ "Deixa eu ver que cortes de carne temos disponíveis..."
+Copy
+{
+    "status": 200,
+    "message": "Bem-vindo à Evolution API, ela está funcionando!",
+    "version": "1.x.x",
+    "documentation": "http://localhost:8080/docs"
+}
+Facilite sua vida com a extensão JSON Formatter no Google Chrome ou Microsoft Edge.
+A EvolutionAPI possui uma documentação de ponto de extremidade Swagger integrada, que você pode usar para ver todos os pontos de extremidade possíveis e testar as solicitações acessando http://localhost:8080/docs.
+​
+Configuração do Nginx
+Primeiro, vamos instalar, iniciar, habilitar e testar o serviço Nginx em seu servidor privado.
+Terminal
 
-### DIRETRIZES MULTILÍNGUES:
-- **Detectar língua automaticamente** pela primeira mensagem
-- **Manter consistência** na língua escolhida durante toda conversa
-- **Inglês Britânico:** "brilliant", "cheers", "straightaway"
-- **Português Brasileiro:** "perfeito", "beleza", "pode deixar"
+Copy
+apt-get install -y nginx
+systemctl start nginx
+systemctl enable nginx
+systemctl status nginx
+Se a informação “Ativo: ativo (em execução)” aparecer em verde, significa que o Nginx está em execução e você pode prosseguir para a próxima etapa.
+​
+Remover Configuração Padrão do Nginx
+Primeiro, remova o arquivo do site padrão que vem habilitado com o Nginx:
 
-**OBJETIVO FINAL:** Conduzir atendimento natural e eficiente, ajudando cliente a montar pedido completo através de consultas organizadas, sempre mantendo controle preciso via tools e transferindo adequadamente para equipe humana ao finalizar.
+Copy
+rm /etc/nginx/sites-enabled/default
+​
+Criar um novo arquivo de bloco do servidor no diretório
+
+Copy
+nano /etc/nginx/conf.d/default.conf
+Em seguida, cole a configuração do Nginx no arquivo default.conf:
+/etc/nginx/conf.d/default.conf
+
+Copy
+server {
+  listen 80;
+  listen [::]:80;
+  server_name _;
+  root /var/www/html/;
+  index index.php index.html index.htm index.nginx-debian.html;
+
+location / {
+    try_files $uri $uri/ /index.php;
+  }
+
+location ~ \.php$ {
+    fastcgi_pass unix:/run/php/php7.4-fpm.sock;
+    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    include fastcgi_params;
+    include snippets/fastcgi-php.conf;
+  }
+
+# Um longo tempo de cache do navegador pode acelerar visitas repetidas à sua página
+location ~* \.(jpg|jpeg|gif|png|webp|svg|woff|woff2|ttf|css|js|ico|xml)$ {
+       access_log off;
+       log_not_found off;
+       expires 360d;
+  }
+
+# desativar acesso a arquivos ocultos
+location ~ /\.ht {
+      access_log off;
+      log_not_found off;
+      deny all;
+  }
+}
+Após fazer alterações nas configurações do Nginx, é essencial recarregar o serviço Nginx. Isso garante que quaisquer modificações que você fez sejam aplicadas e se tornem eficazes.
+Execute o seguinte comando no terminal para recarregar o Nginx:
+
+Copy
+systemctl reload nginx
+Faça o usuário nginx ser o proprietário do diretório da web, por padrão, ele é de propriedade do usuário root:
+
+Copy
+chown www-data:www-data /usr/share/nginx/html -R
+Agora, crie um Virtual Host apontando para seu subdomínio editando o arquivo api:
+
+Copy
+cd ~
+nano /etc/nginx/sites-available/api
+Em seguida, cole a configuração do Nginx no arquivo api:
+/etc/nginx/sites-available/api
+
+Copy
+server {
+  server_name substitua-isso-pelo-seu-domínio-legal.com;
+
+location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_cache_bypass $http_upgrade;
+  }
+}
+
+Crie um link simbólico entre os arquivos api e sites-enabled:
+
+Copy
+ln -s /etc/nginx/sites-available/api /etc/nginx/sites-enabled
+Em seguida, valide a configuração do Nginx para o subdomínio:
+
+Copy
+nginx -t
+Esta mensagem deve aparecer no seu terminal se tudo tiver sido configurado corretamente: nginx: the configuration file /etc/nginx/nginx.conf syntax is ok nginx: configuration file /etc/nginx/nginx.conf test is successful
+Recarregue o Nginx para que as alterações se tornem efetivas.
+
+Copy
+systemctl reload nginx
+​
+Instalar o Certbot para o Certificado SSL
+Para proteger sua Evolution API com um certificado SSL, você pode usar o Certbot. Instale o Certbot usando o seguinte comando:
+
+Copy
+snap install --classic certbot
+​
+Certificar o subdomínio da API
+
+Copy
+certbot --nginx -d substitua-isso-pelo-seu-domínio-legal.com
+Será perguntado se você deseja inserir um email para receber notificações quando o certificado gerado estiver perto da data de expiração.
+Se a certificação for bem-sucedida, ao final do processo será exibida uma linha com a seguinte mensagem:
+“Congratulations! You have successfully enabled HTTPS”
+
+
+Iniciar
+Variáveis de Ambiente
+Veja o arquivo de exemplo do env no repositório oficial.
+​
+Principais variáveis
+Variável	Valor	Exemplo
+SERVER_URL	O endereço para seu servidor em execução. Esse endereço é utilizado para retornar dados de requisição interna, como links de webhook.	https://exemplo.evolution-api.com
+WEBSOCKET_ENABLED	Habilitar ou não o WebSocket	true
+WEBSOCKET_GLOBAL_EVENTS	Habilita os WebSocket de forma global	true
+CONFIG_SESSION_PHONE_CLIENT	Nome que será exibido na conexão do smartphone	EvolutionAPI
+CONFIG_SESSION_PHONE_NAME	Nome do navegador que será exibido na conexão do smartphone	Chrome
+​
+Logs
+Variável	Valor	Exemplo
+LOG_LEVEL	Logs que serão mostrados entre: ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS	ERROR,WARN,DEBUG,INFO,LOG,VERBOSE,DARK,WEBHOOKS
+LOG_COLOR	Mostrar ou não cores nos Logs (true ou false)	true
+LOG_BAILEYS	Quais logs da Baileys serão mostrados entre: “fatal”, “error”, “warn”, “info”, “debug” e “trace”	error
+​
+Storage Temporáreo
+Armazenamento temporáreo de dados. Valores são true ou false para armazena ou não.
+Variável	Valor
+STORE_MESSAGES	Guarda mensagens
+STORE_MESSAGE_UP	Guarda atualização das mensagens
+STORE_CONTACTS	Guarda contatos
+STORE_CHATS	Guarda conversas
+​
+Limpeza do Storage Temporáreo
+Limpeza do armazenamento temporáreo.
+Variável	Valor
+CLEAN_STORE_CLEANING_INTERVAL	Intervalo de limpeza em segundos
+CLEAN_STORE_MESSAGES	Se excluirá as mensagens (true ou false)
+CLEAN_STORE_MESSAGE_UP	Se excluirá as atualizações de mensagens (true ou false)
+CLEAN_STORE_CONTACTS	Se excluirá os contatos (true ou false)
+CLEAN_STORE_CHATS	Se excluirá as conversas (true ou false)
+​
+Storage Persistente
+Configurações de conexão:
+Variável	Valor	Exemplo
+DATABASE_ENABLED	Se o armazenamento persistente está habilitado	true
+DATABASE_CONNECTION_URI	A URI de conexão do MongoDB	true
+DATABASE_CONNECTION_DB_PREFIX_NAME	Quais logs da Baileys serão mostrados entre: “fatal”, “error”, “warn”, “info”, “debug” e “trace”	error
+Quais dados serão salvos (true ou false)
+Variável	Valor
+DATABASE_SAVE_DATA_INSTANCE	Salva dados de instâncias
+DATABASE_SAVE_DATA_NEW_MESSAGE	Salva novas mensagens
+DATABASE_SAVE_MESSAGE_UPDATE	Salva atualizações de mensagens
+DATABASE_SAVE_DATA_CONTACTS	Salva contatos
+DATABASE_SAVE_DATA_CHATS	Salva conversas
+​
+Redis
+Variável	Valor	Exemplo
+CACHE_REDIS_ENABLED	Se o Redis está habilitado (true ou false)	true
+CACHE_REDIS_URI	A URI de conexão do Redis	redis://redis:6379
+CACHE_REDIS_PREFIX_KEY	Prefixo do nome de chave	evolution
+CACHE_REDIS_TTL	Tempo para manter os dados no Redis	604800
+CACHE_REDIS_SAVE_INSTANCES	Salva as credencias de conexão do whatsapp no Redis	false
+CACHE_LOCAL_ENABLED	Faz cache em memória, alternativa ao Redis	false
+CACHE_LOCAL_TTL	Tempo para manter os dados localmente	604800
+​
+RabbitMQ
+Variável	Valor	Exemplo
+RABBITMQ_ENABLED	Habilita o RabbitMQ (true ou false)	true
+RABBITMQ_GLOBAL_ENABLED	Habilita o RabbitMQ de forma global (true ou false)	false
+RABBITMQ_URI	URI de conexão do RabbitMQ	amqp://guest:guest@rabbitmq:5672
+RABBITMQ_EXCHANGE_NAME	Nome do exchange	evolution_exchange
+RABBITMQ_EVENTS_APPLICATION_STARTUP	Envia um evento na inicialização do app	false
+RABBITMQ_EVENTS_QRCODE_UPDATED	Envia eventos de Atualização do QR Code	true
+RABBITMQ_EVENTS_MESSAGES_SET	Envia eventos de Criação de Mensagens (recuperação de mensagens)	true
+RABBITMQ_EVENTS_MESSAGES_UPSERT	Envia eventos de Recebimento de Mensagens	true
+RABBITMQ_EVENTS_MESSAGES_UPDATE	Envia eventos de Atualização de Mensagens	true
+RABBITMQ_EVENTS_MESSAGES_DELETE	Envia eventos de Deleção de Mensagens	true
+RABBITMQ_EVENTS_SEND_MESSAGE	Envia eventos de Envio de Mensagens	true
+RABBITMQ_EVENTS_CONTACTS_SET	Envia eventos de Criação de Contatos	true
+RABBITMQ_EVENTS_CONTACTS_UPSERT	Envia eventos de Criação de Contatos (recuperação de contatos)	true
+RABBITMQ_EVENTS_CONTACTS_UPDATE	Envia eventos de Atualização de Contatos	true
+RABBITMQ_EVENTS_PRESENCE_UPDATE	Envia eventos de Atualização de presença (“digitando…” ou “gravando…“)	true
+RABBITMQ_EVENTS_CHATS_SET	Envia eventos de Criação de Conversas (recuperação de conversas)	true
+RABBITMQ_EVENTS_CHATS_UPSERT	Envia eventos de Criação de Conversas (recebimento ou envio de mensagens em novos chats)	true
+RABBITMQ_EVENTS_CHATS_UPDATE	Envia eventos de Atualização de Conversas	true
+RABBITMQ_EVENTS_CHATS_DELETE	Envia eventos de Deleção de Conversas	true
+RABBITMQ_EVENTS_GROUPS_UPSERT	Envia eventos de Criação de Grupos	true
+RABBITMQ_EVENTS_GROUPS_UPDATE	Envia eventos de Atualização de Grupos	true
+RABBITMQ_EVENTS_GROUP_PARTICIPANTS_UPDATE	Envia eventos de Atualização nos Participantes de Grupos	true
+RABBITMQ_EVENTS_CONNECTION_UPDATE	Envia eventos de Atualização de Conexão	true
+RABBITMQ_EVENTS_LABELS_EDIT	Envia eventos de Edição de Etiquetas	true
+RABBITMQ_EVENTS_LABELS_ASSOCIATION	Envia eventos de Associação de Etiquetas	true
+RABBITMQ_EVENTS_CALL	Envia eventos de Chamadas	true
+RABBITMQ_EVENTS_TYPEBOT_START	Envia eventos de Início de fluxo do Typebot	false
+RABBITMQ_EVENTS_TYPEBOT_CHANGE_STATUS	Envia eventos de Atualização no status do Typebot	false
+​
+SQS
+Variável	Valor
+SQS_ENABLED	Se o SQS está habilitado (true ou false)
+SQS_ACCESS_KEY_ID	O ID de chave do SQS
+SQS_SECRET_ACCESS_KEY	Chave de acesso
+SQS_ACCOUNT_ID	ID da conta
+SQS_REGION	Região do SQS
+​
+Instâncias
+Variável	Valor	Exemplo
+DEL_INSTANCE	Em quantos minutos uma instânica será excluída se não conectada. Use “false” para nunca excluir.	5
+DEL_TEMP_INSTANCES	Deleta instâncias fechadas na inicialização	true
+​
+CORS
+Variável	Valor	Exemplo
+CORS_ORIGIN	As origens permitidas pela API separadas por vírgula (utilize ”*” para aceiteitar requisições de qualquer origem).	https://meu-frontend.com,https://meu-outro-frontend.com
+CORS_METHODS	Métodos HTTP permitidos separados por vírgula.	POST,GET,PUT,DELETE
+CORS_CREDENTIALS	Permisão de cookies em requisições (true ou false).	true
+​
+Webhook
+Variável	Valor
+WEBHOOK_GLOBAL_URL	Url que receberá as requisições de webhook
+WEBHOOK_GLOBAL_ENABLED	Se os webhooks estão habilitados (true ou false)
+WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS	
+Eventos de webhook com valor true ou false:
+Variável
+WEBHOOK_EVENTS_APPLICATION_STARTUP
+WEBHOOK_EVENTS_QRCODE_UPDATED
+WEBHOOK_EVENTS_MESSAGES_SET
+WEBHOOK_EVENTS_MESSAGES_UPSERT
+WEBHOOK_EVENTS_MESSAGES_UPDATE
+WEBHOOK_EVENTS_MESSAGES_DELETE
+WEBHOOK_EVENTS_SEND_MESSAGE
+WEBHOOK_EVENTS_CONTACTS_SET
+WEBHOOK_EVENTS_CONTACTS_UPSERT
+WEBHOOK_EVENTS_CONTACTS_UPDATE
+WEBHOOK_EVENTS_PRESENCE_UPDATE
+WEBHOOK_EVENTS_CHATS_SET
+WEBHOOK_EVENTS_CHATS_UPSERT
+WEBHOOK_EVENTS_CHATS_UPDATE
+WEBHOOK_EVENTS_CHATS_DELETE
+WEBHOOK_EVENTS_GROUPS_UPSERT
+WEBHOOK_EVENTS_GROUPS_UPDATE
+WEBHOOK_EVENTS_GROUP_PARTICIPANTS_UPDATE
+WEBHOOK_EVENTS_CONNECTION_UPDATE
+WEBHOOK_EVENTS_LABELS_EDIT
+WEBHOOK_EVENTS_LABELS_ASSOCIATION
+WEBHOOK_EVENTS_CALL
+WEBHOOK_EVENTS_NEW_JWT_TOKEN
+WEBHOOK_EVENTS_TYPEBOT_START
+WEBHOOK_EVENTS_TYPEBOT_CHANGE_STATUS
+WEBHOOK_EVENTS_CHAMA_AI_ACTION
+WEBHOOK_EVENTS_ERRORS
+WEBHOOK_EVENTS_ERRORS_WEBHOOK
+​
+QR Code
+Variável	Valor
+QRCODE_LIMIT	Por quanto tempo o QR code durará
+QRCODE_COLOR	Cor do QR code gerado
+​
+Typebot
+Variável	Valor
+TYPEBOT_API_VERSION	Versão da API (versão fixa ou latest)
+TYPEBOT_KEEP_OPEN	Mantém o Typebot aberto (true ou false)
+​
+Autenticação
+Variável	Valor
+AUTHENTICATION_TYPE	Tipo de autenticação (jwt ou apikey)
+AUTHENTICATION_API_KEY	Chave da API que será usada para autenticação
+AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES	
+AUTHENTICATION_JWT_EXPIRIN_IN	Tempo de expiração do token JWT
+AUTHENTICATION_JWT_SECRET	Segredo usado para gerar o JWT
+
+
+Início
+GET
+Get Information
+Instances
+POST
+Create Instance Basic
+GET
+Fetch Instances
+GET
+Instance Connect
+PUT
+Restart Instance
+GET
+Connection State
+DEL
+Logout Instance
+DEL
+Delete Instance
+POST
+Set Presence
+Webhook
+POST
+Set Webhook
+GET
+Find Webhook
+Settings
+POST
+Set Settings
+GET
+Find Settings
+Send Message
+POST
+Send Template
+POST
+Send Plain Text
+POST
+Send Status
+POST
+Send Media
+POST
+Send WhatsApp Audio
+POST
+Send Sticker
+POST
+Send Location
+POST
+Send Contact
+POST
+Send Reaction
+POST
+Send Poll
+POST
+Send List
+Chat Controller
+POST
+Check is WhatsApp
+PUT
+Mark Message As Read
+PUT
+Archive Chat
+DEL
+Delete Message for Everyone
+POST
+Send Presence
+POST
+Fetch Profile Picture URL
+POST
+Find Contacts
+POST
+Find Messages
+POST
+Find Status Message
+PUT
+Update Message
+GET
+Find Chats
+Profile Settings
+POST
+Fetch Business Profile
+POST
+Fetch Profile
+POST
+Update Profile Name
+POST
+Update Profile Status
+PUT
+Update Profile Picture
+PUT
+Remove Profile Picture
+GET
+Fetch Privacy Settings
+PUT
+Update Privacy Settings
+Group Controller
+POST
+Create Group
+PUT
+Update Group Picture
+PUT
+Update Group Subject
+PUT
+Update Group Description
+GET
+Fetch Invite Code
+GET
+Accept Invite Code
+PUT
+Revoke Invite Code
+POST
+Send Group Invite
+GET
+Find Group by Invite Code
+GET
+Find Group by JID
+GET
+Fetch All Groups
+GET
+Find Group Members
+PUT
+Update Group Members
+PUT
+Update Group Setting
+PUT
+Toggle Ephemeral
+DEL
+Leave Group
+Typebot
+POST
+Set Typebot
+POST
+Start Typebot
+GET
+Find Typebot
+POST
+Change Typebot Status
+Chatwoot
+POST
+Set Chatwoot
+GET
+Find Chatwoot
+SQS
+POST
+Set SQS
+GET
+Find SQS
+RabbitMQ
+POST
+Set RabbitMQ
+GET
+Find RabbitMQ
+WebSocket
+GET
+Find Chatwoot
+POST
+Set Chatwoot
+
+
+URL DA API PARA VOCE ACESSAR E LER :https://doc.evolution-api.com/v1/api-reference/get-information

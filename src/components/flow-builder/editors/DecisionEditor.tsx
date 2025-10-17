@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Decision } from '@/types/flowBuilder';
+import { FallbackConfig } from '@/types/flowStructure';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { GitBranch, Edit3, Check, ArrowRight, Plus, Trash2 } from 'lucide-react';
+import { FallbackSection } from './FallbackSection';
 
 interface DecisionEditorProps {
   isOpen: boolean;
@@ -14,11 +16,13 @@ interface DecisionEditorProps {
     label: string;
     decisions: Decision[];
     description?: string;
+    fallback?: FallbackConfig;
   };
   onSave: (data: {
     label: string;
     decisions: Decision[];
     description: string;
+    fallback?: FallbackConfig;
   }) => void;
 }
 
@@ -44,6 +48,24 @@ export function DecisionEditor({
       { id: '1', condition: '' },
       { id: '2', condition: '' }
     ]
+  );
+
+  // Fallback states
+  const [showFallback, setShowFallback] = useState(false);
+  const [fallbackAction, setFallbackAction] = useState<'reformular' | 'transferir_humano' | 'pular_para' | 'nao_fazer_nada'>(
+    initialData?.fallback?.se_nao_entender?.acao || 'nao_fazer_nada'
+  );
+  const [fallbackAttempts, setFallbackAttempts] = useState(
+    initialData?.fallback?.se_nao_entender?.tentativas_maximas || 2
+  );
+  const [fallbackMessage, setFallbackMessage] = useState(
+    initialData?.fallback?.se_nao_entender?.mensagem_alternativa || ''
+  );
+  const [fallbackFailAction, setFallbackFailAction] = useState<'transferir_humano' | 'seguir_fluxo'>(
+    initialData?.fallback?.se_nao_entender?.se_falhar?.acao || 'transferir_humano'
+  );
+  const [fallbackFailMessage, setFallbackFailMessage] = useState(
+    initialData?.fallback?.se_nao_entender?.se_falhar?.mensagem || ''
   );
 
   const handleAddCondition = () => {
@@ -74,10 +96,24 @@ export function DecisionEditor({
         outputHandle: `output-${idx}`
       }));
 
+    // Construct fallback config
+    const fallback: FallbackConfig | undefined = fallbackAction !== 'nao_fazer_nada' ? {
+      se_nao_entender: {
+        acao: fallbackAction,
+        tentativas_maximas: fallbackAttempts,
+        mensagem_alternativa: fallbackAction === 'reformular' ? fallbackMessage : undefined,
+        se_falhar: fallbackAction === 'reformular' ? {
+          acao: fallbackFailAction,
+          mensagem: fallbackFailMessage
+        } : undefined
+      }
+    } : undefined;
+
     onSave({
       label,
       description,
-      decisions
+      decisions,
+      fallback
     });
 
     onClose();
@@ -204,6 +240,23 @@ export function DecisionEditor({
                 </div>
               ))}
             </div>
+
+            {/* Fallback Section */}
+            <FallbackSection
+              showFallback={showFallback}
+              onToggle={() => setShowFallback(!showFallback)}
+              fallbackAction={fallbackAction}
+              onActionChange={setFallbackAction}
+              fallbackAttempts={fallbackAttempts}
+              onAttemptsChange={setFallbackAttempts}
+              fallbackMessage={fallbackMessage}
+              onMessageChange={setFallbackMessage}
+              fallbackFailAction={fallbackFailAction}
+              onFailActionChange={setFallbackFailAction}
+              fallbackFailMessage={fallbackFailMessage}
+              onFailMessageChange={setFallbackFailMessage}
+              questionPlaceholder="Não consegui identificar sua resposta. Pode reformular?"
+            />
 
             <div className="flex justify-end gap-3 pt-6 border-t border-white/40">
               <button

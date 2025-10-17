@@ -1,0 +1,54 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/ai_messaging_service",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -704,
+        624
+      ],
+      "id": "ceac416e-e2bb-4366-97f4-8e34247c5b91",
+      "name": "Envia AI_MESSAGING",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "e1h656zkTOVEN7VO",
+          "name": "Header Auth account"
+        }
+      },
+      "notes": "✅ ATUALIZADO: Envia todo o payload JSON dinamicamente\n\nO node anterior (Organiza Payload) já monta o JSON completo com:\n- leadId, instanceId, createdByUserId, phone, agentId\n- message, mediaType\n- mediaBase64 (novo!)\n- audioMetadata (novo!)\n\nEste node apenas encaminha tudo para a Edge Function."
+    }
+  ],
+  "connections": {
+    "Envia AI_MESSAGING": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "28eb85b39cccefea753d6d75248da3536afe7c1f7c7552d053b3a5c675fac56a"
+  }
+}

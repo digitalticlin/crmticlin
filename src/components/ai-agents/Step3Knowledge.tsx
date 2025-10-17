@@ -20,6 +20,7 @@ interface Step3KnowledgeProps {
   data: {
     faq: QAPair[];
     knowledge_base_enabled: boolean;
+    company_info?: string;
   };
   onChange: (field: string, value: any) => void;
   agentId?: string;
