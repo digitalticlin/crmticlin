@@ -272,28 +272,28 @@ function FlowBuilderContent() {
   );
 
   return (
-    <div className="w-full h-full flex gap-0 md:gap-4 p-0 md:p-4 overflow-hidden flow-liquid-bg">
-      {/* Canvas Principal com Glassmorphism - Ocupa espaço disponível */}
-      <div className="flex-1 h-full overflow-hidden relative flow-glass-gray border-0 md:border-2 border-white/10 md:rounded-2xl shadow-2xl">
+    <div className="w-full h-full flex gap-0 md:gap-4 p-0 md:p-4 overflow-hidden bg-gray-50">
+      {/* Canvas Principal - Ocupa espaço disponível */}
+      <div className="flex-1 h-full overflow-hidden relative glass border-0 md:border-2 md:border-white/30 md:rounded-2xl shadow-lg">
         {/* Header Minimalista */}
         <div className="absolute top-2 md:top-4 left-2 md:left-4 z-50 flex items-center gap-1.5 md:gap-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate(`/ai-agents/edit/${agentId}?step=3`)}
-            className="h-8 w-8 md:h-9 md:w-9 rounded-lg flow-glass-gray neon-hover-glow transition-all shadow-lg border border-white/10"
+            className="h-8 w-8 md:h-9 md:w-9 rounded-lg bg-white hover:bg-gray-100 transition-all shadow-sm border border-gray-200"
           >
-            <ArrowLeft className="h-3.5 w-3.5 md:h-4 md:w-4 text-gray-200" />
+            <ArrowLeft className="h-3.5 w-3.5 md:h-4 md:w-4 text-gray-700" />
           </Button>
           <Button
             variant="default"
             size="sm"
             onClick={handleSave}
             disabled={isSaving || isSaved}
-            className={`h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm rounded-lg flow-glass-gray border transition-all shadow-lg font-medium ${
+            className={`h-8 md:h-9 px-3 md:px-4 text-xs md:text-sm rounded-lg border transition-all shadow-sm font-medium ${
               isSaved
-                ? 'neon-border-glow text-white'
-                : 'border-white/10 neon-hover-glow text-gray-200'
+                ? 'bg-green-500 text-white border-green-600'
+                : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-700'
             }`}
           >
             {isSaving ? 'Salvando...' : isSaved ? '✓ Salvo!' : 'Salvar'}
@@ -321,14 +321,14 @@ function FlowBuilderContent() {
           className="w-full h-full"
           proOptions={{ hideAttribution: true }}
         >
-          <Background gap={16} color="#404040" />
-          <Controls className="flow-glass-gray !border-white/10 !shadow-2xl" showInteractive={false} />
+          <Background gap={16} color="#E5E7EB" />
+          <Controls className="bg-white !border-gray-200 !shadow-md" showInteractive={false} />
         </ReactFlow>
 
         {/* Título do Fluxo - Posicionado no canto inferior direito */}
         <div className="absolute bottom-2 md:bottom-4 right-2 md:right-4 z-10 hidden md:block">
-          <div className="glass border border-white/30 rounded-lg px-4 py-2 shadow-lg">
-            <p className="text-sm font-semibold text-gray-700">Fluxo de Atendimento da IA</p>
+          <div className="bg-white border border-gray-200 rounded-lg px-4 py-2 shadow-md">
+            <p className="text-sm font-semibold text-gray-900">Fluxo de Atendimento da IA</p>
           </div>
         </div>
       </div>
