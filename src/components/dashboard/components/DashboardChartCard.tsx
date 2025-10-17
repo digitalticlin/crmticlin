@@ -11,7 +11,6 @@
  */
 
 import React, { memo, Suspense } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -121,23 +120,14 @@ const DashboardChartCard = memo(({
   };
 
   return (
-    <Card className={cn(
-      "relative overflow-hidden transition-all duration-300 hover:shadow-lg",
-      "bg-white/10 backdrop-blur-md border border-white/20"
-    )}>
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold text-gray-900 flex items-center justify-between">
+    <div className="relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl border border-white/20 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
+      <div className="pb-4">
+        <h3 className="text-lg font-semibold text-gray-900">
           {getChartTitle(type)}
+        </h3>
+      </div>
 
-          {/* ✅ CHART TYPE INDICATOR */}
-          <div className={cn(
-            "w-3 h-3 rounded-full",
-            index % 2 === 0 ? "bg-blue-500" : "bg-green-500"
-          )} />
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent className="pt-0">
+      <div className="pt-0">
         {renderChart()}
 
         {/* ✅ DATA SUMMARY */}
@@ -151,15 +141,15 @@ const DashboardChartCard = memo(({
             </div>
           </div>
         )}
-      </CardContent>
+      </div>
 
       {/* ✅ LOADING OVERLAY */}
       {loading && (
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-xl flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
         </div>
       )}
-    </Card>
+    </div>
   );
 });
 

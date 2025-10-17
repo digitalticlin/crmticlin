@@ -18,11 +18,13 @@ import {
   Link as LinkIcon,
   Image,
   Edit3,
-  Trash2,
+  Trash2 as Trash2Icon,
   CircleCheck,
   CircleAlert,
   HelpCircle,
-  MessageCircleQuestion
+  MessageCircleQuestion,
+  ShoppingCart,
+  ListChecks
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { PresentationEditor } from './editors/PresentationEditor';
@@ -40,6 +42,9 @@ import { UpdateLeadEditor } from './editors/UpdateLeadEditor';
 import { MoveFunnelEditor } from './editors/MoveFunnelEditor';
 import { TransferHumanEditor } from './editors/TransferHumanEditor';
 import { EndConversationEditor } from './editors/EndConversationEditor';
+import { AddToListEditor } from './editors/AddToListEditor';
+import { ConfirmListEditor } from './editors/ConfirmListEditor';
+import { RemoveFromListEditor } from './editors/RemoveFromListEditor';
 import { Button } from '../ui/button';
 
 const iconMap = {
@@ -67,6 +72,11 @@ const iconMap = {
   // Controle
   transfer_to_human: FaWhatsapp,
   end_conversation: CheckCircle,
+
+  // Lista/Pedidos
+  add_to_list: ShoppingCart,
+  confirm_list: ListChecks,
+  remove_from_list: Trash2Icon,
 };
 
 const colorMap = {
@@ -94,6 +104,11 @@ const colorMap = {
   // Controle
   transfer_to_human: 'border-purple-600 text-purple-600',
   end_conversation: 'border-green-500 text-green-600',
+
+  // Lista/Pedidos
+  add_to_list: 'border-rose-500 text-rose-600',
+  confirm_list: 'border-amber-500 text-amber-600',
+  remove_from_list: 'border-slate-500 text-slate-600',
 };
 
 const bgMap = {
@@ -121,6 +136,11 @@ const bgMap = {
   // Controle
   transfer_to_human: 'from-purple-600/20 to-purple-600/5',
   end_conversation: 'from-green-500/20 to-green-500/5',
+
+  // Lista/Pedidos
+  add_to_list: 'from-rose-500/20 to-rose-500/5',
+  confirm_list: 'from-amber-500/20 to-amber-500/5',
+  remove_from_list: 'from-slate-500/20 to-slate-500/5',
 };
 
 export const CustomNode = memo(({ data, id }: NodeProps) => {
@@ -254,7 +274,7 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
               className="flex-1 h-9 md:h-7 glass-dark hover:bg-red-500/20 active:bg-red-500/30 transition-smooth text-red-600"
               title="Excluir"
             >
-              <Trash2 className="w-3 h-3" />
+              <Trash2Icon className="w-3 h-3" />
             </Button>
           </div>
         </div>
@@ -607,6 +627,53 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
             description: data.description,
             reason: data.reason,
             farewellMessage: data.farewellMessage
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'add_to_list' && (
+        <AddToListEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            description: data.description,
+            confirmationMessage: data.confirmationMessage,
+            aiInstruction: data.aiInstruction
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'confirm_list' && (
+        <ConfirmListEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            description: data.description,
+            mainMessage: data.mainMessage,
+            aiInstruction: data.aiInstruction,
+            displayFormat: data.displayFormat,
+            showTotal: data.showTotal,
+            allowEdit: data.allowEdit
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'remove_from_list' && (
+        <RemoveFromListEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            description: data.description,
+            mainMessage: data.mainMessage,
+            aiInstruction: data.aiInstruction,
+            identifyBy: data.identifyBy,
+            confirmationMessage: data.confirmationMessage
           }}
           onSave={handleSave}
         />

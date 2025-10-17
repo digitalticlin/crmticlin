@@ -149,7 +149,7 @@ export default function ResponsiveSidebar() {
     return (
       <>
         {/* Mobile Header fixo - 100% transparente com glassmorphism */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-center px-4 border-b backdrop-blur-xl border-white/30 shadow-lg">
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center justify-center px-4 border-b bg-white/5 backdrop-blur-xl border-white/20 shadow-lg">
           <SidebarLogo isCollapsed={false} />
         </div>
       </>
@@ -160,12 +160,12 @@ export default function ResponsiveSidebar() {
   return (
     <div
       className={cn(
-        "fixed top-0 left-0 bottom-0 z-40 flex-col transition-all duration-300 border-r bg-white/25 backdrop-blur-lg border-white/30 hidden md:flex",
+        "fixed top-0 left-0 bottom-0 z-40 flex-col transition-all duration-300 border-r bg-white/5 backdrop-blur-xl border-white/20 hidden md:flex",
         isCollapsed ? "w-[64px]" : "w-[200px]"
       )}
     >
       <SidebarContent />
-      
+
     </div>
   );
 }

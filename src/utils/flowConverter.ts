@@ -359,7 +359,10 @@ function getOQueFazer(blockType: string): string {
     'end_conversation': 'finalizar_conversa',
     'transfer_human': 'transferir_para_atendente_humano',
     'provide_instructions': 'ensinar_informacao_ao_agente',
-    'teach': 'ensinar_informacao_ao_agente'
+    'teach': 'ensinar_informacao_ao_agente',
+    'add_to_list': 'adicionar_item_ao_pedido',
+    'confirm_list': 'confirmar_pedido_completo',
+    'remove_from_list': 'remover_item_do_pedido'
   };
 
   return mapeamento[blockType] || 'executar_acao';
@@ -384,7 +387,10 @@ function getTipoMensagem(blockType: string): string {
     'end_conversation': 'despedida',
     'transfer_human': 'explicacao',
     'provide_instructions': 'explicacao',
-    'teach': 'explicacao'
+    'teach': 'explicacao',
+    'add_to_list': 'confirmacao',
+    'confirm_list': 'pergunta',
+    'remove_from_list': 'confirmacao'
   };
 
   return mapeamento[blockType] || 'explicacao';
@@ -409,7 +415,10 @@ function getRegraCritica(blockType: string): string {
     'end_conversation': 'Sempre despedir educadamente',
     'transfer_human': 'Avisar lead sobre transferência',
     'provide_instructions': 'Garantir que informação seja compreensível e armazenável',
-    'teach': 'Garantir que informação seja compreensível'
+    'teach': 'Garantir que informação seja compreensível',
+    'add_to_list': 'SEMPRE confirmar o item adicionado mostrando quantidade, nome e preço',
+    'confirm_list': 'SEMPRE mostrar lista completa ANTES de confirmar. NUNCA confirmar sem autorização do cliente',
+    'remove_from_list': 'Se cliente mencionar número (ex: "item 2", "o 3"), usar número da lista. Se mencionar nome (ex: "pizza"), buscar por nome'
   };
   return mapeamento[blockType] || 'Seguir instruções do objetivo';
 }
@@ -433,16 +442,19 @@ function getImportante(blockType: string): string {
     'end_conversation': 'Deixar canal aberto para futuro contato',
     'transfer_human': 'Garantir que equipe foi notificada',
     'provide_instructions': 'Informação deve ser armazenada para uso futuro em conversas',
-    'teach': 'Informação deve ser armazenada para uso futuro'
+    'teach': 'Informação deve ser armazenada para uso futuro',
+    'add_to_list': 'Se cliente não informar quantidade, assumir 1. Se não informar preço, perguntar antes de adicionar',
+    'confirm_list': 'Permitir que cliente remova ou adicione itens antes de confirmar. Perguntar explicitamente se está tudo certo',
+    'remove_from_list': 'Após remover, mostrar pedido atualizado automaticamente'
   };
   return mapeamento[blockType] || 'Manter contexto da conversa';
 }
 
 // 🆕 NOVA: Determinar action.type baseado no block_type
 function getActionType(blockType: string): 'send_and_wait' | 'send_only' | 'decision' | 'update_data' | 'end' {
-  const sendAndWait = ['ask_question', 'request_document', 'validate_document', 'start'];
+  const sendAndWait = ['ask_question', 'request_document', 'validate_document', 'start', 'confirm_list', 'remove_from_list'];
   const decision = ['branch_decision', 'check_if_done', 'retry_with_variation'];
-  const updateData = ['update_lead_data', 'move_lead_in_funnel', 'transfer_to_human'];
+  const updateData = ['update_lead_data', 'move_lead_in_funnel', 'transfer_to_human', 'add_to_list'];
   const end = ['end_conversation'];
 
   if (sendAndWait.includes(blockType)) return 'send_and_wait';

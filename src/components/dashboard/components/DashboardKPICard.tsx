@@ -10,7 +10,6 @@
  */
 
 import React, { memo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
@@ -57,65 +56,42 @@ const DashboardKPICard = memo(({
     return val.toLocaleString('pt-BR');
   };
 
-  // ✅ CORES BASEADAS NO ÍNDICE
-  const getCardColor = (idx: number): string => {
-    const colors = [
-      'from-blue-500 to-blue-600',
-      'from-green-500 to-green-600', 
-      'from-purple-500 to-purple-600',
-      'from-orange-500 to-orange-600'
-    ];
-    return colors[idx % colors.length];
-  };
-
   if (loading) {
     return (
-      <Card className="relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20">
-        <CardHeader className="pb-2">
+      <div className="relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl border border-white/20 p-6 shadow-lg">
+        <div className="pb-2">
           <Skeleton className="h-4 w-24" />
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div>
           <Skeleton className="h-8 w-16 mb-2" />
           <Skeleton className="h-3 w-20" />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className={cn(
-      "relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-105",
-      "bg-white/10 backdrop-blur-md border border-white/20",
-      "bg-gradient-to-br", getCardColor(index)
-    )}>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-white/90 capitalize">
-          {title.replace(/_/g, ' ')}
-        </CardTitle>
-      </CardHeader>
+    <div className="rounded-2xl bg-white/5 backdrop-blur-xl border border-white/20 p-6 shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105">
+      <h3 className="text-sm font-medium text-gray-900 capitalize mb-2">
+        {title.replace(/_/g, ' ')}
+      </h3>
 
-      <CardContent>
-        <div className="text-2xl font-bold text-white mb-1">
-          {prefix}{formatValue(value)}{suffix}
+      <div className="text-2xl font-bold text-gray-900 mb-1">
+        {prefix}{formatValue(value)}{suffix}
+      </div>
+
+      {trend && (
+        <div className={cn(
+          "text-xs font-medium flex items-center",
+          trend.isPositive ? "text-green-600" : "text-red-600"
+        )}>
+          <span className="mr-1">
+            {trend.isPositive ? '↗' : '↘'}
+          </span>
+          {Math.abs(trend.value).toFixed(1)}% vs período anterior
         </div>
-
-        {trend && (
-          <div className={cn(
-            "text-xs font-medium flex items-center",
-            trend.isPositive ? "text-green-200" : "text-red-200"
-          )}>
-            <span className="mr-1">
-              {trend.isPositive ? '↗' : '↘'}
-            </span>
-            {Math.abs(trend.value).toFixed(1)}% vs período anterior
-          </div>
-        )}
-
-        {/* ✅ EFEITO VISUAL */}
-        <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
-        <div className="absolute bottom-0 left-0 w-12 h-12 bg-black/10 rounded-full translate-y-6 -translate-x-6" />
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 });
 
