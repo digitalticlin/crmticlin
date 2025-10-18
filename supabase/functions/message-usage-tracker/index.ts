@@ -57,28 +57,20 @@ serve(async (req) => {
 
     logStep("Found active usage tracking", { usage_id: usage.id });
 
-    // Calcular novos valores
-    const newSentCount = message_type === 'sent' 
-      ? usage.messages_sent_count + increment 
-      : usage.messages_sent_count;
-    
-    const newReceivedCount = message_type === 'received' 
-      ? usage.messages_received_count + increment 
-      : usage.messages_received_count;
+    // Calcular novos valores (apenas AI messages contam no limite)
+    const newAiMessagesCount = message_type === 'sent'
+      ? usage.ai_messages_sent + increment
+      : usage.ai_messages_sent;
 
-    const newTotalCount = newSentCount + newReceivedCount;
-    const percentage_used = (newTotalCount / usage.plan_limit) * 100;
+    const percentage_used = (newAiMessagesCount / usage.plan_limit) * 100;
 
     // Determinar novo status
     let newStatus = 'active';
-    if (percentage_used >= 100) newStatus = 'blocked';
-    else if (percentage_used >= 90) newStatus = 'exceeded';  
-    else if (percentage_used >= 75) newStatus = 'warning';
+    if (percentage_used >= 100) newStatus = 'exceeded';
+    else if (percentage_used >= 90) newStatus = 'warning';
 
     logStep("Calculated new values", {
-      newSentCount,
-      newReceivedCount, 
-      newTotalCount,
+      newAiMessagesCount,
       percentage_used,
       newStatus
     });
@@ -87,9 +79,7 @@ serve(async (req) => {
     const { error: updateError } = await supabaseClient
       .from('message_usage_tracking')
       .update({
-        messages_sent_count: newSentCount,
-        messages_received_count: newReceivedCount,
-        total_messages_count: newTotalCount,
+        ai_messages_sent: newAiMessagesCount,
         status: newStatus,
         updated_at: new Date().toISOString()
       })
@@ -103,8 +93,7 @@ serve(async (req) => {
 
     // Verificar se precisa criar alertas
     if (newStatus !== 'active') {
-      const alertType = newStatus === 'blocked' ? 'limit_reached' :
-                       newStatus === 'exceeded' ? 'warning_90' : 'warning_75';
+      const alertType = newStatus === 'exceeded' ? 'limit_reached' : 'warning_90';
 
       // Verificar se alerta já foi enviado
       const { data: existingAlert } = await supabaseClient
@@ -122,7 +111,7 @@ serve(async (req) => {
           .insert({
             user_id,
             alert_type: alertType,
-            current_usage: newTotalCount,
+            current_usage: newAiMessagesCount,
             plan_limit: usage.plan_limit,
             percentage_used: Math.round(percentage_used * 100) / 100
           });
@@ -134,13 +123,11 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       usage: {
-        total_messages_count: newTotalCount,
-        messages_sent_count: newSentCount,
-        messages_received_count: newReceivedCount,
+        ai_messages_sent: newAiMessagesCount,
         plan_limit: usage.plan_limit,
         percentage_used: Math.round(percentage_used * 100) / 100,
         status: newStatus,
-        remaining: Math.max(0, usage.plan_limit - newTotalCount)
+        remaining: Math.max(0, usage.plan_limit - newAiMessagesCount)
       }
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

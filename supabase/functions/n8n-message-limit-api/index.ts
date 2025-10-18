@@ -78,14 +78,14 @@ serve(async (req) => {
       });
     }
 
-    const remaining = Math.max(0, usage.plan_limit - usage.total_messages_count);
-    const percentage_used = (usage.total_messages_count / usage.plan_limit) * 100;
+    const remaining = Math.max(0, usage.plan_limit - usage.ai_messages_sent);
+    const percentage_used = (usage.ai_messages_sent / usage.plan_limit) * 100;
     const allowed = remaining > 0;
 
     const result = {
       allowed,
       remaining,
-      current_usage: usage.total_messages_count,
+      current_usage: usage.ai_messages_sent,
       plan_limit: usage.plan_limit,
       percentage_used: Math.round(percentage_used * 100) / 100,
       status: usage.status,

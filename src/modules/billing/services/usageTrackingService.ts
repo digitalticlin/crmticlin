@@ -24,7 +24,7 @@ export class UsageTrackingService {
       // Cast explícito do status para o tipo correto
       return {
         ...data,
-        status: data.status as 'active' | 'warning' | 'exceeded' | 'blocked'
+        status: data.status as 'active' | 'warning' | 'exceeded'
       };
 
     } catch (error) {
@@ -112,9 +112,8 @@ export class UsageTrackingService {
           period_start: startDate.toISOString(),
           period_end: endDate.toISOString(),
           status: 'active',
-          messages_sent_count: 0,
-          messages_received_count: 0,
-          total_messages_count: 0
+          ai_messages_sent: 0,
+          manual_messages_sent: 0
         });
 
       if (error) {

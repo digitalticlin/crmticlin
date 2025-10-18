@@ -16,6 +16,7 @@ interface RemoveFromListEditorProps {
     aiInstruction?: string;
     identifyBy?: 'nome' | 'numero' | 'nome_ou_numero';
     confirmationMessage?: string;
+    clearMode?: 'individual' | 'delete_all' | 'clear_all';
   };
   onSave: (data: {
     label: string;
@@ -24,6 +25,7 @@ interface RemoveFromListEditorProps {
     aiInstruction: string;
     identifyBy: string;
     confirmationMessage: string;
+    clearMode: string;
     block_data: any;
   }) => void;
 }
@@ -52,6 +54,9 @@ export function RemoveFromListEditor({
   const [confirmationMessage, setConfirmationMessage] = useState(
     initialData?.confirmationMessage || 'Removi [ITEM] do pedido'
   );
+  const [clearMode, setClearMode] = useState<'individual' | 'delete_all' | 'clear_all'>(
+    initialData?.clearMode || 'individual'
+  );
 
   const handleSave = () => {
     setIsEditingLabel(false);
@@ -63,13 +68,15 @@ export function RemoveFromListEditor({
       aiInstruction,
       identifyBy,
       confirmationMessage,
+      clearMode,
       block_data: {
         modo_ia: 'tool_execution',
         tool_name: 'remove_from_list',
         instrucao_ia: aiInstruction,
         identificar_por: identifyBy,
         mensagem_principal: mainMessage,
-        mensagem_confirmacao: confirmationMessage
+        mensagem_confirmacao: confirmationMessage,
+        modo_limpeza: clearMode
       }
     });
 
@@ -149,6 +156,27 @@ export function RemoveFromListEditor({
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="clearMode" className="text-sm font-medium text-gray-700">
+                Modo de remoção
+              </Label>
+              <Select value={clearMode} onValueChange={(value: any) => setClearMode(value)}>
+                <SelectTrigger className="bg-white/30 border-white/40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="individual">🎯 Remover item individual (padrão)</SelectItem>
+                  <SelectItem value="clear_all">🗑️ Limpar toda lista (manter histórico)</SelectItem>
+                  <SelectItem value="delete_all">❌ Deletar toda lista (apagar registros)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                {clearMode === 'individual' && 'Remove apenas 1 item por vez durante a conversa'}
+                {clearMode === 'clear_all' && 'Limpa toda lista ao final do fluxo (mantém registros marcados como limpos)'}
+                {clearMode === 'delete_all' && 'Apaga TODOS os registros da lista ao final do fluxo'}
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="identifyBy" className="text-sm font-medium text-gray-700">
                 Como identificar o item?
               </Label>
@@ -163,7 +191,7 @@ export function RemoveFromListEditor({
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500">
-                Como o cliente vai indicar qual item remover
+                Como o cliente vai indicar qual item remover (válido apenas para modo individual)
               </p>
             </div>
 
@@ -198,6 +226,21 @@ export function RemoveFromListEditor({
               <p className="text-xs text-gray-500">
                 Como o agente deve identificar e remover o item
               </p>
+            </div>
+
+            {/* Regras visíveis para aprovação */}
+            <div className="bg-slate-500/10 border border-slate-500/30 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-slate-800 mb-3">📋 Regras do Agente IA</h3>
+              <div className="text-xs text-slate-700 space-y-3">
+                <div>
+                  <p className="font-semibold mb-1">⚠️ Regra Crítica:</p>
+                  <p className="leading-relaxed">Tool usada em 2 cenários: (1) Cliente pede remover item específico durante GET_LIST - remover e voltar para confirmar. (2) FINAL do fluxo - limpar ou deletar TODA a lista conforme configurado</p>
+                </div>
+                <div>
+                  <p className="font-semibold mb-1">💡 Importante:</p>
+                  <p className="leading-relaxed">Modo individual: remover 1 item e voltar para get_list. Modo total: limpar ou deletar toda lista (final do fluxo). Confirmar qual modo usar conforme configuração do bloco</p>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-6 border-t border-white/40">

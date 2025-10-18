@@ -147,18 +147,16 @@ serve(async (req)=>{
         });
       }
     }
-    // ✅ PROCESSAR MÍDIA (IMAGEM, ÁUDIO ou TEXTO) COM DETECÇÃO INTELIGENTE
+    // ✅ PROCESSAR MÍDIA (IMAGEM ou TEXTO)
     let processedMediaUrl = mediaUrl;
     let processedMediaType = mediaType || 'text';
     let messageText = message !== null && message !== undefined ? String(message) : '';
-    let vpsMessageText = messageText; // ✅ SEPARAR TEXTO PARA VPS E BANCO
-    let isPTT = false;
-    let audioFilename = null;
-    let audioDuration = null;
+    let vpsMessageText = messageText;
+    let imageFilename = null;
     let finalMimeType = null;
 
-    // 🎯 PROCESSAR BASE64 (IMAGEM ou ÁUDIO)
-    if (base64Data && base64Data.trim().length > 0) {
+    // 🎯 PROCESSAR BASE64 (APENAS IMAGEM)
+    if (base64Data && base64Data.trim().length > 0 && mediaType === 'image') {
       console.log('[AI Messaging Service] 📦 Processando Base64:', {
         size: base64Data.length,
         sizeKB: Math.round(base64Data.length / 1024),
@@ -180,10 +178,6 @@ serve(async (req)=>{
             detectedMimeType = 'image/jpeg';
           } else if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
             detectedMimeType = 'image/png';
-          } else if (buffer[0] === 0xFF && buffer[1] === 0xFB) {
-            detectedMimeType = 'audio/mp3';
-          } else if (buffer[0] === 0x4F && buffer[1] === 0x67 && buffer[2] === 0x67 && buffer[3] === 0x53) {
-            detectedMimeType = 'audio/ogg';
           }
 
           console.log('[AI Messaging Service] 🔍 MIME type detectado:', detectedMimeType);
@@ -195,54 +189,22 @@ serve(async (req)=>{
       finalMimeType = detectedMimeType;
 
       // 🖼️ PROCESSAR IMAGEM
-      if (mediaType === 'image' || detectedMimeType.startsWith('image/')) {
-        console.log('[AI Messaging Service] 🖼️ Processando IMAGEM:', {
-          mimeType: detectedMimeType,
-          fileName: audioMetadata?.filename
-        });
+      console.log('[AI Messaging Service] 🖼️ Processando IMAGEM:', {
+        mimeType: detectedMimeType,
+        fileName: audioMetadata?.filename
+      });
 
-        processedMediaUrl = `data:${detectedMimeType};base64,${base64Data}`;
-        processedMediaType = 'image';
-        messageText = '';
-        vpsMessageText = ' '; // VPS precisa de algo no campo message
-        audioFilename = audioMetadata?.filename || `image_${Date.now()}.${detectedMimeType.includes('png') ? 'png' : 'jpg'}`;
+      processedMediaUrl = `data:${detectedMimeType};base64,${base64Data}`;
+      processedMediaType = 'image';
+      messageText = '';
+      vpsMessageText = ' '; // VPS precisa de algo no campo message
+      imageFilename = audioMetadata?.filename || `image_${Date.now()}.${detectedMimeType.includes('png') ? 'png' : 'jpg'}`;
 
-        console.log('[AI Messaging Service] ✅ Imagem configurada:', {
-          filename: audioFilename,
-          mimeType: finalMimeType,
-          dataUrlLength: processedMediaUrl.length
-        });
-      }
-      // 🎵 PROCESSAR ÁUDIO
-      else if (mediaType === 'audio' || detectedMimeType.startsWith('audio/')) {
-        console.log('[AI Messaging Service] 🎵 Processando ÁUDIO:', {
-          mimeType: detectedMimeType,
-          isPTT: audioMetadata?.ptt
-        });
-
-        processedMediaUrl = `data:${detectedMimeType};base64,${base64Data}`;
-        processedMediaType = 'audio';
-
-        // Verificar se é PTT
-        if (audioMetadata && audioMetadata.ptt === true) {
-          isPTT = true;
-          audioFilename = audioMetadata.filename || `ptt_${Date.now()}.${detectedMimeType.includes('mp3') ? 'mp3' : 'ogg'}`;
-          audioDuration = audioMetadata.seconds || Math.ceil(audioBase64.length / 4000);
-          messageText = '';
-          vpsMessageText = ' ';
-        } else {
-          audioFilename = audioMetadata?.filename || `audio_${Date.now()}.${detectedMimeType.includes('mp3') ? 'mp3' : 'ogg'}`;
-          messageText = messageText || '';
-          vpsMessageText = messageText || ' ';
-        }
-
-        console.log('[AI Messaging Service] ✅ Áudio configurado:', {
-          filename: audioFilename,
-          duration: audioDuration,
-          isPTT: isPTT,
-          mimeType: finalMimeType
-        });
-      }
+      console.log('[AI Messaging Service] ✅ Imagem configurada:', {
+        filename: imageFilename,
+        mimeType: finalMimeType,
+        dataUrlLength: processedMediaUrl.length
+      });
     }
     console.log('[AI Messaging Service] 📤 Processando mensagem:', {
       instanceId,
@@ -250,8 +212,7 @@ serve(async (req)=>{
       phone: phone.substring(0, 4) + '****',
       mediaType: processedMediaType,
       hasBase64: !!base64Data,
-      messageLength: messageText.length,
-      isPTT: isPTT
+      messageLength: messageText.length
     });
     // ✅ CLIENTE SUPABASE COM SERVICE ROLE (BYPASS RLS)
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -416,27 +377,18 @@ serve(async (req)=>{
       leadName: leadData.name,
       phoneMatch: phone.replace(/\D/g, '') === leadData.phone.replace(/\D/g, ''),
       mediaType: processedMediaType,
-      hasAudio: !!audioBase64,
-      isPTT: isPTT,
+      hasMediaBase64: !!base64Data,
       agentId: agentId || 'N/A'
     });
-    // ✅ PREPARAR PAYLOAD PARA VPS COM CORREÇÃO CRÍTICA DE INSTANCE ID
-    const pttFields = isPTT ? {
-      ptt: true,
-      filename: audioFilename,
-      seconds: audioDuration,
-      waveform: audioMetadata?.waveform || null,
-      audioMimeType: finalMimeType
-    } : {};
+    // ✅ PREPARAR PAYLOAD PARA VPS
     const vpsPayload = {
       instanceId: realVpsInstanceId,
       phone: phone.replace(/\D/g, ''),
       message: vpsMessageText,
       mediaType: processedMediaType,
-      mediaUrl: processedMediaUrl || null,
-      ...pttFields
+      mediaUrl: processedMediaUrl || null
     };
-    console.log('[AI Messaging Service] 📡 Enviando para VPS (CORREÇÃO CRITICAL: instanceId deve ser nome real):', {
+    console.log('[AI Messaging Service] 📡 Enviando para VPS:', {
       url: `${VPS_CONFIG.baseUrl}/queue/add-message`,
       vpsInstanceIdFromDB: vpsInstanceId,
       payload: {
@@ -444,8 +396,7 @@ serve(async (req)=>{
         phone: vpsPayload.phone.substring(0, 4) + '****',
         mediaUrl: vpsPayload.mediaUrl ? vpsPayload.mediaUrl.substring(0, 50) + '...' : null,
         messageIsEmpty: vpsPayload.message === '',
-        messageIsSpace: vpsPayload.message === ' ',
-        isPTT: isPTT
+        messageIsSpace: vpsPayload.message === ' '
       }
     });
     // ✅ ENVIAR PARA VPS
@@ -474,8 +425,7 @@ serve(async (req)=>{
           phone: phone.substring(0, 4) + '****',
           messageLength: vpsMessageText.length,
           messageContent: vpsMessageText === ' ' ? 'SINGLE_SPACE' : vpsMessageText,
-          mediaType: processedMediaType,
-          isPTT: isPTT
+          mediaType: processedMediaType
         }
       });
       return new Response(JSON.stringify({
@@ -589,7 +539,6 @@ serve(async (req)=>{
       timestamp: vpsData.timestamp,
       mediaType: processedMediaType,
       hasMedia: !!base64Data,
-      isPTT: isPTT,
       finalMimeType: finalMimeType,
       agentId: agentId || 'N/A',
       vpsInstanceId: realVpsInstanceId,
@@ -625,7 +574,7 @@ serve(async (req)=>{
         p_profile_pic_url: null,
         p_base64_data: extractedBase64,  // ✅ Base64 para upload
         p_mime_type: extractedMimeType,
-        p_file_name: audioFilename,
+        p_file_name: imageFilename,
         p_whatsapp_number_id: instanceData?.id || null,
         p_source_edge: 'ai_messaging_service'
       });
@@ -637,15 +586,55 @@ serve(async (req)=>{
           leadId: saveResult.data?.lead_id,
           mediaType: processedMediaType,
           hasMedia: !!base64Data,
-          isPTT: isPTT,
           savedText: messageText === '' ? 'EMPTY_STRING' : messageText,
           agentId: agentId || 'N/A',
           source: 'ai_agent',
           uploadInitiated: !!(extractedBase64 && processedMediaType !== 'text'),
           architecture: 'RPC + Edge + WebSocket'
         });
-        console.log('[AI Messaging Service] 🚀 Upload iniciado automaticamente pela RPC');
-        console.log('[AI Messaging Service] 🔄 Edge ai_storage_upload processará mídia e atualizará URL');
+
+        // 🚀 CHAMAR EDGE ai_storage_upload SE HOUVER MÍDIA
+        if (extractedBase64 && processedMediaType !== 'text' && saveResult.data?.message_id) {
+          console.log('[AI Messaging Service] 🚀 Iniciando upload para Storage...');
+
+          // Determinar extensão baseada no MIME type
+          let extension = 'jpg'; // padrão
+          if (extractedMimeType === 'image/png') {
+            extension = 'png';
+          } else if (extractedMimeType === 'image/jpeg' || extractedMimeType === 'image/jpg') {
+            extension = 'jpg';
+          }
+
+          const uploadPayload = {
+            message_id: saveResult.data.message_id,
+            file_path: `ai_agent/${instanceData?.id}/${saveResult.data.message_id}.${extension}`,
+            content_type: extractedMimeType,
+            base64_data: extractedBase64
+          };
+
+          // Fire-and-forget: Upload assíncrono
+          fetch(`${supabaseUrl}/functions/v1/ai_storage_upload`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`
+            },
+            body: JSON.stringify(uploadPayload)
+          }).then((response) => response.json()).then((uploadResult) => {
+            console.log('[AI Messaging Service] 📊 Upload resultado:', uploadResult);
+            if (uploadResult.success) {
+              console.log('[AI Messaging Service] ✅ Upload concluído:', uploadResult.url);
+            } else {
+              console.error('[AI Messaging Service] ❌ Erro no upload:', uploadResult);
+            }
+          }).catch((uploadError) => {
+            console.error('[AI Messaging Service] ❌ Erro na chamada de upload:', uploadError);
+          });
+
+          console.log('[AI Messaging Service] 🚀 Upload disparado - extensão:', extension);
+        } else {
+          console.log('[AI Messaging Service] 📝 Mensagem de texto - sem upload necessário');
+        }
       }
     } catch (saveError) {
       console.error('[AI Messaging Service] ❌ Erro ao executar RPC de salvamento:', saveError);
@@ -662,7 +651,6 @@ serve(async (req)=>{
         phone: phone.replace(/\D/g, ''),
         mediaType: processedMediaType,
         hasMedia: !!base64Data,
-        isPTT: isPTT,
         finalMimeType: finalMimeType,
         timestamp: vpsData.timestamp || new Date().toISOString(),
         agentId: agentId || null,

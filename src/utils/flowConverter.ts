@@ -416,9 +416,9 @@ function getRegraCritica(blockType: string): string {
     'transfer_human': 'Avisar lead sobre transferência',
     'provide_instructions': 'Garantir que informação seja compreensível e armazenável',
     'teach': 'Garantir que informação seja compreensível',
-    'add_to_list': 'SEMPRE confirmar o item adicionado mostrando quantidade, nome e preço',
-    'confirm_list': 'SEMPRE mostrar lista completa ANTES de confirmar. NUNCA confirmar sem autorização do cliente',
-    'remove_from_list': 'Se cliente mencionar número (ex: "item 2", "o 3"), usar número da lista. Se mencionar nome (ex: "pizza"), buscar por nome'
+    'add_to_list': 'USAR tool add_to_list quando cliente SOLICITAR adicionar produto. Extrair nome, descrição conforme orientações e preço (se informado). SEMPRE confirmar item adicionado',
+    'confirm_list': 'USAR tool get_list para mostrar lista. Se cliente pedir REMOVER item, usar tool remove_from_list e EXECUTAR get_list NOVAMENTE. Se cliente pedir ALTERAR item, usar remove_from_list (item antigo) + add_to_list (item novo) + get_list. NUNCA confirmar sem autorização explícita',
+    'remove_from_list': 'Tool usada em 2 cenários: (1) Cliente pede remover item específico durante GET_LIST - remover e voltar para confirmar. (2) FINAL do fluxo - limpar ou deletar TODA a lista conforme configurado'
   };
   return mapeamento[blockType] || 'Seguir instruções do objetivo';
 }
@@ -443,9 +443,9 @@ function getImportante(blockType: string): string {
     'transfer_human': 'Garantir que equipe foi notificada',
     'provide_instructions': 'Informação deve ser armazenada para uso futuro em conversas',
     'teach': 'Informação deve ser armazenada para uso futuro',
-    'add_to_list': 'Se cliente não informar quantidade, assumir 1. Se não informar preço, perguntar antes de adicionar',
-    'confirm_list': 'Permitir que cliente remova ou adicione itens antes de confirmar. Perguntar explicitamente se está tudo certo',
-    'remove_from_list': 'Após remover, mostrar pedido atualizado automaticamente'
+    'add_to_list': 'Cada item = 1 registro na tabela. Preencher descrição seguindo orientações configuradas. Se cliente não informar preço, deixar em branco. Capturar observações naturalmente da conversa',
+    'confirm_list': 'Sempre reexecutar get_list após qualquer edição (remoção ou alteração) para cliente confirmar mudanças. Perguntar "Agora está correto?" após cada alteração',
+    'remove_from_list': 'Modo individual: remover 1 item e voltar para get_list. Modo total: limpar ou deletar toda lista (final do fluxo). Confirmar qual modo usar conforme configuração do bloco'
   };
   return mapeamento[blockType] || 'Manter contexto da conversa';
 }
@@ -639,6 +639,34 @@ export function convertStructuredToReactFlow(
           if (dadosExtras.field_updates && Array.isArray(dadosExtras.field_updates)) {
             nodeData.fieldUpdates = dadosExtras.field_updates;
           }
+        }
+
+        // BLOCO ADD_TO_LIST: Extrair dados específicos
+        if (variation._metadata.tipo_tecnico === 'add_to_list' && variation.instrucoes.dados_extras) {
+          const dadosExtras = variation.instrucoes.dados_extras;
+          nodeData.confirmationMessage = dadosExtras.mensagem_confirmacao;
+          nodeData.aiInstruction = dadosExtras.instrucao_ia;
+          nodeData.descriptionGuideline = dadosExtras.orientacao_descricao;
+        }
+
+        // BLOCO CONFIRM_LIST: Extrair dados específicos
+        if (variation._metadata.tipo_tecnico === 'confirm_list' && variation.instrucoes.dados_extras) {
+          const dadosExtras = variation.instrucoes.dados_extras;
+          nodeData.mainMessage = dadosExtras.mensagem_principal;
+          nodeData.aiInstruction = dadosExtras.instrucao_ia;
+          nodeData.displayFormat = dadosExtras.formato_exibicao;
+          nodeData.showTotal = dadosExtras.exibir_total;
+          nodeData.allowEdit = dadosExtras.permitir_edicao;
+        }
+
+        // BLOCO REMOVE_FROM_LIST: Extrair dados específicos
+        if (variation._metadata.tipo_tecnico === 'remove_from_list' && variation.instrucoes.dados_extras) {
+          const dadosExtras = variation.instrucoes.dados_extras;
+          nodeData.mainMessage = dadosExtras.mensagem_principal;
+          nodeData.confirmationMessage = dadosExtras.mensagem_confirmacao;
+          nodeData.aiInstruction = dadosExtras.instrucao_ia;
+          nodeData.identifyBy = dadosExtras.identificar_por;
+          nodeData.clearMode = dadosExtras.modo_limpeza;
         }
 
         const position = variation._metadata?.posicao_canvas || { x: 100, y: 100 };

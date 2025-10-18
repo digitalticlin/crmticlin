@@ -640,7 +640,8 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
             label: data.label,
             description: data.description,
             confirmationMessage: data.confirmationMessage,
-            aiInstruction: data.aiInstruction
+            aiInstruction: data.aiInstruction,
+            descriptionGuideline: data.descriptionGuideline
           }}
           onSave={handleSave}
         />
@@ -673,7 +674,8 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
             mainMessage: data.mainMessage,
             aiInstruction: data.aiInstruction,
             identifyBy: data.identifyBy,
-            confirmationMessage: data.confirmationMessage
+            confirmationMessage: data.confirmationMessage,
+            clearMode: data.clearMode
           }}
           onSave={handleSave}
         />

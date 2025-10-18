@@ -45,11 +45,12 @@ export const usePaymentHistory = () => {
           return [];
         }
 
-        // Buscar também trials ativados
+        // Buscar trials ativados via plan_subscriptions
         const { data: trials, error: trialsError } = await supabase
-          .from('free_trial_usage')
+          .from('plan_subscriptions')
           .select('*')
           .eq('user_id', userId) // 🔒 Filtro obrigatório por user_id
+          .eq('plan_type', 'free_200')
           .order('created_at', { ascending: false });
 
         if (trialsError) {
@@ -99,10 +100,10 @@ export const usePaymentHistory = () => {
           };
         });
 
-        // Mapear trials
+        // Mapear trials (agora vem de plan_subscriptions)
         const mappedTrials: PaymentHistoryItem[] = (trials || []).map((trial) => ({
           id: trial.id,
-          date: new Date(trial.activated_at),
+          date: new Date(trial.current_period_start || trial.created_at),
           type: 'trial' as const,
           status: 'completed' as const,
           amount: 0,

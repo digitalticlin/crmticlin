@@ -76,24 +76,12 @@ export async function getCurrentPlanStatus(): Promise<any> {
       .from('plan_subscriptions')
       .select('*')
       .eq('user_id', user.user.id)
-      .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
 
     if (subError && subError.code !== 'PGRST116') {
       console.error('[Billing] Erro ao verificar assinatura:', subError);
-    }
-
-    // Verificar trial gratuito
-    const { data: trial, error: trialError } = await supabase
-      .from('free_trial_usage')
-      .select('*')
-      .eq('user_id', user.user.id)
-      .single();
-
-    if (trialError && trialError.code !== 'PGRST116') {
-      console.error('[Billing] Erro ao verificar trial:', trialError);
     }
 
     // Verificar uso atual
@@ -106,12 +94,17 @@ export async function getCurrentPlanStatus(): Promise<any> {
       console.error('[Billing] Erro ao verificar uso:', usageError);
     }
 
+    // Trial agora é identificado por plan_type = 'free_200' em subscription
+    const hasActiveTrial = subscription?.plan_type === 'free_200' &&
+                          subscription?.status === 'active' &&
+                          new Date(subscription.current_period_end) > new Date();
+
     return {
       subscription: subscription || null,
-      trial: trial || null,
+      trial: null, // Removido: agora usa subscription.plan_type
       usage: usage || null,
-      hasActivePlan: !!subscription,
-      hasActiveTrial: trial && new Date(trial.expires_at) > new Date(),
+      hasActivePlan: subscription?.status === 'active',
+      hasActiveTrial,
       isBlocked: subscription?.platform_blocked_at !== null
     };
 

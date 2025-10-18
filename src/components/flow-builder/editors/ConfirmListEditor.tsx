@@ -222,6 +222,21 @@ export function ConfirmListEditor({
               </p>
             </div>
 
+            {/* Regras visíveis para aprovação */}
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-amber-800 mb-3">📋 Regras do Agente IA</h3>
+              <div className="text-xs text-amber-700 space-y-3">
+                <div>
+                  <p className="font-semibold mb-1">⚠️ Regra Crítica:</p>
+                  <p className="leading-relaxed">USAR tool get_list para mostrar lista. Se cliente pedir REMOVER item, usar tool remove_from_list e EXECUTAR get_list NOVAMENTE. Se cliente pedir ALTERAR item, usar remove_from_list (item antigo) + add_to_list (item novo) + get_list. NUNCA confirmar sem autorização explícita</p>
+                </div>
+                <div>
+                  <p className="font-semibold mb-1">💡 Importante:</p>
+                  <p className="leading-relaxed">Sempre reexecutar get_list após qualquer edição (remoção ou alteração) para cliente confirmar mudanças. Perguntar "Agora está correto?" após cada alteração</p>
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-end gap-3 pt-6 border-t border-white/40">
               <button
                 onClick={onClose}

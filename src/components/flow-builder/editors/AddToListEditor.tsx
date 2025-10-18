@@ -13,12 +13,14 @@ interface AddToListEditorProps {
     description?: string;
     confirmationMessage?: string;
     aiInstruction?: string;
+    descriptionGuideline?: string;
   };
   onSave: (data: {
     label: string;
     description: string;
     confirmationMessage: string;
     aiInstruction: string;
+    descriptionGuideline: string;
     block_data: any;
   }) => void;
 }
@@ -41,6 +43,9 @@ export function AddToListEditor({
     initialData?.aiInstruction ||
     'Extrair nome do produto, quantidade e preço da última mensagem do cliente e adicionar à lista de pedidos. Confirmar item adicionado com resumo: "Adicionei: [QTD]x [PRODUTO] - R$ [PREÇO]"'
   );
+  const [descriptionGuideline, setDescriptionGuideline] = useState(
+    initialData?.descriptionGuideline || 'Anotar observações do cliente conforme a conversa (ex: como quer o corte, tipo de embalagem, preferências)'
+  );
 
   const handleSave = () => {
     setIsEditingLabel(false);
@@ -50,11 +55,13 @@ export function AddToListEditor({
       description,
       confirmationMessage,
       aiInstruction,
+      descriptionGuideline,
       block_data: {
         modo_ia: 'tool_execution',
         tool_name: 'add_list',
         instrucao_ia: aiInstruction,
-        mensagem_confirmacao: confirmationMessage
+        mensagem_confirmacao: confirmationMessage,
+        orientacao_descricao: descriptionGuideline
       }
     });
 
@@ -134,6 +141,23 @@ export function AddToListEditor({
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="descriptionGuideline" className="text-sm font-medium text-gray-700">
+                Como preencher a descrição do item?
+              </Label>
+              <Textarea
+                id="descriptionGuideline"
+                value={descriptionGuideline}
+                onChange={(e) => setDescriptionGuideline(e.target.value)}
+                placeholder="Ex: Anotar como o cliente quer o corte, tipo de embalagem, preferências especiais"
+                rows={2}
+                className="bg-white/30 border-white/40 focus:bg-white/50 placeholder:text-gray-500 resize-none"
+              />
+              <p className="text-xs text-gray-500">
+                Orientação para o agente sobre quais observações capturar durante a conversa
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="aiInstruction" className="text-sm font-medium text-gray-700">
                 Instruções para o agente IA
               </Label>
@@ -148,6 +172,21 @@ export function AddToListEditor({
               <p className="text-xs text-gray-500">
                 Como o agente deve extrair e adicionar os dados do produto
               </p>
+            </div>
+
+            {/* Regras visíveis para aprovação */}
+            <div className="bg-rose-500/10 border border-rose-500/30 rounded-xl p-4">
+              <h3 className="text-sm font-semibold text-rose-800 mb-3">📋 Regras do Agente IA</h3>
+              <div className="text-xs text-rose-700 space-y-3">
+                <div>
+                  <p className="font-semibold mb-1">⚠️ Regra Crítica:</p>
+                  <p className="leading-relaxed">USAR tool add_to_list quando cliente SOLICITAR adicionar produto. Extrair nome, descrição conforme orientações e preço (se informado). SEMPRE confirmar item adicionado</p>
+                </div>
+                <div>
+                  <p className="font-semibold mb-1">💡 Importante:</p>
+                  <p className="leading-relaxed">Cada item = 1 registro na tabela. Preencher descrição seguindo orientações configuradas. Se cliente não informar preço, deixar em branco. Capturar observações naturalmente da conversa</p>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-6 border-t border-white/40">

@@ -107,31 +107,17 @@ export const useBillingData = () => {
   });
 
   /**
-   * Query para trial gratuito
+   * Query para trial gratuito (agora via plan_subscriptions)
+   * NOTA: trial agora é identificado por plan_type = 'free_200' em subscriptionQuery
    */
   const trialQuery = useQuery({
     queryKey: BILLING_QUERY_KEYS.userTrial(userId || ''),
     queryFn: async () => {
-      if (!userId) return null;
-
-      try {
-        const { data, error } = await supabase
-          .from('free_trial_usage')
-          .select('*')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
-
-        return data;
-      } catch (error) {
-        handleError(error as Error, 'trialQuery');
-        return null;
-      }
+      // Trial agora vem de plan_subscriptions, não precisa de query separada
+      // Retornar null para manter compatibilidade
+      return null;
     },
-    enabled: isAuthenticated,
+    enabled: false, // Desabilitado: trial agora vem de subscriptionQuery
     staleTime: BILLING_STALE_TIMES.TRIAL,
     retry: 1,
   });
@@ -159,17 +145,18 @@ export const useBillingData = () => {
     const trial = trialQuery.data;
 
     // Determinar status do plano
-    const hasActiveSubscription = subscription?.status === 'active';
-    const hasActiveTrial = trial && new Date(trial.expires_at) > new Date();
+    const hasActiveSubscription = subscription?.status === 'active' && subscription?.plan_type !== 'free_200';
+    const hasActiveTrial = subscription?.plan_type === 'free_200' &&
+                          subscription?.status === 'active' &&
+                          new Date(subscription.current_period_end) > new Date();
     const isBlocked = subscription?.platform_blocked_at !== null;
     const isOverdue = subscription?.payment_overdue_since !== null;
 
     // 🔒 LÓGICA CORRETA: Usuário pode ativar trial SE:
-    // 1. Nunca ativou trial antes (trial === null OU não existe registro)
-    // 2. E não tem has_used_free_trial = true na subscription
-    // 3. E não tem plano pago ativo atualmente
-    const hasUsedFreeTrial = subscription?.has_used_free_trial === true || trial !== null;
-    const canActivateTrial = !hasUsedFreeTrial && !hasActiveSubscription;
+    // 1. Nunca ativou trial antes (has_used_free_trial = false OU null)
+    // 2. E não tem plano pago ativo atualmente
+    const hasUsedFreeTrial = subscription?.has_used_free_trial === true;
+    const canActivateTrial = !hasUsedFreeTrial && !hasActiveSubscription && !hasActiveTrial;
 
     // Determinar plano atual
     const currentPlan = subscription?.plan_type || (hasActiveTrial ? 'free_200' : null);

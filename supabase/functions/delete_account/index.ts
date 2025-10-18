@@ -51,27 +51,7 @@ serve(async (req) => {
 
     // === LEVEL 1: Tabelas sem dependentes (folhas) ===
 
-    // 1. Delete broadcast logs (depende de campaigns e leads)
-    const { error: broadcastLogsError } = await supabaseClient
-      .from('broadcast_logs')
-      .delete()
-      .or(`lead_id.in.(SELECT id FROM leads WHERE created_by_user_id = '${createdByUserId}')`)
-
-    if (broadcastLogsError) {
-      console.error('Error deleting broadcast logs:', broadcastLogsError)
-    }
-
-    // 2. Delete broadcast queue (depende de campaigns e leads)
-    const { error: broadcastQueueError } = await supabaseClient
-      .from('broadcast_queue')
-      .delete()
-      .or(`lead_id.in.(SELECT id FROM leads WHERE created_by_user_id = '${createdByUserId}')`)
-
-    if (broadcastQueueError) {
-      console.error('Error deleting broadcast queue:', broadcastQueueError)
-    }
-
-    // 3. Delete lead tags (depende de leads)
+    // 1. Delete lead tags (depende de leads)
     const { error: leadTagsError } = await supabaseClient
       .from('lead_tags')
       .delete()
@@ -81,7 +61,7 @@ serve(async (req) => {
       console.error('Error deleting lead tags:', leadTagsError)
     }
 
-    // 4. Delete lead activities (depende de leads)
+    // 2. Delete lead activities (depende de leads)
     const { error: leadActivitiesError } = await supabaseClient
       .from('lead_activities')
       .delete()
@@ -91,7 +71,7 @@ serve(async (req) => {
       console.error('Error deleting lead activities:', leadActivitiesError)
     }
 
-    // 5. Delete messages (depende de leads via sender)
+    // 3. Delete messages (depende de leads via sender)
     const { error: messagesError } = await supabaseClient
       .from('messages')
       .delete()
@@ -101,7 +81,7 @@ serve(async (req) => {
       console.error('Error deleting messages:', messagesError)
     }
 
-    // 6. Delete chat sessions
+    // 4. Delete chat sessions
     const { error: chatSessionsError } = await supabaseClient
       .from('chat_sessions')
       .delete()
@@ -113,7 +93,7 @@ serve(async (req) => {
 
     // === LEVEL 2: Tabelas que dependem das do Level 1 ===
 
-    // 7. Delete leads (depois que mensagens e atividades foram deletadas)
+    // 5. Delete leads (depois que mensagens e atividades foram deletadas)
     const { error: leadsError } = await supabaseClient
       .from('leads')
       .delete()
@@ -123,19 +103,9 @@ serve(async (req) => {
       console.error('Error deleting leads:', leadsError)
     }
 
-    // 8. Delete broadcast campaigns
-    const { error: broadcastCampaignsError } = await supabaseClient
-      .from('broadcast_campaigns')
-      .delete()
-      .eq('created_by_user_id', createdByUserId)
-
-    if (broadcastCampaignsError) {
-      console.error('Error deleting broadcast campaigns:', broadcastCampaignsError)
-    }
-
     // === LEVEL 3: Tabelas de configuração do funil ===
 
-    // 9. Delete funnel stages (depois que leads foram deletados)
+    // 6. Delete funnel stages (depois que leads foram deletados)
     const { error: stagesError } = await supabaseClient
       .from('funnel_stages')
       .delete()

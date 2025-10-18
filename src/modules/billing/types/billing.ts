@@ -18,11 +18,17 @@ export interface MessageUsageTracking {
   plan_subscription_id: string;
   period_start: string;
   period_end: string;
-  messages_sent_count: number;
-  messages_received_count: number;
-  total_messages_count: number;
+  ai_messages_sent: number;
+  manual_messages_sent: number;
   plan_limit: number;
-  status: 'active' | 'warning' | 'exceeded' | 'blocked';
+  custom_limit: number | null;
+  bonus_messages: number;
+  custom_limit_reason: string | null;
+  custom_limit_expires_at: string | null;
+  granted_by_admin_id: string | null;
+  message_signature_enabled: boolean;
+  status: 'active' | 'warning' | 'exceeded';
+  last_reset_at: string | null;
   created_at: string;
   updated_at: string;
 }

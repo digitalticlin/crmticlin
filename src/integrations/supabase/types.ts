@@ -767,44 +767,62 @@ export type Database = {
       }
       message_usage_tracking: {
         Row: {
+          ai_messages_sent: number
+          bonus_messages: number
           created_at: string
+          custom_limit: number | null
+          custom_limit_expires_at: string | null
+          custom_limit_reason: string | null
+          granted_by_admin_id: string | null
           id: string
-          messages_received_count: number
-          messages_sent_count: number
+          last_reset_at: string | null
+          manual_messages_sent: number
+          message_signature_enabled: boolean
           period_end: string
           period_start: string
           plan_limit: number
           plan_subscription_id: string | null
           status: string
-          total_messages_count: number
           updated_at: string
           user_id: string | null
         }
         Insert: {
+          ai_messages_sent?: number
+          bonus_messages?: number
           created_at?: string
+          custom_limit?: number | null
+          custom_limit_expires_at?: string | null
+          custom_limit_reason?: string | null
+          granted_by_admin_id?: string | null
           id?: string
-          messages_received_count?: number
-          messages_sent_count?: number
+          last_reset_at?: string | null
+          manual_messages_sent?: number
+          message_signature_enabled?: boolean
           period_end: string
           period_start: string
           plan_limit: number
           plan_subscription_id?: string | null
           status?: string
-          total_messages_count?: number
           updated_at?: string
           user_id?: string | null
         }
         Update: {
+          ai_messages_sent?: number
+          bonus_messages?: number
           created_at?: string
+          custom_limit?: number | null
+          custom_limit_expires_at?: string | null
+          custom_limit_reason?: string | null
+          granted_by_admin_id?: string | null
           id?: string
-          messages_received_count?: number
-          messages_sent_count?: number
+          last_reset_at?: string | null
+          manual_messages_sent?: number
+          message_signature_enabled?: boolean
           period_end?: string
           period_start?: string
           plan_limit?: number
           plan_subscription_id?: string | null
           status?: string
-          total_messages_count?: number
           updated_at?: string
           user_id?: string | null
         }

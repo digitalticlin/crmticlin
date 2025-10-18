@@ -82,29 +82,29 @@ export const UsageDisplay = () => {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium">Enviadas</span>
+                <span className="text-sm font-medium">AI</span>
               </div>
               <p className="text-2xl font-bold text-green-500">
-                {(usage?.messages_sent_count || 0).toLocaleString()}
+                {(usage?.ai_messages_sent || 0).toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground">
-                {(((usage?.messages_sent_count || 0) / (limitCheck?.current_usage || 1)) * 100).toFixed(0)}% do total
+                Conta no limite
               </p>
             </div>
-            
+
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <MessageCircle className="h-4 w-4 text-blue-500" />
-                <span className="text-sm font-medium">Recebidas</span>
+                <span className="text-sm font-medium">Manuais</span>
               </div>
               <p className="text-2xl font-bold text-blue-500">
-                {(usage?.messages_received_count || 0).toLocaleString()}
+                {(usage?.manual_messages_sent || 0).toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground">
-                {((usage.messages_received_count / limitCheck.current_usage) * 100).toFixed(0)}% do total
+                Não conta no limite
               </p>
             </div>
-            
+
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-purple-500" />
@@ -117,7 +117,7 @@ export const UsageDisplay = () => {
                 mensagens/dia
               </p>
             </div>
-            
+
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-orange-500" />
