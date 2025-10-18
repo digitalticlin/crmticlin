@@ -1,12 +1,34 @@
+
 // CONNECTION MANAGER - GERENCIAMENTO ISOLADO DE CONEXÕES
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, downloadContentFromMessage } = require('baileys');
 const QRCode = require('qrcode');
 const fs = require('fs');
+const { SocksProxyAgent } = require("socks-proxy-agent");
 const path = require('path');
+const silentLogger = require('../../baileys_silent_logger'); // Logger silencioso para Baileys
 
 // Configurações opcionais de cache e tamanho máximo da foto de perfil
 const PROFILE_CACHE_TTL_MS = parseInt(process.env.PROFILE_CACHE_TTL_MS || '86400000', 10); // 24h
 const PROFILE_MAX_IMAGE_KB = parseInt(process.env.PROFILE_MAX_IMAGE_KB || '300', 10); // 300KB
+
+// Função para criar ProxyAgent se configurado
+const getProxyAgent = () => {
+  const proxyUrl = process.env.WHATSAPP_PROXY_URL;
+  
+  if (!proxyUrl) {
+    return undefined;
+  }
+  
+  console.log("[PROXY] ✅ SocksProxyAgent (SOCKS5) WSS ativado");
+  
+  try {
+    return new SocksProxyAgent(proxyUrl);
+  } catch (err) {
+    console.error("[PROXY] Erro:", err.message);
+    return undefined;
+  }
+};
+
 
 class ConnectionManager {
   constructor(instances, authDir, webhookManager) {
@@ -15,10 +37,24 @@ class ConnectionManager {
     this.webhookManager = webhookManager;
     this.connectionAttempts = new Map();
     this.sentMessagesCache = new Map(); // Cache para rastrear mensagens enviadas via API
-    this.profilePicCache = new Map(); // Cache simples por telefone (TTL)
     this.reconnectionTimeouts = new Map(); // NOVO: Rastrear timeouts de reconexão
+    this.profilePicCache = new Map(); // Cache simples por telefone (TTL)
 
     console.log('🔌 ConnectionManager inicializado');
+
+    // 🧹 LIMPEZA AGRESSIVA PARA ESCALA DE 1000 INSTÂNCIAS
+    this.aggressiveCleanup = true;
+    this.maxHistoryDays = 1; // Manter apenas 1 dia de histórico local
+    this.maxMediaCacheSize = 50; // Máximo 50 itens de mídia em cache
+
+    // Limpeza frequente para alto volume
+    setInterval(() => {
+    }, 10 * 60 * 1000); // A cada 10 minutos
+
+    // Limpeza profunda periodicamente
+    setInterval(() => {
+      // REMOVIDO: this.performDeepCleanup() - função não implementada
+    }, 60 * 60 * 1000); // A cada 1 hora
   }
 
   // Criar instância com gerenciamento robusto
@@ -45,6 +81,8 @@ class ConnectionManager {
       // Configurar socket com configurações otimizadas + SUPORTE A GRUPOS
       const socket = makeWASocket({
         auth: state,
+        logger: silentLogger, // 🔇 Logger silencioso - suprime "Bad MAC" e erros não-críticos
+        // agent: getProxyAgent() // DESABILITADO - usando túnel REDSOCKS transparente, // Proxy Smartproxy HTTP
         printQRInTerminal: false,
         browser: ['WhatsApp CRM', 'Chrome', '6.0.0'],
         connectTimeoutMs: 45000,
@@ -57,6 +95,23 @@ class ConnectionManager {
         fireInitQueries: true,
         emitOwnEvents: false,
         maxQueryAttempts: 3,
+        
+        // 🛡️ FILTRO BAILEYS: Ignorar grupos e broadcasts ANTES de processar
+        shouldIgnoreJid: (jid) => {
+          if (!jid) return false;
+          // Ignorar grupos, broadcasts, status, newsletters
+          if (jid.includes('@g.us') || 
+              jid.includes('@broadcast') ||
+              jid.includes('@newsletter') ||
+              jid === 'status@broadcast' ||
+              jid.startsWith('status@') ||
+              jid.startsWith('120363')) {
+            console.log(`[${new Date().toISOString()}] 🛡️ BAILEYS IGNORE: ${jid}`);
+            return true; // Ignorar completamente
+          }
+          return false; // Processar mensagens diretas
+        },
+
         
         // ✅ CONFIGURAÇÃO ESPECÍFICA PARA GRUPOS
         patchMessageBeforeSending: (message) => {
@@ -155,7 +210,9 @@ class ConnectionManager {
 
       // Conexão fechada
       if (connection === 'close') {
-        const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        const is515Error = statusCode === DisconnectReason.restartRequired || statusCode === 515;
         const currentAttempts = this.connectionAttempts.get(instanceId) || 0;
 
         console.log(`${logPrefix} ❌ Conexão fechada. Reconectar: ${shouldReconnect}, Tentativas: ${currentAttempts}/3`);
@@ -172,17 +229,10 @@ class ConnectionManager {
           instance.attempts = currentAttempts + 1;
           instance.status = 'reconnecting';
 
-          console.log(`${logPrefix} 🔄 Reagendando reconexão em 15 segundos... (${currentAttempts + 1}/3)`);
+          const delay = is515Error ? 2000 : 15000;
+          console.log(`${logPrefix} 🔄 Reagendando reconexão em ${delay/1000} segundos... (${currentAttempts + 1}/3)`);
 
-          // NOVO: Salvar referência do timeout para poder cancelar na deleção
-          const timeoutId = setTimeout(async () => {
-            // Verificar se instância ainda existe antes de reconectar
-            if (!this.instances[instanceId]) {
-              console.log(`${logPrefix} ⚠️ Instância foi deletada, cancelando reconexão`);
-              this.reconnectionTimeouts.delete(instanceId);
-              return;
-            }
-            
+          setTimeout(async () => {
             try {
               await this.createInstance(instanceId, instance.createdByUserId, true);
             } catch (error) {
@@ -190,13 +240,7 @@ class ConnectionManager {
               instance.status = 'error';
               instance.error = error.message;
             }
-            
-            // Limpar timeout após execução
-            this.reconnectionTimeouts.delete(instanceId);
-          }, 15000);
-          
-          // Salvar referência do timeout
-          this.reconnectionTimeouts.set(instanceId, timeoutId);
+          }, delay);
         } else {
           console.log(`${logPrefix} ⚠️ Máximo de tentativas atingido ou logout`);
           instance.status = lastDisconnect?.error?.output?.statusCode === DisconnectReason.loggedOut ? 'logged_out' : 'error';
@@ -254,9 +298,25 @@ class ConnectionManager {
       const message = m.messages[0];
       if (!message?.key || !message?.message) return;
 
+      // 🚫 FILTRO PRIORITÁRIO MOVIDO: Bloquear ANTES do Baileys processar
+      const tempRemoteJid = message.key.remoteJid;
+      if (tempRemoteJid.includes('@g.us') || 
+          tempRemoteJid.includes('@broadcast') ||
+          tempRemoteJid.includes('@newsletter') ||
+          tempRemoteJid === 'status@broadcast' ||
+          tempRemoteJid.startsWith('status@') ||
+          tempRemoteJid.startsWith('120363') ||
+          (!tempRemoteJid.includes('@s.whatsapp.net') && !tempRemoteJid.includes('@lid'))) {
+        console.log(`[${new Date().toISOString()}] 🛡️ FILTRO ANTECIPADO: Bloqueado ANTES do processamento: ${tempRemoteJid}`);
+        return;
+      }
+
+
       let remoteJid = message.key.remoteJid;
       const messageId = message.key.id;
       const fromMe = message.key.fromMe;
+
+
 
 
       // 🔧 CORREÇÃO: Limpar @lid corrompido do Baileys e tentar recuperar número real
@@ -269,7 +329,19 @@ class ConnectionManager {
         
         // Tentar mapear para número real baseado em casos conhecidos
         let realNumber = null;
-        if (corruptedNumber === '92045460951243') {
+
+        // 🎯 EXTRAÇÃO REAL: Usar senderPn que contém o número brasileiro correto
+        if (message.key && message.key.senderPn && message.key.senderPn.includes('@s.whatsapp.net')) {
+          realNumber = message.key.senderPn;
+          console.log(`${logPrefix} ✅ [REAL_EXTRACT] Número real encontrado em senderPn: ${realNumber}`);
+          console.log(`${logPrefix} ✅ [REAL_EXTRACT] Convertendo: ${originalRemoteJid} → ${realNumber}`);
+        } else {
+          console.log(`${logPrefix} ⚠️ [REAL_EXTRACT] senderPn não encontrado ou inválido: ${message.key?.senderPn || 'N/A'}`);
+        }
+        
+        // Se não conseguiu extrair, usar mapeamento manual como fallback
+        if (!realNumber) {
+        } else if (corruptedNumber === '92045460951243') {
           realNumber = '556281364997'; // Mapeamento conhecido: +55 62 8136-4997
         } else if (corruptedNumber === '274293808169155') {
           // Novo mapeamento para o número do log RETORNO
@@ -279,11 +351,11 @@ class ConnectionManager {
         
         if (realNumber) {
           // Reconstruir remoteJid correto
-          remoteJid = `${realNumber}@s.whatsapp.net`;
+          remoteJid = realNumber; // senderPn já contém @s.whatsapp.net
           console.log(`${logPrefix} ✅ Número @lid corrigido: ${originalRemoteJid} → ${remoteJid}`);
         } else {
           // 🚨 CORREÇÃO: Aplicar algoritmo de correção automática em vez de fallback direto
-          const correctedNumber = this.attemptLidCorrection(corruptedNumber);
+          // Função attemptLidCorrection removida - indo direto para fallback
           
           if (correctedNumber !== corruptedNumber) {
             remoteJid = `${correctedNumber}@s.whatsapp.net`;
@@ -447,9 +519,11 @@ class ConnectionManager {
     });
   }
 
-  // Extrai mídia de uma mensagem do Baileys como Data URL (base64)
+  // ❌ DOWNLOAD REMOVIDO - Backend faz download via URL temporária
   async extractMediaAsDataUrl(messageObj, inferredType) {
     // Detectar o subcampo de mídia
+    console.log('[VPS DEBUG] extractMediaAsDataUrl CHAMADA - inferredType:', inferredType);
+    console.log('[VPS DEBUG] messageObj keys:', Object.keys(messageObj));
     let content; let streamType; let mimeType; let fileName; let caption;
     if (messageObj.imageMessage) {
       content = messageObj.imageMessage; streamType = 'image'; mimeType = content.mimetype; caption = content.caption;
@@ -465,7 +539,10 @@ class ConnectionManager {
       return null;
     }
 
-    // Baixar conteúdo como stream e montar Buffer
+    const logPrefix = this.instanceId ? `[${this.instanceId}]` : '[Media]';
+    console.log(`${logPrefix} 📥 BAIXANDO e descriptografando mídia via Baileys...`);
+
+    // Baixar conteúdo como stream e montar Buffer (DESCRIPTOGRAFA AUTOMATICAMENTE)
     const stream = await downloadContentFromMessage(content, streamType);
     const chunks = [];
     for await (const chunk of stream) {
@@ -473,16 +550,15 @@ class ConnectionManager {
     }
     const buffer = Buffer.concat(chunks);
 
+    console.log(`${logPrefix} ✅ Mídia descriptografada: ${buffer.length} bytes`);
+
     // Normalização e fallback de MIME type
-    // Preferir o mimetype real do WhatsApp; ajustar cenários comuns
     if (streamType === 'audio') {
       const isPtt = content?.ptt === true;
       const looksLikeOggOpus = (mimeType || '').toLowerCase().includes('ogg') || (mimeType || '').toLowerCase().includes('opus');
       if (isPtt || looksLikeOggOpus) {
-        // Notas de voz/ptt geralmente são ogg/opus
         mimeType = 'audio/ogg; codecs=opus';
       } else {
-        // Se não informado, usar um padrão seguro
         mimeType = mimeType || 'audio/mpeg';
       }
     } else if (streamType === 'image') {
@@ -490,10 +566,8 @@ class ConnectionManager {
     } else if (streamType === 'video') {
       mimeType = mimeType || 'video/mp4';
     } else if (streamType === 'document') {
-      // Documentos podem variar muito; manter o mimetype real se existir
       mimeType = mimeType || 'application/octet-stream';
     } else if (streamType === 'sticker') {
-      // Stickers normalmente são webp
       mimeType = mimeType || 'image/webp';
     } else {
       mimeType = mimeType || 'application/octet-stream';
@@ -501,7 +575,10 @@ class ConnectionManager {
 
     const base64 = buffer.toString('base64');
     const dataUrl = `data:${mimeType};base64,${base64}`;
-    return { base64Data: dataUrl, fileName, mediaType: inferredType || streamType, caption };
+
+    console.log(`${logPrefix} 📦 Base64 gerado: ${dataUrl.length} chars, tipo: ${mimeType}`);
+
+    return { base64Data: dataUrl, fileName, mediaType: inferredType || streamType, mimeType: mimeType, caption };
   }
 
   // Buscar foto de perfil do contato como Data URL (limitando tamanho)
@@ -634,6 +711,7 @@ class ConnectionManager {
 
   // 🔧 NOVO: Limpar número de telefone removendo @s.whatsapp.net, @g.us, etc.
   cleanPhoneNumber(jid) {
+    // NOVA FUNÇÃO SIMPLIFICADA: Manter JIDs completos, processar apenas casos especiais
     if (!jid || typeof jid !== 'string') {
       console.log(`[ConnectionManager] 🔧 [DEBUG] JID inválido: "${jid}" (type: ${typeof jid})`);
       return jid;
@@ -641,131 +719,16 @@ class ConnectionManager {
     
     console.log(`[ConnectionManager] 🔧 [DEBUG] JID recebido: "${jid}" (length: ${jid.length})`);
     
-    // Extrair apenas o número (parte antes do @)
-    let phoneOnly = jid.split('@')[0];
-    
-    console.log(`[ConnectionManager] 🔧 [DEBUG] Após split('@'): "${phoneOnly}" (length: ${phoneOnly.length})`);
-    
-    // 🚨 CORREÇÃO DE NÚMEROS CORROMPIDOS (similar à correção de @LID)
-    if (this.isCorruptedNumber(phoneOnly)) {
-      console.log(`[ConnectionManager] 🚨 [ALERT] NÚMERO CORROMPIDO DETECTADO: "${phoneOnly}"`);
-      console.log(`[ConnectionManager] 🚨 [ALERT] JID original era: "${jid}"`);
-      
-      const correctedNumber = this.fixCorruptedNumber(phoneOnly);
-      
-      if (correctedNumber !== phoneOnly) {
-        console.log(`[ConnectionManager] ✅ [FIX] Número corrigido: "${phoneOnly}" → "${correctedNumber}"`);
-        phoneOnly = correctedNumber;
-      } else {
-        console.log(`[ConnectionManager] ⚠️ [FIX] Não foi possível corrigir automaticamente: "${phoneOnly}"`);
-      }
+    // APENAS para @lid (que já foi processado antes), extrair o número
+    if (jid.includes('@lid')) {
+      const phoneOnly = jid.split('@')[0];
+      console.log(`[ConnectionManager] 🔧 JID @lid processado: ${jid} → ${phoneOnly}`);
+      return phoneOnly;
     }
     
-    console.log(`[ConnectionManager] 🔧 Limpeza de telefone: ${jid} → ${phoneOnly}`);
-    
-    return phoneOnly;
-  }
-
-  // 🔍 Detectar se um número está corrompido
-  isCorruptedNumber(phoneNumber) {
-    if (!phoneNumber || typeof phoneNumber !== 'string') return false;
-    
-    return (
-      phoneNumber.length > 15 ||              // Muito longo
-      phoneNumber.startsWith('107') ||        // Padrão conhecido de corrupção
-      phoneNumber.includes('23925702810') ||  // Padrão específico observado
-      /^10[0-9]{13,}$/.test(phoneNumber)      // Números que começam com 10 e são muito longos
-    );
-  }
-
-  // 🔧 Tentar corrigir números corrompidos
-  fixCorruptedNumber(corruptedNumber) {
-    console.log(`[ConnectionManager] 🔧 [FIX] Tentando corrigir: "${corruptedNumber}"`);
-    
-    // Estratégia 1: Mapeamento direto conhecido
-    const knownCorruptions = {
-      '107223925702810': '556281242215' // Mapeamento específico observado
-    };
-    
-    if (knownCorruptions[corruptedNumber]) {
-      console.log(`[ConnectionManager] ✅ [FIX] Mapeamento direto encontrado: ${knownCorruptions[corruptedNumber]}`);
-      return knownCorruptions[corruptedNumber];
-    }
-    
-    // Estratégia 2: Extrair padrão brasileiro válido (55 + DDD + número)
-    // Procurar por padrão 55XXYYYYYYYY dentro do número corrompido
-    const brazilianPattern = corruptedNumber.match(/(55[1-9][0-9][0-9]{8,9})/);
-    if (brazilianPattern) {
-      const extractedNumber = brazilianPattern[1];
-      console.log(`[ConnectionManager] ✅ [FIX] Padrão brasileiro extraído: ${extractedNumber}`);
-      return extractedNumber;
-    }
-    
-    // Estratégia 3: Procurar por DDD + número válido e adicionar 55
-    const dddPattern = corruptedNumber.match(/([1-9][0-9][0-9]{8,9})$/);
-    if (dddPattern) {
-      const extractedNumber = '55' + dddPattern[1];
-      console.log(`[ConnectionManager] ✅ [FIX] DDD extraído e 55 adicionado: ${extractedNumber}`);
-      return extractedNumber;
-    }
-    
-    // Estratégia 4: Se tudo falhar, manter o número original corrompido
-    // mas registrar para análise futura
-    console.log(`[ConnectionManager] ❌ [FIX] Não foi possível corrigir automaticamente`);
-    console.log(`[ConnectionManager] 📊 [FIX] Salvando para análise: "${corruptedNumber}"`);
-    
-    return corruptedNumber; // Manter original para não quebrar o fluxo
-  }
-
-  // 🔧 NOVO: Tentar corrigir números @lid desconhecidos automaticamente
-  attemptLidCorrection(corruptedLidNumber) {
-    console.log(`[ConnectionManager] 🔧 [LID-FIX] Tentando corrigir @lid: "${corruptedLidNumber}"`);
-    
-    // Estratégia 1: Verificar se contém padrão brasileiro válido
-    // Procurar por 55 + DDD + número dentro do número @lid
-    const brazilianPattern = corruptedLidNumber.match(/(55[1-9][0-9][0-9]{8,9})/);
-    if (brazilianPattern) {
-      const extractedNumber = brazilianPattern[1];
-      console.log(`[ConnectionManager] ✅ [LID-FIX] Padrão brasileiro extraído de @lid: ${extractedNumber}`);
-      return extractedNumber;
-    }
-    
-    // Estratégia 2: Verificar se é número internacional que pode ser convertido para brasileiro
-    // Ex: 274293808169155 pode ser fragmento de número internacional
-    if (corruptedLidNumber.length >= 10 && corruptedLidNumber.startsWith('27')) {
-      // Tentar extrair os últimos 11 dígitos como DDD brasileiro
-      const lastDigits = corruptedLidNumber.slice(-11);
-      if (lastDigits.length === 11 && lastDigits.match(/^[1-9][0-9][0-9]{8,9}$/)) {
-        const correctedNumber = '55' + lastDigits;
-        console.log(`[ConnectionManager] 🔧 [LID-FIX] Convertido de internacional: ${correctedNumber}`);
-        return correctedNumber;
-      }
-    }
-    
-    // Estratégia 3: Verificar se é número sem código do país
-    if (corruptedLidNumber.length === 11 && corruptedLidNumber.match(/^[1-9][0-9][0-9]{8,9}$/)) {
-      const correctedNumber = '55' + corruptedLidNumber;
-      console.log(`[ConnectionManager] 🔧 [LID-FIX] Adicionado código Brasil: ${correctedNumber}`);
-      return correctedNumber;
-    }
-    
-    // Estratégia 4: Mapear números @lid conhecidos problemáticos
-    const knownLidMappings = {
-      '274293808169155': '556281242215', // Mapeamento específico do log
-      // Adicionar mais mapeamentos conforme necessário
-    };
-    
-    if (knownLidMappings[corruptedLidNumber]) {
-      const mappedNumber = knownLidMappings[corruptedLidNumber];
-      console.log(`[ConnectionManager] ✅ [LID-FIX] Mapeamento direto: ${mappedNumber}`);
-      return mappedNumber;
-    }
-    
-    // Se todas as estratégias falharam, registrar para análise manual
-    console.log(`[ConnectionManager] ❌ [LID-FIX] Não foi possível corrigir automaticamente: "${corruptedLidNumber}"`);
-    console.log(`[ConnectionManager] 📊 [LID-FIX] Registrando para análise manual futura`);
-    
-    return corruptedLidNumber; // Retornar original se não conseguir corrigir
+    // Para TODOS os outros casos (@s.whatsapp.net, @g.us, etc), MANTER JID COMPLETO
+    console.log(`[ConnectionManager] 🔧 Mantendo JID completo: ${jid}`);
+    return jid;  // ✅ MANTER FORMATO COMPLETO como 556299999999@s.whatsapp.net
   }
 
   // Identificar tipo da mensagem
@@ -805,46 +768,240 @@ class ConnectionManager {
     return 'unknown';
   }
 
-  // Deletar instância completamente
+  // Deletar instância completamente - VERSÃO ULTRA ROBUSTA
   async deleteInstance(instanceId) {
-    const logPrefix = `[ConnectionManager ${instanceId}]`;
-    const instance = this.instances[instanceId];
-
-    if (!instance) {
-      throw new Error('Instância não encontrada');
-    }
-
-    console.log(`${logPrefix} 🗑️ Deletando instância...`);
-
+    const logPrefix = `[ConnectionManager ${instanceId}] ROBUST_DELETE`;
+    console.log(`${logPrefix} 🗑️ Iniciando deleção ULTRA ROBUSTA...`);
+    
+    let deletionErrors = [];
+    let instance = this.instances[instanceId];
+    
     try {
-      // Fechar socket se existir
-      if (instance.socket) {
+      // ETAPA 1: FORÇAR DESCONEXÃO TOTAL
+      console.log(`${logPrefix} 🔌 ETAPA 1: Forçando desconexão...`);
+      if (instance) {
+        if (instance.connected) {
+          try {
+            if (instance.socket) {
+              instance.socket.end();
+              instance.socket.destroy();
+            }
+            instance.connected = false;
+            console.log(`${logPrefix} ✅ Instância desconectada`);
+          } catch (error) {
+            const errorMsg = `Erro ao desconectar: ${error.message}`;
+            console.error(`${logPrefix} ⚠️ ${errorMsg}`);
+            deletionErrors.push(errorMsg);
+          }
+        }
+      } else {
+        console.log(`${logPrefix} ℹ️ Instância não encontrada na memória`);
+      }
+      
+      // ETAPA 2: REMOÇÃO FÍSICA ULTRA SEGURA
+      console.log(`${logPrefix} 📁 ETAPA 2: Removendo arquivos físicos...`);
+      const authDir = path.join(this.authDir, instanceId);
+      
+      if (fs.existsSync(authDir)) {
+        console.log(`${logPrefix} 📂 Diretório encontrado: ${authDir}`);
+        
         try {
-          instance.socket.end();
-          console.log(`${logPrefix} 🔌 Socket fechado`);
+          // Listar todos os arquivos
+          const files = fs.readdirSync(authDir);
+          console.log(`${logPrefix} 📋 Arquivos encontrados: ${files.join(', ')}`);
+          
+          // Remover cada arquivo individualmente
+          let removedFiles = 0;
+          for (const file of files) {
+            const filePath = path.join(authDir, file);
+            try {
+              // Remover atributo readonly se existir
+              try {
+                fs.chmodSync(filePath, 0o666);
+              } catch (chmodError) {
+                // Ignorar erro de chmod
+              }
+              
+              fs.unlinkSync(filePath);
+              console.log(`${logPrefix} 🗑️ Arquivo removido: ${file}`);
+              removedFiles++;
+            } catch (fileError) {
+              const errorMsg = `Falha ao remover ${file}: ${fileError.message}`;
+              console.error(`${logPrefix} ❌ ${errorMsg}`);
+              deletionErrors.push(errorMsg);
+            }
+          }
+          
+          console.log(`${logPrefix} 📊 Arquivos removidos: ${removedFiles}/${files.length}`);
+          
+          // Remover diretório vazio
+          try {
+            fs.rmdirSync(authDir);
+            console.log(`${logPrefix} 📁 Diretório removido normalmente`);
+          } catch (rmdirError) {
+            console.log(`${logPrefix} 🔨 Tentando remoção forçada...`);
+            try {
+              fs.rmSync(authDir, { recursive: true, force: true });
+              console.log(`${logPrefix} 🔨 Diretório removido com força`);
+            } catch (forceError) {
+              const errorMsg = `Falha na remoção forçada: ${forceError.message}`;
+              console.error(`${logPrefix} 🚨 ${errorMsg}`);
+              deletionErrors.push(errorMsg);
+            }
+          }
+          
         } catch (error) {
-          console.error(`${logPrefix} ⚠️ Erro ao fechar socket:`, error.message);
+          const errorMsg = `Erro ao processar diretório: ${error.message}`;
+          console.error(`${logPrefix} 🚨 ${errorMsg}`);
+          deletionErrors.push(errorMsg);
+        }
+      } else {
+        console.log(`${logPrefix} ℹ️ Diretório não existe (já removido)`);
+      }
+      
+      // ETAPA 3: VALIDAÇÃO CRÍTICA TRIPLA
+      console.log(`${logPrefix} ✅ ETAPA 3: Validação tripla...`);
+      
+      const stillExists = fs.existsSync(authDir);
+      if (stillExists) {
+        const errorMsg = `FALHA CRÍTICA: Diretório ${instanceId} ainda existe!`;
+        console.error(`${logPrefix} 🚨 ${errorMsg}`);
+        deletionErrors.push(errorMsg);
+        
+        // Diagnóstico adicional
+        try {
+          const stat = fs.statSync(authDir);
+          console.error(`${logPrefix} 📊 Permissões: ${stat.mode.toString(8)}`);
+          const remainingFiles = fs.readdirSync(authDir);
+          console.error(`${logPrefix} 📋 Arquivos restantes: ${remainingFiles.join(', ')}`);
+        } catch (diagError) {
+          console.error(`${logPrefix} ❌ Erro no diagnóstico: ${diagError.message}`);
+        }
+      } else {
+        console.log(`${logPrefix} ✅ VALIDAÇÃO OK: Diretório completamente removido`);
+      }
+      
+      // ETAPA 4: LIMPEZA TOTAL DE MEMÓRIA
+      console.log(`${logPrefix} 🧹 ETAPA 4: Limpeza total de memória...`);
+      
+      // NOVO: ETAPA 4.0: CANCELAR TIMEOUTS PENDENTES
+      if (this.reconnectionTimeouts && this.reconnectionTimeouts.has(instanceId)) {
+        const timeoutId = this.reconnectionTimeouts.get(instanceId);
+        clearTimeout(timeoutId);
+        this.reconnectionTimeouts.delete(instanceId);
+        console.log(`${logPrefix} ⏰ Timeout de reconexão cancelado`);
+      }
+      
+if (this.instances[instanceId]) {
+        delete this.instances[instanceId];
+        console.log();
+      }
+      
+      if (this.connectionAttempts.has(instanceId)) {
+        this.connectionAttempts.delete(instanceId);
+        console.log();
+      }
+      
+      // ETAPA 4.1: LIMPEZA DE CACHE DE MENSAGENS ENVIADAS
+      if (this.sentMessagesCache) {
+        let cacheCleared = 0;
+        for (const [key, value] of this.sentMessagesCache.entries()) {
+          if (key.startsWith(instanceId + ':')) {
+            this.sentMessagesCache.delete(key);
+            cacheCleared++;
+          }
+        }
+        if (cacheCleared > 0) {
+          console.log();
         }
       }
-
-      // Remover diretório de autenticação
-      const authDir = path.join(this.authDir, instanceId);
-      if (fs.existsSync(authDir)) {
-        fs.rmSync(authDir, { recursive: true, force: true });
-        console.log(`${logPrefix} 📁 Diretório de auth removido`);
+      
+      // ETAPA 4.2: LIMPEZA DE CACHE DE PERFIL GLOBAL
+      try {
+        if (global.sentProfilePics) {
+          let profileCacheCleared = 0;
+          for (const [key, value] of global.sentProfilePics.entries()) {
+            if (key.startsWith(instanceId + ':')) {
+              global.sentProfilePics.delete(key);
+              profileCacheCleared++;
+            }
+          }
+          if (profileCacheCleared > 0) {
+            console.log();
+          }
+        }
+      } catch (cacheError) {
+        console.warn();
       }
-
-      // Limpar contadores
-      this.connectionAttempts.delete(instanceId);
-
-      // Remover da memória
-      delete this.instances[instanceId];
-
-      console.log(`${logPrefix} ✅ Instância deletada completamente`);
-
+      
+      // ETAPA 4.1: LIMPEZA DE CACHE DE MENSAGENS ENVIADAS
+      if (this.sentMessagesCache) {
+        // Remover cache de mensagens desta instância
+        for (const [key, value] of this.sentMessagesCache.entries()) {
+          if (key.startsWith(instanceId + ':')) {
+            this.sentMessagesCache.delete(key);
+          }
+        }
+        console.log();
+      }
+      
+      // ETAPA 4.2: NOTIFICAR LIMPEZA GLOBAL (para cache de perfil em server.js)
+      try {
+        // Emitir evento para limpeza de cache global
+        if (global.sentProfilePics) {
+          for (const [key, value] of global.sentProfilePics.entries()) {
+            if (key.startsWith(instanceId + ':')) {
+              global.sentProfilePics.delete(key);
+            }
+          }
+          console.log();
+        }
+      } catch (cacheError) {
+        console.warn();
+      }
+      
+      // ETAPA 5: RESULTADO FINAL
+      const success = deletionErrors.length === 0;
+      const resultMsg = success ? 
+        'DELEÇÃO COMPLETA E VALIDADA' : 
+        `DELEÇÃO PARCIAL - ${deletionErrors.length} erro(s)`;
+      
+      console.log(`${logPrefix} 📊 RESULTADO: ${resultMsg}`);
+      
+      if (!success) {
+        console.error(`${logPrefix} 📋 ERROS:`, deletionErrors);
+      }
+      
+      return {
+        success,
+        message: resultMsg,
+        instanceId,
+        errors: deletionErrors,
+        deletionDetails: {
+          physicallyRemoved: !fs.existsSync(authDir),
+          memoryCleared: !this.instances[instanceId],
+          attemptCountersCleared: !this.connectionAttempts.has(instanceId)
+        },
+        timestamp: new Date().toISOString()
+      };
+      
     } catch (error) {
-      console.error(`${logPrefix} ❌ Erro ao deletar:`, error);
-      throw error;
+      const errorMsg = `Erro crítico na deleção: ${error.message}`;
+      console.error(`${logPrefix} 🚨 ${errorMsg}`);
+      console.error(`${logPrefix} 📊 Stack:`, error.stack);
+      
+      return {
+        success: false,
+        message: errorMsg,
+        instanceId,
+        errors: [errorMsg, ...deletionErrors],
+        deletionDetails: {
+          physicallyRemoved: false,
+          memoryCleared: false,
+          attemptCountersCleared: false
+        },
+        timestamp: new Date().toISOString()
+      };
     }
   }
 

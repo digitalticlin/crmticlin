@@ -133,8 +133,37 @@ serve(async (req)=>{
       sanitizedData.mediabase64 || sanitizedData.mediaData || sanitizedData.base64Data || sanitizedData.media || sanitizedData.buffer || sanitizedData.content || sanitizedData.data?.buffer || sanitizedData.data?.base64 || sanitizedData.message?.media || sanitizedData.data?.mediaData),
       timestamp: new Date().toISOString()
     });
-    // Debug removido - payload completo
-    // Debug removido - investigação mídia
+
+    // 🔍 DEBUG TEMPORÁRIO: Log payload completo para mensagens de áudio/mídia
+    if (sanitizedData.messageType === 'audio' || sanitizedData.messageType === 'image' || sanitizedData.messageType === 'video' || sanitizedData.messageType === 'document') {
+      console.log('[Webhook] 🎵 DEBUG MÍDIA - Payload completo (primeiras chaves):', Object.keys(webhookData));
+      console.log('[Webhook] 🎵 DEBUG MÍDIA - messageType:', sanitizedData.messageType);
+      console.log('[Webhook] 🎵 DEBUG MÍDIA - data keys:', sanitizedData.data ? Object.keys(sanitizedData.data) : 'null');
+      console.log('[Webhook] 🎵 DEBUG MÍDIA - Campos de mídia encontrados:', {
+        mediaBase64_root: !!sanitizedData.mediaBase64,
+        mediabase64_root: !!sanitizedData.mediabase64,
+        base64Data_root: !!sanitizedData.base64Data,
+        mediaData_root: !!sanitizedData.mediaData,
+        media_root: !!sanitizedData.media,
+        buffer_root: !!sanitizedData.buffer,
+        content_root: !!sanitizedData.content,
+        data_buffer: !!sanitizedData.data?.buffer,
+        data_base64: !!sanitizedData.data?.base64,
+        data_mediaData: !!sanitizedData.data?.mediaData,
+        data_mediaBase64: !!sanitizedData.data?.mediaBase64,
+        message_media: !!sanitizedData.message?.media
+      });
+
+      // Log da estrutura de data.mediaData se existir
+      if (sanitizedData.data?.mediaData) {
+        console.log('[Webhook] 🎵 DEBUG MÍDIA - data.mediaData type:', typeof sanitizedData.data.mediaData);
+        if (typeof sanitizedData.data.mediaData === 'object') {
+          console.log('[Webhook] 🎵 DEBUG MÍDIA - data.mediaData keys:', Object.keys(sanitizedData.data.mediaData));
+        } else {
+          console.log('[Webhook] 🎵 DEBUG MÍDIA - data.mediaData length:', sanitizedData.data.mediaData?.length);
+        }
+      }
+    }
     // Process different webhook events
     let result;
     switch(sanitizedData.event){
@@ -340,72 +369,92 @@ async function processMessage(supabase, data) {
     data.data?.mediaBase64 || data.mediabase64 || data.mediaData || data.data?.mediaData || data.base64Data || data.media || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media),
     hasCaption: !!data.caption
   });
-  // 🔍 EXTRAÇÃO COMPLETA DE DADOS DA MENSAGEM (garantir base64 em nested data.mediaData.base64Data)
+  // 🔍 EXTRAÇÃO COMPLETA DE DADOS DA MENSAGEM
+  // 🎯 CORREÇÃO: A VPS envia data.data.mediaData (data dentro de data!)
   let messageData;
   if (data.data?.messages?.[0]) {
     // Formato Baileys (evolution API)
     const baileyMsg = data.data.messages[0];
-    // Detectar tipo real da mídia
-    const hasBase64Data = !!(data.mediaBase64 || data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.data?.mediaData?.base64Data || (typeof data.data?.mediaData === 'string' ? data.data.mediaData : null) || (typeof data.mediaData === 'string' ? data.mediaData : null));
-    const realMediaType = detectRealMediaType(data.messageType, data.mediaData?.mimeType || data.data?.mediaData?.mimeType || data.data?.mediaData?.mimetype, data.fileName || data.mediaData?.fileName || data.data?.mediaData?.fileName, hasBase64Data);
+
+    // 🎯 CORREÇÃO: Buscar em data.data.data.mediaData (caminho correto da VPS)
+    const vpsMediaData = data.data?.data?.mediaData || data.data?.mediaData;
+    const hasBase64Data = !!(
+      vpsMediaData?.base64Data || // ✅ PRINCIPAL: data.data.data.mediaData.base64Data
+      data.mediaBase64 ||
+      data.data?.mediaBase64 ||
+      (typeof vpsMediaData === 'string' ? vpsMediaData : null)
+    );
+
+    const realMediaType = detectRealMediaType(
+      data.messageType,
+      vpsMediaData?.mimeType || vpsMediaData?.mimetype,
+      vpsMediaData?.fileName,
+      hasBase64Data
+    );
     messageData = {
       instanceId: data.instanceId,
       from: baileyMsg.key.remoteJid,
       fromMe: baileyMsg.key.fromMe,
       externalMessageId: baileyMsg.key.id,
       message: {
-        text: realMediaType && realMediaType !== 'text' ? getMediaDisplayName(realMediaType, data.mediaData?.mimeType || data.data?.mediaData?.mimeType) // 🔧 CORREÇÃO: Para mídia, sempre usar emoji
-         : baileyMsg.message?.conversation || baileyMsg.message?.extendedTextMessage?.text || data.message?.text || data.text || data.caption || ''
+        text: realMediaType && realMediaType !== 'text'
+          ? getMediaDisplayName(realMediaType, vpsMediaData?.mimeType)
+          : baileyMsg.message?.conversation || baileyMsg.message?.extendedTextMessage?.text || data.message?.text || data.text || data.caption || ''
       },
       messageType: realMediaType === 'sticker' ? 'image' : realMediaType,
       mediaUrl: data.mediaUrl,
-      // ❌ REMOVIDO: contactName - usar apenas telefone formatado
-      // 🚀 DADOS DE MÍDIA EXTRAÍDOS - CORREÇÃO APLICADA
       mediaData: {
-        base64Data: data.mediaBase64 || // raiz
-        data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.data?.mediaData?.base64Data || (typeof data.data?.mediaData === 'string' ? data.data.mediaData : null) || // 🔧 CORREÇÃO: mediaData pode ser string Base64 direta
-        (typeof data.mediaData === 'string' ? data.mediaData : null) || // 🔧 CORREÇÃO: mediaData pode ser string Base64 direta
-        data.media?.base64 || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media?.buffer,
-        fileName: data.fileName || data.mediaData?.fileName || data.data?.mediaData?.fileName,
-        mediaType: data.messageType || data.mediaData?.mediaType || data.data?.mediaData?.mediaType,
-        caption: data.caption || data.mediaData?.caption || data.data?.mediaData?.caption,
+        base64Data: vpsMediaData?.base64Data || // ✅ CORREÇÃO PRINCIPAL
+                    (typeof vpsMediaData === 'string' ? vpsMediaData : null) ||
+                    data.mediaBase64 ||
+                    data.data?.mediaBase64,
+        fileName: vpsMediaData?.fileName,
+        mediaType: vpsMediaData?.mediaType || data.messageType,
+        caption: vpsMediaData?.caption,
         externalMessageId: baileyMsg.key.id
       }
     };
   } else {
     // Formato direto da VPS
-    // Debug removido - estrutura mediaData
-    // Detectar tipo real da mídia
-    const hasBase64Data = !!(data.mediaBase64 || data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.data?.mediaData?.base64Data || (typeof data.data?.mediaData === 'string' ? data.data.mediaData : null) || (typeof data.mediaData === 'string' ? data.mediaData : null));
-    const realMediaType = detectRealMediaType(data.messageType, data.mediaData?.mimeType || data.data?.mediaData?.mimeType || data.data?.mediaData?.mimetype, data.fileName || data.mediaData?.fileName || data.data?.mediaData?.fileName, hasBase64Data);
+    // 🎯 CORREÇÃO PRINCIPAL: A VPS envia em data.data.mediaData!
+    const vpsMediaData = data.data?.data?.mediaData || data.data?.mediaData;
+
+    const hasBase64Data = !!(
+      vpsMediaData?.base64Data || // ✅ PRINCIPAL: data.data.data.mediaData.base64Data
+      data.mediaBase64 ||
+      data.data?.mediaBase64 ||
+      (typeof vpsMediaData === 'string' ? vpsMediaData : null)
+    );
+
+    const realMediaType = detectRealMediaType(
+      data.messageType,
+      vpsMediaData?.mimeType || vpsMediaData?.mimetype,
+      vpsMediaData?.fileName,
+      hasBase64Data
+    );
+
     messageData = {
       instanceId: data.instanceId,
-      from: data.from,
-      fromMe: data.fromMe,
+      from: data.from || data.data?.from,
+      fromMe: data.fromMe || data.data?.fromMe,
       externalMessageId: data.data?.messageId || data.messageId || data.id || data.external_message_id,
       message: {
-        text: realMediaType && realMediaType !== 'text' ? getMediaDisplayName(realMediaType, data.mediaData?.mimeType || data.data?.mediaData?.mimeType) // 🔧 CORREÇÃO: Para mídia, sempre usar emoji
-         : data.message?.text || data.text || data.caption || ''
+        text: realMediaType && realMediaType !== 'text'
+          ? getMediaDisplayName(realMediaType, vpsMediaData?.mimeType)
+          : data.message?.text || data.text || data.caption || data.data?.body || ''
       },
       messageType: realMediaType === 'sticker' ? 'image' : realMediaType,
-      mediaUrl: data.mediaUrl,
-      // ❌ REMOVIDO: contactName - usar apenas telefone formatado
+      mediaUrl: data.mediaUrl || data.data?.mediaUrl,
       profile_pic_url: data.profilePicUrl || data.profile_pic_url || data.data?.profile_pic_url || data.senderProfilePicUrl || null,
-      // 🚀 CORREÇÃO: Verificar todos os possíveis campos dentro de data.data.mediaData
       mediaData: {
-        base64Data: data.mediaBase64 || // raiz
-        data.data?.mediaBase64 || data.mediabase64 || data.base64Data || data.mediaData?.base64Data || data.data?.mediaData?.base64Data || // objeto.base64Data
-        data.data?.mediaData?.base64 || // objeto.base64
-        data.data?.mediaData?.data || // objeto.data
-        data.data?.mediaData?.buffer || // objeto.buffer
-        data.data?.mediaData?.content || // objeto.content
-        (typeof data.data?.mediaData === 'string' ? data.data.mediaData : null) || // string direta
-        (typeof data.mediaData === 'string' ? data.mediaData : null) || // string direta
-        data.media?.base64 || data.buffer || data.content || data.data?.buffer || data.data?.base64 || data.message?.media?.buffer,
-        fileName: data.fileName || data.mediaData?.fileName || data.data?.mediaData?.fileName,
-        mediaType: data.messageType || data.mediaData?.mediaType || data.data?.mediaData?.mediaType,
-        mimeType: data.data?.mediaData?.mimeType || data.data?.mediaData?.mimetype || null,
-        caption: data.caption || data.mediaData?.caption || data.data?.mediaData?.caption,
+        base64Data: vpsMediaData?.base64Data || // ✅ CORREÇÃO PRINCIPAL
+                    (typeof vpsMediaData === 'string' ? vpsMediaData : null) ||
+                    data.mediaBase64 ||
+                    data.data?.mediaBase64,
+        fileName: vpsMediaData?.fileName,
+        mediaType: vpsMediaData?.mediaType || data.messageType,
+        mimeType: vpsMediaData?.mimeType || vpsMediaData?.mimetype || null,
+        caption: vpsMediaData?.caption,
         externalMessageId: data.data?.messageId || data.messageId || data.id || data.external_message_id
       }
     };
@@ -595,13 +644,7 @@ async function processMessage(supabase, data) {
       hasBase64: !!rpcParams.p_base64_data,
       base64Preview: rpcParams.p_base64_data ? rpcParams.p_base64_data.substring(0, 50) + '...' : 'NULL'
     });
-    // ⚠️ ALERTA: Se for áudio sem base64, algo está errado
-    if (rpcParams.p_media_type === 'audio' && !rpcParams.p_base64_data) {
-      console.warn('[Webhook] ⚠️ ÁUDIO SEM BASE64! Edge de upload NÃO será chamada!');
-      console.warn('[Webhook] 📊 mediaData completo:', messageData.mediaData);
-    }
   }
-  console.log('[Webhook] 🚀 Chamando RPC save_received_message_webhook...');
   const { data: result, error } = await supabase.rpc('save_received_message_webhook', rpcParams);
   console.log('[Webhook] 📊 RPC RESULT:', {
     hasError: !!error,
@@ -644,28 +687,46 @@ async function processMessage(supabase, data) {
   // 🚀 UPLOAD DIRETO PARA STORAGE (arquitetura simplificada)
   // Helper function garante extensão correta baseada no MIME type
   const hadMediaData = !!(messageData.mediaData?.base64Data && messageData.messageType !== 'text');
-  if (hadMediaData) {
+  const hadMediaUrl = !!(messageData.mediaUrl && messageData.messageType !== 'text');
+
+  if (hadMediaData || hadMediaUrl) {
     // 🎯 Calcular extensão correta usando helper function
     const correctExtension = getFileExtensionFromMime(rpcParams.p_mime_type, rpcParams.p_media_type);
+
     console.log('[Webhook] 📤 Iniciando upload:', {
       message_id: messageId,
       mime_type: rpcParams.p_mime_type,
       media_type: rpcParams.p_media_type,
-      extension: correctExtension
+      extension: correctExtension,
+      mode: hadMediaUrl ? 'URL temporária' : 'Base64'
     });
+
     // 🚀 FIRE-AND-FORGET: Upload assíncrono
+    const uploadPayload: any = {
+      message_id: messageId,
+      file_path: `webhook/${instanceData?.id}/${messageId}.${correctExtension}`,
+      content_type: rpcParams.p_mime_type
+    };
+
+    // ✅ PRIORIZAR BASE64 (descriptografado) sobre URL (criptografada)
+    if (hadMediaData) {
+      uploadPayload.base64_data = messageData.mediaData.base64Data;
+      console.log('[Webhook] 📦 Upload via Base64 (descriptografado)');
+      console.log('[Webhook] 📦 Base64 length:', messageData.mediaData.base64Data?.length);
+    } else if (hadMediaUrl) {
+      // Fallback para URL apenas se NÃO houver base64
+      uploadPayload.media_url = messageData.mediaUrl;
+      console.log('[Webhook] 🔗 Upload via URL temporária (fallback)');
+      console.log('[Webhook] 🔗 URL sendo enviada:', messageData.mediaUrl.substring(0, 100));
+    }
+
     fetch(`${supabaseUrl}/functions/v1/webhook_storage_upload`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${supabaseKey}`
       },
-      body: JSON.stringify({
-        message_id: messageId,
-        file_path: `webhook/${instanceData?.id}/${messageId}.${correctExtension}`,
-        base64_data: messageData.mediaData.base64Data,
-        content_type: rpcParams.p_mime_type
-      })
+      body: JSON.stringify(uploadPayload)
     }).then((response)=>response.json()).then((uploadResult)=>{
       console.log('[Webhook] 📊 Upload resultado:', uploadResult);
       if (uploadResult.success) {
@@ -676,10 +737,14 @@ async function processMessage(supabase, data) {
     }).catch((uploadError)=>{
       console.error('[Webhook] ❌ Erro na chamada de upload:', uploadError);
     });
+
     console.log('[Webhook] 🚀 Upload disparado - extensão:', correctExtension);
+
     // ✅ Limpeza da mídia da memória IMEDIATAMENTE
-    messageData.mediaData.base64Data = null;
-    messageData.mediaData = null;
+    if (messageData.mediaData) {
+      messageData.mediaData.base64Data = null;
+      messageData.mediaData = null;
+    }
   } else {
     console.log('[Webhook] 📝 Mensagem de texto - sem processamento de mídia necessário');
   }
