@@ -362,7 +362,8 @@ function getOQueFazer(blockType: string): string {
     'teach': 'ensinar_informacao_ao_agente',
     'add_to_list': 'adicionar_item_ao_pedido',
     'confirm_list': 'confirmar_pedido_completo',
-    'remove_from_list': 'remover_item_do_pedido'
+    'remove_from_list': 'remover_item_do_pedido',
+    'search_knowledge': 'buscar_na_base_de_conhecimento'
   };
 
   return mapeamento[blockType] || 'executar_acao';
@@ -390,7 +391,8 @@ function getTipoMensagem(blockType: string): string {
     'teach': 'explicacao',
     'add_to_list': 'confirmacao',
     'confirm_list': 'pergunta',
-    'remove_from_list': 'confirmacao'
+    'remove_from_list': 'confirmacao',
+    'search_knowledge': 'explicacao'
   };
 
   return mapeamento[blockType] || 'explicacao';
@@ -418,7 +420,8 @@ function getRegraCritica(blockType: string): string {
     'teach': 'Garantir que informação seja compreensível',
     'add_to_list': 'USAR tool add_to_list quando cliente SOLICITAR adicionar produto. Extrair nome, descrição conforme orientações e preço (se informado). SEMPRE confirmar item adicionado',
     'confirm_list': 'USAR tool get_list para mostrar lista. Se cliente pedir REMOVER item, usar tool remove_from_list e EXECUTAR get_list NOVAMENTE. Se cliente pedir ALTERAR item, usar remove_from_list (item antigo) + add_to_list (item novo) + get_list. NUNCA confirmar sem autorização explícita',
-    'remove_from_list': 'Tool usada em 2 cenários: (1) Cliente pede remover item específico durante GET_LIST - remover e voltar para confirmar. (2) FINAL do fluxo - limpar ou deletar TODA a lista conforme configurado'
+    'remove_from_list': 'Tool usada em 2 cenários: (1) Cliente pede remover item específico durante GET_LIST - remover e voltar para confirmar. (2) FINAL do fluxo - limpar ou deletar TODA a lista conforme configurado',
+    'search_knowledge': 'Buscar na base apenas quando cliente perguntar especificamente sobre um produto/serviço. Responder de forma natural e conversacional com as informações encontradas'
   };
   return mapeamento[blockType] || 'Seguir instruções do objetivo';
 }
@@ -445,14 +448,15 @@ function getImportante(blockType: string): string {
     'teach': 'Informação deve ser armazenada para uso futuro',
     'add_to_list': 'Cada item = 1 registro na tabela. Preencher descrição seguindo orientações configuradas. Se cliente não informar preço, deixar em branco. Capturar observações naturalmente da conversa',
     'confirm_list': 'Sempre reexecutar get_list após qualquer edição (remoção ou alteração) para cliente confirmar mudanças. Perguntar "Agora está correto?" após cada alteração',
-    'remove_from_list': 'Modo individual: remover 1 item e voltar para get_list. Modo total: limpar ou deletar toda lista (final do fluxo). Confirmar qual modo usar conforme configuração do bloco'
+    'remove_from_list': 'Modo individual: remover 1 item e voltar para get_list. Modo total: limpar ou deletar toda lista (final do fluxo). Confirmar qual modo usar conforme configuração do bloco',
+    'search_knowledge': 'A base pode ter produtos COM preço (ex: "Notebook Dell - R$ 2.500") ou SEM preço (ex: "Consultoria personalizada - consulte valores"). Adaptar resposta conforme disponível. NUNCA inventar informações que não existem na base'
   };
   return mapeamento[blockType] || 'Manter contexto da conversa';
 }
 
 // 🆕 NOVA: Determinar action.type baseado no block_type
 function getActionType(blockType: string): 'send_and_wait' | 'send_only' | 'decision' | 'update_data' | 'end' {
-  const sendAndWait = ['ask_question', 'request_document', 'validate_document', 'start', 'confirm_list', 'remove_from_list'];
+  const sendAndWait = ['ask_question', 'request_document', 'validate_document', 'start', 'confirm_list', 'remove_from_list', 'search_knowledge'];
   const decision = ['branch_decision', 'check_if_done', 'retry_with_variation'];
   const updateData = ['update_lead_data', 'move_lead_in_funnel', 'transfer_to_human', 'add_to_list'];
   const end = ['end_conversation'];
@@ -667,6 +671,14 @@ export function convertStructuredToReactFlow(
           nodeData.aiInstruction = dadosExtras.instrucao_ia;
           nodeData.identifyBy = dadosExtras.identificar_por;
           nodeData.clearMode = dadosExtras.modo_limpeza;
+        }
+
+        // BLOCO SEARCH_KNOWLEDGE: Extrair dados específicos
+        if (variation._metadata.tipo_tecnico === 'search_knowledge' && variation.instrucoes.dados_extras) {
+          const dadosExtras = variation.instrucoes.dados_extras;
+          nodeData.aiMessage = dadosExtras.mensagem_busca;
+          nodeData.notFoundMessage = dadosExtras.mensagem_nao_encontrado;
+          nodeData.aiInstruction = dadosExtras.instrucao_ia;
         }
 
         const position = variation._metadata?.posicao_canvas || { x: 100, y: 100 };

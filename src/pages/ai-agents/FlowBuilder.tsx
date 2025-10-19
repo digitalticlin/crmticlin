@@ -57,6 +57,7 @@ const BLOCK_TYPES = [
   { type: 'add_to_list', icon: <ShoppingCart className="h-4 w-4" />, label: 'Adicionar Item ao Pedido', color: 'bg-rose-500', category: 'Lista/Pedidos' },
   { type: 'confirm_list', icon: <ListChecks className="h-4 w-4" />, label: 'Confirmar Pedido Completo', color: 'bg-amber-500', category: 'Lista/Pedidos' },
   { type: 'remove_from_list', icon: <Trash2 className="h-4 w-4" />, label: 'Remover Item do Pedido', color: 'bg-slate-500', category: 'Lista/Pedidos' },
+  { type: 'search_knowledge', icon: <Package className="h-4 w-4" />, label: 'Buscar na Base de Conhecimento', color: 'bg-orange-500', category: 'Comunicação' },
 
   // CONTROLE
   { type: 'transfer_to_human', icon: <FaWhatsapp className="h-4 w-4" />, label: 'Avisar Humano', color: 'bg-purple-600', category: 'Controle' },
@@ -252,14 +253,34 @@ function FlowBuilderContent() {
   const addNode = useCallback(
     (type: string) => {
       const blockInfo = [...BLOCK_TYPES, SPECIAL_BLOCK].find(b => b.type === type);
+
+      // Configuração base do node
+      const baseData: any = {
+        label: blockInfo?.label || 'Novo Bloco',
+        type: type as any,
+        designStyle: 'glass',
+      };
+
+      // Adicionar decisions padrão para blocos que precisam de múltiplas saídas
+      if (type === 'search_knowledge') {
+        baseData.decisions = [
+          {
+            id: '1',
+            condition: 'Produto/serviço encontrado',
+            action: 'Seguir fluxo com produto encontrado'
+          },
+          {
+            id: '2',
+            condition: 'Produto/serviço não encontrado',
+            action: 'Seguir fluxo alternativo (produto não encontrado)'
+          }
+        ];
+      }
+
       const newNode: Node = {
         id: `${nodeIdCounter}`,
         type: 'custom',
-        data: {
-          label: blockInfo?.label || 'Novo Bloco',
-          type: type as any,
-          designStyle: 'glass',
-        },
+        data: baseData,
         position: {
           x: Math.random() * 400 + 200,
           y: Math.random() * 300 + 150,

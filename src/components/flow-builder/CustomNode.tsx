@@ -24,7 +24,8 @@ import {
   HelpCircle,
   MessageCircleQuestion,
   ShoppingCart,
-  ListChecks
+  ListChecks,
+  Package
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { PresentationEditor } from './editors/PresentationEditor';
@@ -45,6 +46,7 @@ import { EndConversationEditor } from './editors/EndConversationEditor';
 import { AddToListEditor } from './editors/AddToListEditor';
 import { ConfirmListEditor } from './editors/ConfirmListEditor';
 import { RemoveFromListEditor } from './editors/RemoveFromListEditor';
+import { SearchKnowledgeEditor } from './editors/SearchKnowledgeEditor';
 import { Button } from '../ui/button';
 
 const iconMap = {
@@ -77,6 +79,7 @@ const iconMap = {
   add_to_list: ShoppingCart,
   confirm_list: ListChecks,
   remove_from_list: Trash2Icon,
+  search_knowledge: Package,
 };
 
 const colorMap = {
@@ -109,6 +112,7 @@ const colorMap = {
   add_to_list: 'border-rose-500 text-rose-600',
   confirm_list: 'border-amber-500 text-amber-600',
   remove_from_list: 'border-slate-500 text-slate-600',
+  search_knowledge: 'border-orange-500 text-orange-600',
 };
 
 const bgMap = {
@@ -141,6 +145,7 @@ const bgMap = {
   add_to_list: 'from-rose-500/20 to-rose-500/5',
   confirm_list: 'from-amber-500/20 to-amber-500/5',
   remove_from_list: 'from-slate-500/20 to-slate-500/5',
+  search_knowledge: 'from-orange-500/20 to-orange-500/5',
 };
 
 export const CustomNode = memo(({ data, id }: NodeProps) => {
@@ -676,6 +681,22 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
             identifyBy: data.identifyBy,
             confirmationMessage: data.confirmationMessage,
             clearMode: data.clearMode
+          }}
+          onSave={handleSave}
+        />
+      )}
+
+      {data.type === 'search_knowledge' && (
+        <SearchKnowledgeEditor
+          isOpen={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          initialData={{
+            label: data.label,
+            description: data.description,
+            aiMessage: data.aiMessage,
+            notFoundMessage: data.notFoundMessage,
+            aiInstruction: data.aiInstruction,
+            decisions: data.decisions
           }}
           onSave={handleSave}
         />
