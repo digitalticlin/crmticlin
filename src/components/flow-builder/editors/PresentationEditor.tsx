@@ -187,7 +187,7 @@ export function PresentationEditor({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Ex: Se apresentar e entender a mensagem do cliente para seguir o fluxo correto"
                 rows={3}
-                className="resize-none text-base bg-white/30 border-white/40 focus:border-green-500 focus:ring-green-500/20 rounded-xl placeholder:text-gray-600"
+                className="resize-none bg-white/30 border-white/40 focus:border-green-500 focus:ring-green-500/20 rounded-xl placeholder:text-gray-500"
               />
               <p className="text-xs text-gray-500 flex items-center gap-1.5 ml-1">
                 <Lightbulb className="h-3 w-3 text-gray-400" />
@@ -225,7 +225,7 @@ export function PresentationEditor({
                       onChange={(e) => updateMessageExample(index, e.target.value)}
                       placeholder={`Exemplo ${index + 1}: Olá, como posso te ajudar?`}
                       rows={3}
-                      className="flex-1 resize-none text-base bg-white/30 border-white/40 focus:border-green-500 focus:ring-green-500/20 rounded-xl font-mono placeholder:text-gray-600"
+                      className="flex-1 resize-none bg-white/30 border-white/40 focus:border-green-500 focus:ring-green-500/20 rounded-xl placeholder:text-gray-500"
                     />
                     {messageExamples.length > 1 && (
                       <Button

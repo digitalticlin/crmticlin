@@ -11,8 +11,9 @@ interface ProductCardProps {
     name: string;
     description?: string;
     category?: string;
-    price: number;
-    currency: string;
+    price: number | null;
+    currency: string | null;
+    price_type?: 'fixed' | 'on_request';
     image_url?: string;
   };
   onEdit: () => void;
@@ -86,7 +87,11 @@ export const ProductCard = ({ product, onEdit, onDelete }: ProductCardProps) => 
           <div className="flex flex-col items-end gap-2">
             {/* Preço */}
             <div className="text-lg font-bold text-gray-900 whitespace-nowrap">
-              {formatCurrency(product.price, product.currency)}
+              {product.price !== null && product.currency ? (
+                formatCurrency(product.price, product.currency)
+              ) : (
+                <span className="text-sm font-medium text-blue-700">Sob consulta</span>
+              )}
             </div>
 
             {/* Ações */}

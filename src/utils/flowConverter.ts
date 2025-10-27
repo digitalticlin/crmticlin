@@ -223,7 +223,25 @@ export function convertReactFlowToStructured(
               // BLOCO RETRY_WITH_VARIATION: processar repetição com variação
               if (node.data.type === 'retry_with_variation') {
                 extras.modo_ia = 'retry_variation';
-                extras.bloco_original_id = extras.retryBlockId || null;
+
+                // 🔑 CONVERSÃO: retryBlockId (ID do node) → PASSO correto (ex: "PASSO A1")
+                if (extras.retryBlockId) {
+                  const targetNode = nodes.find(n => n.id === extras.retryBlockId);
+                  if (targetNode) {
+                    const targetDistance = distances.get(targetNode.id) || 0;
+                    const targetNodesAtDistance = nodesByDistance.get(targetDistance) || [];
+                    const targetStepId = getVariationId(targetNode, distances, targetNodesAtDistance);
+                    extras.voltar_para_passo = targetStepId; // ex: "PASSO A1"
+                    extras.bloco_original_nome = targetNode.data.label || 'Bloco';
+                  } else {
+                    extras.voltar_para_passo = null;
+                    extras.bloco_original_nome = null;
+                  }
+                } else {
+                  extras.voltar_para_passo = null;
+                  extras.bloco_original_nome = null;
+                }
+
                 extras.numero_tentativa = extras.attemptNumber || 1;
                 extras.maximo_tentativas = node.data.control?.max_attempts || 3;
                 extras.estrategia_variacao = 'mudar_tom';

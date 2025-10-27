@@ -47,7 +47,7 @@ export default function Dashboard() {
       <DashboardHeader />
 
       {/* Grid de KPIs com espaçamento otimizado */}
-      <div className="mb-6">
+      <div className="mb-6 overflow-visible">
         <LazyKPIGrid />
       </div>
 

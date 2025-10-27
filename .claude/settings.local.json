@@ -23,7 +23,11 @@
       "Bash(ssh:*)",
       "Bash(cat:*)",
       "Bash(curl:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(npx supabase:*)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": []

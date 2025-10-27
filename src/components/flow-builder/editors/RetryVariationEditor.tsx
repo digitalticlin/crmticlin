@@ -5,11 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RotateCcw, Edit3, Check } from 'lucide-react';
+import {
+  RotateCcw, Edit3, Check, MessageCircleQuestion, MessageSquare, FileText,
+  LinkIcon, Image, GraduationCap, GitBranch, Search, UserCog, Target,
+  CheckCircle, ShoppingCart, ListChecks, Trash2, Package
+} from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
 
 interface PreviousBlock {
   id: string;
   label: string;
+  type: string;
 }
 
 interface RetryVariationEditorProps {
@@ -29,6 +35,50 @@ interface RetryVariationEditorProps {
     retryBlockId?: string;
   }) => void;
 }
+
+// Mapeamento de ícones por tipo de bloco
+const iconMap: Record<string, any> = {
+  ask_question: MessageCircleQuestion,
+  send_message: MessageSquare,
+  request_document: FileText,
+  send_link: LinkIcon,
+  send_media: Image,
+  provide_instructions: GraduationCap,
+  branch_decision: GitBranch,
+  validate_document: Search,
+  check_if_done: Search,
+  retry_with_variation: RotateCcw,
+  update_lead_data: UserCog,
+  move_lead_in_funnel: Target,
+  transfer_to_human: FaWhatsapp,
+  end_conversation: CheckCircle,
+  add_to_list: ShoppingCart,
+  confirm_list: ListChecks,
+  remove_from_list: Trash2,
+  search_knowledge: Package,
+};
+
+// Mapeamento de cores por tipo de bloco
+const colorMap: Record<string, string> = {
+  ask_question: 'text-blue-600',
+  send_message: 'text-purple-600',
+  request_document: 'text-orange-600',
+  send_link: 'text-cyan-600',
+  send_media: 'text-pink-600',
+  provide_instructions: 'text-indigo-600',
+  branch_decision: 'text-yellow-600',
+  validate_document: 'text-red-600',
+  check_if_done: 'text-teal-600',
+  retry_with_variation: 'text-pink-600',
+  update_lead_data: 'text-cyan-600',
+  move_lead_in_funnel: 'text-emerald-600',
+  transfer_to_human: 'text-purple-600',
+  end_conversation: 'text-green-600',
+  add_to_list: 'text-rose-600',
+  confirm_list: 'text-amber-600',
+  remove_from_list: 'text-slate-600',
+  search_knowledge: 'text-orange-600',
+};
 
 export function RetryVariationEditor({
   isOpen,
@@ -133,7 +183,22 @@ export function RetryVariationEditor({
               </Label>
               <Select value={retryBlockId} onValueChange={setRetryBlockId}>
                 <SelectTrigger className="bg-white/30 border-white/40">
-                  <SelectValue placeholder="Escolha um bloco para repetir" />
+                  <SelectValue placeholder="Escolha um bloco para repetir">
+                    {retryBlockId && (() => {
+                      const selectedBlock = previousBlocks.find(b => b.id === retryBlockId);
+                      if (selectedBlock) {
+                        const Icon = iconMap[selectedBlock.type] || MessageSquare;
+                        const color = colorMap[selectedBlock.type] || 'text-gray-600';
+                        return (
+                          <div className="flex items-center gap-2">
+                            <Icon className={`h-4 w-4 ${color}`} />
+                            <span>{selectedBlock.label}</span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {previousBlocks.length === 0 ? (
@@ -141,11 +206,19 @@ export function RetryVariationEditor({
                       Nenhum bloco anterior disponível
                     </SelectItem>
                   ) : (
-                    previousBlocks.map((block) => (
-                      <SelectItem key={block.id} value={block.id}>
-                        🔄 {block.label}
-                      </SelectItem>
-                    ))
+                    previousBlocks.map((block) => {
+                      const Icon = iconMap[block.type] || MessageSquare;
+                      const color = colorMap[block.type] || 'text-gray-600';
+
+                      return (
+                        <SelectItem key={block.id} value={block.id}>
+                          <div className="flex items-center gap-2">
+                            <Icon className={`h-4 w-4 ${color}`} />
+                            <span>{block.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })
                   )}
                 </SelectContent>
               </Select>

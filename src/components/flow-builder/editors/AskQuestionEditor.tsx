@@ -188,7 +188,7 @@ export function AskQuestionEditor({
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="A IA pergunta ao cliente se ele possui o documento necessário..."
                 rows={3}
-                className="resize-none text-base bg-white/30 border-white/40 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl placeholder:text-gray-600"
+                className="resize-none bg-white/30 border-white/40 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl placeholder:text-gray-500"
               />
               <p className="text-xs text-gray-500 flex items-center gap-1.5 ml-1">
                 <Lightbulb className="h-3 w-3 text-gray-400" />
@@ -209,7 +209,7 @@ export function AskQuestionEditor({
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="Você já tem o documento em mãos?"
                 rows={3}
-                className="resize-none text-base bg-white/30 border-white/40 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl font-mono placeholder:text-gray-600"
+                className="resize-none bg-white/30 border-white/40 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl placeholder:text-gray-500"
               />
             </div>
 

@@ -8,9 +8,10 @@
  * Funciona com dados coordenados, sem conflitos de carregamento.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useQueryClient } from '@tanstack/react-query';
 import { DND_CONFIG } from '@/config/dndConfig';
 import { KanbanColumn as KanbanColumnType, KanbanLead } from '@/types/kanban';
 import { MassSelectionCoordinatedReturn } from '@/hooks/useMassSelectionCoordinated';
@@ -19,6 +20,7 @@ import { LeadCardUnified } from './LeadCardUnified';
 import { AIToggleSwitchEnhanced } from './ai/AIToggleSwitchEnhanced';
 import { useAIStageControl } from '@/hooks/salesFunnel/useAIStageControl';
 import { useStageLeadCount } from '@/hooks/salesFunnel/stages/useStageLeadCount';
+import { funnelDataQueryKeys } from '@/hooks/salesFunnel/core/useFunnelData';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -63,6 +65,28 @@ const KanbanColumnUnifiedComponent: React.FC<KanbanColumnUnifiedProps> = ({
 }) => {
   const coordinator = useSalesFunnelCoordinator();
   const { toggleAI, isLoading: isTogglingAI, canToggleAI } = useAIStageControl();
+  const queryClient = useQueryClient();
+
+  // ✅ LER AI_ENABLED DIRETAMENTE DO CACHE DO REACT QUERY
+  const currentAIEnabled = useMemo(() => {
+    if (!funnelId) return column.ai_enabled !== false;
+
+    const cacheData: any = queryClient.getQueryData(funnelDataQueryKeys.byId(funnelId));
+    if (!cacheData?.stages) return column.ai_enabled !== false;
+
+    const stage = cacheData.stages.find((s: any) => s.id === column.id);
+    const aiEnabled = stage?.ai_enabled !== false;
+
+    console.log('[KanbanColumnUnified] 📖 Lendo ai_enabled do cache:', {
+      columnId: column.id,
+      columnTitle: column.title,
+      fromCache: aiEnabled,
+      fromProps: column.ai_enabled,
+      hasCacheData: !!cacheData
+    });
+
+    return aiEnabled;
+  }, [queryClient, funnelId, column.id, column.ai_enabled, column.title]);
 
   // 🔍 DEBUG: Verificar se prop está chegando
   // console.log('[KanbanColumnUnified] 🔗 Props recebidas:', {
@@ -102,7 +126,7 @@ const KanbanColumnUnifiedComponent: React.FC<KanbanColumnUnifiedProps> = ({
     columnId: column.id,
     leadsCount: column.leads?.length || 0,
     color: column.color,
-    ai_enabled: column.ai_enabled,
+    ai_enabled: currentAIEnabled, // ✅ Usar valor do cache
     enableDnd,
     hasActiveFilters,
     leadsDetail: column.leads?.slice(0, 3).map(lead => ({
@@ -251,35 +275,34 @@ const KanbanColumnUnifiedComponent: React.FC<KanbanColumnUnifiedProps> = ({
     }
   }, [hasMoreLeads, isLoadingMore, loadMoreLeads, visibleLeads.length, column]);
 
-  // Handler para toggle AI
+  // Handler para toggle AI com debounce usando useRef
+  const isProcessingToggle = useRef(false);
   const handleAIToggle = useCallback(async (enabled: boolean) => {
-    if (!isWonLostStage) {
+    if (!isWonLostStage && !isProcessingToggle.current) {
+      isProcessingToggle.current = true;
+
       console.log('[KanbanColumnUnified] 🎛️ Toggle AI:', {
         columnId: column.id,
         columnTitle: column.title,
-        currentEnabled: column.ai_enabled,
+        currentEnabled: currentAIEnabled,
         newEnabled: enabled
       });
 
-      const success = await toggleAI(column.id, enabled);
-      console.log('[KanbanColumnUnified] ✅ Toggle AI resultado:', { success });
-
-      // Se sucesso, notificar coordinator para atualizar dados
-      if (success) {
-        coordinator.emit({
-          type: 'realtime:update',
-          payload: {
-            table: 'kanban_stages',
-            eventType: 'UPDATE',
-            new: { ...column, ai_enabled: enabled },
-            old: { ...column }
-          },
-          priority: 'normal',
-          source: 'KanbanColumnUnified'
-        });
+      try {
+        // ✅ CORRIGIDO: Passar o estado ATUAL do cache, não das props
+        const success = await toggleAI(column.id, currentAIEnabled);
+        console.log('[KanbanColumnUnified] ✅ Toggle AI resultado:', { success });
+      } finally {
+        // Delay antes de permitir novo toggle
+        setTimeout(() => {
+          isProcessingToggle.current = false;
+        }, 1000);
       }
+
+      // ❌ NÃO emitir evento coordinator - React Query já gerencia
+      // O realtime do Supabase já vai notificar todas as instâncias
     }
-  }, [isWonLostStage, column, toggleAI, coordinator]);
+  }, [isWonLostStage, column.id, column.title, toggleAI, currentAIEnabled]);
 
   // IDs dos leads para SortableContext
   const leadIds = visibleLeads.map(lead => lead.id);
@@ -340,7 +363,7 @@ const KanbanColumnUnifiedComponent: React.FC<KanbanColumnUnifiedProps> = ({
           {/* Toggle de IA - Não mostrar para etapas GANHO e PERDIDO */}
           {!isWonLostStage && (
             <AIToggleSwitchEnhanced
-              enabled={column.ai_enabled === true}
+              enabled={currentAIEnabled} // ✅ Usar valor do cache, não das props
               onToggle={handleAIToggle}
               isLoading={isTogglingAI}
               disabled={!canToggleAI}
@@ -374,7 +397,7 @@ const KanbanColumnUnifiedComponent: React.FC<KanbanColumnUnifiedProps> = ({
   }, [
     column.id,
     column.title,
-    column.ai_enabled,
+    currentAIEnabled, // ✅ Usar valor do cache
     column.leads.length,
     massSelection?.isSelectionMode,
     funnelId,

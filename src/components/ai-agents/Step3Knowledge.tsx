@@ -4,12 +4,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, ChevronDown, ChevronUp, Plus, X, GitBranch, Package, Workflow, GraduationCap } from "lucide-react";
+import { Lightbulb, ChevronDown, ChevronUp, Plus, X, GitBranch, Package, Workflow, GraduationCap, Globe } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface QAPair {
   question: string;
@@ -21,6 +28,7 @@ interface Step3KnowledgeProps {
     faq: QAPair[];
     knowledge_base_enabled: boolean;
     company_info?: string;
+    country?: string;
   };
   onChange: (field: string, value: any) => void;
   agentId?: string;
@@ -86,6 +94,138 @@ export const Step3Knowledge = ({ data, onChange, agentId }: Step3KnowledgeProps)
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 relative z-20">
+      {/* Card: País de Atuação */}
+      <Card className={cn(
+        "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
+        "rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-white/15"
+      )}>
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
+              <Globe className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <Label className="text-base font-bold text-gray-900">
+                Em qual país seu negócio atua?
+              </Label>
+              <p className="text-xs text-gray-600">
+                Ajuda o agente a entender a moeda e região
+              </p>
+            </div>
+          </div>
+          <Select
+            value={data.country || 'BR'}
+            onValueChange={(value) => onChange('country', value)}
+          >
+            <SelectTrigger className={cn(
+              "h-12 w-full bg-white/40 backdrop-blur-sm border border-white/40 rounded-xl px-4 text-base font-medium",
+              "hover:bg-white/50 hover:border-blue-400 transition-all duration-200",
+              "focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            )}>
+              <SelectValue placeholder="Selecione o país" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border border-white/40 bg-white/95 backdrop-blur-lg shadow-xl max-h-[300px]">
+              {/* Américas */}
+              <SelectItem value="BR" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇧🇷 Brasil (R$ - Real)</span>
+              </SelectItem>
+              <SelectItem value="CA" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇨🇦 Canadá ($ - Dólar)</span>
+              </SelectItem>
+              <SelectItem value="MX" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇲🇽 México ($ - Peso)</span>
+              </SelectItem>
+              <SelectItem value="US" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇺🇸 Estados Unidos ($ - Dólar)</span>
+              </SelectItem>
+
+              {/* Europa */}
+              <SelectItem value="AT" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇦🇹 Áustria (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="BE" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇧🇪 Bélgica (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="BG" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇧🇬 Bulgária (лв - Lev)</span>
+              </SelectItem>
+              <SelectItem value="HR" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇭🇷 Croácia (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="CZ" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇨🇿 República Tcheca (Kč - Coroa)</span>
+              </SelectItem>
+              <SelectItem value="DK" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇩🇰 Dinamarca (kr - Coroa)</span>
+              </SelectItem>
+              <SelectItem value="EE" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇪🇪 Estônia (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="FI" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇫🇮 Finlândia (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="FR" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇫🇷 França (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="DE" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇩🇪 Alemanha (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="GR" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇬🇷 Grécia (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="HU" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇭🇺 Hungria (Ft - Forint)</span>
+              </SelectItem>
+              <SelectItem value="IE" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇮🇪 Irlanda (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="IT" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇮🇹 Itália (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="LV" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇱🇻 Letônia (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="LT" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇱🇹 Lituânia (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="NL" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇳🇱 Holanda (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="NO" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇳🇴 Noruega (kr - Coroa)</span>
+              </SelectItem>
+              <SelectItem value="PL" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇵🇱 Polônia (zł - Zloty)</span>
+              </SelectItem>
+              <SelectItem value="PT" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇵🇹 Portugal (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="RO" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇷🇴 Romênia (lei - Leu)</span>
+              </SelectItem>
+              <SelectItem value="SK" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇸🇰 Eslováquia (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="SI" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇸🇮 Eslovênia (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="ES" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇪🇸 Espanha (€ - Euro)</span>
+              </SelectItem>
+              <SelectItem value="SE" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇸🇪 Suécia (kr - Coroa)</span>
+              </SelectItem>
+              <SelectItem value="CH" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇨🇭 Suíça (CHF - Franco)</span>
+              </SelectItem>
+              <SelectItem value="GB" className="rounded-lg hover:bg-blue-50 focus:bg-blue-100 cursor-pointer">
+                <span className="flex items-center gap-2">🇬🇧 Reino Unido (£ - Libra)</span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
       {/* FAQ */}
       <Card className={cn(
         "relative overflow-hidden transition-all duration-300 hover:shadow-xl",

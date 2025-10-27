@@ -41,6 +41,8 @@ export interface Contact {
   whatsapp_number_id?: string;
   // ✅ NOVO: Status da conversa para controle de fechamento/arquivamento
   conversation_status?: 'active' | 'closed' | 'archived';
+  // ✅ NOVO: Controle de IA por lead
+  ai_enabled?: boolean;
 }
 
 export interface Deal {

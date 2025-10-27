@@ -27,9 +27,11 @@ export const StageListItem = ({ stage, onUpdate, onDelete, onMoveUp, onMoveDown,
 
   // Verificar se o estágio é fixo
   const isFixedStage = stage.title === "GANHO" || stage.title === "PERDIDO" || stage.title === "Entrada de Leads" || stage.isFixed;
-  
+
   // Verificar se é etapa GANHO ou PERDIDO (não devem ter controle de IA)
   const isWonLostStage = stage.title === "GANHO" || stage.title === "PERDIDO";
+
+  // ✅ Usar diretamente das props - React Query invalida e atualiza automaticamente
   const aiEnabled = stage.ai_enabled === true;
 
   const handleSave = async () => {
@@ -73,9 +75,10 @@ export const StageListItem = ({ stage, onUpdate, onDelete, onMoveUp, onMoveDown,
   };
 
   // Handler para toggle AI
-  const handleAIToggle = (enabled: boolean) => {
+  const handleAIToggle = async (enabled: boolean) => {
     if (!isWonLostStage) {
-      toggleAI(stage.id, aiEnabled);
+      // ✅ React Query vai invalidar o cache e re-renderizar automaticamente
+      await toggleAI(stage.id, aiEnabled);
     }
   };
 

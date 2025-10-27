@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 // Hooks unificados
 import { useSalesFunnelUnified } from "@/hooks/salesFunnel/useSalesFunnelUnified";
+import { useFunnelData } from "@/hooks/salesFunnel/core/useFunnelData";
 
 // Modal para deals
 import { AddDealModal } from "@/components/clients/ClientDetailsSections/DealsHistory/AddDealModal";
@@ -84,6 +85,14 @@ export function SalesFunnelContentUnified() {
 
   // Garantir que existam etapas padrão no funil
   useEnsureDefaultStages(selectedFunnel?.id);
+
+  // 🎯 HOOK BASE - Query única compartilhada (REFATORAÇÃO)
+  // Este hook inicializa o cache que será compartilhado por todos os outros
+  const funnelBaseData = useFunnelData({
+    funnelId: selectedFunnel?.id,
+    enabled: !!selectedFunnel?.id,
+    realtime: true
+  });
 
   // 🎯 HOOK UNIFICADO PRINCIPAL - Substitui 8+ hooks antigos
   const funnel = useSalesFunnelUnified({

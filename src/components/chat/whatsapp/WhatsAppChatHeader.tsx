@@ -8,6 +8,8 @@ import { ChatHeaderTags } from "../ChatHeaderTags";
 import { StageSelector } from "../StageSelector";
 import { useLeadTags } from "@/hooks/salesFunnel/useLeadTags";
 import { useEffect, useState } from "react";
+import { AIToggleSwitchEnhanced } from "@/components/sales/ai/AIToggleSwitchEnhanced";
+import { useAILeadControl } from "@/hooks/leads/useAILeadControl";
 
 interface WhatsAppChatHeaderProps {
   selectedContact: Contact;
@@ -38,6 +40,7 @@ export const WhatsAppChatHeader = ({
   const [localContact, setLocalContact] = useState<Contact>(selectedContact);
   const displayName = getDisplayName(localContact);
   const { leadTags, availableTags, loading, fetchTags, addTag, removeTag } = useLeadTags(localContact.leadId || '');
+  const { toggleAI, isLoading: isTogglingAI } = useAILeadControl();
 
   // ✅ NOVO: Atualizar estado local quando selectedContact muda
   useEffect(() => {
@@ -88,14 +91,24 @@ export const WhatsAppChatHeader = ({
       }
     };
 
+    const handleAIToggle = (event: CustomEvent) => {
+      const { leadId, aiEnabled } = event.detail;
+      if (leadId === localContact.leadId) {
+        console.log('[WhatsAppChatHeader] 🤖 Atualizando status IA:', { leadId, aiEnabled });
+        setLocalContact(prev => ({ ...prev, ai_enabled: aiEnabled }));
+      }
+    };
+
     window.addEventListener('leadUpdated', handleContactUpdate);
     window.addEventListener('contactNameUpdated', handleContactNameUpdate);
     window.addEventListener('refreshLeadTags', handleTagsRefresh);
+    window.addEventListener('leadAIToggled', handleAIToggle);
 
     return () => {
       window.removeEventListener('leadUpdated', handleContactUpdate);
       window.removeEventListener('contactNameUpdated', handleContactNameUpdate);
       window.removeEventListener('refreshLeadTags', handleTagsRefresh);
+      window.removeEventListener('leadAIToggled', handleAIToggle);
     };
   }, [localContact.leadId, localContact.id, fetchTags]);
 
@@ -104,6 +117,12 @@ export const WhatsAppChatHeader = ({
       fetchTags();
     }
   }, [localContact.leadId, fetchTags]);
+
+  const handleAIToggleClick = (enabled: boolean) => {
+    if (localContact.leadId) {
+      toggleAI(localContact.leadId, localContact.ai_enabled !== false);
+    }
+  };
 
   return (
     <div className="flex flex-col border-b border-white/20">
@@ -139,11 +158,26 @@ export const WhatsAppChatHeader = ({
         </div>
         
         <div className="flex items-center gap-2">
+          {localContact.leadId && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs font-medium text-gray-700">
+                {localContact.ai_enabled !== false ? "IA Ativada" : "IA Desativada"}
+              </span>
+              <AIToggleSwitchEnhanced
+                enabled={localContact.ai_enabled !== false}
+                onToggle={handleAIToggleClick}
+                isLoading={isTogglingAI}
+                size="sm"
+                variant="compact"
+                showLabel={false}
+              />
+            </div>
+          )}
           {onRefreshMessages && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-gray-700 hover:text-gray-900 hover:bg-white/20" 
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-700 hover:text-gray-900 hover:bg-white/20"
               onClick={onRefreshMessages}
               disabled={isRefreshing}
             >

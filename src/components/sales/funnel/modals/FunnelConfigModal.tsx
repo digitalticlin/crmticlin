@@ -61,6 +61,7 @@ export const FunnelConfigModal = ({ isOpen, onClose, selectedFunnelId }: FunnelC
     title: stage.title,
     color: stage.color || "#e0e0e0",
     isFixed: stage.is_fixed || false,
+    ai_enabled: stage.ai_enabled,
     leads: []
   })) || [];
 

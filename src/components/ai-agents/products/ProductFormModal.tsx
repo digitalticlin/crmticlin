@@ -19,6 +19,7 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { ImagePlus, X, Loader2, Package, Briefcase } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CURRENCIES } from "@/utils/currencyUtils";
@@ -44,9 +45,11 @@ export const ProductFormModal = ({
     name: '',
     description: '',
     category: '',
+    keywords: '',
     price: '',
     currency: 'BRL',
-    image_url: ''
+    image_url: '',
+    price_type: 'fixed' as 'fixed' | 'on_request'
   });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -58,9 +61,11 @@ export const ProductFormModal = ({
         name: product.name || '',
         description: product.description || '',
         category: product.category || '',
+        keywords: product.keywords || '',
         price: product.price?.toString() || '',
         currency: product.currency || 'BRL',
-        image_url: product.image_url || ''
+        image_url: product.image_url || '',
+        price_type: product.price_type || (product.price !== null ? 'fixed' : 'on_request')
       });
     } else {
       setFormData({
@@ -68,9 +73,11 @@ export const ProductFormModal = ({
         name: '',
         description: '',
         category: '',
+        keywords: '',
         price: '',
         currency: 'BRL',
-        image_url: ''
+        image_url: '',
+        price_type: 'fixed'
       });
     }
   }, [product, isOpen]);
@@ -108,8 +115,14 @@ export const ProductFormModal = ({
 
   const handleSave = async () => {
     // Validação de campos obrigatórios
-    if (!formData.name.trim() || !formData.price) {
-      toast.error('Nome e preço são obrigatórios');
+    if (!formData.name.trim()) {
+      toast.error('Nome é obrigatório');
+      return;
+    }
+
+    // Validação de preço se price_type for 'fixed'
+    if (formData.price_type === 'fixed' && !formData.price) {
+      toast.error('Informe o preço ou selecione "Sob consulta"');
       return;
     }
 
@@ -130,8 +143,10 @@ export const ProductFormModal = ({
         name: formData.name.trim(),
         description: formData.description.trim() || null,
         category: formData.category.trim() || null,
-        price: parseFloat(formData.price),
-        currency: formData.currency,
+        keywords: formData.keywords.trim() || null,
+        price: formData.price_type === 'fixed' && formData.price ? parseFloat(formData.price) : null,
+        currency: formData.price_type === 'fixed' ? formData.currency : null,
+        price_type: formData.price_type,
         image_url: formData.image_url || null,
         created_by_user_id: user.id,
         updated_at: new Date().toISOString()
@@ -324,40 +339,101 @@ export const ProductFormModal = ({
             />
           </div>
 
-          {/* Preço e Moeda */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="price">Preço *</Label>
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                placeholder="0.00"
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="currency">Moeda *</Label>
-              <Select
-                value={formData.currency}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}
-              >
-                <SelectTrigger id="currency" className="mt-2">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map((curr) => (
-                    <SelectItem key={curr.value} value={curr.value}>
-                      {curr.label} ({curr.symbol})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Palavras-chave */}
+          <div>
+            <Label htmlFor="keywords">Palavras-chave (Opcional)</Label>
+            <Input
+              id="keywords"
+              value={formData.keywords}
+              onChange={(e) => setFormData(prev => ({ ...prev, keywords: e.target.value }))}
+              placeholder="Ex: carne, bovina, churrasco, bife, moída (separe por vírgula)"
+              className="mt-2"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              💡 Ajuda o agente a encontrar este item quando o cliente usar sinônimos
+            </p>
           </div>
+
+          {/* Tipo de Preço */}
+          <div>
+            <Label>Tipo de Preço</Label>
+            <div className="flex gap-2 mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(
+                  "flex-1 h-12 transition-all",
+                  formData.price_type === 'fixed'
+                    ? "bg-white/40 border-white/60 text-gray-900 font-semibold"
+                    : "bg-white/10 border-white/30 text-gray-600 hover:bg-white/20"
+                )}
+                onClick={() => setFormData(prev => ({ ...prev, price_type: 'fixed' }))}
+              >
+                💰 Preço Fixo
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn(
+                  "flex-1 h-12 transition-all",
+                  formData.price_type === 'on_request'
+                    ? "bg-white/40 border-white/60 text-gray-900 font-semibold"
+                    : "bg-white/10 border-white/30 text-gray-600 hover:bg-white/20"
+                )}
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  price_type: 'on_request',
+                  price: '',
+                  currency: 'BRL'
+                }))}
+              >
+                📋 Sob Consulta
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {formData.price_type === 'fixed'
+                ? 'Informe o valor fixo do produto/serviço'
+                : 'O agente informará que os valores são personalizados'}
+            </p>
+          </div>
+
+          {/* Preço e Moeda */}
+          {formData.price_type === 'fixed' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="price">Preço *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                  placeholder="0.00"
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label htmlFor="currency">Moeda *</Label>
+                <Select
+                  value={formData.currency}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, currency: value }))}
+                >
+                  <SelectTrigger id="currency" className="mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map((curr) => (
+                      <SelectItem key={curr.value} value={curr.value}>
+                        {curr.label} ({curr.symbol})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
         </div>
 
         <DialogFooter>
@@ -366,7 +442,7 @@ export const ProductFormModal = ({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!formData.name.trim() || !formData.price || saving}
+            disabled={!formData.name.trim() || (formData.price_type === 'fixed' && !formData.price) || saving}
           >
             {saving ? (
               <>

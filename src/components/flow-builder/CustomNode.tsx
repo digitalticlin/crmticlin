@@ -214,6 +214,44 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
     return null;
   };
 
+  // Função para obter TODOS os blocos anteriores (para Repetir com Variação)
+  const getAllPreviousBlocks = () => {
+    const edges = getEdges();
+    const nodes = getNodes();
+    const visited = new Set<string>();
+    const previousBlocks: { id: string; label: string; type: string }[] = [];
+
+    // BFS para encontrar todos os nodes anteriores
+    const queue: string[] = [id];
+    visited.add(id);
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+
+      // Encontrar todas as edges que levam a este node
+      const inputEdges = edges.filter(edge => edge.target === currentId);
+
+      for (const edge of inputEdges) {
+        if (!visited.has(edge.source)) {
+          visited.add(edge.source);
+          queue.push(edge.source);
+
+          // Adicionar o node à lista de blocos anteriores
+          const sourceNode = nodes.find(node => node.id === edge.source);
+          if (sourceNode && sourceNode.data.type !== 'start') {
+            previousBlocks.push({
+              id: sourceNode.id,
+              label: sourceNode.data.label || 'Bloco sem nome',
+              type: sourceNode.data.type || 'send_message'
+            });
+          }
+        }
+      }
+    }
+
+    return previousBlocks;
+  };
+
   // Calcular altura mínima baseada no número de decisões
   const minHeight = data.decisions && data.decisions.length > 1
     ? 120 + (data.decisions.length - 1) * 40 // 40px de espaço por decisão adicional
@@ -548,7 +586,7 @@ export const CustomNode = memo(({ data, id }: NodeProps) => {
         <RetryVariationEditor
           isOpen={isEditOpen}
           onClose={() => setIsEditOpen(false)}
-          previousBlocks={getConnectedInputBlock() ? [getConnectedInputBlock()!] : []}
+          previousBlocks={getAllPreviousBlocks()}
           initialData={{
             label: data.label,
             messages: data.messages || [],

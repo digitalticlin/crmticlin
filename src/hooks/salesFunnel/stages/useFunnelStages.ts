@@ -1,123 +1,60 @@
 /**
- * 🎯 HOOK ISOLADO - BUSCAR STAGES/ETAPAS DO FUNIL
+ * 🎯 HOOK DE LEITURA - BUSCAR STAGES/ETAPAS DO FUNIL
+ *
+ * ARQUITETURA REFATORADA:
+ * ✅ NÃO faz query HTTP própria
+ * ✅ Usa cache compartilhado do useFunnelData
+ * ✅ Derivar dados específicos de stages
+ * ✅ Mesma queryKey = mesma requisição HTTP
  *
  * RESPONSABILIDADES:
- * ✅ Buscar etapas de um funil específico
- * ✅ Cache otimizado com React Query
- * ✅ Ordenação por order_position
- * ✅ Identificar etapas especiais (ganho/perdido)
+ * ✅ Ler stages do cache compartilhado
+ * ✅ Filtrar e organizar stages
+ * ✅ Identificar stages especiais (ganho/perdido)
+ * ✅ Retornar dados úteis pré-processados
  *
  * NÃO FAZ:
- * ❌ CRUD de etapas (isso seria em useStageActions)
- * ❌ Real-time (isso seria em useStagesRealtime)
- * ❌ Gerenciar leads (isso é no useFunnelLeads)
+ * ❌ Query HTTP (useFunnelData faz isso)
+ * ❌ CRUD de etapas (useStageActions faz isso)
+ * ❌ Mutações ou updates
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { funnelDataQueryKeys } from '../core/useFunnelData';
 import { KanbanStage } from '@/types/funnel';
 
-// Query keys isoladas para stages
-export const funnelStagesQueryKeys = {
-  all: ['salesfunnel-stages'] as const,
-  byFunnel: (funnelId: string) =>
-    [...funnelStagesQueryKeys.all, 'funnel', funnelId] as const,
-  won: (funnelId: string) =>
-    [...funnelStagesQueryKeys.all, 'won', funnelId] as const,
-  lost: (funnelId: string) =>
-    [...funnelStagesQueryKeys.all, 'lost', funnelId] as const,
-};
+// ✅ Manter compatibilidade com código existente
+export const funnelStagesQueryKeys = funnelDataQueryKeys;
 
 interface UseFunnelStagesParams {
   funnelId: string | null;
   enabled?: boolean;
 }
 
+/**
+ * Hook que deriva dados de stages do cache compartilhado
+ * React Query deduplica automaticamente - não faz requisição HTTP se cache existe
+ */
 export function useFunnelStages({
   funnelId,
   enabled = true
 }: UseFunnelStagesParams) {
-  const { user } = useAuth();
-
-  const queryResult = useQuery({
-    queryKey: funnelStagesQueryKeys.byFunnel(funnelId || ''),
-    queryFn: async () => {
-      if (!funnelId || !user?.id) {
-        return [];
-      }
-
-      try {
-        // Buscar via funil para contornar possíveis problemas de RLS
-        const { data: funnelWithStages, error: funnelError } = await supabase
-          .from('funnels')
-          .select(`
-            id,
-            name,
-            kanban_stages (
-              id,
-              title,
-              color,
-              order_position,
-              is_fixed,
-              is_won,
-              is_lost,
-              funnel_id,
-              created_by_user_id,
-              ai_enabled
-            )
-          `)
-          .eq('id', funnelId)
-          .single();
-
-        if (funnelError) {
-          // Fallback: tentar buscar direto
-          const { data: directStages, error: directError } = await supabase
-            .from('kanban_stages')
-            .select('*')
-            .eq('funnel_id', funnelId)
-            .neq('is_won', true) // Excluir etapa GANHO da aba principal
-            .neq('is_lost', true) // Excluir etapa PERDIDO da aba principal
-            .order('order_position', { ascending: true });
-
-          if (directError) {
-            throw directError;
-          }
-
-          return directStages || [];
-        }
-
-        const stages = funnelWithStages?.kanban_stages || [];
-
-        // Ordenar por order_position
-        const sortedStages = stages.sort((a, b) =>
-          (a.order_position || 0) - (b.order_position || 0)
-        );
-
-        // Log condicional apenas em desenvolvimento e quando necessário
-        if (process.env.NODE_ENV === 'development' && sortedStages.length > 0) {
-          console.log('[useFunnelStages] ✅ Etapas carregadas:', {
-            total: sortedStages.length,
-            hasWon: sortedStages.some(s => s.is_won),
-            hasLost: sortedStages.some(s => s.is_lost)
-          });
-        }
-
-        return sortedStages;
-      } catch (error) {
-        console.error('[useFunnelStages] ❌ Erro crítico:', error);
-        return [];
-      }
+  // ✅ USA MESMA QUERY KEY - React Query retorna cache compartilhado
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: funnelDataQueryKeys.byId(funnelId || ''),
+    enabled: !!funnelId && enabled,
+    // queryFn vazio - apenas lê cache, nunca executa
+    queryFn: () => {
+      console.log('[useFunnelStages] ⚠️ queryFn chamado - não deveria acontecer!');
+      return null;
     },
-    enabled: !!funnelId && !!user?.id && enabled,
-    staleTime: 30 * 60 * 1000, // 30 minutos
-    gcTime: 60 * 60 * 1000, // 60 minutos
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false
+    // Apenas lê cache, nunca refetch automaticamente
+    staleTime: Infinity,
+    gcTime: Infinity
   });
 
-  // Derivar dados úteis das etapas
-  const stages = queryResult.data || [];
+  // Derivar dados de stages do cache
+  const stages: KanbanStage[] = data?.stages || [];
 
   // Identificar etapas especiais
   const wonStage = stages.find(s => s.is_won);
@@ -127,7 +64,13 @@ export function useFunnelStages({
   // Etapas principais (não ganho nem perdido)
   const mainStages = stages.filter(s => !s.is_won && !s.is_lost);
 
-  // Log removido - evitar loops no render
+  console.log('[useFunnelStages] 📖 Lendo do cache compartilhado:', {
+    total: stages.length,
+    mainStages: mainStages.length,
+    hasWon: !!wonStage,
+    hasLost: !!lostStage,
+    cacheHit: !isLoading // Se não está loading, é cache hit
+  });
 
   return {
     // Dados
@@ -143,10 +86,10 @@ export function useFunnelStages({
     firstStageId: firstStage?.id,
 
     // Estados
-    isLoading: queryResult.isLoading,
-    error: queryResult.error,
+    isLoading,
+    error,
 
     // Ações
-    refetch: queryResult.refetch
+    refetch
   };
 }

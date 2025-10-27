@@ -48,12 +48,14 @@ export default function EditAgent() {
     },
     funnel_id: null as string | null,
     instance_phone: null as string | null,
-
-    // Step 2 - Personalidade
     communication_style: {
       name: "Normal",
       description: "Use linguagem natural e acessível. Seja cordial sem ser formal demais. Pode usar \"você\" de forma amigável. Evite gírias excessivas, mas pode usar termos cotidianos. Seja claro, direto e mantenha equilíbrio entre profissionalismo e proximidade. Emojis ocasionais são aceitáveis."
     },
+    use_emojis: true,
+    country: "BR",
+
+    // Step 2 - Personalidade
     agent_function: "",
     prohibitions: [] as string[],
     signature: false,
@@ -134,6 +136,8 @@ export default function EditAgent() {
         funnel_id: agent.funnel_id,
         instance_phone: agent.instance_phone || null,
         communication_style: communicationStyle,
+        use_emojis: agent.use_emojis !== undefined ? agent.use_emojis : true,
+        country: agent.country || "BR",
         agent_function: agent.agent_function || "",
         prohibitions: Array.isArray(prohibitions) ? prohibitions : [],
         signature: agent.signature || false,
@@ -196,12 +200,15 @@ export default function EditAgent() {
         funnel_id: formData.funnel_id,
         instance_phone: formData.instance_phone,
         communication_style: JSON.stringify(formData.communication_style),
+        use_emojis: formData.use_emojis,
+        country: formData.country,
         agent_function: formData.agent_function,
         prohibitions: JSON.stringify(formData.prohibitions),
         signature: formData.signature,
         knowledge_base_enabled: formData.knowledge_base_enabled,
         company_info: formData.company_info,
         faq: JSON.stringify(formData.faq),
+        order_management: formData.objective?.name === 'Montar Pedido',
         updated_at: new Date().toISOString()
       };
 

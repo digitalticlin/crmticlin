@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Target, Workflow, MessageCircle, ChevronDown, Check, Pen, ChevronUp } from "lucide-react";
+import { Sparkles, Target, Workflow, MessageCircle, ChevronDown, Check, Pen, ChevronUp, ShoppingCart } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,7 +22,7 @@ interface Step1BasicProps {
     funnel_id: string | null;
     communication_style: { name: string; description: string };
     instance_phone: string | null;
-    signature: boolean;
+    use_emojis: boolean;
   };
   onChange: (field: string, value: any) => void;
 }
@@ -111,6 +111,16 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
       preview: 'Qualificar leads para o time',
       gradient: 'from-blue-500 to-blue-600'
     },
+    {
+      value: {
+        name: 'Montar Pedido',
+        description: 'Seu objetivo é montar pedidos para auxiliar o cliente na compra. Colete informações essenciais da conversa como nome do cliente, descrição detalhada do produto/serviço desejado e preste especial atenção à moeda utilizada (Real, Dólar, Euro, Libra, etc). Consulte a base de conhecimento para produtos/serviços disponíveis e monte o pedido de forma precisa e organizada.'
+      },
+      icon: '🛒',
+      title: 'Montar Pedido',
+      preview: 'Criar e gerenciar pedidos',
+      gradient: 'from-green-500 to-green-600'
+    },
   ];
 
   const communicationStyles = [
@@ -154,7 +164,7 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
       {/* Seção Objetivo - MINIMALISTA */}
       <div className="space-y-3">
         <Label className="text-sm font-medium text-gray-600">Selecione o objetivo deste Funcionário</Label>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           {objectives.map((obj) => (
             <button
               key={obj.value.name}
@@ -341,6 +351,34 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
         </div>
       </div>
 
+      {/* Card: Usar Emojis */}
+      <Card className={cn(
+        "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
+        "rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-white/15"
+      )}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-md">
+                <span className="text-xl">😊</span>
+              </div>
+              <div>
+                <Label className="text-base font-bold text-gray-900">
+                  Usar emojis na comunicação
+                </Label>
+                <p className="text-xs text-gray-600">
+                  Deixa a conversa mais amigável e próxima
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={data.use_emojis || false}
+              onCheckedChange={(value) => onChange('use_emojis', value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Card: WhatsApp */}
       <Card className={cn(
         "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
@@ -428,33 +466,6 @@ export const Step1Basic = ({ data, onChange }: Step1BasicProps) => {
         </CardContent>
       </Card>
 
-      {/* Card: Assinatura de Mensagens */}
-      <Card className={cn(
-        "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
-        "rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-white/15"
-      )}>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md">
-                <Pen className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <Label className="text-base font-bold text-gray-900">
-                  Assinatura de mensagens
-                </Label>
-                <p className="text-xs text-gray-600">
-                  Adiciona "Agente diz:" antes de cada mensagem
-                </p>
-              </div>
-            </div>
-            <Switch
-              checked={data.signature || false}
-              onCheckedChange={(value) => onChange('signature', value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

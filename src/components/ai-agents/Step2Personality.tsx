@@ -4,7 +4,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { User, ShieldX, X, Building, ChevronDown, ChevronUp } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { User, ShieldX, X, Building, ChevronDown, ChevronUp, Pen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Step2PersonalityProps {
@@ -12,6 +13,7 @@ interface Step2PersonalityProps {
     agent_function: string;
     company_info: string;
     prohibitions: string[];
+    signature: boolean;
   };
   onChange: (field: string, value: any) => void;
 }
@@ -213,6 +215,34 @@ Exemplo:
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Card: Assinatura de Mensagens */}
+      <Card className={cn(
+        "relative overflow-hidden transition-all duration-300 hover:shadow-xl",
+        "rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg hover:bg-white/15"
+      )}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md">
+                <Pen className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <Label className="text-base font-bold text-gray-900">
+                  Assinatura de mensagens
+                </Label>
+                <p className="text-xs text-gray-600">
+                  Adiciona "Agente diz:" antes de cada mensagem
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={data.signature || false}
+              onCheckedChange={(value) => onChange('signature', value)}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>
